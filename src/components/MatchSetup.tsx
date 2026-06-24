@@ -23,6 +23,7 @@ type MatchSetupProps = {
   onUpdateSetup: (updates: Partial<SetupForm>) => void;
   onStartMatch: () => void;
   onJoinSession: (code: string) => void;
+  onCreateSession: () => void;
 };
 
 export function MatchSetup({
@@ -31,6 +32,7 @@ export function MatchSetup({
   onUpdateSetup,
   onStartMatch,
   onJoinSession,
+  onCreateSession,
 }: MatchSetupProps) {
   const [view, setView] = useState<SetupView>('landing');
   const [inputValue, setInputValue] = useState('');
@@ -66,6 +68,7 @@ export function MatchSetup({
   }
 
   function handleCreatePress() {
+    onCreateSession();
     setView('create');
   }
 

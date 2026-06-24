@@ -185,6 +185,15 @@ export default function App() {
     setSetup((prev) => ({ ...prev, ...updates }));
   }
 
+  function handleCreateSession() {
+    if (!sessionCodeRef.current && isFirebaseReady) {
+      const code = generateSessionCode();
+      sessionCodeRef.current = code;
+      setSessionCode(code);
+      startSessionSubscription(code);
+    }
+  }
+
   function handleGoToLineup() {
     const requiredPlayers = setup.mode === 'double' ? 4 : 2;
     if (setup.players.length < requiredPlayers) {
@@ -491,6 +500,7 @@ export default function App() {
       onUpdateSetup={handleUpdateSetup}
       onStartMatch={handleGoToLineup}
       onJoinSession={handleJoinSession}
+      onCreateSession={handleCreateSession}
     />
   );
 }
