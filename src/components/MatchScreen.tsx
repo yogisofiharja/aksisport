@@ -103,8 +103,8 @@ export function MatchScreen(props: MatchScreenProps) {
           </View>
 
           <View style={styles.controlsRow}>
-            <IconActionButton icon="arrow-undo" onPress={handleUndo} disabled={!hasUndo} />
-            <IconActionButton icon="time-outline" onPress={onShowHistory} />
+            <LabeledIconButton icon="arrow-undo" label="Batalkan" onPress={handleUndo} disabled={!hasUndo} />
+            <LabeledIconButton icon="time-outline" label="Riwayat" onPress={onShowHistory} />
           </View>
         </ScrollView>
 
@@ -224,18 +224,20 @@ function ScoreTapCard(props: {
   );
 }
 
-function IconActionButton(props: {
+function LabeledIconButton(props: {
   icon: ComponentProps<typeof Ionicons>['name'];
+  label: string;
   onPress: () => void;
   disabled?: boolean;
 }) {
   return (
     <Pressable
-      style={[styles.iconButton, props.disabled && styles.actionButtonDisabled]}
+      style={[styles.labeledButton, props.disabled && styles.actionButtonDisabled]}
       onPress={props.onPress}
       disabled={props.disabled}
     >
       <Ionicons name={props.icon} size={18} color="#ffffff" />
+      <Text style={styles.labeledButtonText}>{props.label}</Text>
     </Pressable>
   );
 }
@@ -427,13 +429,19 @@ const styles = StyleSheet.create({
   endMatchButton: {
     width: '100%',
   },
-  iconButton: {
+  labeledButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: '#334155',
-    width: 44,
+    paddingHorizontal: 16,
     height: 44,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+  },
+  labeledButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   actionButtonDisabled: {
     backgroundColor: '#9aa6b2',

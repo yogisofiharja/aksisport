@@ -64,6 +64,11 @@ export function HistoryScreen({ matchHistory, onBack }: HistoryScreenProps) {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.container}>
+          <Pressable onPress={onBack} style={styles.backRow}>
+            <Ionicons name="arrow-back" size={18} color="#64748b" />
+            <Text style={styles.backText}>Kembali</Text>
+          </Pressable>
+
           <Card tone="accent" style={styles.heroCard}>
             <Text style={styles.appTitle}>PoinYuk</Text>
           </Card>
@@ -194,9 +199,21 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: {
     paddingHorizontal: 18,
-    paddingTop: 18,
+    paddingTop: 12,
     paddingBottom: 32,
     gap: 14,
+  },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+  },
+  backText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748b',
   },
   heroCard: { paddingVertical: 16 },
   appTitle: {

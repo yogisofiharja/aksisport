@@ -82,11 +82,17 @@ export default function App() {
     if (restored.matchState) {
       setScreen(restored.matchState.isEnded ? 'final' : 'match');
     }
+
+    if (restored.sessionCode && isFirebaseReady) {
+      sessionCodeRef.current = restored.sessionCode;
+      setSessionCode(restored.sessionCode);
+      startSessionSubscription(restored.sessionCode);
+    }
   }, []);
 
   useEffect(() => {
-    savePersistedState({ version: 1, setup, teamASide, matchState, history, backgroundPhotoDataUrl, playerPlayCounts, matchHistory });
-  }, [setup, teamASide, matchState, history, backgroundPhotoDataUrl, playerPlayCounts, matchHistory]);
+    savePersistedState({ version: 1, setup, teamASide, matchState, history, backgroundPhotoDataUrl, playerPlayCounts, matchHistory, sessionCode });
+  }, [setup, teamASide, matchState, history, backgroundPhotoDataUrl, playerPlayCounts, matchHistory, sessionCode]);
 
   // ── Firebase session sync — push all state on any change ─────────────────
   useEffect(() => {
@@ -203,6 +209,14 @@ export default function App() {
   // ── Lineup screen ─────────────────────────────────────────────────────────
 
   function handleLineupConfirm(lineup: LineupResult) {
+    // Ensure a session code exists — may have been cleared between matches
+    if (!sessionCodeRef.current && isFirebaseReady) {
+      const code = generateSessionCode();
+      sessionCodeRef.current = code;
+      setSessionCode(code);
+      startSessionSubscription(code);
+    }
+
     const players = buildPlayers(lineup.teamANames, lineup.teamBNames);
     const firstServerPlayer = players.find((p) => p.name === lineup.firstServerName);
     const firstServerId = firstServerPlayer?.id ?? players[0].id;
@@ -236,6 +250,8 @@ export default function App() {
       incrementPlayCounts();
       addToMatchHistory(next);
       setScreen('final');
+      const code = sessionCodeRef.current;
+      if (code) setTimeout(() => deleteSession(code), 2000);
     }
   }
 
@@ -255,6 +271,8 @@ export default function App() {
     incrementPlayCounts();
     addToMatchHistory(ended);
     setScreen('final');
+    const code = sessionCodeRef.current;
+    if (code) setTimeout(() => deleteSession(code), 2000);
   }
 
   function incrementPlayCounts() {
@@ -392,6 +410,7 @@ export default function App() {
     setTeamASide('left');
     setMatchState(null);
     setHistory([]);
+    setMatchHistory([]);
     setPlayerPlayCounts({});
     setBackgroundPhotoDataUrl(null);
     setSharePreviewDataUrl(null);

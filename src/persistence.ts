@@ -40,6 +40,10 @@ export function parsePersistedState(raw: string | null): PersistedAppState | nul
       parsed.matchHistory = [];
     }
 
+    if (typeof parsed.sessionCode === 'undefined') {
+      parsed.sessionCode = null;
+    }
+
     parsed.setup = normalizeSetup(parsed.setup as Record<string, unknown>);
 
     if (parsed.matchState && typeof parsed.matchState.deuceCount === 'undefined') {

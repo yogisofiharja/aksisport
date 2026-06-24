@@ -40,4 +40,5 @@ export type PersistedAppState = {
   backgroundPhotoDataUrl: string | null;
   playerPlayCounts: Record<string, number>;
   matchHistory?: MatchRecord[];
+  sessionCode?: string | null;
 };
