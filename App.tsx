@@ -396,8 +396,7 @@ export default function App() {
   }
 
   function handleBackToSetup() {
-    endSession();
-    setMatchState(null);
+    // Keep session alive and matchState (isEnded) so lineup "Kembali" returns to final
     setHistory([]);
     setSharePreviewDataUrl(null);
     setScreen('lineup');
@@ -440,6 +439,8 @@ export default function App() {
         onBack={() => {
           if (matchState && !matchState.isEnded) {
             setScreen('match');
+          } else if (matchState?.isEnded) {
+            setScreen('final');
           } else {
             setScreen('setup');
           }
