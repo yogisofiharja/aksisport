@@ -4,11 +4,13 @@ import { TeamNames } from '../appTypes';
 import { MatchState, Team } from '../scoring';
 import { Button, Card, DecorativeBackdrop } from './ui';
 import { ShareCardModal } from './ShareCardModal';
+import { SessionCodeBadge } from './SessionCodeBadge';
 
 type FinalScoreScreenProps = {
   matchState: MatchState;
   teamNames: TeamNames;
   sharePreviewDataUrl: string | null;
+  sessionCode: string | null;
   onShare: () => void;
   onShareFromPreview: () => void;
   onCloseSharePreview: () => void;
@@ -23,6 +25,7 @@ export function FinalScoreScreen(props: FinalScoreScreenProps) {
     matchState,
     teamNames,
     sharePreviewDataUrl,
+    sessionCode,
     onShare,
     onShareFromPreview,
     onCloseSharePreview,
@@ -46,8 +49,9 @@ export function FinalScoreScreen(props: FinalScoreScreenProps) {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.container}>
-          <Card tone="accent">
+          <Card tone="accent" style={styles.heroCard}>
             <Text style={styles.title}>PoinYuk</Text>
+            <SessionCodeBadge sessionCode={sessionCode} />
           </Card>
 
           <Card style={styles.scoreboardCard}>
@@ -201,6 +205,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 12,
   },
+  heroCard: { paddingVertical: 16, gap: 6 },
   title: {
     fontSize: 28,
     fontWeight: '900',

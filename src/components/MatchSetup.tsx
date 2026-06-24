@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SetupForm } from '../appTypes';
 import { Button, Card, DecorativeBackdrop, palette, Pill } from './ui';
+import { SessionCodeBadge } from './SessionCodeBadge';
 
 type SetupView = 'landing' | 'create' | 'join';
 
@@ -33,11 +34,11 @@ export function MatchSetup({
 }: MatchSetupProps) {
   const [view, setView] = useState<SetupView>('landing');
   const [inputValue, setInputValue] = useState('');
-
   // Auto-advance to form when a session code arrives (owner created session or umpire joined)
   useEffect(() => {
     if (sessionCode && view === 'landing') setView('create');
   }, [sessionCode]);
+
   const inputRef = useRef<TextInput>(null);
   const [joinCode, setJoinCode] = useState('');
 
@@ -49,12 +50,13 @@ export function MatchSetup({
   function addPlayer() {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
-    if (setup.players.map((name) => name.toLowerCase()).includes(trimmed.toLowerCase())) {
+    const capitalised = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    if (setup.players.map((name) => name.toLowerCase()).includes(capitalised.toLowerCase())) {
       setInputValue('');
       inputRef.current?.focus();
       return;
     }
-    onUpdateSetup({ players: [...setup.players, trimmed] });
+    onUpdateSetup({ players: [...setup.players, capitalised] });
     setInputValue('');
     inputRef.current?.focus();
   }
@@ -163,12 +165,7 @@ export function MatchSetup({
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <Card tone="accent" style={styles.heroCard}>
             <Text style={styles.appTitle}>PoinYuk</Text>
-            {sessionCode && (
-              <View style={styles.sessionCodeRow}>
-                <Ionicons name="qr-code-outline" size={13} color="#b45309" />
-                <Text style={styles.sessionCodeText}>Kode sesi: {sessionCode}</Text>
-              </View>
-            )}
+            <SessionCodeBadge sessionCode={sessionCode} />
           </Card>
 
           <Card>
@@ -253,6 +250,7 @@ export function MatchSetup({
           <Button label="Pilih Pemain & Mulai Match" onPress={onStartMatch} size="lg" disabled={!canStart} />
         </ScrollView>
       </SafeAreaView>
+
     </DecorativeBackdrop>
   );
 }
@@ -277,17 +275,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '900',
     color: '#111827',
-  },
-  sessionCodeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  sessionCodeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#b45309',
-    letterSpacing: 0.5,
   },
   landingCard: {
     padding: 0,

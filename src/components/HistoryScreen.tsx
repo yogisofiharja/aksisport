@@ -9,15 +9,17 @@ import {
   pickImageDataUrlWeb,
   shareImageWeb,
 } from '../shareCard';
-import { Button, Card, DecorativeBackdrop } from './ui';
+import { Card, DecorativeBackdrop } from './ui';
 import { ShareCardModal } from './ShareCardModal';
+import { SessionCodeBadge } from './SessionCodeBadge';
 
 type HistoryScreenProps = {
   matchHistory: MatchRecord[];
+  sessionCode: string | null;
   onBack: () => void;
 };
 
-export function HistoryScreen({ matchHistory, onBack }: HistoryScreenProps) {
+export function HistoryScreen({ matchHistory, sessionCode, onBack }: HistoryScreenProps) {
   const [sharePreviewDataUrl, setSharePreviewDataUrl] = useState<string | null>(null);
   const [sharingRecord, setSharingRecord] = useState<MatchRecord | null>(null);
   const [backgroundDataUrl, setBackgroundDataUrl] = useState<string | null>(null);
@@ -64,13 +66,14 @@ export function HistoryScreen({ matchHistory, onBack }: HistoryScreenProps) {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.container}>
-          <Pressable onPress={onBack} style={styles.backRow}>
-            <Ionicons name="arrow-back" size={18} color="#64748b" />
+          <Pressable onPress={onBack} style={({ pressed }) => [styles.backRow, pressed && styles.backRowPressed]}>
+            <Ionicons name="arrow-back" size={20} color="#111827" />
             <Text style={styles.backText}>Kembali</Text>
           </Pressable>
 
           <Card tone="accent" style={styles.heroCard}>
             <Text style={styles.appTitle}>PoinYuk</Text>
+            <SessionCodeBadge sessionCode={sessionCode} />
           </Card>
 
           <Card>
@@ -87,8 +90,6 @@ export function HistoryScreen({ matchHistory, onBack }: HistoryScreenProps) {
           {matchHistory.map((record) => (
             <MatchCard key={record.id} record={record} onShare={() => handleShare(record)} />
           ))}
-
-          <Button label="Kembali" onPress={onBack} variant="outline" />
         </ScrollView>
 
         <ShareCardModal
@@ -206,14 +207,17 @@ const styles = StyleSheet.create({
   backRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  backRowPressed: {
+    opacity: 0.6,
   },
   backText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#64748b',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
   },
   heroCard: { paddingVertical: 16 },
   appTitle: {

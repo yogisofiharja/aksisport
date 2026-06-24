@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import QRCode from 'qrcode';
-import { ComponentProps, useEffect, useState } from 'react';
-import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ComponentProps } from 'react';
+import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TeamASide, TeamNames } from '../appTypes';
 import { getPointLabel, MatchState, Team } from '../scoring';
 import { Button, Card, DecorativeBackdrop } from './ui';
+import { SessionCodeBadge } from './SessionCodeBadge';
 
 type MatchScreenProps = {
   matchState: MatchState;
@@ -21,18 +21,6 @@ type MatchScreenProps = {
 
 export function MatchScreen(props: MatchScreenProps) {
   const { matchState, teamNames, teamASide, hasUndo, sessionCode, onAddPoint, onUndo, onEndMatch, onShowHistory } = props;
-  const [showUmpireModal, setShowUmpireModal] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!sessionCode) return;
-    const joinUrl = Platform.OS === 'web'
-      ? `${window.location.origin}/?code=${sessionCode}`
-      : `https://poinyuk.vercel.app/?code=${sessionCode}`;
-    QRCode.toDataURL(joinUrl, { width: 240, margin: 2, color: { dark: '#0f172a', light: '#f8fafc' } })
-      .then(setQrDataUrl)
-      .catch(() => {});
-  }, [sessionCode]);
 
   function handleEndMatch() {
     if (Platform.OS === 'web') {
@@ -61,12 +49,7 @@ export function MatchScreen(props: MatchScreenProps) {
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.matchContainer}>
           <Card tone="accent" style={styles.brandingCard}>
             <Text style={styles.brandingTitle}>PoinYuk</Text>
-            {sessionCode && (
-              <Pressable onPress={() => setShowUmpireModal(true)} style={styles.umpireRow}>
-                <Ionicons name="qr-code-outline" size={14} color="#b45309" />
-                <Text style={styles.umpireCode}>Kode sesi: {sessionCode} — tap untuk QR</Text>
-              </Pressable>
-            )}
+            <SessionCodeBadge sessionCode={sessionCode} />
           </Card>
 
           <TVScoreBanner
@@ -113,32 +96,6 @@ export function MatchScreen(props: MatchScreenProps) {
         </View>
       </SafeAreaView>
 
-      {/* Umpire QR modal */}
-      <Modal
-        visible={showUmpireModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowUmpireModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowUmpireModal(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Bagikan Kode Sesi</Text>
-            <Text style={styles.modalSub}>Scan QR atau ketik kode untuk bergabung ke sesi ini</Text>
-            {qrDataUrl ? (
-              <Image source={{ uri: qrDataUrl }} style={styles.qrImage} />
-            ) : (
-              <View style={styles.qrPlaceholder} />
-            )}
-            <View style={styles.codeRow}>
-              <Text style={styles.codeLabel}>Kode</Text>
-              <Text style={styles.codeValue}>{sessionCode}</Text>
-            </View>
-            <Pressable onPress={() => setShowUmpireModal(false)} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>Tutup</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </DecorativeBackdrop>
   );
 }
@@ -257,17 +214,6 @@ const styles = StyleSheet.create({
   },
   brandingCard: { paddingVertical: 14, gap: 6 },
   brandingTitle: { fontSize: 28, fontWeight: '900', color: '#111827' },
-  umpireRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  umpireCode: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#b45309',
-    letterSpacing: 0.5,
-  },
   bannerCard: {
     gap: 0,
     backgroundColor: '#f8f9ff',
@@ -445,79 +391,5 @@ const styles = StyleSheet.create({
   },
   actionButtonDisabled: {
     backgroundColor: '#9aa6b2',
-  },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 28,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 340,
-    gap: 14,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  modalSub: {
-    fontSize: 13,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 19,
-  },
-  qrImage: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
-  },
-  qrPlaceholder: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
-    backgroundColor: '#f1f5f9',
-  },
-  codeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  codeLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  codeValue: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#111827',
-    letterSpacing: 3,
-  },
-  closeBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 32,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
-  },
-  closeBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#475569',
   },
 });

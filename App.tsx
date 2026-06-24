@@ -423,6 +423,7 @@ export default function App() {
     return (
       <HistoryScreen
         matchHistory={matchHistory}
+        sessionCode={sessionCode}
         onBack={() => setScreen(historyReturnScreenRef.current)}
       />
     );
@@ -436,7 +437,13 @@ export default function App() {
         playerPlayCounts={playerPlayCounts}
         sessionCode={sessionCode}
         onConfirm={handleLineupConfirm}
-        onBack={() => setScreen('setup')}
+        onBack={() => {
+          if (matchState && !matchState.isEnded) {
+            setScreen('match');
+          } else {
+            setScreen('setup');
+          }
+        }}
       />
     );
   }
@@ -463,6 +470,7 @@ export default function App() {
         matchState={matchState}
         teamNames={teamNames}
         sharePreviewDataUrl={sharePreviewDataUrl}
+        sessionCode={sessionCode}
         onShare={handleShare}
         onShareFromPreview={handleShareFromPreview}
         onCloseSharePreview={closeSharePreview}
