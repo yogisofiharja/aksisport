@@ -59,9 +59,17 @@ export default function App() {
   const [sessionCode, setSessionCode] = useState<string | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
 
-  // Audio: AudioContext created on first user gesture stays unlocked for later async playback
+  // Audio: fetch starts on mount; AudioContext created on first user gesture (gesture-unlock required)
+  const rawBufferPromiseRef = useRef<Promise<ArrayBuffer | null> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const applauseBufferRef = useRef<AudioBuffer | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    rawBufferPromiseRef.current = fetch('/sounds/applause.mp3')
+      .then((r) => r.arrayBuffer())
+      .catch(() => null);
+  }, []);
 
   function initAudio() {
     if (typeof window === 'undefined') return;
@@ -70,10 +78,11 @@ export default function App() {
     if (!AudioCtx) return;
     const ctx = new AudioCtx() as AudioContext;
     audioCtxRef.current = ctx;
-    fetch('/sounds/applause.mp3')
-      .then((r) => r.arrayBuffer())
-      .then((buf) => ctx.decodeAudioData(buf))
-      .then((decoded) => { applauseBufferRef.current = decoded; })
+    const pending = rawBufferPromiseRef.current
+      ?? fetch('/sounds/applause.mp3').then((r) => r.arrayBuffer()).catch(() => null);
+    pending
+      .then((buf) => buf ? ctx.decodeAudioData(buf) : null)
+      .then((decoded) => { if (decoded) applauseBufferRef.current = decoded; })
       .catch(() => {});
   }
 
@@ -275,9 +284,6 @@ export default function App() {
       const buffer = applauseBufferRef.current;
       if (!ctx || !buffer) { resolve(); return; }
 
-      const PLAY_S = 1.5;
-      const FADE_S = 0.6;
-
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0.85, ctx.currentTime);
       gain.connect(ctx.destination);
@@ -285,15 +291,11 @@ export default function App() {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(gain);
+      source.onended = () => resolve();
 
-      // Resume in case browser suspended the context
-      (ctx.state === 'suspended' ? ctx.resume() : Promise.resolve()).then(() => {
-        source.start();
-        // Schedule fade-out
-        gain.gain.setValueAtTime(0.85, ctx.currentTime + PLAY_S);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + PLAY_S + FADE_S);
-        setTimeout(() => { source.stop(); resolve(); }, (PLAY_S + FADE_S) * 1000);
-      }).catch(() => resolve());
+      (ctx.state === 'suspended' ? ctx.resume() : Promise.resolve())
+        .then(() => source.start())
+        .catch(() => resolve());
     });
   }
 
