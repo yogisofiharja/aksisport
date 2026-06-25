@@ -355,27 +355,25 @@ export default function App() {
       const winnerName = gameWonByA ? teamNames.A : teamNames.B;
       let intro: string;
       let standing: string;
+      // After a game, currentServerPlayerId is already rotated to the next server.
+      // Wimbledon protocol: next server's score first, no "leads", just numbers.
+      const nextServerIsA = next.currentServerPlayerId.startsWith('A');
       if (setWonByA || setWonByB) {
         const setNum = prev.completedSets.length + 1;
         const ordinal = ORDINAL[setNum] ?? `${setNum}th`;
-        const winnerSets = gameWonByA ? next.sets.A : next.sets.B;
-        const loserSets  = gameWonByA ? next.sets.B : next.sets.A;
         intro = `Game and ${ordinal} set, ${winnerName}.`;
-        standing = winnerSets === loserSets
-          ? `${numWord(winnerSets)} set${winnerSets === 1 ? '' : 's'} all.`
-          : `${winnerName} leads, ${numWord(winnerSets)} set${winnerSets === 1 ? '' : 's'} to ${numWord(loserSets)}.`;
+        const serverSets = nextServerIsA ? next.sets.A : next.sets.B;
+        const receiverSets = nextServerIsA ? next.sets.B : next.sets.A;
+        standing = serverSets === receiverSets
+          ? `${numWord(serverSets)} set${serverSets === 1 ? '' : 's'} all.`
+          : `${numWord(serverSets)} set${serverSets === 1 ? '' : 's'} to ${numWord(receiverSets)}.`;
       } else {
-        const aGames = next.games.A;
-        const bGames = next.games.B;
         intro = `Game, ${winnerName}.`;
-        if (aGames === bGames) {
-          standing = `${numWord(aGames)} game${aGames === 1 ? '' : 's'} all.`;
-        } else {
-          const leaderName = aGames > bGames ? teamNames.A : teamNames.B;
-          const leaderGames = Math.max(aGames, bGames);
-          const trailerGames = Math.min(aGames, bGames);
-          standing = `${leaderName} leads, ${numWord(leaderGames)} game${leaderGames === 1 ? '' : 's'} to ${numWord(trailerGames)}.`;
-        }
+        const serverGames = nextServerIsA ? next.games.A : next.games.B;
+        const receiverGames = nextServerIsA ? next.games.B : next.games.A;
+        standing = serverGames === receiverGames
+          ? `${numWord(serverGames)} game${serverGames === 1 ? '' : 's'} all.`
+          : `${numWord(serverGames)} game${serverGames === 1 ? '' : 's'} to ${numWord(receiverGames)}.`;
       }
       // Sequence: speak intro → applause → speak standing
       const uttIntro = new SpeechSynthesisUtterance(intro);
