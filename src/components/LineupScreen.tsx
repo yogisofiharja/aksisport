@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Pressable,
@@ -25,8 +25,8 @@ type LineupScreenProps = {
   onBack: () => void;
 };
 
-const LEFT_COLORS = { bg: '#fff7ed', border: '#f97316', text: '#c2410c', badge: '#f97316' };
-const RIGHT_COLORS = { bg: '#fff1f2', border: '#fb7185', text: '#be185d', badge: '#fb7185' };
+const LEFT_COLORS = { bg: '#dbeafe', border: '#2563eb', text: '#1e40af', badge: '#3b82f6' };
+const RIGHT_COLORS = { bg: '#fee2e2', border: '#dc2626', text: '#991b1b', badge: '#ef4444' };
 
 export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onConfirm, onBack }: LineupScreenProps) {
   const perTeam = mode === 'double' ? 2 : 1;
@@ -42,6 +42,7 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
   const randTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leftCardAnim = useRef(new Animated.Value(0)).current;
   const rightCardAnim = useRef(new Animated.Value(0)).current;
+  const labelAnim = useRef(new Animated.Value(1)).current;
   const cardWidthRef = useRef(0);
 
   const isFull = assignedOrder.length === maxAssigned;
@@ -79,10 +80,14 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
   function handleSwap() {
     if (isSwapping) return;
     setIsSwapping(true);
-    const w = cardWidthRef.current + 12; // card width + gap
+    const w = cardWidthRef.current + 12;
     Animated.parallel([
       Animated.timing(leftCardAnim, { toValue: w, duration: 300, useNativeDriver: true }),
       Animated.timing(rightCardAnim, { toValue: -w, duration: 300, useNativeDriver: true }),
+      Animated.sequence([
+        Animated.timing(labelAnim, { toValue: 0.3, duration: 150, useNativeDriver: true }),
+        Animated.timing(labelAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+      ]),
     ]).start(() => {
       setAssignedOrder(prev => [...prev.slice(perTeam), ...prev.slice(0, perTeam)]);
       leftCardAnim.setValue(0);
@@ -180,15 +185,15 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
             </View>
           </Card>
 
-          {/* Side labels — static, never move */}
-          <View style={styles.labelsRow}>
+          {/* Side labels — pulse on swap */}
+          <Animated.View style={[styles.labelsRow, { opacity: labelAnim }]}>
             <View style={[styles.sideLabelBox, { backgroundColor: LEFT_COLORS.bg, borderColor: LEFT_COLORS.border }]}>
               <Text style={[styles.sideLabelText, { color: LEFT_COLORS.text }]}>KIRI</Text>
             </View>
             <View style={[styles.sideLabelBox, { backgroundColor: RIGHT_COLORS.bg, borderColor: RIGHT_COLORS.border }]}>
               <Text style={[styles.sideLabelText, { color: RIGHT_COLORS.text }]}>KANAN</Text>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Player name boxes — animate on swap */}
           <View style={styles.playersRow}>
@@ -222,9 +227,9 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
             <Text style={styles.switchSideText}>⇄  Tukar Tempat</Text>
           </Pressable>
 
-          {/* Server selection shown only once all slots are filled */}
+          {/* Server selection — fades in once all slots are filled */}
           {isFull && (
-            <Card>
+            <FadeInCard>
               <Text style={styles.sectionTitle}>Server Pertama</Text>
               <View style={styles.serverRow}>
                 {serverCandidates.map((name) => {
@@ -248,7 +253,7 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
                 onPress={handleRandomServer}
                 disabled={isRandomizing}
               />
-            </Card>
+            </FadeInCard>
           )}
 
           {/* Actions */}
@@ -288,6 +293,22 @@ function PlayerSlot({
         </Text>
       ))}
     </View>
+  );
+}
+
+function FadeInCard({ children }: { children: React.ReactNode }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(10)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 320, useNativeDriver: true }),
+    ]).start();
+  }, []);
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      <Card>{children}</Card>
+    </Animated.View>
   );
 }
 

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
-import { Image, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Props = {
   sessionCode: string | null;
@@ -27,8 +27,12 @@ export function SessionCodeBadge({ sessionCode }: Props) {
   return (
     <>
       <Pressable onPress={() => setShowModal(true)} style={styles.badge}>
-        <Ionicons name="qr-code-outline" size={13} color="#b45309" />
-        <Text style={styles.badgeText}>Kode sesi: {sessionCode} — tap untuk QR</Text>
+        <Ionicons name="qr-code-outline" size={16} color="#92400e" />
+        <View style={styles.badgeTextWrap}>
+          <Text style={styles.badgeLabel}>Kode Sesi</Text>
+          <Text style={styles.badgeCode}>{sessionCode}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={14} color="#b45309" />
       </Pressable>
 
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
@@ -38,7 +42,11 @@ export function SessionCodeBadge({ sessionCode }: Props) {
             <Text style={styles.sub}>Scan QR atau ketik kode untuk bergabung ke sesi ini</Text>
             {qrDataUrl
               ? <Image source={{ uri: qrDataUrl }} style={styles.qrImage} />
-              : <View style={styles.qrPlaceholder} />
+              : (
+                <View style={styles.qrPlaceholder}>
+                  <ActivityIndicator size="large" color="#b45309" />
+                </View>
+              )
             }
             <View style={styles.codeRow}>
               <Text style={styles.codeLabel}>Kode</Text>
@@ -58,13 +66,30 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 8,
+    backgroundColor: 'rgba(180,83,9,0.1)',
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(180,83,9,0.2)',
   },
-  badgeText: {
-    fontSize: 12,
+  badgeTextWrap: {
+    flex: 1,
+    gap: 1,
+  },
+  badgeLabel: {
+    fontSize: 10,
     fontWeight: '700',
-    color: '#b45309',
-    letterSpacing: 0.5,
+    color: '#92400e',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  badgeCode: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#78350f',
+    letterSpacing: 2,
   },
   overlay: {
     flex: 1,
@@ -103,6 +128,8 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 12,
     backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   codeRow: {
     flexDirection: 'row',

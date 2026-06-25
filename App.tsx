@@ -57,6 +57,7 @@ export default function App() {
   const [playerPlayCounts, setPlayerPlayCounts] = useState<Record<string, number>>({});
   const [matchHistory, setMatchHistory] = useState<MatchRecord[]>([]);
   const [sessionCode, setSessionCode] = useState<string | null>(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
 
   // Refs for use inside async callbacks / closures where state would be stale
   const sessionCodeRef = useRef<string | null>(null);
@@ -250,11 +251,138 @@ export default function App() {
 
   // ── Match screen ──────────────────────────────────────────────────────────
 
+  function playApplause(): Promise<void> {
+    return new Promise((resolve) => {
+      const audio = new Audio('/sounds/applause.mp3');
+      audio.volume = 0.85;
+      audio.onerror = () => resolve();
+
+      const PLAY_MS = 1500;   // how long before fade starts
+      const FADE_MS = 600;    // fade-out duration
+      const STEPS   = 20;
+
+      audio.play().then(() => {
+        setTimeout(() => {
+          // Fade out over FADE_MS then stop
+          let step = 0;
+          const interval = setInterval(() => {
+            step++;
+            audio.volume = Math.max(0, 0.85 * (1 - step / STEPS));
+            if (step >= STEPS) {
+              clearInterval(interval);
+              audio.pause();
+              resolve();
+            }
+          }, FADE_MS / STEPS);
+        }, PLAY_MS);
+      }).catch(() => resolve());
+    });
+  }
+
+  function pickVoice(): SpeechSynthesisVoice | null {
+    const voices = window.speechSynthesis.getVoices();
+    const enVoices = voices.filter((v) => v.lang.startsWith('en'));
+    // Prefer natural/neural voices in priority order
+    const PREFERRED = ['Samantha', 'Alex', 'Karen', 'Daniel', 'Google US English', 'Google UK English Female'];
+    for (const name of PREFERRED) {
+      const match = enVoices.find((v) => v.name === name);
+      if (match) return match;
+    }
+    // Fall back to any Google voice, then any English voice
+    return enVoices.find((v) => v.name.includes('Google')) ?? enVoices[0] ?? null;
+  }
+
+  function speakScore(prev: MatchState, next: MatchState) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    const NUM = ['love', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'];
+    const ORDINAL = ['', 'first', 'second', 'third', 'fourth', 'fifth'];
+    const POINT: Record<string, string> = {
+      '0': 'love', '15': 'fifteen', '30': 'thirty', '40': 'forty',
+      'D': 'deuce', 'SD': 'sudden death', '-': '',
+    };
+
+    function numWord(n: number) { return NUM[n] ?? String(n); }
+    function gameScore(winnerScore: number, loserScore: number, unit: string) {
+      if (winnerScore === loserScore) return `${numWord(winnerScore)} ${unit}s all`;
+      return `leads, ${numWord(winnerScore)} ${unit}${winnerScore === 1 ? '' : 's'} to ${numWord(loserScore)}`;
+    }
+
+    const setWonByA = next.sets.A > prev.sets.A;
+    const setWonByB = next.sets.B > prev.sets.B;
+    const gameWonByA = next.games.A > prev.games.A || setWonByA;
+    const gameWonByB = next.games.B > prev.games.B || setWonByB;
+
+    function speak(text: string) {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = 'en-US';
+      utt.rate = 1.0;
+      utt.pitch = 1.0;
+      const voice = pickVoice();
+      if (voice) utt.voice = voice;
+      window.speechSynthesis.speak(utt);
+    }
+
+    window.speechSynthesis.cancel();
+
+    if (gameWonByA || gameWonByB) {
+      const winnerName = gameWonByA ? teamNames.A : teamNames.B;
+      let intro: string;
+      let standing: string;
+      if (setWonByA || setWonByB) {
+        const setNum = prev.completedSets.length + 1;
+        const ordinal = ORDINAL[setNum] ?? `${setNum}th`;
+        const winnerSets = gameWonByA ? next.sets.A : next.sets.B;
+        const loserSets  = gameWonByA ? next.sets.B : next.sets.A;
+        intro = `Game and ${ordinal} set, ${winnerName}.`;
+        standing = winnerSets === loserSets
+          ? `${numWord(winnerSets)} set${winnerSets === 1 ? '' : 's'} all.`
+          : `${winnerName} leads, ${numWord(winnerSets)} set${winnerSets === 1 ? '' : 's'} to ${numWord(loserSets)}.`;
+      } else {
+        const winnerGames = gameWonByA ? next.games.A : next.games.B;
+        const loserGames  = gameWonByA ? next.games.B : next.games.A;
+        intro = `Game, ${winnerName}.`;
+        standing = `${winnerName} ${gameScore(winnerGames, loserGames, 'game')}.`;
+      }
+      // Sequence: speak intro → applause → speak standing
+      const uttIntro = new SpeechSynthesisUtterance(intro);
+      uttIntro.lang = 'en-US';
+      uttIntro.rate = 1.0;
+      const voice = pickVoice();
+      if (voice) uttIntro.voice = voice;
+      uttIntro.onend = () => {
+        playApplause().then(() => speak(standing));
+      };
+      window.speechSynthesis.speak(uttIntro);
+    } else {
+      const labelA = getPointLabel(next, 'A');
+      const labelB = getPointLabel(next, 'B');
+      const serverIsA = next.currentServerPlayerId.startsWith('A');
+      let text: string;
+      if (labelA === 'D' || labelA === 'SD') {
+        text = POINT[labelA] ?? labelA;
+      } else if (labelA === 'AD') {
+        text = serverIsA ? 'advantage, server' : 'advantage, receiver';
+      } else if (labelB === 'AD') {
+        text = serverIsA ? 'advantage, receiver' : 'advantage, server';
+      } else if (labelA === labelB) {
+        text = labelA === '0' ? 'love all' : `${POINT[labelA] ?? labelA} all`;
+      } else {
+        const serverLabel = serverIsA ? labelA : labelB;
+        const receiverLabel = serverIsA ? labelB : labelA;
+        text = `${POINT[serverLabel] ?? serverLabel} ${POINT[receiverLabel] ?? receiverLabel}`;
+      }
+      if (text) speak(text);
+    }
+  }
+
   function handleAddPoint(team: Team) {
     if (!matchState || matchState.isEnded) return;
     const next = addPoint(matchState, team);
-    setHistory((prev) => [...prev, cloneState(matchState)]);
+    const prev = matchState;
+    setHistory((h) => [...h, cloneState(prev)]);
     setMatchState(next);
+    if (!next.isEnded && voiceEnabled) speakScore(prev, next);
     if (next.isEnded) {
       incrementPlayCounts();
       addToMatchHistory(next);
@@ -466,10 +594,11 @@ export default function App() {
         teamASide={teamASide}
         hasUndo={history.length > 0}
         sessionCode={sessionCode}
+        voiceEnabled={voiceEnabled}
         onAddPoint={handleAddPoint}
         onUndo={handleUndo}
         onEndMatch={handleEndMatch}
-        onShowHistory={() => { historyReturnScreenRef.current = 'match'; setScreen('history'); }}
+        onToggleVoice={() => setVoiceEnabled((v) => !v)}
       />
     );
   }

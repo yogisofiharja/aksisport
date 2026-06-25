@@ -80,9 +80,9 @@ export function HistoryScreen({ matchHistory, sessionCode, onBack }: HistoryScre
             <Text style={styles.sectionTitle}>Riwayat Pertandingan</Text>
             {matchHistory.length === 0 && (
               <View style={styles.emptyState}>
-                <Ionicons name="trophy-outline" size={40} color="#cbd5e1" />
-                <Text style={styles.emptyText}>Belum ada pertandingan tercatat.</Text>
-                <Text style={styles.emptySub}>Selesaikan pertandingan agar muncul di sini.</Text>
+                <Ionicons name="stats-chart-outline" size={44} color="#cbd5e1" />
+                <Text style={styles.emptyText}>Belum ada riwayat</Text>
+                <Text style={styles.emptySub}>Selesaikan pertandingan pertamamu — hasilnya akan otomatis tercatat di sini.</Text>
               </View>
             )}
           </Card>
@@ -187,7 +187,7 @@ function MatchCard({ record, onShare }: { record: MatchRecord; onShare: () => vo
             style={({ pressed }) => [styles.shareBtn, pressed && styles.shareBtnPressed]}
             onPress={onShare}
           >
-            <Ionicons name="share-outline" size={16} color="#f97316" />
+            <Ionicons name="share-outline" size={16} color="#d97706" />
             <Text style={styles.shareBtnText}>Bagikan</Text>
           </Pressable>
         )}
@@ -276,17 +276,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scoreNum: {
-    fontSize: 40,
+    fontSize: 28,
     fontWeight: '900',
     color: '#334155',
-    minWidth: 36,
+    minWidth: 28,
     textAlign: 'center',
   },
   scoreWinner: {
     color: '#d97706',
   },
   scoreDash: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: '900',
     color: '#cbd5e1',
   },
@@ -341,8 +341,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: '#f97316',
-    backgroundColor: '#fff7ed',
+    borderColor: '#d97706',
+    backgroundColor: '#fffbeb',
   },
   shareBtnPressed: {
     opacity: 0.75,
@@ -350,6 +350,6 @@ const styles = StyleSheet.create({
   shareBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#f97316',
+    color: '#d97706',
   },
 });

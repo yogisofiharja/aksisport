@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ComponentProps } from 'react';
-import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ComponentProps, useRef } from 'react';
+import { Alert, Animated, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TeamASide, TeamNames } from '../appTypes';
 import { getPointLabel, MatchState, Team } from '../scoring';
 import { Button, Card, DecorativeBackdrop } from './ui';
@@ -13,14 +13,15 @@ type MatchScreenProps = {
   teamASide: TeamASide;
   hasUndo: boolean;
   sessionCode: string | null;
+  voiceEnabled: boolean;
   onAddPoint: (team: Team) => void;
   onUndo: () => void;
   onEndMatch: () => void;
-  onShowHistory: () => void;
+  onToggleVoice: () => void;
 };
 
 export function MatchScreen(props: MatchScreenProps) {
-  const { matchState, teamNames, teamASide, hasUndo, sessionCode, onAddPoint, onUndo, onEndMatch, onShowHistory } = props;
+  const { matchState, teamNames, teamASide, hasUndo, sessionCode, voiceEnabled, onAddPoint, onUndo, onEndMatch, onToggleVoice } = props;
 
   function handleEndMatch() {
     if (Platform.OS === 'web') {
@@ -85,13 +86,17 @@ export function MatchScreen(props: MatchScreenProps) {
             />
           </View>
 
-          <View style={styles.controlsRow}>
-            <LabeledIconButton icon="arrow-undo" label="Batalkan" onPress={handleUndo} disabled={!hasUndo} />
-            <LabeledIconButton icon="time-outline" label="Riwayat" onPress={onShowHistory} />
-          </View>
         </ScrollView>
 
         <View style={styles.bottomActionWrap}>
+          <View style={styles.controlsRow}>
+            <LabeledIconButton icon="backspace-outline" onPress={handleUndo} disabled={!hasUndo} />
+            <LabeledIconButton
+              icon={voiceEnabled ? 'volume-high-outline' : 'volume-mute-outline'}
+              onPress={onToggleVoice}
+              active={voiceEnabled}
+            />
+          </View>
           <Button label="Akhiri Match" onPress={handleEndMatch} style={styles.endMatchButton} />
         </View>
       </SafeAreaView>
@@ -113,19 +118,17 @@ function TVScoreBanner(props: {
   rightIsServing: boolean;
 }) {
   return (
-    <Card tone="accent" style={styles.bannerCard}>
-      <View style={styles.bannerTable}>
-        <View style={styles.bannerHeaderRow}>
-          <View style={styles.bannerNameCell} />
-          <Text style={[styles.bannerColLabel, { width: 34 }]}>SET</Text>
-          <Text style={[styles.bannerColLabel, { width: 34 }]}>GAME</Text>
-          <Text style={[styles.bannerColLabel, { width: 52 }]}>POIN</Text>
-        </View>
-        <BannerRow name={props.leftName} set={props.leftSet} game={props.leftGame} point={props.leftPoint} isServing={props.leftIsServing} />
-        <View style={styles.bannerDivider} />
-        <BannerRow name={props.rightName} set={props.rightSet} game={props.rightGame} point={props.rightPoint} isServing={props.rightIsServing} />
+    <View style={styles.bannerTable}>
+      <View style={styles.bannerHeaderRow}>
+        <View style={styles.bannerNameCell} />
+        <Text style={[styles.bannerColLabel, { width: 40 }]}>SET</Text>
+        <Text style={[styles.bannerColLabel, { width: 40 }]}>GAME</Text>
+        <Text style={[styles.bannerColLabel, { width: 60 }]}>POIN</Text>
       </View>
-    </Card>
+      <BannerRow name={props.leftName} set={props.leftSet} game={props.leftGame} point={props.leftPoint} isServing={props.leftIsServing} />
+      <View style={styles.bannerDivider} />
+      <BannerRow name={props.rightName} set={props.rightSet} game={props.rightGame} point={props.rightPoint} isServing={props.rightIsServing} />
+    </View>
   );
 }
 
@@ -151,50 +154,63 @@ function ScoreTapCard(props: {
   onPress: () => void;
   tone: 'left' | 'right';
 }) {
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.teamCard,
-        props.tone === 'left' ? styles.teamCardLeft : styles.teamCardRight,
-        props.isServing && styles.activeServerCard,
-        pressed && styles.teamCardPressed,
-      ]}
-      onPress={props.onPress}
-    >
-      <View style={styles.playerNamesWrap}>
-        {props.players.map((name) => {
-          const isServer = name === props.serverPlayerName;
-          return (
-            <View key={name} style={styles.playerNameRow}>
-              {isServer && <View style={styles.playerServeDot} />}
-              <Text style={[styles.teamName, isServer && styles.teamNameServeHighlight]}>
-                {name}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-      <Text style={styles.pointValue}>{props.points}</Text>
-      <Text style={styles.tapHint}>+1 poin</Text>
-    </Pressable>
+  function handlePress() {
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 1.06, duration: 70, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 8 }),
+    ]).start();
+    props.onPress();
+  }
+
+  return (
+    <Animated.View style={[{ flex: 1, transform: [{ scale: scaleAnim }] }]}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.teamCard,
+          props.tone === 'left' ? styles.teamCardLeft : styles.teamCardRight,
+          props.isServing && styles.activeServerCard,
+          pressed && styles.teamCardPressed,
+        ]}
+        onPress={handlePress}
+      >
+        <View style={styles.playerNamesWrap}>
+          {props.players.map((name) => {
+            const isServer = name === props.serverPlayerName;
+            return (
+              <View key={name} style={styles.playerNameRow}>
+                {isServer && <View style={styles.playerServeDot} />}
+                <Text style={[styles.teamName, isServer && styles.teamNameServeHighlight]}>
+                  {name}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <Text style={styles.pointValue}>{props.points}</Text>
+        <Text style={styles.tapHint}>+1 poin</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 function LabeledIconButton(props: {
   icon: ComponentProps<typeof Ionicons>['name'];
-  label: string;
+  label?: string;
   onPress: () => void;
   disabled?: boolean;
+  active?: boolean;
 }) {
   return (
     <Pressable
-      style={[styles.labeledButton, props.disabled && styles.actionButtonDisabled]}
+      style={[styles.labeledButton, props.disabled && styles.actionButtonDisabled, props.active === false && styles.labeledButtonInactive]}
       onPress={props.onPress}
       disabled={props.disabled}
     >
       <Ionicons name={props.icon} size={18} color="#ffffff" />
-      <Text style={styles.labeledButtonText}>{props.label}</Text>
+      {props.label ? <Text style={styles.labeledButtonText}>{props.label}</Text> : null}
     </Pressable>
   );
 }
@@ -214,36 +230,31 @@ const styles = StyleSheet.create({
   },
   brandingCard: { paddingVertical: 14, gap: 6 },
   brandingTitle: { fontSize: 28, fontWeight: '900', color: '#111827' },
-  bannerCard: {
-    gap: 0,
-    backgroundColor: '#f8f9ff',
-    borderColor: '#c5d2ff',
-  },
   bannerTable: {
     backgroundColor: '#0f172a',
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
   },
   bannerHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingTop: 6,
-    paddingBottom: 2,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 4,
     gap: 8,
   },
   bannerColLabel: {
     textAlign: 'center',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '900',
-    color: 'rgba(248,250,252,0.4)',
-    letterSpacing: 0.8,
+    color: 'rgba(248,250,252,0.35)',
+    letterSpacing: 1,
   },
   bannerTeamRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 40,
-    paddingHorizontal: 10,
+    minHeight: 48,
+    paddingHorizontal: 14,
     gap: 8,
   },
   bannerNameCell: {
@@ -271,24 +282,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#334155',
   },
   setCell: {
-    width: 34,
+    width: 40,
     textAlign: 'center',
     color: '#ffffff',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
   },
   scoreCell: {
-    width: 34,
+    width: 40,
     textAlign: 'center',
     color: '#fde047',
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '900',
   },
   pointCell: {
-    width: 52,
+    width: 60,
     textAlign: 'center',
-    color: '#f97316',
-    fontSize: 18,
+    color: '#fbbf24',
+    fontSize: 22,
     fontWeight: '900',
   },
   scoreGrid: {
@@ -297,19 +308,19 @@ const styles = StyleSheet.create({
   },
   teamCard: {
     flex: 1,
-    aspectRatio: 1,
+    aspectRatio: 0.85,
     borderRadius: 14,
     padding: 12,
     borderWidth: 2,
     justifyContent: 'space-between',
   },
   teamCardLeft: {
-    borderColor: '#f97316',
-    backgroundColor: '#fff0db',
+    borderColor: '#2563eb',
+    backgroundColor: '#dbeafe',
   },
   teamCardRight: {
-    borderColor: '#fb7185',
-    backgroundColor: '#ffe4ea',
+    borderColor: '#dc2626',
+    backgroundColor: '#fee2e2',
   },
   teamName: {
     fontSize: 13,
@@ -317,7 +328,7 @@ const styles = StyleSheet.create({
     color: '#334155',
   },
   teamNameServeHighlight: {
-    color: '#15803d',
+    color: '#166534',
     fontWeight: '900',
   },
   playerNamesWrap: {
@@ -335,7 +346,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#22c55e',
   },
   activeServerCard: {
-    borderColor: '#2563eb',
+    borderColor: '#22c55e',
   },
   teamCardPressed: {
     opacity: 0.82,
@@ -365,12 +376,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   bottomActionWrap: {
     paddingHorizontal: 14,
+    paddingTop: 10,
     paddingBottom: 14,
     backgroundColor: 'transparent',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.06)',
   },
   endMatchButton: {
     width: '100%',
@@ -391,5 +405,9 @@ const styles = StyleSheet.create({
   },
   actionButtonDisabled: {
     backgroundColor: '#9aa6b2',
+  },
+  labeledButtonInactive: {
+    backgroundColor: '#475569',
+    opacity: 0.6,
   },
 });

@@ -65,12 +65,16 @@ export function FinalScoreScreen(props: FinalScoreScreenProps) {
             />
           </Card>
 
-          <Card>
-            <Button label="Bagikan" onPress={onShare} size="lg" />
-          </Card>
+          <Button label="Match Baru →" onPress={onBackToSetup} size="lg" />
 
-          <Button label="Match Baru" onPress={onBackToSetup} variant="outline" />
-          <Button label="Riwayat" onPress={onShowHistory} variant="outline" />
+          <View style={styles.secondaryRow}>
+            <View style={styles.secondaryBtn}>
+              <Button label="Bagikan" onPress={onShare} variant="outline" />
+            </View>
+            <View style={styles.secondaryBtn}>
+              <Button label="Riwayat" onPress={onShowHistory} variant="outline" />
+            </View>
+          </View>
 
           <Pressable onPress={handleEndSession} style={styles.endSessionBtn}>
             <Text style={styles.endSessionText}>Akhiri Sesi</Text>
@@ -239,7 +243,7 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   tvSetTotalWinner: {
-    color: '#f97316',
+    color: '#d97706',
   },
   tvVerticalDivider: {
     width: 1,
@@ -272,6 +276,13 @@ const styles = StyleSheet.create({
   },
   tvScorePartial: {
     color: '#fde047',
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  secondaryBtn: {
+    flex: 1,
   },
   endSessionBtn: {
     alignItems: 'center',

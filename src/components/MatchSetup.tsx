@@ -87,7 +87,7 @@ export function MatchSetup({
             <Card style={styles.landingCard}>
               <Pressable style={({ pressed }) => [styles.entryButton, pressed && styles.entryButtonPressed]} onPress={handleCreatePress}>
                 <View style={styles.entryIcon}>
-                  <Ionicons name="add-circle-outline" size={28} color="#f97316" />
+                  <Ionicons name="add-circle-outline" size={28} color="#d97706" />
                 </View>
                 <View style={styles.entryText}>
                   <Text style={styles.entryTitle}>Mulai Pertandingan</Text>
@@ -166,6 +166,11 @@ export function MatchSetup({
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Pressable onPress={() => setView('landing')} style={({ pressed }) => [styles.backRow, pressed && { opacity: 0.6 }]}>
+            <Ionicons name="arrow-back" size={20} color="#111827" />
+            <Text style={styles.backRowText}>Kembali</Text>
+          </Pressable>
+
           <Card tone="accent" style={styles.heroCard}>
             <Text style={styles.appTitle}>PoinYuk</Text>
             <SessionCodeBadge sessionCode={sessionCode} />
@@ -250,7 +255,7 @@ export function MatchSetup({
             </View>
           </Card>
 
-          <Button label="Pilih Pemain & Mulai Match" onPress={onStartMatch} size="lg" disabled={!canStart} />
+          <Button label="Lanjut ke Lineup →" onPress={onStartMatch} size="lg" disabled={!canStart} />
         </ScrollView>
       </SafeAreaView>
 
@@ -272,6 +277,17 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 14,
     flexGrow: 1,
+  },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  backRowText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
   },
   heroCard: { paddingVertical: 16, gap: 6 },
   appTitle: {
@@ -358,7 +374,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 12,
-    backgroundColor: '#f97316',
+    backgroundColor: '#d97706',
     alignItems: 'center',
     justifyContent: 'center',
   },
