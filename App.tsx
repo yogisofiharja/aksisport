@@ -81,8 +81,14 @@ export default function App() {
     const pending = rawBufferPromiseRef.current
       ?? fetch('/sounds/applause.mp3').then((r) => r.arrayBuffer()).catch(() => null);
     pending
-      .then((buf) => buf ? ctx.decodeAudioData(buf) : null)
-      .then((decoded) => { if (decoded) applauseBufferRef.current = decoded; })
+      .then((buf) => {
+        if (!buf) return;
+        ctx.decodeAudioData(
+          buf,
+          (decoded) => { applauseBufferRef.current = decoded; },
+          () => {}
+        );
+      })
       .catch(() => {});
   }
 
