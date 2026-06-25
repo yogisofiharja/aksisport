@@ -59,6 +59,24 @@ export default function App() {
   const [sessionCode, setSessionCode] = useState<string | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
 
+  // Audio: AudioContext created on first user gesture stays unlocked for later async playback
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const applauseBufferRef = useRef<AudioBuffer | null>(null);
+
+  function initAudio() {
+    if (typeof window === 'undefined') return;
+    if (audioCtxRef.current) return;
+    const AudioCtx = window.AudioContext ?? (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx() as AudioContext;
+    audioCtxRef.current = ctx;
+    fetch('/sounds/applause.mp3')
+      .then((r) => r.arrayBuffer())
+      .then((buf) => ctx.decodeAudioData(buf))
+      .then((decoded) => { applauseBufferRef.current = decoded; })
+      .catch(() => {});
+  }
+
   // Refs for use inside async callbacks / closures where state would be stale
   const sessionCodeRef = useRef<string | null>(null);
   const lastPushTimeRef = useRef<number>(0);
@@ -253,28 +271,28 @@ export default function App() {
 
   function playApplause(): Promise<void> {
     return new Promise((resolve) => {
-      const audio = new Audio('/sounds/applause.mp3');
-      audio.volume = 0.85;
-      audio.onerror = () => resolve();
+      const ctx = audioCtxRef.current;
+      const buffer = applauseBufferRef.current;
+      if (!ctx || !buffer) { resolve(); return; }
 
-      const PLAY_MS = 1500;   // how long before fade starts
-      const FADE_MS = 600;    // fade-out duration
-      const STEPS   = 20;
+      const PLAY_S = 1.5;
+      const FADE_S = 0.6;
 
-      audio.play().then(() => {
-        setTimeout(() => {
-          // Fade out over FADE_MS then stop
-          let step = 0;
-          const interval = setInterval(() => {
-            step++;
-            audio.volume = Math.max(0, 0.85 * (1 - step / STEPS));
-            if (step >= STEPS) {
-              clearInterval(interval);
-              audio.pause();
-              resolve();
-            }
-          }, FADE_MS / STEPS);
-        }, PLAY_MS);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.85, ctx.currentTime);
+      gain.connect(ctx.destination);
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(gain);
+
+      // Resume in case browser suspended the context
+      (ctx.state === 'suspended' ? ctx.resume() : Promise.resolve()).then(() => {
+        source.start();
+        // Schedule fade-out
+        gain.gain.setValueAtTime(0.85, ctx.currentTime + PLAY_S);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + PLAY_S + FADE_S);
+        setTimeout(() => { source.stop(); resolve(); }, (PLAY_S + FADE_S) * 1000);
       }).catch(() => resolve());
     });
   }
@@ -378,6 +396,7 @@ export default function App() {
 
   function handleAddPoint(team: Team) {
     if (!matchState || matchState.isEnded) return;
+    initAudio();
     const next = addPoint(matchState, team);
     const prev = matchState;
     setHistory((h) => [...h, cloneState(prev)]);
