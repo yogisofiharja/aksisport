@@ -369,7 +369,8 @@ export default function App() {
       const voice = pickVoice();
       if (voice) uttIntro.voice = voice;
       uttIntro.onend = () => {
-        playApplause().then(() => speak(standing));
+        playApplause();
+        speak(standing);
       };
       window.speechSynthesis.speak(uttIntro);
     } else {
