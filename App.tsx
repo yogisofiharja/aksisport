@@ -365,10 +365,17 @@ export default function App() {
           ? `${numWord(winnerSets)} set${winnerSets === 1 ? '' : 's'} all.`
           : `${winnerName} leads, ${numWord(winnerSets)} set${winnerSets === 1 ? '' : 's'} to ${numWord(loserSets)}.`;
       } else {
-        const winnerGames = gameWonByA ? next.games.A : next.games.B;
-        const loserGames  = gameWonByA ? next.games.B : next.games.A;
+        const aGames = next.games.A;
+        const bGames = next.games.B;
         intro = `Game, ${winnerName}.`;
-        standing = `${winnerName} ${gameScore(winnerGames, loserGames, 'game')}.`;
+        if (aGames === bGames) {
+          standing = `${numWord(aGames)} game${aGames === 1 ? '' : 's'} all.`;
+        } else {
+          const leaderName = aGames > bGames ? teamNames.A : teamNames.B;
+          const leaderGames = Math.max(aGames, bGames);
+          const trailerGames = Math.min(aGames, bGames);
+          standing = `${leaderName} leads, ${numWord(leaderGames)} game${leaderGames === 1 ? '' : 's'} to ${numWord(trailerGames)}.`;
+        }
       }
       // Sequence: speak intro → applause → speak standing
       const uttIntro = new SpeechSynthesisUtterance(intro);
