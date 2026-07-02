@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import QRCode from 'qrcode';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
+import QRCode from 'react-native-qrcode-svg';
 
 type Props = {
   sessionCode: string | null;
@@ -9,30 +10,33 @@ type Props = {
 
 export function SessionCodeBadge({ sessionCode }: Props) {
   const [showModal, setShowModal] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!sessionCode) return;
-    setQrDataUrl(null);
-    const joinUrl = Platform.OS === 'web'
-      ? `${window.location.origin}/?code=${sessionCode}`
-      : `https://poinyuk.vercel.app/?code=${sessionCode}`;
-    QRCode.toDataURL(joinUrl, { width: 240, margin: 2, color: { dark: '#0f172a', light: '#f8fafc' } })
-      .then(setQrDataUrl)
-      .catch(() => {});
-  }, [sessionCode]);
+  const { colorScheme } = useColorScheme();
+  const dark = Platform.OS !== 'web' && colorScheme === 'dark';
 
   if (!sessionCode) return null;
 
+  const joinUrl = Platform.OS === 'web'
+    ? `${window.location.origin}/?code=${sessionCode}`
+    : `https://poinyuk.vercel.app/?code=${sessionCode}`;
+
+  const badgeBg = dark ? 'rgba(251,191,36,0.12)' : 'rgba(180,83,9,0.1)';
+  const badgeBorder = dark ? 'rgba(251,191,36,0.28)' : 'rgba(180,83,9,0.2)';
+  const labelColor = dark ? '#fbbf24' : '#92400e';
+  const codeColor = dark ? '#fde68a' : '#78350f';
+  const iconColor = dark ? '#fbbf24' : '#b45309';
+
   return (
     <>
-      <Pressable onPress={() => setShowModal(true)} style={styles.badge}>
-        <Ionicons name="qr-code-outline" size={16} color="#92400e" />
+      <Pressable
+        onPress={() => setShowModal(true)}
+        style={[styles.badge, { backgroundColor: badgeBg, borderColor: badgeBorder }]}
+      >
+        <Ionicons name="qr-code-outline" size={16} color={iconColor} />
         <View style={styles.badgeTextWrap}>
-          <Text style={styles.badgeLabel}>Kode Sesi</Text>
-          <Text style={styles.badgeCode}>{sessionCode}</Text>
+          <Text style={[styles.badgeLabel, { color: labelColor }]}>Kode Sesi</Text>
+          <Text style={[styles.badgeCode, { color: codeColor }]}>{sessionCode}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={14} color="#b45309" />
+        <Ionicons name="chevron-forward" size={14} color={iconColor} />
       </Pressable>
 
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
@@ -40,14 +44,14 @@ export function SessionCodeBadge({ sessionCode }: Props) {
           <Pressable style={styles.card} onPress={() => {}}>
             <Text style={styles.title}>Bagikan Kode Sesi</Text>
             <Text style={styles.sub}>Scan QR atau ketik kode untuk bergabung ke sesi ini</Text>
-            {qrDataUrl
-              ? <Image source={{ uri: qrDataUrl }} style={styles.qrImage} />
-              : (
-                <View style={styles.qrPlaceholder}>
-                  <ActivityIndicator size="large" color="#b45309" />
-                </View>
-              )
-            }
+            <View style={styles.qrWrap}>
+              <QRCode
+                value={joinUrl}
+                size={200}
+                color="#0f172a"
+                backgroundColor="#f8fafc"
+              />
+            </View>
             <View style={styles.codeRow}>
               <Text style={styles.codeLabel}>Kode</Text>
               <Text style={styles.codeValue}>{sessionCode}</Text>
@@ -67,28 +71,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(180,83,9,0.1)',
     borderRadius: 10,
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: 'rgba(180,83,9,0.2)',
   },
   badgeTextWrap: {
-    flex: 1,
     gap: 1,
   },
   badgeLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#92400e',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   badgeCode: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#78350f',
     letterSpacing: 2,
   },
   overlay: {
@@ -118,18 +117,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 19,
   },
-  qrImage: {
-    width: 220,
-    height: 220,
+  qrWrap: {
+    padding: 16,
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
-  },
-  qrPlaceholder: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
-    backgroundColor: '#f1f5f9',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   codeRow: {
     flexDirection: 'row',

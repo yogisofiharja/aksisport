@@ -167,8 +167,7 @@ export function MatchSetup({
         <StatusBar style="dark" />
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <Pressable onPress={() => setView('landing')} style={({ pressed }) => [styles.backRow, pressed && { opacity: 0.6 }]}>
-            <Ionicons name="arrow-back" size={20} color="#111827" />
-            <Text style={styles.backRowText}>Kembali</Text>
+            <Ionicons name="arrow-back" size={24} color="#111827" />
           </Pressable>
 
           <Card tone="accent" style={styles.heroCard}>
@@ -283,11 +282,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingVertical: 4,
-  },
-  backRowText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#111827',
   },
   heroCard: { paddingVertical: 16, gap: 6 },
   appTitle: {

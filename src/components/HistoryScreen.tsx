@@ -1,14 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MatchRecord } from '../appTypes';
 import {
   composeShareCardDataUrlWeb,
   downloadDataUrlWeb,
-  pickImageDataUrlWeb,
   shareImageWeb,
 } from '../shareCard';
+import { pickImageAsDataUrl } from '../imagePicker';
 import { Card, DecorativeBackdrop } from './ui';
 import { ShareCardModal } from './ShareCardModal';
 import { SessionCodeBadge } from './SessionCodeBadge';
@@ -25,7 +26,6 @@ export function HistoryScreen({ matchHistory, sessionCode, onBack }: HistoryScre
   const [backgroundDataUrl, setBackgroundDataUrl] = useState<string | null>(null);
 
   async function handleShare(record: MatchRecord) {
-    if (Platform.OS !== 'web') return;
     setSharingRecord(record);
     setBackgroundDataUrl(null);
     const dataUrl = await buildShareCard(record, undefined);
@@ -34,7 +34,7 @@ export function HistoryScreen({ matchHistory, sessionCode, onBack }: HistoryScre
 
   async function handleChangeBackground() {
     if (!sharingRecord) return;
-    const picked = await pickImageDataUrlWeb('gallery');
+    const picked = await pickImageAsDataUrl('gallery');
     if (!picked) return;
     setBackgroundDataUrl(picked);
     const dataUrl = await buildShareCard(sharingRecord, picked);
@@ -64,17 +64,15 @@ export function HistoryScreen({ matchHistory, sessionCode, onBack }: HistoryScre
   return (
     <DecorativeBackdrop>
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <ScrollView contentContainerStyle={styles.container}>
           <Pressable onPress={onBack} style={({ pressed }) => [styles.backRow, pressed && styles.backRowPressed]}>
-            <Ionicons name="arrow-back" size={20} color="#111827" />
-            <Text style={styles.backText}>Kembali</Text>
+            <Ionicons name="arrow-back" size={24} color="#111827" />
           </Pressable>
 
-          <Card tone="accent" style={styles.heroCard}>
-            <Text style={styles.appTitle}>PoinYuk</Text>
+          <View style={styles.sessionHeader}>
             <SessionCodeBadge sessionCode={sessionCode} />
-          </Card>
+          </View>
 
           <Card>
             <Text style={styles.sectionTitle}>Riwayat Pertandingan</Text>
@@ -182,15 +180,13 @@ function MatchCard({ record, onShare }: { record: MatchRecord; onShare: () => vo
           <Text style={styles.dateText}>{date}</Text>
         </View>
 
-        {Platform.OS === 'web' && (
-          <Pressable
-            style={({ pressed }) => [styles.shareBtn, pressed && styles.shareBtnPressed]}
-            onPress={onShare}
-          >
-            <Ionicons name="share-outline" size={16} color="#d97706" />
-            <Text style={styles.shareBtnText}>Bagikan</Text>
-          </Pressable>
-        )}
+        <Pressable
+          style={({ pressed }) => [styles.shareBtn, pressed && styles.shareBtnPressed]}
+          onPress={onShare}
+        >
+          <Ionicons name="share-outline" size={16} color="#d97706" />
+          <Text style={styles.shareBtnText}>Bagikan</Text>
+        </Pressable>
       </View>
     </Card>
   );
@@ -214,16 +210,8 @@ const styles = StyleSheet.create({
   backRowPressed: {
     opacity: 0.6,
   },
-  backText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  heroCard: { paddingVertical: 16 },
-  appTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#111827',
+  sessionHeader: {
+    alignItems: 'flex-end',
   },
   sectionTitle: {
     fontSize: 16,

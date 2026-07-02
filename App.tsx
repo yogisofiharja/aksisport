@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Platform, Share } from 'react-native';
+import { Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   addPoint,
   createInitialState,
@@ -13,21 +14,26 @@ import {
 import {
   composeShareCardDataUrlWeb,
   downloadDataUrlWeb,
-  pickImageDataUrlWeb,
   shareImageWeb,
 } from './src/shareCard';
+import { pickImageAsDataUrl } from './src/imagePicker';
+import { prefetchAudio, initAudio, playApplause } from './src/audio';
+import { cancelSpeech, loadTTSPreferences, speakText, speakTextWithCallback } from './src/tts';
 import { LineupResult, MatchRecord, PersistedAppState, SetupForm, TeamASide } from './src/appTypes';
 import { FinalScoreScreen } from './src/components/FinalScoreScreen';
+import { NativeShareModal } from './src/components/NativeShareModal';
+import type { NativeShareData } from './src/components/NativeShareModal';
 import { HistoryScreen } from './src/components/HistoryScreen';
 import { LineupScreen } from './src/components/LineupScreen';
 import { MatchSetup } from './src/components/MatchSetup';
+import { MobileSetupScreen } from './src/mobile/MobileSetupScreen';
+import { MobileLineupScreen } from './src/mobile/MobileLineupScreen';
+import { MobileMatchScreen } from './src/mobile/MobileMatchScreen';
+import { MobileFinalScreen } from './src/mobile/MobileFinalScreen';
+import { MobileHistoryScreen } from './src/mobile/MobileHistoryScreen';
 import { MatchScreen } from './src/components/MatchScreen';
-import {
-  clearPersistedStateFromStorage,
-  loadPersistedStateFromStorage,
-  savePersistedStateToStorage,
-  STORAGE_KEY,
-} from './src/persistence';
+import { STORAGE_KEY, parsePersistedState } from './src/persistence';
+import { storageGet, storageSave, storageRemove } from './src/storage';
 import {
   deleteSession,
   generateSessionCode,
@@ -36,6 +42,7 @@ import {
   subscribeToSession,
 } from './src/sessionSync';
 import { isFirebaseReady } from './src/firebase';
+import { ThemeProvider } from './src/theme';
 
 type AppScreen = 'setup' | 'lineup' | 'match' | 'final' | 'history';
 
@@ -45,7 +52,7 @@ const INITIAL_SETUP: SetupForm = {
   players: [],
 };
 
-export default function App() {
+function AppContent() {
   const [screen, setScreen] = useState<AppScreen>('setup');
   const [setup, setSetup] = useState<SetupForm>(INITIAL_SETUP);
   const [teamASide, setTeamASide] = useState<TeamASide>('left');
@@ -58,39 +65,9 @@ export default function App() {
   const [matchHistory, setMatchHistory] = useState<MatchRecord[]>([]);
   const [sessionCode, setSessionCode] = useState<string | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [nativeShareData, setNativeShareData] = useState<NativeShareData | null>(null);
 
-  // Audio: fetch starts on mount; AudioContext created on first user gesture (gesture-unlock required)
-  const rawBufferPromiseRef = useRef<Promise<ArrayBuffer | null> | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const applauseBufferRef = useRef<AudioBuffer | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    rawBufferPromiseRef.current = fetch('/sounds/applause.mp3')
-      .then((r) => r.arrayBuffer())
-      .catch(() => null);
-  }, []);
-
-  function initAudio() {
-    if (typeof window === 'undefined') return;
-    if (audioCtxRef.current) return;
-    const AudioCtx = window.AudioContext ?? (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx() as AudioContext;
-    audioCtxRef.current = ctx;
-    const pending = rawBufferPromiseRef.current
-      ?? fetch('/sounds/applause.mp3').then((r) => r.arrayBuffer()).catch(() => null);
-    pending
-      .then((buf) => {
-        if (!buf) return;
-        ctx.decodeAudioData(
-          buf,
-          (decoded) => { applauseBufferRef.current = decoded; },
-          () => {}
-        );
-      })
-      .catch(() => {});
-  }
+  useEffect(() => { prefetchAudio(); loadTTSPreferences(); }, []);
 
   // Refs for use inside async callbacks / closures where state would be stale
   const sessionCodeRef = useRef<string | null>(null);
@@ -102,7 +79,9 @@ export default function App() {
   // ── Persistence ───────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const restored = loadPersistedState();
+    (async () => {
+    const raw = await storageGet(STORAGE_KEY);
+    const restored = parsePersistedState(raw);
     if (!restored) return;
 
     setSetup(restored.setup);
@@ -122,10 +101,11 @@ export default function App() {
       setSessionCode(restored.sessionCode);
       startSessionSubscription(restored.sessionCode);
     }
+    })();
   }, []);
 
   useEffect(() => {
-    savePersistedState({ version: 1, setup, teamASide, matchState, history, backgroundPhotoDataUrl, playerPlayCounts, matchHistory, sessionCode });
+    storageSave(STORAGE_KEY, JSON.stringify({ version: 1, setup, teamASide, matchState, history, backgroundPhotoDataUrl, playerPlayCounts, matchHistory, sessionCode })).catch(() => {});
   }, [setup, teamASide, matchState, history, backgroundPhotoDataUrl, playerPlayCounts, matchHistory, sessionCode]);
 
   // ── Firebase session sync — push all state on any change ─────────────────
@@ -284,43 +264,7 @@ export default function App() {
 
   // ── Match screen ──────────────────────────────────────────────────────────
 
-  function playApplause(): Promise<void> {
-    return new Promise((resolve) => {
-      const ctx = audioCtxRef.current;
-      const buffer = applauseBufferRef.current;
-      if (!ctx || !buffer) { resolve(); return; }
-
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.85, ctx.currentTime);
-      gain.connect(ctx.destination);
-
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(gain);
-      source.onended = () => resolve();
-
-      (ctx.state === 'suspended' ? ctx.resume() : Promise.resolve())
-        .then(() => source.start())
-        .catch(() => resolve());
-    });
-  }
-
-  function pickVoice(): SpeechSynthesisVoice | null {
-    const voices = window.speechSynthesis.getVoices();
-    const enVoices = voices.filter((v) => v.lang.startsWith('en'));
-    // Prefer natural/neural voices in priority order
-    const PREFERRED = ['Samantha', 'Alex', 'Karen', 'Daniel', 'Google US English', 'Google UK English Female'];
-    for (const name of PREFERRED) {
-      const match = enVoices.find((v) => v.name === name);
-      if (match) return match;
-    }
-    // Fall back to any Google voice, then any English voice
-    return enVoices.find((v) => v.name.includes('Google')) ?? enVoices[0] ?? null;
-  }
-
   function speakScore(prev: MatchState, next: MatchState) {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
     const NUM = ['love', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'];
     const ORDINAL = ['', 'first', 'second', 'third', 'fourth', 'fifth'];
     const POINT: Record<string, string> = {
@@ -329,27 +273,13 @@ export default function App() {
     };
 
     function numWord(n: number) { return NUM[n] ?? String(n); }
-    function gameScore(winnerScore: number, loserScore: number, unit: string) {
-      if (winnerScore === loserScore) return `${numWord(winnerScore)} ${unit}s all`;
-      return `leads, ${numWord(winnerScore)} ${unit}${winnerScore === 1 ? '' : 's'} to ${numWord(loserScore)}`;
-    }
 
     const setWonByA = next.sets.A > prev.sets.A;
     const setWonByB = next.sets.B > prev.sets.B;
     const gameWonByA = next.games.A > prev.games.A || setWonByA;
     const gameWonByB = next.games.B > prev.games.B || setWonByB;
 
-    function speak(text: string) {
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = 'en-US';
-      utt.rate = 1.0;
-      utt.pitch = 1.0;
-      const voice = pickVoice();
-      if (voice) utt.voice = voice;
-      window.speechSynthesis.speak(utt);
-    }
-
-    window.speechSynthesis.cancel();
+    cancelSpeech();
 
     if (gameWonByA || gameWonByB) {
       const winnerName = gameWonByA ? teamNames.A : teamNames.B;
@@ -375,17 +305,10 @@ export default function App() {
           ? `${numWord(serverGames)} game${serverGames === 1 ? '' : 's'} all.`
           : `${numWord(serverGames)} game${serverGames === 1 ? '' : 's'} to ${numWord(receiverGames)}.`;
       }
-      // Sequence: speak intro → applause → speak standing
-      const uttIntro = new SpeechSynthesisUtterance(intro);
-      uttIntro.lang = 'en-US';
-      uttIntro.rate = 1.0;
-      const voice = pickVoice();
-      if (voice) uttIntro.voice = voice;
-      uttIntro.onend = () => {
+      speakTextWithCallback(intro, () => {
         playApplause();
-        speak(standing);
-      };
-      window.speechSynthesis.speak(uttIntro);
+        speakText(standing);
+      });
     } else {
       const labelA = getPointLabel(next, 'A');
       const labelB = getPointLabel(next, 'B');
@@ -404,7 +327,7 @@ export default function App() {
         const receiverLabel = serverIsA ? labelB : labelA;
         text = `${POINT[serverLabel] ?? serverLabel} ${POINT[receiverLabel] ?? receiverLabel}`;
       }
-      if (text) speak(text);
+      if (text) speakText(text);
     }
   }
 
@@ -427,6 +350,7 @@ export default function App() {
 
   function handleUndo() {
     if (!history.length) return;
+    if (!matchState || (matchState.points.A === 0 && matchState.points.B === 0)) return;
     const previous = history[history.length - 1];
     setHistory((prev) => prev.slice(0, -1));
     setMatchState(previous);
@@ -443,6 +367,27 @@ export default function App() {
     setScreen('final');
     const code = sessionCodeRef.current;
     if (code) setTimeout(() => deleteSession(code), 2000);
+    announceFinalResult(ended);
+  }
+
+  function announceFinalResult(ended: MatchState) {
+    cancelSpeech();
+    const hasSets = ended.sets.A > 0 || ended.sets.B > 0;
+    const winnerTeam = ended.winner;
+    const winnerName = winnerTeam === 'A' ? teamNames.A : winnerTeam === 'B' ? teamNames.B : null;
+
+    let scoreText: string;
+    if (hasSets) {
+      scoreText = `${ended.sets.A} sets to ${ended.sets.B}`;
+    } else {
+      scoreText = `${ended.games.A} games to ${ended.games.B}`;
+    }
+
+    const announcement = winnerName
+      ? `Match over. ${winnerName} wins, ${scoreText}.`
+      : `Match over. Final score, ${scoreText}.`;
+
+    speakText(announcement);
   }
 
   function incrementPlayCounts() {
@@ -457,6 +402,8 @@ export default function App() {
   }
 
   function addToMatchHistory(state: MatchState) {
+    const noScoreYet = state.sets.A === 0 && state.sets.B === 0 && state.games.A === 0 && state.games.B === 0;
+    if (noScoreYet) return;
     const record: MatchRecord = {
       id: Date.now().toString(),
       completedAt: Date.now(),
@@ -519,11 +466,13 @@ export default function App() {
       return;
     }
 
-    try {
-      await Share.share({ message: shareText });
-    } catch {
-      // share cancelled or unavailable, no feedback needed
-    }
+    setNativeShareData({
+      matchup: `${teamNames.A} vs ${teamNames.B}`,
+      score: mainScore,
+      breakdown: setBreakdown,
+      message: shareText,
+      winnerName: matchState.winner === 'A' ? teamNames.A : matchState.winner === 'B' ? teamNames.B : undefined,
+    });
   }
 
   async function handleShareFromPreview() {
@@ -542,7 +491,7 @@ export default function App() {
 
   async function handleChangeBackground(source: 'gallery' | 'camera') {
     if (Platform.OS !== 'web') return;
-    const dataUrl = await pickImageDataUrlWeb(source);
+    const dataUrl = await pickImageAsDataUrl(source);
     if (!dataUrl) return;
     setBackgroundPhotoDataUrl(dataUrl);
     if (!matchState) return;
@@ -574,7 +523,7 @@ export default function App() {
 
   function handleClearSavedState() {
     endSession();
-    clearPersistedState();
+    storageRemove(STORAGE_KEY).catch(() => {});
     setSetup(INITIAL_SETUP);
     setTeamASide('left');
     setMatchState(null);
@@ -589,37 +538,89 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (screen === 'history') {
-    return (
-      <HistoryScreen
-        matchHistory={matchHistory}
-        sessionCode={sessionCode}
-        onBack={() => setScreen(historyReturnScreenRef.current)}
-      />
-    );
+    const historyProps = {
+      matchHistory,
+      sessionCode,
+      onBack: () => setScreen(historyReturnScreenRef.current),
+    };
+    if (Platform.OS !== 'web') {
+      return (
+        <>
+          <MobileHistoryScreen
+            {...historyProps}
+            onShareMatch={(record) => {
+              const hasSets = record.sets.A > 0 || record.sets.B > 0;
+              const teamAName = record.teams.A.join(' / ');
+              const teamBName = record.teams.B.join(' / ');
+              const mainScore = hasSets
+                ? `${record.sets.A} - ${record.sets.B}`
+                : `${record.games.A} - ${record.games.B}`;
+              const breakdown = hasSets
+                ? record.completedSets.map(s => `${s.A}–${s.B}`).join('  ·  ')
+                : undefined;
+              const winnerName = record.winner === 'A' ? teamAName : record.winner === 'B' ? teamBName : undefined;
+              setNativeShareData({
+                matchup: `${teamAName} vs ${teamBName}`,
+                score: mainScore,
+                breakdown,
+                message: [
+                  '🎾 PoinYuk',
+                  `${teamAName} vs ${teamBName}`,
+                  mainScore,
+                  breakdown ?? '',
+                  winnerName ? `${winnerName} menang` : '',
+                ].filter(Boolean).join('\n'),
+                winnerName,
+              });
+            }}
+          />
+          <NativeShareModal data={nativeShareData} onClose={() => setNativeShareData(null)} />
+        </>
+      );
+    }
+    return <HistoryScreen {...historyProps} />;
   }
 
   if (screen === 'lineup') {
-    return (
-      <LineupScreen
-        players={setup.players}
-        mode={setup.mode}
-        playerPlayCounts={playerPlayCounts}
-        sessionCode={sessionCode}
-        onConfirm={handleLineupConfirm}
-        onBack={() => {
-          if (matchState && !matchState.isEnded) {
-            setScreen('match');
-          } else if (matchState?.isEnded) {
-            setScreen('final');
-          } else {
-            setScreen('setup');
-          }
-        }}
-      />
-    );
+    const lineupProps = {
+      players: setup.players,
+      mode: setup.mode,
+      playerPlayCounts,
+      sessionCode,
+      onConfirm: handleLineupConfirm,
+      onBack: () => {
+        if (matchState && !matchState.isEnded) {
+          setScreen('match');
+        } else if (matchState?.isEnded) {
+          setScreen('final');
+        } else {
+          setScreen('setup');
+        }
+      },
+    };
+    if (Platform.OS !== 'web') {
+      return <MobileLineupScreen {...lineupProps} />;
+    }
+    return <LineupScreen {...lineupProps} />;
   }
 
   if (screen === 'match' && matchState && !matchState.isEnded) {
+    if (Platform.OS !== 'web') {
+      return (
+        <MobileMatchScreen
+          matchState={matchState}
+          teamNames={teamNames}
+          teamASide={teamASide}
+          hasUndo={history.length > 0 && ((matchState?.points.A ?? 0) > 0 || (matchState?.points.B ?? 0) > 0)}
+          voiceEnabled={voiceEnabled}
+          sessionCode={sessionCode}
+          onAddPoint={handleAddPoint}
+          onUndo={handleUndo}
+          onEndMatch={handleEndMatch}
+          onToggleVoice={() => setVoiceEnabled((v) => !v)}
+        />
+      );
+    }
     return (
       <MatchScreen
         matchState={matchState}
@@ -637,24 +638,54 @@ export default function App() {
   }
 
   if (screen === 'final' && matchState?.isEnded) {
+    if (Platform.OS !== 'web') {
+      return (
+        <>
+          <MobileFinalScreen
+            matchState={matchState}
+            teamNames={teamNames}
+            sessionCode={sessionCode}
+            onShare={handleShare}
+            onBackToSetup={handleBackToSetup}
+            onClearSavedState={handleClearSavedState}
+            onShowHistory={() => { historyReturnScreenRef.current = 'final'; setScreen('history'); }}
+          />
+          <NativeShareModal data={nativeShareData} onClose={() => setNativeShareData(null)} />
+        </>
+      );
+    }
     return (
-      <FinalScoreScreen
-        matchState={matchState}
-        teamNames={teamNames}
-        sharePreviewDataUrl={sharePreviewDataUrl}
-        sessionCode={sessionCode}
-        onShare={handleShare}
-        onShareFromPreview={handleShareFromPreview}
-        onCloseSharePreview={closeSharePreview}
-        onChangeBackground={handleChangeBackground}
-        onBackToSetup={handleBackToSetup}
-        onClearSavedState={handleClearSavedState}
-        onShowHistory={() => { historyReturnScreenRef.current = 'final'; setScreen('history'); }}
-      />
+      <>
+        <FinalScoreScreen
+          matchState={matchState}
+          teamNames={teamNames}
+          sharePreviewDataUrl={sharePreviewDataUrl}
+          sessionCode={sessionCode}
+          onShare={handleShare}
+          onShareFromPreview={handleShareFromPreview}
+          onCloseSharePreview={closeSharePreview}
+          onChangeBackground={handleChangeBackground}
+          onBackToSetup={handleBackToSetup}
+          onClearSavedState={handleClearSavedState}
+          onShowHistory={() => { historyReturnScreenRef.current = 'final'; setScreen('history'); }}
+        />
+      </>
     );
   }
 
   // Default: setup screen
+  if (Platform.OS !== 'web') {
+    return (
+      <MobileSetupScreen
+        setup={setup}
+        sessionCode={sessionCode}
+        onUpdateSetup={handleUpdateSetup}
+        onStartMatch={handleGoToLineup}
+        onJoinSession={handleJoinSession}
+        onCreateSession={handleCreateSession}
+      />
+    );
+  }
   return (
     <MatchSetup
       setup={setup}
@@ -664,6 +695,16 @@ export default function App() {
       onJoinSession={handleJoinSession}
       onCreateSession={handleCreateSession}
     />
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -697,22 +738,7 @@ function cloneState(state: MatchState): MatchState {
 function showMessage(message: string) {
   if (Platform.OS === 'web') {
     window.alert(message);
-    return;
   }
-  Alert.alert('PoinYuk', message);
 }
 
-function loadPersistedState(): PersistedAppState | null {
-  if (Platform.OS !== 'web') return null;
-  return loadPersistedStateFromStorage(window.localStorage, STORAGE_KEY);
-}
 
-function savePersistedState(state: PersistedAppState) {
-  if (Platform.OS !== 'web') return;
-  savePersistedStateToStorage(window.localStorage, state, STORAGE_KEY);
-}
-
-function clearPersistedState() {
-  if (Platform.OS !== 'web') return;
-  clearPersistedStateFromStorage(window.localStorage, STORAGE_KEY);
-}

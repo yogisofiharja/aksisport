@@ -94,6 +94,9 @@ export function addPoint(state: MatchState, team: Team): MatchState {
     ...state,
     points: { ...state.points },
     games: { ...state.games },
+    sets: { ...state.sets },
+    // Guard against states persisted before completedSets was added to the schema
+    completedSets: [...(state.completedSets ?? [])],
   };
 
   const wasDeuce = isDeuce(nextState.points);
@@ -194,7 +197,5 @@ function decideManualWinner(state: MatchState): Team | null {
   if (state.sets.B > state.sets.A) return 'B';
   if (state.games.A > state.games.B) return 'A';
   if (state.games.B > state.games.A) return 'B';
-  if (state.points.A > state.points.B) return 'A';
-  if (state.points.B > state.points.A) return 'B';
   return null;
 }
