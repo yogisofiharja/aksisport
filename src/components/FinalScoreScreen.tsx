@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { TeamNames } from '../appTypes';
 import { MatchState, Team } from '../scoring';
 import { Button, Card, DecorativeBackdrop } from './ui';
@@ -36,50 +37,46 @@ export function FinalScoreScreen(props: FinalScoreScreenProps) {
   } = props;
 
   const winner = matchState.winner;
+  const completedSets = matchState.completedSets ?? [];
 
   function handleEndSession() {
-    if (Platform.OS === 'web') {
-      if (!window.confirm('Akhiri sesi? Semua data tersimpan akan dihapus.')) return;
-    }
+    if (!window.confirm('Akhiri sesi? Semua data tersimpan akan dihapus.')) return;
     onClearSavedState();
   }
 
   return (
     <DecorativeBackdrop>
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <ScrollView contentContainerStyle={styles.container}>
-          <Card tone="accent" style={styles.heroCard}>
-            <Text style={styles.title}>PoinYuk</Text>
+          <View style={styles.sessionHeader}>
             <SessionCodeBadge sessionCode={sessionCode} />
-          </Card>
+          </View>
 
           <Card style={styles.scoreboardCard}>
             <TVScoreboard
               teamAName={teamNames.A}
               teamBName={teamNames.B}
               sets={matchState.sets}
-              completedSets={matchState.completedSets}
+              completedSets={completedSets}
               currentGames={matchState.games}
               winner={winner}
             />
           </Card>
 
-          <Button label="Match Baru →" onPress={onBackToSetup} size="lg" />
+          <Button label="Bagikan" onPress={onShare} size="lg" />
+          <Button label="Match Baru →" onPress={onBackToSetup} size="lg" variant="outline" />
 
-          <View style={styles.secondaryRow}>
-            <View style={styles.secondaryBtn}>
-              <Button label="Bagikan" onPress={onShare} variant="outline" />
-            </View>
-            <View style={styles.secondaryBtn}>
-              <Button label="Riwayat" onPress={onShowHistory} variant="outline" />
-            </View>
-          </View>
+          <Pressable onPress={onShowHistory} style={styles.riwayatLink}>
+            <Text style={styles.riwayatText}>Lihat Riwayat</Text>
+          </Pressable>
+        </ScrollView>
 
+        <View style={styles.stickyFooter}>
           <Pressable onPress={handleEndSession} style={styles.endSessionBtn}>
             <Text style={styles.endSessionText}>Akhiri Sesi</Text>
           </Pressable>
-        </ScrollView>
+        </View>
 
         <ShareCardModal
           visible={!!sharePreviewDataUrl}
@@ -201,6 +198,7 @@ function TVRow({
   );
 }
 
+// ── Web styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: {
@@ -209,12 +207,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 12,
   },
-  heroCard: { paddingVertical: 16, gap: 6 },
-  title: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#111827',
-  },
+  sessionHeader: { alignItems: 'flex-end' },
   scoreboardCard: {
     padding: 0,
     overflow: 'hidden',
@@ -242,9 +235,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#475569',
   },
-  tvSetTotalWinner: {
-    color: '#d97706',
-  },
+  tvSetTotalWinner: { color: '#d97706' },
   tvVerticalDivider: {
     width: 1,
     height: 22,
@@ -258,37 +249,34 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginRight: 10,
   },
-  tvNameWinner: {
-    color: '#f8fafc',
-    fontWeight: '900',
-  },
+  tvNameWinner: { color: '#f8fafc', fontWeight: '900' },
   tvScore: {
     width: 36,
     textAlign: 'center',
     fontSize: 20,
     fontWeight: '900',
   },
-  tvScoreWon: {
-    color: '#f8fafc',
+  tvScoreWon: { color: '#f8fafc' },
+  tvScoreLost: { color: '#475569' },
+  tvScorePartial: { color: '#fde047' },
+  riwayatLink: {
+    alignItems: 'center',
+    paddingVertical: 6,
   },
-  tvScoreLost: {
-    color: '#475569',
+  riwayatText: {
+    fontSize: 14,
+    color: '#64748b',
+    textDecorationLine: 'underline',
   },
-  tvScorePartial: {
-    color: '#fde047',
-  },
-  secondaryRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  secondaryBtn: {
-    flex: 1,
+  stickyFooter: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    paddingVertical: 10,
+    alignItems: 'center',
   },
   endSessionBtn: {
-    alignItems: 'center',
-    paddingVertical: 14,
-    marginTop: 4,
-    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
   },
   endSessionText: {
     fontSize: 13,

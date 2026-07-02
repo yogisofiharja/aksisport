@@ -3,7 +3,6 @@ import {
   Platform,
   Pressable,
   StyleProp,
-  StyleSheet,
   Text,
   TextInput,
   TextInputProps,
@@ -11,7 +10,9 @@ import {
   ViewProps,
   ViewStyle,
 } from 'react-native';
+import { useColorScheme } from 'nativewind';
 
+// Kept for components outside this file that reference palette values directly
 export const palette = {
   background: '#0f1021',
   backgroundMuted: '#1a1c33',
@@ -35,12 +36,23 @@ type CardProps = ViewProps & {
 };
 
 export function Card({ tone = 'default', style, children, ...rest }: CardProps) {
+  const toneClass =
+    tone === 'accent' ? 'bg-[#fff0d0] border-[#ffd97a]' :
+    tone === 'muted'  ? 'bg-[#f3f6ff] border-[#d5def5]' :
+                        'bg-white border-[#d5def5]';
+
   return (
     <View
+      className={`rounded-2xl border p-[14px] gap-[10px] ${toneClass}`}
       style={[
-        styles.card,
-        tone === 'muted' && styles.cardMuted,
-        tone === 'accent' && styles.cardAccent,
+        Platform.OS === 'ios' && {
+          shadowColor: '#0b0f22',
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 3 },
+        },
+        Platform.OS === 'android' && { elevation: 2 },
+        Platform.OS === 'web' && { boxShadow: '0px 3px 8px rgba(11,15,34,0.06)' } as any,
         style,
       ]}
       {...rest}
@@ -59,29 +71,46 @@ type ButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function Button({
-  label,
-  onPress,
-  variant = 'default',
-  size = 'md',
-  disabled,
-  style,
-}: ButtonProps) {
+const variantBgClass: Record<string, string> = {
+  default:     'bg-primary border-primary',
+  secondary:   'bg-secondary border-secondary',
+  outline:     'bg-white border-[#263054]',
+  destructive: 'bg-destructive border-destructive',
+  ghost:       'bg-transparent border-transparent',
+};
+
+const variantTextClass: Record<string, string> = {
+  default:     'text-white',
+  secondary:   'text-white',
+  outline:     'text-foreground',
+  destructive: 'text-white',
+  ghost:       'text-muted',
+};
+
+export function Button({ label, onPress, variant = 'default', size = 'md', disabled, style }: ButtonProps) {
   return (
     <Pressable
+      className={[
+        'min-h-[42px] px-[14px] rounded-xl border items-center justify-center',
+        variantBgClass[variant],
+        size === 'sm' ? 'min-h-[36px] px-3' : '',
+        size === 'lg' ? 'min-h-[50px] rounded-[14px]' : '',
+        disabled ? 'opacity-50' : '',
+      ].join(' ')}
       style={({ pressed }) => [
-        styles.button,
-        buttonVariantStyles[variant],
-        size === 'sm' && styles.buttonSm,
-        size === 'lg' && styles.buttonLg,
-        pressed && !disabled && styles.buttonPressed,
-        disabled && styles.buttonDisabled,
-        style,
+        pressed && !disabled && { opacity: 0.86 },
+        style as StyleProp<ViewStyle>,
       ]}
       onPress={onPress}
       disabled={disabled}
     >
-      <Text style={[styles.buttonText, buttonTextStyles[variant], disabled && styles.buttonTextDisabled]}>
+      <Text
+        className={[
+          'text-sm font-extrabold tracking-[0.2px]',
+          variantTextClass[variant],
+          disabled ? 'text-[#5b6470]' : '',
+        ].join(' ')}
+      >
         {label}
       </Text>
     </Pressable>
@@ -95,17 +124,27 @@ type PillProps = {
 };
 
 export function Pill({ label, active, onPress }: PillProps) {
+  const containerClass = [
+    'px-3 min-h-[36px] rounded-full border items-center justify-center',
+    active ? 'border-blue-700 bg-blue-100' : 'border-[#c4d0ee] bg-white',
+  ].join(' ');
+
+  const textClass = [
+    'text-[13px] font-bold',
+    active ? 'text-[#1e40af]' : 'text-foreground',
+  ].join(' ');
+
   if (!onPress) {
     return (
-      <View style={[styles.pill, active && styles.pillActive]}>
-        <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
+      <View className={containerClass}>
+        <Text className={textClass}>{label}</Text>
       </View>
     );
   }
 
   return (
-    <Pressable style={[styles.pill, active && styles.pillActive]} onPress={onPress}>
-      <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
+    <Pressable className={containerClass} onPress={onPress}>
+      <Text className={textClass}>{label}</Text>
     </Pressable>
   );
 }
@@ -116,11 +155,14 @@ type InputProps = TextInputProps & {
 
 export function Input({ label, style, ...props }: InputProps) {
   return (
-    <View style={styles.inputWrap}>
-      <Text style={styles.inputLabel}>{label}</Text>
+    <View className="gap-[6px]">
+      <Text className="text-xs text-muted font-bold uppercase tracking-[0.5px]">
+        {label}
+      </Text>
       <TextInput
-        style={[styles.input, style]}
+        className="border border-[#c4d0ee] rounded-xl min-h-[44px] bg-white text-foreground px-3 py-[10px] text-[15px] font-medium"
         placeholderTextColor="#8b97a6"
+        style={style}
         {...props}
       />
     </View>
@@ -128,190 +170,20 @@ export function Input({ label, style, ...props }: InputProps) {
 }
 
 export function DecorativeBackdrop({ children }: { children: ReactNode }) {
+  const { colorScheme } = useColorScheme();
+  if (Platform.OS !== 'web') {
+    const bg = colorScheme === 'dark' ? '#0f172a' : '#f8fafc';
+    return <View style={{ flex: 1, backgroundColor: bg }}>{children}</View>;
+  }
   return (
-    <View style={styles.backdrop}>
-      <View style={styles.blobA} />
-      <View style={styles.blobB} />
-      <View style={styles.blobC} />
+    <View
+      className="flex-1 bg-background overflow-hidden"
+      style={{ width: '100vw' as any, maxWidth: '100vw' as any }}
+    >
+      <View className="absolute w-[220px] h-[220px] rounded-full bg-blue-600 opacity-20" style={{ top: -70, left: -50 }} />
+      <View className="absolute w-[220px] h-[220px] rounded-full bg-red-600 opacity-[0.18]" style={{ top: 100, right: -90 }} />
+      <View className="absolute w-[260px] h-[260px] rounded-full bg-amber-500 opacity-[0.18]" style={{ bottom: -120, left: -70 }} />
       {children}
     </View>
   );
 }
-
-const buttonVariantStyles = StyleSheet.create({
-  default: {
-    backgroundColor: palette.primary,
-    borderColor: palette.primary,
-  },
-  secondary: {
-    backgroundColor: palette.secondary,
-    borderColor: palette.secondary,
-  },
-  outline: {
-    backgroundColor: '#ffffff',
-    borderColor: palette.border,
-  },
-  destructive: {
-    backgroundColor: palette.destructive,
-    borderColor: palette.destructive,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-    borderColor: 'transparent',
-  },
-});
-
-const buttonTextStyles = StyleSheet.create({
-  default: { color: palette.primaryText },
-  secondary: { color: palette.secondaryText },
-  outline: { color: '#1f2937' },
-  destructive: { color: '#ffffff' },
-  ghost: { color: palette.mutedForeground },
-});
-
-const styles = StyleSheet.create({
-  backdrop: Platform.select({
-    web: {
-      flex: 1,
-      backgroundColor: palette.background,
-      width: '100vw' as any,
-      maxWidth: '100vw' as any,
-      overflow: 'hidden' as any,
-    },
-    default: {
-      flex: 1,
-      backgroundColor: palette.background,
-    },
-  }) as any,
-  blobA: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 999,
-    backgroundColor: '#2563eb',
-    opacity: 0.2,
-    top: -70,
-    left: -50,
-  },
-  blobB: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 999,
-    backgroundColor: '#dc2626',
-    opacity: 0.18,
-    top: 100,
-    right: -90,
-  },
-  blobC: {
-    position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 999,
-    backgroundColor: '#f59e0b',
-    opacity: 0.18,
-    bottom: -120,
-    left: -70,
-  },
-  card: {
-    backgroundColor: palette.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#d5def5',
-    padding: 14,
-    gap: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0b0f22',
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
-      },
-      android: {
-        elevation: 2,
-      },
-      default: {},
-    }),
-  },
-  cardMuted: {
-    backgroundColor: '#f3f6ff',
-  },
-  cardAccent: {
-    backgroundColor: '#fff0d0',
-    borderColor: '#ffd97a',
-  },
-  button: {
-    minHeight: 42,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonSm: {
-    minHeight: 36,
-    paddingHorizontal: 12,
-  },
-  buttonLg: {
-    minHeight: 50,
-    borderRadius: 14,
-  },
-  buttonPressed: {
-    opacity: 0.86,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  buttonTextDisabled: {
-    color: '#5b6470',
-  },
-  pill: {
-    paddingHorizontal: 12,
-    minHeight: 36,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#c4d0ee',
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pillActive: {
-    borderColor: '#1d4ed8',
-    backgroundColor: '#dbeafe',
-  },
-  pillText: {
-    color: palette.foreground,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  pillTextActive: {
-    color: '#1e40af',
-  },
-  inputWrap: {
-    gap: 6,
-  },
-  inputLabel: {
-    fontSize: 12,
-    color: palette.mutedForeground,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#c4d0ee',
-    borderRadius: 12,
-    minHeight: 44,
-    backgroundColor: '#ffffff',
-    color: palette.foreground,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-});
