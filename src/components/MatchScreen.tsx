@@ -9,6 +9,7 @@ import { TeamASide, TeamNames } from '../appTypes';
 import { getPointLabel, MatchState, Team } from '../scoring';
 import { Button, DecorativeBackdrop } from './ui';
 import { SessionCodeBadge } from './SessionCodeBadge';
+import { useTranslation } from '../i18n';
 
 type MatchScreenProps = {
   matchState: MatchState;
@@ -27,16 +28,17 @@ export function MatchScreen(props: MatchScreenProps) {
   const { matchState, teamNames, teamASide, hasUndo, sessionCode, voiceEnabled, onAddPoint, onUndo, onEndMatch, onToggleVoice } = props;
   const { colorScheme } = useColorScheme();
   const statusStyle = Platform.OS === 'web' ? 'light' : colorScheme === 'dark' ? 'light' : 'dark';
+  const { t } = useTranslation();
 
   function handleEndMatch() {
     if (Platform.OS === 'web') {
-      if (!window.confirm('Akhiri pertandingan?')) return;
+      if (!window.confirm(t('endMatchConfirm'))) return;
       onEndMatch();
       return;
     }
-    Alert.alert('Akhiri Match', 'Yakin ingin mengakhiri pertandingan?', [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Akhiri', style: 'destructive', onPress: onEndMatch },
+    Alert.alert(t('endMatchTitle'), t('endMatchConfirm'), [
+      { text: t('back'), style: 'cancel' },
+      { text: t('endMatchShort'), style: 'destructive', onPress: onEndMatch },
     ]);
   }
 
@@ -92,7 +94,7 @@ export function MatchScreen(props: MatchScreenProps) {
           active={voiceEnabled}
         />
       </View>
-      <Button label="Akhiri Match" onPress={handleEndMatch} style={styles.endMatchButton} />
+      <Button label={t('endMatch')} onPress={handleEndMatch} style={styles.endMatchButton} />
     </View>
   );
 
@@ -150,6 +152,7 @@ type LandscapeProps = {
 
 function LandscapeMatchScreen(p: LandscapeProps) {
   const { matchState, teamNames, leftTeam, rightTeam } = p;
+  const { t } = useTranslation();
   const [courtHeight, setCourtHeight] = useState(0);
 
   // Lock to landscape for match play; restore portrait when unmounted
@@ -302,7 +305,7 @@ function LandscapeMatchScreen(p: LandscapeProps) {
           style={({ pressed }) => [ls.endBtn, pressed && ls.btnPressed]}
         >
           <Ionicons name="stop-circle-outline" size={18} color="#fca5a5" />
-          <Text style={ls.endBtnText}>Akhiri</Text>
+          <Text style={ls.endBtnText}>{t('endMatchShort')}</Text>
         </Pressable>
 
         {/* Center: Undo — arrow-undo icon, no label */}
@@ -467,6 +470,8 @@ const ls = StyleSheet.create({
     color: '#4ade80',
     letterSpacing: 1.5,
   },
+  serviceLineLeft: { display: 'none' },
+  serviceLineRight: { display: 'none' },
   // ── Net divider (absolute, pinned to exact center) ─
   netDivider: {
     position: 'absolute',

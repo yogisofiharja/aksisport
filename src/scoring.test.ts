@@ -138,17 +138,17 @@ describe('scoring engine', () => {
     expect(state.isEnded).toBe(true);
   });
 
-  it('increments set, records completed set scores, and resets games when a team wins 6 games', () => {
+  it('lets games accumulate past 6 without set completion in custom (open) format', () => {
     let state = createInitialState(createSingleConfig('standard'));
 
-    // B wins 3 games, then A wins 6 to take the set 6-3.
+    // B wins 3 games, then A wins 6 — game count grows freely, no set is completed.
     for (let i = 0; i < 3; i++) state = applyPoints(state, ['B', 'B', 'B', 'B']);
     for (let i = 0; i < 6; i++) state = applyPoints(state, ['A', 'A', 'A', 'A']);
 
-    expect(state.sets.A).toBe(1);
+    expect(state.sets.A).toBe(0);
     expect(state.sets.B).toBe(0);
-    expect(state.games).toEqual({ A: 0, B: 0 });
-    expect(state.completedSets).toEqual([{ A: 6, B: 3 }]);
+    expect(state.games).toEqual({ A: 6, B: 3 });
+    expect(state.completedSets).toEqual([]);
   });
 
   it('prefers set count over game count when deciding manual winner', () => {

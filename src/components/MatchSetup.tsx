@@ -15,6 +15,7 @@ import { SetupForm } from '../appTypes';
 import { MatchFormat } from '../scoring';
 import { Button, Card, DecorativeBackdrop, palette, Pill } from './ui';
 import { SessionCodeBadge } from './SessionCodeBadge';
+import { useTranslation } from '../i18n';
 
 type SetupView = 'landing' | 'create' | 'join';
 
@@ -37,6 +38,7 @@ export function MatchSetup({
 }: MatchSetupProps) {
   const [view, setView] = useState<SetupView>('landing');
   const [inputValue, setInputValue] = useState('');
+  const { t } = useTranslation();
   // Auto-advance to form when a session code arrives (owner created session or umpire joined)
   useEffect(() => {
     if (sessionCode && view === 'landing') setView('create');
@@ -91,8 +93,8 @@ export function MatchSetup({
                   <Ionicons name="add-circle-outline" size={28} color="#d97706" />
                 </View>
                 <View style={styles.entryText}>
-                  <Text style={styles.entryTitle}>Mulai Pertandingan</Text>
-                  <Text style={styles.entrySub}>Buat sesi dan atur pemain</Text>
+                  <Text style={styles.entryTitle}>{t('startMatch')}</Text>
+                  <Text style={styles.entrySub}>{t('startMatchSub')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
               </Pressable>
@@ -104,8 +106,8 @@ export function MatchSetup({
                   <Ionicons name="enter-outline" size={28} color="#2563eb" />
                 </View>
                 <View style={styles.entryText}>
-                  <Text style={styles.entryTitle}>Gabung Sesi</Text>
-                  <Text style={styles.entrySub}>Scan QR atau masukkan kode sesi</Text>
+                  <Text style={styles.entryTitle}>{t('joinSession')}</Text>
+                  <Text style={styles.entrySub}>{t('joinSessionSub')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
               </Pressable>
@@ -130,15 +132,15 @@ export function MatchSetup({
             </Card>
 
             <Card>
-              <Text style={styles.sectionTitle}>Gabung Sesi</Text>
-              <Text style={styles.sectionSub}>Masukkan kode 5 huruf dari pemilik sesi</Text>
+              <Text style={styles.sectionTitle}>{t('joinTitle')}</Text>
+              <Text style={styles.sectionSub}>{t('joinDesc')}</Text>
               <View style={[styles.inputRow, { marginTop: 12 }]}>
                 <TextInput
                   autoFocus
                   style={[styles.textInput, styles.codeInput]}
                   value={joinCode}
                   onChangeText={(v) => setJoinCode(v.toUpperCase())}
-                  placeholder="Kode sesi..."
+                  placeholder={t('sessionCodePlaceholder')}
                   placeholderTextColor="#9ca3af"
                   autoCapitalize="characters"
                   maxLength={5}
@@ -153,7 +155,7 @@ export function MatchSetup({
               </View>
             </Card>
 
-            <Button label="Kembali" onPress={() => setView('landing')} variant="outline" />
+            <Button label={t('back')} onPress={() => setView('landing')} variant="outline" />
           </ScrollView>
         </SafeAreaView>
       </DecorativeBackdrop>
@@ -178,9 +180,9 @@ export function MatchSetup({
 
           <Card>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Daftar Pemain</Text>
+              <Text style={styles.sectionTitle}>{t('playerList')}</Text>
               <Text style={[styles.playerCount, { color: playerCountColor }]}>
-                {setup.players.length} pemain
+                {t('playerCount', setup.players.length)}
               </Text>
             </View>
 
@@ -192,7 +194,7 @@ export function MatchSetup({
                 value={inputValue}
                 onChangeText={setInputValue}
                 onSubmitEditing={addPlayer}
-                placeholder="Nama pemain..."
+                placeholder={t('playerNamePlaceholder')}
                 placeholderTextColor="#9ca3af"
                 returnKeyType="done"
                 blurOnSubmit={false}
@@ -220,141 +222,160 @@ export function MatchSetup({
           </Card>
 
           <Card>
-            <Text style={styles.sectionTitle}>Jenis Pertandingan</Text>
+            <Text style={styles.sectionTitle}>{t('matchType')}</Text>
             <View style={styles.pillRow}>
               <Pill
-                label="Single  (1 vs 1)"
+                label={t('single')}
                 active={setup.mode === 'single'}
                 onPress={() => onUpdateSetup({ mode: 'single' })}
               />
               <Pill
-                label="Double  (2 vs 2)"
+                label={t('double')}
                 active={setup.mode === 'double'}
                 onPress={() => onUpdateSetup({ mode: 'double' })}
               />
             </View>
             {setup.players.length > 0 && setup.players.length < requiredPlayers && (
               <Text style={styles.warningText}>
-                Butuh minimal {requiredPlayers} pemain untuk mode {setup.mode}. Baru ada {setup.players.length}.
+                {t('needMorePlayers', requiredPlayers, setup.mode, setup.players.length)}
               </Text>
             )}
           </Card>
 
           {/* Format Pertandingan */}
           <Card>
-            <Text style={styles.sectionTitle}>Format Pertandingan</Text>
-            <View style={styles.pillRow}>
-              {(
-                [
-                  { type: 'open' as const, label: 'Bebas' },
-                  { type: 'fixed-games' as const, label: 'Total Game' },
-                  { type: 'race-to' as const, label: 'Kejar Target' },
-                  { type: 'best-of-sets' as const, label: 'Best of Sets' },
-                ]
-              ).map(({ type, label }) => (
-                <Pill
-                  key={type}
-                  label={label}
-                  active={(setup.matchFormat ?? { type: 'open' }).type === type}
-                  onPress={() => {
-                    let fmt: MatchFormat = { type: 'open' };
-                    if (type === 'fixed-games') fmt = { type: 'fixed-games', totalGames: 4, goldenGameOnTie: false };
-                    if (type === 'race-to') fmt = { type: 'race-to', raceTo: 4 };
-                    if (type === 'best-of-sets') fmt = { type: 'best-of-sets', setsToWin: 2, superTiebreak: false };
-                    onUpdateSetup({ matchFormat: fmt });
-                  }}
-                />
-              ))}
-            </View>
+            <Text style={styles.sectionTitle}>{t('matchFormat')}</Text>
 
-            {setup.matchFormat?.type === 'fixed-games' && (
-              <View style={{ marginTop: 10, gap: 10 }}>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchTitle}>Jumlah Game</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Pressable
-                      style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
-                      onPress={() => {
-                        const cur = (setup.matchFormat as { type: 'fixed-games'; totalGames: number; goldenGameOnTie: boolean }).totalGames;
-                        if (cur > 2) onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, totalGames: cur - 1 } });
-                      }}
-                    >
-                      <Text style={styles.stepBtnText}>−</Text>
-                    </Pressable>
-                    <Text style={styles.stepValue}>{(setup.matchFormat as any).totalGames}</Text>
-                    <Pressable
-                      style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
-                      onPress={() => {
-                        const cur = (setup.matchFormat as { type: 'fixed-games'; totalGames: number; goldenGameOnTie: boolean }).totalGames;
-                        if (cur < 20) onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, totalGames: cur + 1 } });
-                      }}
-                    >
-                      <Text style={styles.stepBtnText}>+</Text>
-                    </Pressable>
-                  </View>
+            {/* Tab switcher: Custom | Regular */}
+            {(() => {
+              const isRegular = setup.matchFormat?.type === 'best-of-sets';
+              return (
+                <View style={[styles.pillRow, { marginBottom: 4 }]}>
+                  {(['custom', 'regular'] as const).map(tab => {
+                    const active = tab === 'regular' ? isRegular : !isRegular;
+                    return (
+                      <Pressable
+                        key={tab}
+                        style={({ pressed }) => [{
+                          flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' as const,
+                          borderWidth: 1.5,
+                          borderColor: active ? '#d97706' : '#e2e8f0',
+                          backgroundColor: active ? '#d97706' : '#f8fafc',
+                          opacity: pressed ? 0.8 : 1,
+                        }]}
+                        onPress={() => {
+                          if (tab === 'custom' && isRegular) {
+                            onUpdateSetup({ matchFormat: { type: 'open' } });
+                          } else if (tab === 'regular' && !isRegular) {
+                            onUpdateSetup({ matchFormat: { type: 'best-of-sets', setsToWin: 2, superTiebreak: false } });
+                          }
+                        }}
+                      >
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: active ? '#ffffff' : '#64748b' }}>
+                          {tab === 'custom' ? t('customTab') : t('regularTab')}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
-                <View style={styles.switchRow}>
-                  <View style={styles.switchInfo}>
-                    <Text style={styles.switchTitle}>Golden Game saat seri</Text>
-                    <Text style={styles.switchDesc}>Main 1 game tambahan jika skor sama</Text>
-                  </View>
-                  <Switch
-                    value={(setup.matchFormat as any).goldenGameOnTie}
-                    onValueChange={v => onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, goldenGameOnTie: v } })}
-                    trackColor={{ false: '#cbd5e1', true: '#7dd3fc' }}
-                    thumbColor={(setup.matchFormat as any).goldenGameOnTie ? '#2563eb' : '#f8fafc'}
-                  />
+              );
+            })()}
+
+            {/* Custom tab: Bebas / Total Game / Kejar Target */}
+            {setup.matchFormat?.type !== 'best-of-sets' && (
+              <>
+                <View style={styles.pillRow}>
+                  {(
+                    [
+                      { type: 'open' as const, label: t('formatOpen') },
+                      { type: 'fixed-games' as const, label: t('formatFixedGames') },
+                      { type: 'race-to' as const, label: t('formatRaceTo') },
+                    ]
+                  ).map(({ type, label }) => (
+                    <Pill
+                      key={type}
+                      label={label}
+                      active={(setup.matchFormat ?? { type: 'open' }).type === type}
+                      onPress={() => {
+                        let fmt: MatchFormat = { type: 'open' };
+                        if (type === 'fixed-games') fmt = { type: 'fixed-games', totalGames: 4, goldenGameOnTie: false };
+                        if (type === 'race-to') fmt = { type: 'race-to', raceTo: 4 };
+                        onUpdateSetup({ matchFormat: fmt });
+                      }}
+                    />
+                  ))}
                 </View>
-              </View>
+
+                {setup.matchFormat?.type === 'fixed-games' && (
+                  <View style={{ marginTop: 10, gap: 10 }}>
+                    <View style={styles.switchRow}>
+                      <Text style={styles.switchTitle}>{t('totalGames')}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <Pressable style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
+                          onPress={() => { const cur = (setup.matchFormat as any).totalGames; if (cur > 2) onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, totalGames: cur - 1 } }); }}>
+                          <Text style={styles.stepBtnText}>−</Text>
+                        </Pressable>
+                        <Text style={styles.stepValue}>{(setup.matchFormat as any).totalGames}</Text>
+                        <Pressable style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
+                          onPress={() => { const cur = (setup.matchFormat as any).totalGames; if (cur < 20) onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, totalGames: cur + 1 } }); }}>
+                          <Text style={styles.stepBtnText}>+</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                    <View style={styles.switchRow}>
+                      <View style={styles.switchInfo}>
+                        <Text style={styles.switchTitle}>{t('goldenGame')}</Text>
+                        <Text style={styles.switchDesc}>{t('goldenGameDesc')}</Text>
+                      </View>
+                      <Switch
+                        value={(setup.matchFormat as any).goldenGameOnTie}
+                        onValueChange={v => onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, goldenGameOnTie: v } })}
+                        trackColor={{ false: '#cbd5e1', true: '#7dd3fc' }}
+                        thumbColor={(setup.matchFormat as any).goldenGameOnTie ? '#2563eb' : '#f8fafc'}
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {setup.matchFormat?.type === 'race-to' && (
+                  <View style={{ marginTop: 10 }}>
+                    <View style={styles.switchRow}>
+                      <Text style={styles.switchTitle}>{t('targetGames')}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <Pressable style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
+                          onPress={() => { const cur = (setup.matchFormat as any).raceTo; if (cur > 1) onUpdateSetup({ matchFormat: { type: 'race-to', raceTo: cur - 1 } }); }}>
+                          <Text style={styles.stepBtnText}>−</Text>
+                        </Pressable>
+                        <Text style={styles.stepValue}>{(setup.matchFormat as any).raceTo}</Text>
+                        <Pressable style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
+                          onPress={() => { const cur = (setup.matchFormat as any).raceTo; if (cur < 20) onUpdateSetup({ matchFormat: { type: 'race-to', raceTo: cur + 1 } }); }}>
+                          <Text style={styles.stepBtnText}>+</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </>
             )}
 
-            {setup.matchFormat?.type === 'race-to' && (
-              <View style={{ marginTop: 10 }}>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchTitle}>Target Game</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Pressable
-                      style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
-                      onPress={() => {
-                        const cur = (setup.matchFormat as { type: 'race-to'; raceTo: number }).raceTo;
-                        if (cur > 1) onUpdateSetup({ matchFormat: { type: 'race-to', raceTo: cur - 1 } });
-                      }}
-                    >
-                      <Text style={styles.stepBtnText}>−</Text>
-                    </Pressable>
-                    <Text style={styles.stepValue}>{(setup.matchFormat as any).raceTo}</Text>
-                    <Pressable
-                      style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
-                      onPress={() => {
-                        const cur = (setup.matchFormat as { type: 'race-to'; raceTo: number }).raceTo;
-                        if (cur < 20) onUpdateSetup({ matchFormat: { type: 'race-to', raceTo: cur + 1 } });
-                      }}
-                    >
-                      <Text style={styles.stepBtnText}>+</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
-            )}
-
+            {/* Regular tab: Best of Sets */}
             {setup.matchFormat?.type === 'best-of-sets' && (() => {
               const bos = setup.matchFormat as { type: 'best-of-sets'; setsToWin: number; superTiebreak: boolean };
               return (
-                <View style={{ marginTop: 10, gap: 10 }}>
+                <View style={{ gap: 10 }}>
+                  <Text style={styles.switchDesc}>{t('regularTabDesc')}</Text>
                   <View style={styles.switchRow}>
-                    <Text style={styles.switchTitle}>Set untuk Menang</Text>
+                    <Text style={styles.switchTitle}>{t('setsToWin')}</Text>
                     <View style={{ flexDirection: 'row', gap: 6 }}>
                       {([1, 2, 3] as const).map(n => (
-                        <Pressable
-                          key={n}
+                        <Pressable key={n}
                           style={({ pressed }) => [{
-                            width: 36, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+                            width: 36, height: 36, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const,
                             backgroundColor: bos.setsToWin === n ? '#d97706' : '#f1f5f9',
                             borderWidth: 1, borderColor: bos.setsToWin === n ? '#d97706' : '#e2e8f0',
                             opacity: pressed ? 0.7 : 1,
                           }]}
-                          onPress={() => onUpdateSetup({ matchFormat: { ...bos, setsToWin: n, superTiebreak: n === 1 ? false : bos.superTiebreak } })}
-                        >
+                          onPress={() => onUpdateSetup({ matchFormat: { ...bos, setsToWin: n, superTiebreak: n === 1 ? false : bos.superTiebreak } })}>
                           <Text style={{ fontSize: 16, fontWeight: '900', color: bos.setsToWin === n ? '#ffffff' : '#1f2937' }}>{n}</Text>
                         </Pressable>
                       ))}
@@ -363,8 +384,8 @@ export function MatchSetup({
                   {bos.setsToWin > 1 && (
                     <View style={styles.switchRow}>
                       <View style={styles.switchInfo}>
-                        <Text style={styles.switchTitle}>Super Tiebreak (set penentu)</Text>
-                        <Text style={styles.switchDesc}>Ganti set terakhir dengan tiebreak 10 poin</Text>
+                        <Text style={styles.switchTitle}>{t('superTiebreak')}</Text>
+                        <Text style={styles.switchDesc}>{t('superTiebreakDesc')}</Text>
                       </View>
                       <Switch
                         value={bos.superTiebreak}
@@ -382,8 +403,8 @@ export function MatchSetup({
           <Card tone="muted">
             <View style={styles.switchRow}>
               <View style={styles.switchInfo}>
-                <Text style={styles.switchTitle}>Single Deuce + Sudden Death</Text>
-                <Text style={styles.switchDesc}>Deuce kedua langsung menjadi sudden death.</Text>
+                <Text style={styles.switchTitle}>{t('singleDeuce')}</Text>
+                <Text style={styles.switchDesc}>{t('singleDeuceDesc')}</Text>
               </View>
               <Switch
                 value={setup.singleDeuceSuddenDeath}
@@ -394,7 +415,7 @@ export function MatchSetup({
             </View>
           </Card>
 
-          <Button label="Lanjut ke Lineup →" onPress={onStartMatch} size="lg" disabled={!canStart} />
+          <Button label={t('continueToLineup')} onPress={onStartMatch} size="lg" disabled={!canStart} />
         </ScrollView>
       </SafeAreaView>
 

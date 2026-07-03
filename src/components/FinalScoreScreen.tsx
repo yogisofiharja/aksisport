@@ -6,6 +6,7 @@ import { MatchState, Team } from '../scoring';
 import { Button, Card, DecorativeBackdrop } from './ui';
 import { ShareCardModal } from './ShareCardModal';
 import { SessionCodeBadge } from './SessionCodeBadge';
+import { useTranslation } from '../i18n';
 
 type FinalScoreScreenProps = {
   matchState: MatchState;
@@ -36,11 +37,12 @@ export function FinalScoreScreen(props: FinalScoreScreenProps) {
     onShowHistory,
   } = props;
 
+  const { t } = useTranslation();
   const winner = matchState.winner;
   const completedSets = matchState.completedSets ?? [];
 
   function handleEndSession() {
-    if (!window.confirm('Akhiri sesi? Semua data tersimpan akan dihapus.')) return;
+    if (!window.confirm(t('endSessionConfirm'))) return;
     onClearSavedState();
   }
 
@@ -64,17 +66,17 @@ export function FinalScoreScreen(props: FinalScoreScreenProps) {
             />
           </Card>
 
-          <Button label="Bagikan" onPress={onShare} size="lg" />
-          <Button label="Match Baru →" onPress={onBackToSetup} size="lg" variant="outline" />
+          <Button label={t('shareResult')} onPress={onShare} size="lg" />
+          <Button label={`${t('newMatch')} →`} onPress={onBackToSetup} size="lg" variant="outline" />
 
           <Pressable onPress={onShowHistory} style={styles.riwayatLink}>
-            <Text style={styles.riwayatText}>Lihat Riwayat</Text>
+            <Text style={styles.riwayatText}>{t('viewHistory')}</Text>
           </Pressable>
         </ScrollView>
 
         <View style={styles.stickyFooter}>
           <Pressable onPress={handleEndSession} style={styles.endSessionBtn}>
-            <Text style={styles.endSessionText}>Akhiri Sesi</Text>
+            <Text style={styles.endSessionText}>{t('endSession')}</Text>
           </Pressable>
         </View>
 

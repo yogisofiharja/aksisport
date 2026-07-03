@@ -4,7 +4,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Animated, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box, HStack, VStack } from '../../components/ui/box';
@@ -12,6 +12,7 @@ import { Text, Heading } from '../../components/ui/text';
 import type { LineupResult } from '../appTypes';
 import type { MatchMode } from '../scoring';
 import { SessionCodeBadge } from '../components/SessionCodeBadge';
+import { useTranslation } from '../i18n';
 
 type Props = {
   players: string[];
@@ -20,22 +21,25 @@ type Props = {
   sessionCode?: string | null;
   onConfirm: (result: LineupResult) => void;
   onBack: () => void;
+  onAddPlayer?: (name: string) => void;
 };
 
 const LEFT = { bg: '#dbeafe', darkBg: '#1e3a5f', border: '#2563eb', text: '#1e40af', darkText: '#93c5fd', badge: '#3b82f6' };
 const RIGHT = { bg: '#fee2e2', darkBg: '#5f1e1e', border: '#dc2626', text: '#991b1b', darkText: '#fca5a5', badge: '#ef4444' };
 
-export function MobileLineupScreen({ players, mode, playerPlayCounts, sessionCode, onConfirm, onBack }: Props) {
+export function MobileLineupScreen({ players, mode, playerPlayCounts, sessionCode, onConfirm, onBack, onAddPlayer }: Props) {
   const perTeam = mode === 'double' ? 2 : 1;
   const maxAssigned = perTeam * 2;
   const { colorScheme } = useColorScheme();
   const dark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   const [assignedOrder, setAssignedOrder] = useState<string[]>([]);
   const [firstServerName, setFirstServerName] = useState<string | null>(null);
   const [isRandomizing, setIsRandomizing] = useState(false);
   const [animatedServer, setAnimatedServer] = useState<string | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState('');
 
   const randInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const randTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,6 +121,14 @@ export function MobileLineupScreen({ players, mode, playerPlayCounts, sessionCod
     }, 1200);
   }
 
+  function handleAddNewPlayer() {
+    const trimmed = newPlayerName.trim();
+    if (!trimmed) return;
+    onAddPlayer?.(trimmed);
+    setNewPlayerName('');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
+
   function handleConfirm() {
     if (!canConfirm) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -141,12 +153,12 @@ export function MobileLineupScreen({ players, mode, playerPlayCounts, sessionCod
           <SessionCodeBadge sessionCode={sessionCode ?? null} />
         </HStack>
 
-        <Heading size="3xl">Pilih Pemain</Heading>
+        <Heading size="3xl">{t('pickPlayers')}</Heading>
 
         {/* Player pool */}
         <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
           <Text className="text-sm font-extrabold text-slate-400 dark:text-slate-500 tracking-widest uppercase px-1 mb-3">
-            Ketuk untuk pilih
+            {t('tapToSelect')}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {sortedPlayers.map(name => {
@@ -183,12 +195,45 @@ export function MobileLineupScreen({ players, mode, playerPlayCounts, sessionCod
               );
             })}
           </View>
+
+          {onAddPlayer && (
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 14, alignItems: 'center' }}>
+              <TextInput
+                value={newPlayerName}
+                onChangeText={setNewPlayerName}
+                placeholder={t('playerNamePlaceholder')}
+                placeholderTextColor={dark ? '#475569' : '#9ca3af'}
+                onSubmitEditing={handleAddNewPlayer}
+                returnKeyType="done"
+                blurOnSubmit={false}
+                style={{
+                  flex: 1,
+                  borderWidth: 1.5,
+                  borderColor: dark ? '#475569' : '#d1d5db',
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  fontSize: 16,
+                  fontWeight: '600',
+                  color: dark ? '#f1f5f9' : '#1f2937',
+                  backgroundColor: dark ? '#1e293b' : '#f8fafc',
+                  letterSpacing: 0,
+                }}
+              />
+              <Pressable
+                onPress={handleAddNewPlayer}
+                style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#d97706', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Ionicons name="add" size={24} color="#ffffff" />
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* Team slots */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ flex: 1 }}>
-            <PlayerSlot label="KIRI" nameOpacity={nameOpacity} players={leftAssigned} emptySlots={perTeam - leftAssigned.length} C={LEFT} dark={dark} />
+            <PlayerSlot label={t('left')} nameOpacity={nameOpacity} players={leftAssigned} emptySlots={perTeam - leftAssigned.length} C={LEFT} dark={dark} />
           </View>
           <TouchableOpacity
             activeOpacity={0.7}
@@ -199,7 +244,7 @@ export function MobileLineupScreen({ players, mode, playerPlayCounts, sessionCod
             <Ionicons name="swap-horizontal" size={22} color="#ffffff" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <PlayerSlot label="KANAN" nameOpacity={nameOpacity} players={rightAssigned} emptySlots={perTeam - rightAssigned.length} C={RIGHT} dark={dark} />
+            <PlayerSlot label={t('right')} nameOpacity={nameOpacity} players={rightAssigned} emptySlots={perTeam - rightAssigned.length} C={RIGHT} dark={dark} />
           </View>
         </View>
 
@@ -207,7 +252,7 @@ export function MobileLineupScreen({ players, mode, playerPlayCounts, sessionCod
         {isFull && (
           <FadeInBox>
             <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-              <Text style={{ fontSize: 17, fontWeight: '800', marginBottom: 12 }}>Server Pertama</Text>
+              <Text style={{ fontSize: 17, fontWeight: '800', marginBottom: 12 }}>{t('firstServer')}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 }}>
                 {serverCandidates.map(name => {
                   const active = effectiveServer === name;
@@ -236,7 +281,7 @@ export function MobileLineupScreen({ players, mode, playerPlayCounts, sessionCod
                 className={`mt-2 bg-blue-700 rounded-[14px] py-3.5 items-center justify-center ${isRandomizing ? 'opacity-50' : ''}`}
               >
                 <Text className="text-[17px] font-extrabold text-white tracking-wide">
-                  {isRandomizing ? '🎲  Mengacak...' : '🎲  Acak Server'}
+                  {isRandomizing ? t('randomizing') : t('randomizeServer')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -250,7 +295,7 @@ export function MobileLineupScreen({ players, mode, playerPlayCounts, sessionCod
           disabled={!canConfirm}
           className={`py-[17px] rounded-2xl items-center justify-center bg-amber-600 ${!canConfirm ? 'opacity-45' : ''}`}
         >
-          <Text className="text-[20px] font-extrabold text-white">Lanjut →</Text>
+          <Text className="text-[20px] font-extrabold text-white">{t('continueBtn')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

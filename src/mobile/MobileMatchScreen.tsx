@@ -3,10 +3,11 @@ import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { Animated, Modal, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { TeamNames, TeamASide } from '../appTypes';
 import { getPointLabel, MatchState, Team } from '../scoring';
+import { useTranslation } from '../i18n';
 
 const HOLD_MS = 700;
 
@@ -89,18 +90,21 @@ export function MobileMatchScreen({
 }: Props) {
   const [showQrModal, setShowQrModal] = useState(false);
   const [showPointLog, setShowPointLog] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [scoreBoxHalfW, setScoreBoxHalfW] = useState(0);
 
   const pressAnim = useRef(new Animated.Value(0)).current;
-  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdAnim = useRef<Animated.CompositeAnimation | null>(null);
 
   const { height: wh, width: ww } = useWindowDimensions();
+  const { t } = useTranslation();
   const courtHeight = Math.min(wh, ww);
 
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_LEFT);
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      holdAnim.current?.stop();
     };
   }, []);
 
@@ -125,6 +129,7 @@ export function MobileMatchScreen({
   const scoreFontSize = courtHeight > 0 ? Math.floor(courtHeight * 0.70) : 240;
 
   const fmt = matchState.config.matchFormat ?? { type: 'open' };
+  const isCustomFormat = fmt.type !== 'best-of-sets';
   const formatLabel: string | null =
     matchState.tiebreak
       ? matchState.tiebreak.target === 10 ? 'SUPER TB' : 'TIEBREAK'
@@ -146,20 +151,22 @@ export function MobileMatchScreen({
   // ── Long-press end match handlers ─────────────────────────────────────────
 
   function handleAkhiriPressIn() {
-    Animated.timing(pressAnim, { toValue: 1, duration: HOLD_MS, useNativeDriver: false }).start();
-    holdTimer.current = setTimeout(() => {
-      pressAnim.setValue(0);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      onEndMatch();
-    }, HOLD_MS);
+    const anim = Animated.timing(pressAnim, { toValue: 1, duration: HOLD_MS, useNativeDriver: true });
+    holdAnim.current = anim;
+    anim.start(({ finished }) => {
+      holdAnim.current = null;
+      if (!finished) return; // released early
+      Animated.timing(pressAnim, { toValue: 0, duration: 0, useNativeDriver: true }).start();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      setShowEndConfirm(true);
+    });
   }
 
   function handleAkhiriPressOut() {
-    if (holdTimer.current) {
-      clearTimeout(holdTimer.current);
-      holdTimer.current = null;
-    }
-    Animated.timing(pressAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start();
+    if (!holdAnim.current) return; // animation already completed — modal is showing
+    holdAnim.current.stop();
+    holdAnim.current = null;
+    Animated.timing(pressAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start();
   }
 
   // ── Point log ────────────────────────────────────────────────────────────
@@ -205,21 +212,35 @@ export function MobileMatchScreen({
             onLayout={e => setScoreBoxHalfW(e.nativeEvent.layout.width / 2)}
             style={{ backgroundColor: '#0f172a', paddingHorizontal: 24, paddingTop: 6, paddingBottom: 9, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, alignItems: 'center' }}
           >
-            {/* Set row — always rendered to keep box height stable */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2, opacity: hasSets ? 1 : 0 }}>
-              <Text style={{ fontSize: 26, fontWeight: '900', color: leftSets > rightSets ? '#f8fafc' : '#475569', minWidth: 22, textAlign: 'center' }}>{leftSets}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#475569', marginHorizontal: 8 }}>–</Text>
-              <Text style={{ fontSize: 26, fontWeight: '900', color: rightSets > leftSets ? '#f8fafc' : '#475569', minWidth: 22, textAlign: 'center' }}>{rightSets}</Text>
-            </View>
-            {/* Game row */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 16, fontWeight: '900', color: '#fbbf24', minWidth: 16, textAlign: 'center' }}>{leftGames}</Text>
-              <Text style={{ fontSize: 12, color: '#64748b', marginHorizontal: 8 }}>–</Text>
-              <Text style={{ fontSize: 16, fontWeight: '900', color: '#fbbf24', minWidth: 16, textAlign: 'center' }}>{rightGames}</Text>
-            </View>
-            {/* Format progress label */}
-            {formatLabel && (
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569', marginTop: 3, letterSpacing: 0.5 }}>{formatLabel}</Text>
+            {isCustomFormat ? (
+              /* Custom format: large game score only, no set row */
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 36, fontWeight: '900', color: '#fbbf24', minWidth: 30, textAlign: 'center' }}>{leftGames}</Text>
+                  <Text style={{ fontSize: 20, color: '#475569', marginHorizontal: 10 }}>–</Text>
+                  <Text style={{ fontSize: 36, fontWeight: '900', color: '#fbbf24', minWidth: 30, textAlign: 'center' }}>{rightGames}</Text>
+                </View>
+                {formatLabel && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569', marginTop: 3, letterSpacing: 0.5 }}>{formatLabel}</Text>
+                )}
+              </>
+            ) : (
+              /* Regular (best-of-sets): set row + smaller game row */
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2, opacity: hasSets ? 1 : 0 }}>
+                  <Text style={{ fontSize: 26, fontWeight: '900', color: leftSets > rightSets ? '#f8fafc' : '#475569', minWidth: 22, textAlign: 'center' }}>{leftSets}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#475569', marginHorizontal: 8 }}>–</Text>
+                  <Text style={{ fontSize: 26, fontWeight: '900', color: rightSets > leftSets ? '#f8fafc' : '#475569', minWidth: 22, textAlign: 'center' }}>{rightSets}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: '#fbbf24', minWidth: 16, textAlign: 'center' }}>{leftGames}</Text>
+                  <Text style={{ fontSize: 12, color: '#64748b', marginHorizontal: 8 }}>–</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: '#fbbf24', minWidth: 16, textAlign: 'center' }}>{rightGames}</Text>
+                </View>
+                {formatLabel && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569', marginTop: 3, letterSpacing: 0.5 }}>{formatLabel}</Text>
+                )}
+              </>
             )}
           </View>
         </View>
@@ -254,20 +275,23 @@ export function MobileMatchScreen({
           </View>
         )}
 
-        {/* ── Point log button: top-right corner ── */}
-        <View
-          pointerEvents="box-none"
-          style={{ position: 'absolute', top: 6, right: 10 }}
-        >
-          <Pressable
-            onPress={() => setShowPointLog(true)}
-            style={{ padding: 10, backgroundColor: '#1e293b', borderRadius: 12 }}
+        {/* ── Point log button: right of sound button ── */}
+        {scoreBoxHalfW > 0 && (
+          <View
+            pointerEvents="box-none"
+            style={{ position: 'absolute', top: 6, left: '50%', marginLeft: scoreBoxHalfW + 56 }}
           >
-            <Ionicons name="list-outline" size={18} color="#94a3b8" />
-          </Pressable>
-        </View>
+            <Pressable
+              onPress={() => setShowPointLog(true)}
+              style={{ padding: 10, backgroundColor: '#1e293b', borderRadius: 12 }}
+            >
+              <Ionicons name="list-outline" size={18} color="#94a3b8" />
+            </Pressable>
+          </View>
+        )}
 
-        {/* ── Undo button ── */}
+
+  {/* ── Undo button ── */}
         <View
           pointerEvents="box-none"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
@@ -319,9 +343,10 @@ export function MobileMatchScreen({
                 position: 'absolute',
                 top: 0,
                 left: 0,
+                right: 0,
                 bottom: 0,
                 backgroundColor: '#991b1b',
-                width: pressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+                opacity: pressAnim,
               }}
             />
             <Ionicons name="stop-circle-outline" size={30} color="#fca5a5" />
@@ -369,10 +394,34 @@ export function MobileMatchScreen({
             <Text style={{ fontSize: 13, color: '#64748b', marginTop: 16, textAlign: 'center', maxWidth: 220 }} numberOfLines={2}>
               {watchUrl}
             </Text>
-            <Text style={{ fontSize: 13, color: '#475569', marginTop: 6 }}>Scan untuk menonton langsung</Text>
+            <Text style={{ fontSize: 13, color: '#475569', marginTop: 6 }}>{t('scanToWatch')}</Text>
           </Pressable>
         </Pressable>
       )}
+
+      {/* End match confirmation modal (landscape-safe) */}
+      <Modal visible={showEndConfirm} transparent animationType="fade" supportedOrientations={['landscape', 'landscape-left', 'landscape-right']} onRequestClose={() => setShowEndConfirm(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ backgroundColor: '#1e293b', borderRadius: 20, padding: 28, width: 320, gap: 16 }}>
+            <Text style={{ fontSize: 20, fontWeight: '900', color: '#f1f5f9', textAlign: 'center' }}>{t('endMatchTitle')}</Text>
+            <Text style={{ fontSize: 15, color: '#94a3b8', textAlign: 'center', lineHeight: 22 }}>{t('endMatchConfirm')}</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
+              <Pressable
+                onPress={() => setShowEndConfirm(false)}
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#334155', alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#94a3b8' }}>{t('cancel')}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => { setShowEndConfirm(false); onEndMatch(); }}
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#991b1b', alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '900', color: '#fca5a5' }}>{t('endMatchShort')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Point log panel */}
       {showPointLog && (
@@ -385,13 +434,13 @@ export function MobileMatchScreen({
             style={{ backgroundColor: '#1e293b', borderRadius: 20, padding: 20, width: '70%', maxHeight: '85%' }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <Text style={{ fontSize: 17, fontWeight: '900', color: '#f8fafc' }}>Riwayat Poin</Text>
+              <Text style={{ fontSize: 17, fontWeight: '900', color: '#f8fafc' }}>{t('pointLog')}</Text>
               <Pressable onPress={() => setShowPointLog(false)}>
                 <Ionicons name="close" size={20} color="#64748b" />
               </Pressable>
             </View>
             {pointLog.length === 0 ? (
-              <Text style={{ color: '#475569', fontSize: 15, textAlign: 'center', paddingVertical: 20 }}>Belum ada poin</Text>
+              <Text style={{ color: '#475569', fontSize: 15, textAlign: 'center', paddingVertical: 20 }}>{t('noPoints')}</Text>
             ) : (
               <ScrollView showsVerticalScrollIndicator={false}>
                 {pointLog.map((entry, i) => {

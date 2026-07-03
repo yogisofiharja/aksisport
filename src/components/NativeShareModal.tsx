@@ -18,6 +18,7 @@ import { Defs, LinearGradient, Rect, Stop, Svg } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import { pickImageAsDataUrl } from '../imagePicker';
+import { useTranslation } from '../i18n';
 
 export type NativeShareData = {
   matchup: string;
@@ -41,6 +42,7 @@ export function NativeShareModal({ data, onClose }: Props) {
   const cardRef = useRef<View>(null);
   const [bgUri, setBgUri] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const { t } = useTranslation();
 
   if (!data) return null;
 
@@ -52,8 +54,8 @@ export function NativeShareModal({ data, onClose }: Props) {
 
   function handleCameraPress() {
     const options = bgUri
-      ? ['Batal', 'Kamera', 'Galeri', 'Hapus Foto']
-      : ['Batal', 'Kamera', 'Galeri'];
+      ? [t('cancel'), t('camera'), t('gallery'), t('removePhoto')]
+      : [t('cancel'), t('camera'), t('gallery')];
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -65,11 +67,11 @@ export function NativeShareModal({ data, onClose }: Props) {
         }
       );
     } else {
-      Alert.alert('Pilih Gambar', undefined, [
-        { text: 'Kamera', onPress: () => pickImage('camera') },
-        { text: 'Galeri', onPress: () => pickImage('gallery') },
-        ...(bgUri ? [{ text: 'Hapus Foto', style: 'destructive' as const, onPress: () => setBgUri(null) }] : []),
-        { text: 'Batal', style: 'cancel' },
+      Alert.alert(t('chooseImage'), undefined, [
+        { text: t('camera'), onPress: () => pickImage('camera') },
+        { text: t('gallery'), onPress: () => pickImage('gallery') },
+        ...(bgUri ? [{ text: t('removePhoto'), style: 'destructive' as const, onPress: () => setBgUri(null) }] : []),
+        { text: t('cancel'), style: 'cancel' },
       ]);
     }
   }
@@ -89,7 +91,7 @@ export function NativeShareModal({ data, onClose }: Props) {
       const uri = await captureRef(cardRef, { format: 'jpg', quality: 0.95 });
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', dialogTitle: 'Bagikan Hasil' });
+        await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', dialogTitle: t('shareResultTitle') });
       } else {
         await Share.share({ message: data!.message });
       }
@@ -107,7 +109,7 @@ export function NativeShareModal({ data, onClose }: Props) {
         <SafeAreaView edges={['bottom']} style={s.sheet}>
 
           <View style={s.header}>
-            <Text style={s.headerTitle}>Bagikan Hasil</Text>
+            <Text style={s.headerTitle}>{t('shareResultTitle')}</Text>
             <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.7}>
               <Ionicons name="close" size={22} color="#64748b" />
             </TouchableOpacity>
@@ -191,11 +193,11 @@ export function NativeShareModal({ data, onClose }: Props) {
             disabled={isSharing}
           >
             <Ionicons name="share-outline" size={20} color="#ffffff" />
-            <Text style={s.shareBtnText}>{isSharing ? 'Memproses...' : 'Bagikan →'}</Text>
+            <Text style={s.shareBtnText}>{isSharing ? t('processing') : `${t('share')} →`}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.closeLink} onPress={onClose}>
-            <Text style={s.closeLinkText}>Tutup</Text>
+            <Text style={s.closeLinkText}>{t('close')}</Text>
           </TouchableOpacity>
 
         </SafeAreaView>

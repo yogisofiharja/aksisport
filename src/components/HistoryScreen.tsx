@@ -13,6 +13,7 @@ import { pickImageAsDataUrl } from '../imagePicker';
 import { Card, DecorativeBackdrop } from './ui';
 import { ShareCardModal } from './ShareCardModal';
 import { SessionCodeBadge } from './SessionCodeBadge';
+import { useTranslation } from '../i18n';
 
 type HistoryScreenProps = {
   matchHistory: MatchRecord[];
@@ -21,6 +22,7 @@ type HistoryScreenProps = {
 };
 
 export function HistoryScreen({ matchHistory, sessionCode, onBack }: HistoryScreenProps) {
+  const { t } = useTranslation();
   const [sharePreviewDataUrl, setSharePreviewDataUrl] = useState<string | null>(null);
   const [sharingRecord, setSharingRecord] = useState<MatchRecord | null>(null);
   const [backgroundDataUrl, setBackgroundDataUrl] = useState<string | null>(null);
@@ -66,21 +68,20 @@ export function HistoryScreen({ matchHistory, sessionCode, onBack }: HistoryScre
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="light" />
         <ScrollView contentContainerStyle={styles.container}>
-          <Pressable onPress={onBack} style={({ pressed }) => [styles.backRow, pressed && styles.backRowPressed]}>
-            <Ionicons name="arrow-back" size={24} color="#111827" />
-          </Pressable>
-
-          <View style={styles.sessionHeader}>
+          <View style={styles.headerRow}>
+            <Pressable onPress={onBack} style={({ pressed }) => [styles.backBtn, pressed && styles.backRowPressed]}>
+              <Ionicons name="arrow-back" size={24} color="#ffffff" />
+            </Pressable>
             <SessionCodeBadge sessionCode={sessionCode} />
           </View>
 
           <Card>
-            <Text style={styles.sectionTitle}>Riwayat Pertandingan</Text>
+            <Text style={styles.sectionTitle}>{t('matchHistoryTitle')}</Text>
             {matchHistory.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="stats-chart-outline" size={44} color="#cbd5e1" />
-                <Text style={styles.emptyText}>Belum ada riwayat</Text>
-                <Text style={styles.emptySub}>Selesaikan pertandingan pertamamu — hasilnya akan otomatis tercatat di sini.</Text>
+                <Text style={styles.emptyText}>{t('noHistoryYet')}</Text>
+                <Text style={styles.emptySub}>{t('noHistoryDesc')}</Text>
               </View>
             )}
           </Card>
@@ -124,6 +125,7 @@ async function buildShareCard(record: MatchRecord, bg: string | undefined): Prom
 }
 
 function MatchCard({ record, onShare }: { record: MatchRecord; onShare: () => void }) {
+  const { t } = useTranslation();
   const hasSets = record.sets.A > 0 || record.sets.B > 0;
   const headlineA = hasSets ? record.sets.A : record.games.A;
   const headlineB = hasSets ? record.sets.B : record.games.B;
@@ -172,10 +174,10 @@ function MatchCard({ record, onShare }: { record: MatchRecord; onShare: () => vo
           {winnerLabel ? (
             <View style={styles.winnerBadge}>
               <Ionicons name="trophy" size={13} color="#d97706" />
-              <Text style={styles.winnerText}>{winnerLabel} Menang</Text>
+              <Text style={styles.winnerText}>{winnerLabel} {t('won')}</Text>
             </View>
           ) : (
-            <Text style={styles.winnerText}>Tidak ada pemenang</Text>
+            <Text style={styles.winnerText}>{t('noWinner')}</Text>
           )}
           <Text style={styles.dateText}>{date}</Text>
         </View>
@@ -185,7 +187,7 @@ function MatchCard({ record, onShare }: { record: MatchRecord; onShare: () => vo
           onPress={onShare}
         >
           <Ionicons name="share-outline" size={16} color="#d97706" />
-          <Text style={styles.shareBtnText}>Bagikan</Text>
+          <Text style={styles.shareBtnText}>{t('share')}</Text>
         </Pressable>
       </View>
     </Card>
@@ -200,18 +202,17 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 14,
   },
-  backRow: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  backBtn: {
+    padding: 8,
   },
   backRowPressed: {
     opacity: 0.6,
-  },
-  sessionHeader: {
-    alignItems: 'flex-end',
   },
   sectionTitle: {
     fontSize: 16,

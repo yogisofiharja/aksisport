@@ -13,6 +13,7 @@ import { LineupResult } from '../appTypes';
 import { MatchMode } from '../scoring';
 import { Button, Card, DecorativeBackdrop } from './ui';
 import { SessionCodeBadge } from './SessionCodeBadge';
+import { useTranslation } from '../i18n';
 
 export type { LineupResult };
 
@@ -29,6 +30,7 @@ const LEFT_COLORS = { bg: '#dbeafe', border: '#2563eb', text: '#1e40af', badge: 
 const RIGHT_COLORS = { bg: '#fee2e2', border: '#dc2626', text: '#991b1b', badge: '#ef4444' };
 
 export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onConfirm, onBack }: LineupScreenProps) {
+  const { t } = useTranslation();
   const perTeam = mode === 'double' ? 2 : 1;
   const maxAssigned = perTeam * 2;
 
@@ -154,7 +156,7 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
           {/* All players pool */}
           <Card>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Pilih Pemain</Text>
+              <Text style={styles.sectionTitle}>{t('pickPlayers')}</Text>
             </View>
             <View style={styles.playerGrid}>
               {sortedPlayers.map((name) => {
@@ -259,10 +261,10 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
           {/* Actions */}
           <View style={styles.actionRow}>
             <View style={styles.flexButton}>
-              <Button label="← Kembali" onPress={onBack} variant="outline" />
+              <Button label={`← ${t('back')}`} onPress={onBack} variant="outline" />
             </View>
             <View style={styles.flexButton}>
-              <Button label="Lanjut →" onPress={handleConfirm} disabled={!canConfirm} />
+              <Button label={t('continueBtn')} onPress={handleConfirm} disabled={!canConfirm} />
             </View>
           </View>
         </ScrollView>

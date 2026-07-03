@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.poinyuk"
+      "bundleIdentifier": "com.yogisofiharja.poinyuk",
+      "deploymentTarget": "16.4"
     },
     "android": {
       "adaptiveIcon": {

@@ -8,6 +8,7 @@ import { useColorScheme } from 'nativewind';
 import { Text } from '../../components/ui/text';
 import { MatchRecord } from '../appTypes';
 import { SessionCodeBadge } from '../components/SessionCodeBadge';
+import { useTranslation } from '../i18n';
 
 type Props = {
   matchHistory: MatchRecord[];
@@ -45,6 +46,7 @@ function computeStats(records: MatchRecord[]): PlayerStat[] {
 export function MobileHistoryScreen({ matchHistory, sessionCode, onBack, onShareMatch }: Props) {
   const { colorScheme } = useColorScheme();
   const dark = colorScheme === 'dark';
+  const { t } = useTranslation();
   const [tab, setTab] = useState<'history' | 'stats'>('history');
 
   useEffect(() => {
@@ -71,27 +73,27 @@ export function MobileHistoryScreen({ matchHistory, sessionCode, onBack, onShare
               activeOpacity={0.75}
               className={`flex-1 py-2.5 rounded-xl items-center border ${tab === 'history' ? 'bg-amber-500 border-amber-500' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}
             >
-              <Text className={`text-[15px] font-black ${tab === 'history' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>Riwayat</Text>
+              <Text className={`text-[15px] font-black ${tab === 'history' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>{t('matchHistory')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setTab('stats')}
               activeOpacity={0.75}
               className={`flex-1 py-2.5 rounded-xl items-center border ${tab === 'stats' ? 'bg-amber-500 border-amber-500' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}
             >
-              <Text className={`text-[15px] font-black ${tab === 'stats' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>Statistik</Text>
+              <Text className={`text-[15px] font-black ${tab === 'stats' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>{t('statistics')}</Text>
             </TouchableOpacity>
           </View>
 
           {tab === 'history' && (
             <>
               <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
-                <Text className="text-[19px] font-black text-slate-900 dark:text-slate-50 mb-1">Riwayat Pertandingan</Text>
+                <Text className="text-[19px] font-black text-slate-900 dark:text-slate-50 mb-1">{t('matchHistoryTitle')}</Text>
                 {matchHistory.length === 0 && (
                   <View className="items-center py-7 gap-2">
                     <Ionicons name="stats-chart-outline" size={44} color={dark ? '#475569' : '#cbd5e1'} />
-                    <Text className="text-[17px] font-bold text-slate-500 dark:text-slate-400 mt-1">Belum ada riwayat</Text>
+                    <Text className="text-[17px] font-bold text-slate-500 dark:text-slate-400 mt-1">{t('noHistoryYet')}</Text>
                     <Text className="text-[15px] text-slate-400 dark:text-slate-600 text-center">
-                      Selesaikan pertandingan pertamamu — hasilnya akan otomatis tercatat di sini.
+                      {t('noHistoryDesc')}
                     </Text>
                   </View>
                 )}
@@ -118,15 +120,16 @@ export function MobileHistoryScreen({ matchHistory, sessionCode, onBack, onShare
 }
 
 function StatsView({ records, dark }: { records: MatchRecord[]; dark: boolean }) {
+  const { t } = useTranslation();
   const stats = computeStats(records);
 
   if (records.length === 0) {
     return (
       <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 items-center py-10 gap-2">
         <Ionicons name="bar-chart-outline" size={44} color={dark ? '#475569' : '#cbd5e1'} />
-        <Text className="text-[17px] font-bold text-slate-500 dark:text-slate-400 mt-1">Belum ada statistik</Text>
+        <Text className="text-[17px] font-bold text-slate-500 dark:text-slate-400 mt-1">{t('noStatsYet')}</Text>
         <Text className="text-[15px] text-slate-400 dark:text-slate-600 text-center">
-          Selesaikan setidaknya satu pertandingan untuk melihat statistik pemain.
+          {t('noMatchesYet')}
         </Text>
       </View>
     );
@@ -136,10 +139,10 @@ function StatsView({ records, dark }: { records: MatchRecord[]; dark: boolean })
     <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
       {/* Header */}
       <View className="flex-row px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-        <Text className="flex-1 text-[13px] font-black text-slate-400 uppercase tracking-wider">Pemain</Text>
-        <Text className="w-10 text-center text-[13px] font-black text-amber-500 uppercase tracking-wider">M</Text>
-        <Text className="w-10 text-center text-[13px] font-black text-green-500 uppercase tracking-wider">W</Text>
-        <Text className="w-10 text-center text-[13px] font-black text-red-400 uppercase tracking-wider">L</Text>
+        <Text className="flex-1 text-[13px] font-black text-slate-400 uppercase tracking-wider">{t('playerColumn')}</Text>
+        <Text className="w-10 text-center text-[13px] font-black text-amber-500 uppercase tracking-wider">{t('matches')}</Text>
+        <Text className="w-10 text-center text-[13px] font-black text-green-500 uppercase tracking-wider">{t('wins')}</Text>
+        <Text className="w-10 text-center text-[13px] font-black text-red-400 uppercase tracking-wider">{t('losses')}</Text>
         <Text className="w-12 text-center text-[13px] font-black text-slate-400 uppercase tracking-wider">%</Text>
       </View>
       {stats.map((s, i) => {
@@ -171,6 +174,7 @@ function MatchCard({ record, dark, onShare }: {
   dark: boolean;
   onShare?: () => void;
 }) {
+  const { t } = useTranslation();
   const hasSets = record.sets.A > 0 || record.sets.B > 0;
   const headlineA = hasSets ? record.sets.A : record.games.A;
   const headlineB = hasSets ? record.sets.B : record.games.B;
@@ -202,10 +206,10 @@ function MatchCard({ record, dark, onShare }: {
           {winnerLabel ? (
             <View className="flex-row items-center gap-1.5">
               <Ionicons name="trophy" size={13} color="#d97706" />
-              <Text className="text-[15px] font-bold text-amber-600">{winnerLabel} Menang</Text>
+              <Text className="text-[15px] font-bold text-amber-600">{winnerLabel} {t('won')}</Text>
             </View>
           ) : (
-            <Text className="text-[15px] font-bold text-slate-400">Tidak ada pemenang</Text>
+            <Text className="text-[15px] font-bold text-slate-400">{t('noWinner')}</Text>
           )}
           <Text className="text-[14px] font-semibold text-slate-400 dark:text-slate-500">{date}</Text>
         </View>

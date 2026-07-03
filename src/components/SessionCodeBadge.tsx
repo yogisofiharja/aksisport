@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import QRCode from 'react-native-qrcode-svg';
+import { useTranslation } from '../i18n';
 
 type Props = {
   sessionCode: string | null;
@@ -12,6 +13,7 @@ export function SessionCodeBadge({ sessionCode }: Props) {
   const [showModal, setShowModal] = useState(false);
   const { colorScheme } = useColorScheme();
   const dark = Platform.OS !== 'web' && colorScheme === 'dark';
+  const { t } = useTranslation();
 
   if (!sessionCode) return null;
 
@@ -33,7 +35,7 @@ export function SessionCodeBadge({ sessionCode }: Props) {
       >
         <Ionicons name="qr-code-outline" size={16} color={iconColor} />
         <View style={styles.badgeTextWrap}>
-          <Text style={[styles.badgeLabel, { color: labelColor }]}>Kode Sesi</Text>
+          <Text style={[styles.badgeLabel, { color: labelColor }]}>{t('sessionCodeLabel')}</Text>
           <Text style={[styles.badgeCode, { color: codeColor }]}>{sessionCode}</Text>
         </View>
         <Ionicons name="chevron-forward" size={14} color={iconColor} />
@@ -42,8 +44,8 @@ export function SessionCodeBadge({ sessionCode }: Props) {
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
         <Pressable style={styles.overlay} onPress={() => setShowModal(false)}>
           <Pressable style={styles.card} onPress={() => {}}>
-            <Text style={styles.title}>Bagikan Kode Sesi</Text>
-            <Text style={styles.sub}>Scan QR atau ketik kode untuk bergabung ke sesi ini</Text>
+            <Text style={styles.title}>{t('shareSessionCode')}</Text>
+            <Text style={styles.sub}>{t('scanOrTypeCode')}</Text>
             <View style={styles.qrWrap}>
               <QRCode
                 value={joinUrl}
@@ -53,11 +55,11 @@ export function SessionCodeBadge({ sessionCode }: Props) {
               />
             </View>
             <View style={styles.codeRow}>
-              <Text style={styles.codeLabel}>Kode</Text>
+              <Text style={styles.codeLabel}>{t('code')}</Text>
               <Text style={styles.codeValue}>{sessionCode}</Text>
             </View>
             <Pressable onPress={() => setShowModal(false)} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>Tutup</Text>
+              <Text style={styles.closeBtnText}>{t('close')}</Text>
             </Pressable>
           </Pressable>
         </Pressable>

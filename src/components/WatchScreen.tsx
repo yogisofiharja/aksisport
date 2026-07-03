@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { subscribeToSession, SessionPayload } from '../sessionSync';
 import { getPointLabel } from '../scoring';
+import { useTranslation } from '../i18n';
 
 type Props = {
   code: string;
 };
 
 export function WatchScreen({ code }: Props) {
+  const { t } = useTranslation();
   const [payload, setPayload] = useState<SessionPayload | null>(null);
   const [connected, setConnected] = useState(false);
   const unsubRef = useRef<(() => void) | null>(null);
@@ -47,13 +49,13 @@ export function WatchScreen({ code }: Props) {
       {!connected && (
         <div style={s.waiting}>
           <div style={s.spinner} />
-          <p style={s.waitingText}>Menghubungkan ke sesi…</p>
+          <p style={s.waitingText}>{t('connecting')}</p>
         </div>
       )}
 
       {connected && !ms && (
         <div style={s.waiting}>
-          <p style={s.waitingText}>Menunggu pertandingan dimulai…</p>
+          <p style={s.waitingText}>{t('waitingForMatch')}</p>
         </div>
       )}
 
@@ -97,7 +99,7 @@ export function WatchScreen({ code }: Props) {
           {isEnded && (
             <div style={s.endBanner}>
               <span style={s.endText}>
-                {leftWins ? `${leftNames} Menang` : rightWins ? `${rightNames} Menang` : 'Pertandingan Selesai'}
+                {leftWins ? `${leftNames} ${t('won')}` : rightWins ? `${rightNames} ${t('won')}` : t('matchEnded')}
               </span>
             </div>
           )}

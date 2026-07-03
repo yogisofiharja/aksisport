@@ -44,6 +44,7 @@ import {
 } from './src/sessionSync';
 import { isFirebaseReady } from './src/firebase';
 import { ThemeProvider } from './src/theme';
+import { LanguageProvider } from './src/i18n';
 
 type AppScreen = 'setup' | 'lineup' | 'match' | 'final' | 'history';
 
@@ -76,6 +77,8 @@ function AppContent() {
   const lastPushTimeRef = useRef<number>(0);
   const lastRemoteUpdateRef = useRef<number>(0);
   const unsubscribeSessionRef = useRef<(() => void) | null>(null);
+  const isJoinerRef = useRef<boolean>(false); // true when we joined someone else's session
+  const joinSyncedRef = useRef<boolean>(true); // false until first payload received from host
   const historyReturnScreenRef = useRef<AppScreen>('setup');
 
   // ── Persistence ───────────────────────────────────────────────────────────
@@ -114,6 +117,7 @@ function AppContent() {
   useEffect(() => {
     const code = sessionCodeRef.current;
     if (!code) return;
+    if (!joinSyncedRef.current) return; // joiner: wait until first host payload received
     // Skip if this render was caused by a remote update (prevent echo)
     if (Date.now() - lastRemoteUpdateRef.current < 400) return;
     const now = Date.now();
@@ -138,6 +142,7 @@ function AppContent() {
     // Ignore our own echoes
     if (Math.abs(payload.updatedAt - lastPushTimeRef.current) < 1000) return;
     lastRemoteUpdateRef.current = Date.now();
+    joinSyncedRef.current = true; // first host payload received — joiner can now push
     setSetup(payload.setup ?? INITIAL_SETUP);
     setMatchState(payload.matchState ?? null);
     setHistory(payload.history ?? []);
@@ -163,6 +168,8 @@ function AppContent() {
 
   function joinExistingSession(code: string) {
     if (!isFirebaseReady) return;
+    isJoinerRef.current = true;
+    joinSyncedRef.current = false; // block pushes until first host payload received
     sessionCodeRef.current = code;
     setSessionCode(code);
     startSessionSubscription(code);
@@ -177,6 +184,8 @@ function AppContent() {
       deleteSession(sessionCodeRef.current);
       sessionCodeRef.current = null;
     }
+    isJoinerRef.current = false;
+    joinSyncedRef.current = true;
     setSessionCode(null);
   }
 
@@ -203,6 +212,8 @@ function AppContent() {
 
   function handleCreateSession() {
     if (!sessionCodeRef.current && isFirebaseReady) {
+      isJoinerRef.current = false;
+      joinSyncedRef.current = true;
       const code = generateSessionCode();
       sessionCodeRef.current = code;
       setSessionCode(code);
@@ -218,6 +229,8 @@ function AppContent() {
     }
     // Generate session code now (first time only) so joiner can scan at match screen
     if (!sessionCodeRef.current && isFirebaseReady) {
+      isJoinerRef.current = false;
+      joinSyncedRef.current = true;
       const code = generateSessionCode();
       sessionCodeRef.current = code;
       setSessionCode(code);
@@ -236,6 +249,8 @@ function AppContent() {
   function handleLineupConfirm(lineup: LineupResult) {
     // Ensure a session code exists — may have been cleared between matches
     if (!sessionCodeRef.current && isFirebaseReady) {
+      isJoinerRef.current = false;
+      joinSyncedRef.current = true;
       const code = generateSessionCode();
       sessionCodeRef.current = code;
       setSessionCode(code);
@@ -348,39 +363,23 @@ function AppContent() {
       setScreen('final');
       const code = sessionCodeRef.current;
       if (code) setTimeout(() => deleteSession(code), 2000);
+      announceFinalResult(next);
     }
   }
 
   function handleUndo() {
     if (!history.length || !matchState) return;
+    cancelSpeech();
+    const previous = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+    setMatchState(previous);
+    if (!previous.isEnded) setScreen('match');
+  }
 
-    const isAtGameStart = matchState.points.A === 0 && matchState.points.B === 0 && !matchState.tiebreak;
-
-    if (!isAtGameStart) {
-      // Mid-game or mid-tiebreak: pop one point
-      const previous = history[history.length - 1];
-      setHistory((h) => h.slice(0, -1));
-      setMatchState(previous);
-      if (!previous.isEnded) setScreen('match');
-      return;
-    }
-
-    // At game start: undo the last completed game (same set only)
-    const currentGamesTotal = matchState.games.A + matchState.games.B;
-    const currentSetsTotal = matchState.sets.A + matchState.sets.B;
-    if (currentGamesTotal === 0) return;
-
-    let idx = history.length - 1;
-    while (idx >= 0) {
-      const h = history[idx];
-      if (h.sets.A + h.sets.B !== currentSetsTotal) return; // don't cross set boundary
-      if (h.games.A + h.games.B === currentGamesTotal - 1 && h.points.A === 0 && h.points.B === 0) break;
-      idx--;
-    }
-    if (idx < 0) return;
-
-    setHistory((h) => h.slice(0, idx));
-    setMatchState(history[idx]);
+  function handleAddPlayerToPool(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed || setup.players.includes(trimmed)) return;
+    setSetup((prev) => ({ ...prev, players: [...prev.players, trimmed] }));
   }
 
   function handleEndMatch() {
@@ -397,6 +396,7 @@ function AppContent() {
   }
 
   function announceFinalResult(ended: MatchState) {
+    if (ended.sets.A === 0 && ended.sets.B === 0 && ended.games.A === 0 && ended.games.B === 0) return;
     cancelSpeech();
     const hasSets = ended.sets.A > 0 || ended.sets.B > 0;
     const winnerTeam = ended.winner;
@@ -413,6 +413,7 @@ function AppContent() {
       ? `Match over. ${winnerName} wins, ${scoreText}.`
       : `Match over. Final score, ${scoreText}.`;
 
+    playApplause();
     speakText(announcement);
   }
 
@@ -622,6 +623,7 @@ function AppContent() {
       playerPlayCounts,
       sessionCode,
       onConfirm: handleLineupConfirm,
+      onAddPlayer: handleAddPlayerToPool,
       onBack: () => {
         if (matchState && !matchState.isEnded) {
           setScreen('match');
@@ -741,9 +743,11 @@ function AppContent() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

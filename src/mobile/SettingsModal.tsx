@@ -7,17 +7,12 @@ import { Text } from '../../components/ui/text';
 import { getTTSPreferences, saveTTSPreferences } from '../tts';
 import type { ThemePreference } from '../theme';
 import { useTheme } from '../theme';
+import { useTranslation, type Lang } from '../i18n';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
 };
-
-const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] = [
-  { value: 'system', label: 'Ikuti Perangkat', icon: 'phone-portrait-outline' },
-  { value: 'light', label: 'Terang', icon: 'sunny-outline' },
-  { value: 'dark', label: 'Gelap', icon: 'moon-outline' },
-];
 
 const SUPPORTED_LANGS = ['en-US', 'en-GB'] as const;
 type SupportedLang = typeof SUPPORTED_LANGS[number];
@@ -41,6 +36,13 @@ function selectCuratedVoices(voices: Speech.Voice[], lang: SupportedLang): Speec
 
 export function SettingsModal({ visible, onClose }: Props) {
   const { preference, setPreference, isDark } = useTheme();
+  const { t, lang, setLang } = useTranslation();
+
+  const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] = [
+    { value: 'system', label: t('followDevice'), icon: 'phone-portrait-outline' },
+    { value: 'light', label: t('light'), icon: 'sunny-outline' },
+    { value: 'dark', label: t('dark'), icon: 'moon-outline' },
+  ];
   const [allVoices, setAllVoices] = useState<Speech.Voice[]>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [selectedLang, setSelectedLang] = useState<SupportedLang>('en-US');
@@ -122,12 +124,31 @@ export function SettingsModal({ visible, onClose }: Props) {
       <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={onClose}>
         <Pressable className="bg-white dark:bg-slate-800 rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
           <View className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 self-center mb-1" />
-          <Text className="text-[20px] font-black text-slate-900 dark:text-slate-50">Pengaturan</Text>
+          <Text className="text-[20px] font-black text-slate-900 dark:text-slate-50">{t('settingsTitle')}</Text>
 
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 560 }}>
 
+            {/* UI Language */}
+            <Text className="text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-widest mb-2.5">{t('languageSection')}</Text>
+            <View className="flex-row gap-2.5 mb-5">
+              {(['en', 'id'] as Lang[]).map(l => {
+                const sel = lang === l;
+                return (
+                  <Pressable
+                    key={l}
+                    onPress={() => { Haptics.selectionAsync(); setLang(l); }}
+                    className={`flex-1 py-3 rounded-xl border-[1.5px] items-center ${sel ? 'bg-amber-600 border-amber-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}
+                  >
+                    <Text className={`text-[14px] font-bold ${sel ? 'text-white' : 'text-slate-900 dark:text-slate-50'}`}>
+                      {l === 'en' ? t('english') : t('indonesian')}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
             {/* Theme */}
-            <Text className="text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-widest mb-2.5">TEMA TAMPILAN</Text>
+            <Text className="text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-widest mb-2.5">{t('displayTheme')}</Text>
             <View className="bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               {THEME_OPTIONS.map((opt, i) => {
                 const sel = preference === opt.value;
@@ -150,7 +171,7 @@ export function SettingsModal({ visible, onClose }: Props) {
             </View>
 
             {/* TTS language */}
-            <Text className="text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-widest mt-5 mb-2.5">BAHASA PENGUMUMAN</Text>
+            <Text className="text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-widest mt-5 mb-2.5">{t('announcementLang')}</Text>
             <View className="flex-row gap-2.5">
               {SUPPORTED_LANGS.map(lang => {
                 const sel = selectedLang === lang;
@@ -172,7 +193,7 @@ export function SettingsModal({ visible, onClose }: Props) {
             {loadingVoices ? (
               <View className="flex-row items-center gap-2.5 py-3 mt-4">
                 <ActivityIndicator size="small" color="#d97706" />
-                <Text className="text-[14px] text-slate-400 dark:text-slate-500">Memuat suara…</Text>
+                <Text className="text-[14px] text-slate-400 dark:text-slate-500">{t('loadingVoices')}</Text>
               </View>
             ) : voicesForLang.length > 0 && (
               <>
@@ -217,7 +238,7 @@ export function SettingsModal({ visible, onClose }: Props) {
             className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[14px] py-3.5 items-center mt-1"
             onPress={onClose}
           >
-            <Text className="text-[15px] font-bold text-slate-900 dark:text-slate-50">Selesai</Text>
+            <Text className="text-[15px] font-bold text-slate-900 dark:text-slate-50">{t('done')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

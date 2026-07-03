@@ -1,6 +1,7 @@
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from './ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../i18n';
 
 type ShareCardModalProps = {
   visible: boolean;
@@ -17,6 +18,8 @@ export function ShareCardModal({
   onChangeBackground,
   onClose,
 }: ShareCardModalProps) {
+  const { t } = useTranslation();
+
   if (!visible || !imageDataUrl) return null;
 
   return (
@@ -43,9 +46,9 @@ export function ShareCardModal({
           </View>
 
           <View style={styles.actionBar}>
-            <Button label="Bagikan" onPress={onShare} style={styles.shareBtn} />
+            <Button label={t('share')} onPress={onShare} style={styles.shareBtn} />
             <Pressable onPress={onClose} style={styles.dismissBtn}>
-              <Text style={styles.dismissText}>Tutup</Text>
+              <Text style={styles.dismissText}>{t('close')}</Text>
             </Pressable>
           </View>
         </View>

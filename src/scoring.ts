@@ -247,13 +247,7 @@ export function addPoint(state: MatchState, team: Team): MatchState {
     return nextState;
   }
 
-  // 'open': first to 6 games wins the set; record and reset.
-  if (nextState.games[pointWinner] >= 6) {
-    nextState.completedSets = [...nextState.completedSets, { ...nextState.games }];
-    nextState.sets[pointWinner] += 1;
-    nextState.games = { A: 0, B: 0 };
-  }
-
+  // Custom formats (open, fixed-games, race-to): games accumulate freely, no set completion.
   return nextState;
 }
 

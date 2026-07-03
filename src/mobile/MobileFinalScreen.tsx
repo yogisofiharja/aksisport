@@ -9,6 +9,7 @@ import { Text } from '../../components/ui/text';
 import { TeamNames } from '../appTypes';
 import { MatchState, Team } from '../scoring';
 import { SessionCodeBadge } from '../components/SessionCodeBadge';
+import { useTranslation } from '../i18n';
 
 type Props = {
   matchState: MatchState;
@@ -31,6 +32,7 @@ export function MobileFinalScreen({
 }: Props) {
   const { colorScheme } = useColorScheme();
   const dark = colorScheme === 'dark';
+  const { t } = useTranslation();
   const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   useEffect(() => {
@@ -58,10 +60,10 @@ export function MobileFinalScreen({
             {winnerName ? (
               <>
                 <Text className="text-[26px] font-black text-amber-600 text-center" numberOfLines={2}>{winnerName}</Text>
-                <Text className="text-[17px] font-bold text-slate-500 dark:text-slate-400">Menang!</Text>
+                <Text className="text-[17px] font-bold text-slate-500 dark:text-slate-400">{t('winnerLabel')}</Text>
               </>
             ) : (
-              <Text className="text-[26px] font-black text-slate-400 dark:text-slate-500">Pertandingan Selesai</Text>
+              <Text className="text-[26px] font-black text-slate-400 dark:text-slate-500">{t('matchOver')}</Text>
             )}
           </View>
 
@@ -84,7 +86,7 @@ export function MobileFinalScreen({
             className="bg-amber-600 rounded-2xl py-[18px] flex-row items-center justify-center gap-2.5"
           >
             <Ionicons name="share-social-outline" size={20} color="#ffffff" />
-            <Text className="text-white text-[20px] font-black tracking-wide">Bagikan</Text>
+            <Text className="text-white text-[20px] font-black tracking-wide">{t('shareResult')}</Text>
           </TouchableOpacity>
 
           {/* Match Baru — full-width outlined */}
@@ -94,12 +96,12 @@ export function MobileFinalScreen({
             className="bg-white dark:bg-slate-800 border-[1.5px] border-slate-200 dark:border-slate-600 rounded-2xl py-4 flex-row items-center justify-center gap-2"
           >
             <Ionicons name="add-circle-outline" size={20} color={dark ? '#f1f5f9' : '#111827'} />
-            <Text className="text-[17px] font-extrabold text-slate-800 dark:text-slate-100">Match Baru</Text>
+            <Text className="text-[17px] font-extrabold text-slate-800 dark:text-slate-100">{t('newMatch')}</Text>
           </TouchableOpacity>
 
           {/* Riwayat — text link */}
           <TouchableOpacity onPress={onShowHistory} className="items-center py-1.5">
-            <Text className="text-[15px] font-semibold text-slate-400 dark:text-slate-500 underline">Lihat Riwayat</Text>
+            <Text className="text-[15px] font-semibold text-slate-400 dark:text-slate-500 underline">{t('viewHistory')}</Text>
           </TouchableOpacity>
 
         </ScrollView>
@@ -107,7 +109,7 @@ export function MobileFinalScreen({
         {/* Akhiri Sesi — pinned to bottom */}
         <View className="border-t border-slate-200 dark:border-slate-700 py-2.5 items-center">
           <TouchableOpacity className="py-2.5 px-6" onPress={() => setShowEndConfirm(true)}>
-            <Text className="text-[15px] font-bold text-slate-400 dark:text-slate-500 underline">Akhiri Sesi</Text>
+            <Text className="text-[15px] font-bold text-slate-400 dark:text-slate-500 underline">{t('endSession')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -117,22 +119,22 @@ export function MobileFinalScreen({
         <View className="absolute inset-0 bg-black/55 items-center justify-center">
           <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 px-7 py-7 items-center w-[300px] gap-2">
             <Ionicons name="warning-outline" size={32} color="#f59e0b" />
-            <Text className="text-[21px] font-black text-slate-900 dark:text-slate-50 text-center mt-1">Akhiri Sesi?</Text>
-            <Text className="text-[16px] text-slate-500 dark:text-slate-400 text-center leading-6 mb-1">Semua data sesi akan dihapus permanen.</Text>
+            <Text className="text-[21px] font-black text-slate-900 dark:text-slate-50 text-center mt-1">{t('endSessionTitle')}</Text>
+            <Text className="text-[16px] text-slate-500 dark:text-slate-400 text-center leading-6 mb-1">{t('endSessionBody')}</Text>
             <View className="flex-row gap-3 mt-2">
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => setShowEndConfirm(false)}
                 className="flex-1 py-3.5 rounded-xl items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
               >
-                <Text className="text-[17px] font-extrabold text-slate-500 dark:text-slate-400">Batal</Text>
+                <Text className="text-[17px] font-extrabold text-slate-500 dark:text-slate-400">{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => { setShowEndConfirm(false); onClearSavedState(); }}
                 className="flex-1 py-3.5 rounded-xl items-center bg-amber-700"
               >
-                <Text className="text-[17px] font-black text-amber-100">Akhiri</Text>
+                <Text className="text-[17px] font-black text-amber-100">{t('endMatchShort')}</Text>
               </TouchableOpacity>
             </View>
           </View>
