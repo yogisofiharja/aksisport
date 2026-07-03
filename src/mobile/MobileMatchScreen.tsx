@@ -17,7 +17,7 @@ type Props = {
   history: MatchState[];
   hasUndo: boolean;
   voiceEnabled: boolean;
-  sessionCode?: string | null;
+  watchUrl?: string | null;
   onAddPoint: (team: Team) => void;
   onUndo: () => void;
   onEndMatch: () => void;
@@ -81,7 +81,7 @@ export function MobileMatchScreen({
   history,
   hasUndo,
   voiceEnabled,
-  sessionCode,
+  watchUrl,
   onAddPoint,
   onUndo,
   onEndMatch,
@@ -240,7 +240,7 @@ export function MobileMatchScreen({
         )}
 
         {/* ── QR button: left of score box ── */}
-        {scoreBoxHalfW > 0 && sessionCode && (
+        {scoreBoxHalfW > 0 && watchUrl && (
           <View
             pointerEvents="box-none"
             style={{ position: 'absolute', top: 6, right: '50%', marginRight: scoreBoxHalfW + 10 }}
@@ -354,7 +354,7 @@ export function MobileMatchScreen({
       </View>
 
       {/* QR code popup */}
-      {showQrModal && sessionCode && (
+      {showQrModal && watchUrl && (
         <Pressable
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}
           onPress={() => setShowQrModal(false)}
@@ -364,12 +364,12 @@ export function MobileMatchScreen({
             style={{ backgroundColor: '#1e293b', borderRadius: 24, padding: 32, alignItems: 'center' }}
           >
             <View style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 16 }}>
-              <QRCode value={sessionCode} size={180} color="#0f172a" backgroundColor="#f8fafc" />
+              <QRCode value={watchUrl} size={180} color="#0f172a" backgroundColor="#f8fafc" />
             </View>
-            <Text style={{ fontSize: 32, fontWeight: '900', color: '#f8fafc', letterSpacing: 10, marginTop: 20 }}>
-              {sessionCode}
+            <Text style={{ fontSize: 13, color: '#64748b', marginTop: 16, textAlign: 'center', maxWidth: 220 }} numberOfLines={2}>
+              {watchUrl}
             </Text>
-            <Text style={{ fontSize: 14, color: '#64748b', marginTop: 6 }}>Kode sesi</Text>
+            <Text style={{ fontSize: 13, color: '#475569', marginTop: 6 }}>Scan untuk menonton langsung</Text>
           </Pressable>
         </Pressable>
       )}

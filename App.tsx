@@ -21,6 +21,7 @@ import { prefetchAudio, initAudio, playApplause } from './src/audio';
 import { cancelSpeech, loadTTSPreferences, speakText, speakTextWithCallback } from './src/tts';
 import { LineupResult, MatchRecord, PersistedAppState, SetupForm, TeamASide } from './src/appTypes';
 import { FinalScoreScreen } from './src/components/FinalScoreScreen';
+import { WatchScreen } from './src/components/WatchScreen';
 import { NativeShareModal } from './src/components/NativeShareModal';
 import type { NativeShareData } from './src/components/NativeShareModal';
 import { HistoryScreen } from './src/components/HistoryScreen';
@@ -562,6 +563,14 @@ function AppContent() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  // Spectator mode: render standalone watch page for /watch/CODE paths (web only)
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const watchMatch = window.location.pathname.match(/^\/watch\/([A-Z0-9]+)$/i);
+    if (watchMatch) {
+      return <WatchScreen code={watchMatch[1].toUpperCase()} />;
+    }
+  }
+
   if (screen === 'history') {
     const historyProps = {
       matchHistory,
@@ -644,7 +653,7 @@ function AppContent() {
             (matchState?.games.A ?? 0) + (matchState?.games.B ?? 0) > 0
           )}
           voiceEnabled={voiceEnabled}
-          sessionCode={sessionCode}
+          watchUrl={sessionCode ? getWatchUrl(sessionCode) : null}
           onAddPoint={handleAddPoint}
           onUndo={handleUndo}
           onEndMatch={handleEndMatch}
@@ -760,6 +769,13 @@ function buildServiceOrder(players: Player[], firstServerId: string): string[] {
   const startIdx = base.indexOf(firstServerId);
   if (startIdx < 0) return base;
   return [...base.slice(startIdx), ...base.slice(0, startIdx)];
+}
+
+function getWatchUrl(code: string): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.origin}/watch/${code}`;
+  }
+  return `https://poin-yuk.vercel.app/watch/${code}`;
 }
 
 function cloneState(state: MatchState): MatchState {

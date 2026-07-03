@@ -137,4 +137,11 @@ All three formats below support the existing `singleDeuceSuddenDeath` toggle. It
 | 2.2 Long-press to end match | ✅ |
 | 2.3 Point log / rally history | ✅ |
 
-M3 items are currently **—**.
+### M3 status
+
+| Sub-item | Status |
+|----------|--------|
+| 3.1 Spectator web page `/watch/[sessionCode]` | ✅ |
+| 3.2 Player statistics (W/L per player) | ✅ |
+
+All planned milestones complete.

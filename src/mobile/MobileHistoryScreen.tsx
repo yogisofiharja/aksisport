@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
@@ -16,9 +16,36 @@ type Props = {
   onShareMatch?: (record: MatchRecord) => void;
 };
 
+type PlayerStat = {
+  name: string;
+  wins: number;
+  losses: number;
+  draws: number;
+  matches: number;
+};
+
+function computeStats(records: MatchRecord[]): PlayerStat[] {
+  const map: Record<string, PlayerStat> = {};
+  for (const r of records) {
+    const sides: Array<{ name: string; side: 'A' | 'B' }> = [
+      ...r.teams.A.map(n => ({ name: n, side: 'A' as const })),
+      ...r.teams.B.map(n => ({ name: n, side: 'B' as const })),
+    ];
+    for (const { name, side } of sides) {
+      if (!map[name]) map[name] = { name, wins: 0, losses: 0, draws: 0, matches: 0 };
+      map[name].matches += 1;
+      if (r.winner === null) map[name].draws += 1;
+      else if (r.winner === side) map[name].wins += 1;
+      else map[name].losses += 1;
+    }
+  }
+  return Object.values(map).sort((a, b) => b.wins - a.wins || a.matches - b.matches);
+}
+
 export function MobileHistoryScreen({ matchHistory, sessionCode, onBack, onShareMatch }: Props) {
   const { colorScheme } = useColorScheme();
   const dark = colorScheme === 'dark';
+  const [tab, setTab] = useState<'history' | 'stats'>('history');
 
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
@@ -37,30 +64,104 @@ export function MobileHistoryScreen({ matchHistory, sessionCode, onBack, onShare
             <SessionCodeBadge sessionCode={sessionCode} />
           </View>
 
-          <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
-            <Text className="text-[19px] font-black text-slate-900 dark:text-slate-50 mb-1">Riwayat Pertandingan</Text>
-            {matchHistory.length === 0 && (
-              <View className="items-center py-7 gap-2">
-                <Ionicons name="stats-chart-outline" size={44} color={dark ? '#475569' : '#cbd5e1'} />
-                <Text className="text-[17px] font-bold text-slate-500 dark:text-slate-400 mt-1">Belum ada riwayat</Text>
-                <Text className="text-[15px] text-slate-400 dark:text-slate-600 text-center">
-                  Selesaikan pertandingan pertamamu — hasilnya akan otomatis tercatat di sini.
-                </Text>
-              </View>
-            )}
+          {/* Tab switcher */}
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              onPress={() => setTab('history')}
+              activeOpacity={0.75}
+              className={`flex-1 py-2.5 rounded-xl items-center border ${tab === 'history' ? 'bg-amber-500 border-amber-500' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}
+            >
+              <Text className={`text-[15px] font-black ${tab === 'history' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>Riwayat</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setTab('stats')}
+              activeOpacity={0.75}
+              className={`flex-1 py-2.5 rounded-xl items-center border ${tab === 'stats' ? 'bg-amber-500 border-amber-500' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}
+            >
+              <Text className={`text-[15px] font-black ${tab === 'stats' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>Statistik</Text>
+            </TouchableOpacity>
           </View>
 
-          {matchHistory.map((record) => (
-            <MatchCard
-              key={record.id}
-              record={record}
-              dark={dark}
-              onShare={onShareMatch ? () => onShareMatch(record) : undefined}
-            />
-          ))}
+          {tab === 'history' && (
+            <>
+              <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
+                <Text className="text-[19px] font-black text-slate-900 dark:text-slate-50 mb-1">Riwayat Pertandingan</Text>
+                {matchHistory.length === 0 && (
+                  <View className="items-center py-7 gap-2">
+                    <Ionicons name="stats-chart-outline" size={44} color={dark ? '#475569' : '#cbd5e1'} />
+                    <Text className="text-[17px] font-bold text-slate-500 dark:text-slate-400 mt-1">Belum ada riwayat</Text>
+                    <Text className="text-[15px] text-slate-400 dark:text-slate-600 text-center">
+                      Selesaikan pertandingan pertamamu — hasilnya akan otomatis tercatat di sini.
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {matchHistory.map((record) => (
+                <MatchCard
+                  key={record.id}
+                  record={record}
+                  dark={dark}
+                  onShare={onShareMatch ? () => onShareMatch(record) : undefined}
+                />
+              ))}
+            </>
+          )}
+
+          {tab === 'stats' && (
+            <StatsView records={matchHistory} dark={dark} />
+          )}
 
         </ScrollView>
       </SafeAreaView>
+    </View>
+  );
+}
+
+function StatsView({ records, dark }: { records: MatchRecord[]; dark: boolean }) {
+  const stats = computeStats(records);
+
+  if (records.length === 0) {
+    return (
+      <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 items-center py-10 gap-2">
+        <Ionicons name="bar-chart-outline" size={44} color={dark ? '#475569' : '#cbd5e1'} />
+        <Text className="text-[17px] font-bold text-slate-500 dark:text-slate-400 mt-1">Belum ada statistik</Text>
+        <Text className="text-[15px] text-slate-400 dark:text-slate-600 text-center">
+          Selesaikan setidaknya satu pertandingan untuk melihat statistik pemain.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+      {/* Header */}
+      <View className="flex-row px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+        <Text className="flex-1 text-[13px] font-black text-slate-400 uppercase tracking-wider">Pemain</Text>
+        <Text className="w-10 text-center text-[13px] font-black text-amber-500 uppercase tracking-wider">M</Text>
+        <Text className="w-10 text-center text-[13px] font-black text-green-500 uppercase tracking-wider">W</Text>
+        <Text className="w-10 text-center text-[13px] font-black text-red-400 uppercase tracking-wider">L</Text>
+        <Text className="w-12 text-center text-[13px] font-black text-slate-400 uppercase tracking-wider">%</Text>
+      </View>
+      {stats.map((s, i) => {
+        const winPct = s.matches > 0 ? Math.round((s.wins / s.matches) * 100) : 0;
+        return (
+          <View
+            key={s.name}
+            className={`flex-row items-center px-4 py-3 ${i < stats.length - 1 ? 'border-b border-slate-50 dark:border-slate-700' : ''}`}
+          >
+            <View className="flex-1 flex-row items-center gap-2.5">
+              <View className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 items-center justify-center">
+                <Text className="text-[12px] font-black text-slate-500 dark:text-slate-400">{i + 1}</Text>
+              </View>
+              <Text className="text-[15px] font-bold text-slate-800 dark:text-slate-200 flex-shrink" numberOfLines={1}>{s.name}</Text>
+            </View>
+            <Text className="w-10 text-center text-[15px] font-semibold text-slate-500 dark:text-slate-400">{s.matches}</Text>
+            <Text className="w-10 text-center text-[15px] font-bold text-green-500">{s.wins}</Text>
+            <Text className="w-10 text-center text-[15px] font-bold text-red-400">{s.losses}</Text>
+            <Text className="w-12 text-center text-[15px] font-black text-amber-500">{winPct}%</Text>
+          </View>
+        );
+      })}
     </View>
   );
 }
