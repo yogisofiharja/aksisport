@@ -50,6 +50,7 @@ const INITIAL_SETUP: SetupForm = {
   mode: 'single',
   singleDeuceSuddenDeath: true,
   players: [],
+  matchFormat: { type: 'open' },
 };
 
 function AppContent() {
@@ -249,6 +250,7 @@ function AppContent() {
       deuceMode: setup.singleDeuceSuddenDeath ? 'singleDeuceSuddenDeath' : 'standard',
       players,
       serviceOrderPlayerIds: buildServiceOrder(players, firstServerId),
+      matchFormat: setup.matchFormat ?? { type: 'open' },
     };
 
     const initialState = createInitialState(config);

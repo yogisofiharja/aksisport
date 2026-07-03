@@ -17,6 +17,7 @@ import { Heading, Text } from '../../components/ui/text';
 import { Input, InputField } from '../../components/ui/input';
 import { Pressable } from '../../components/ui/pressable';
 import type { SetupForm } from '../appTypes';
+import type { MatchFormat } from '../scoring';
 import { SessionCodeBadge } from '../components/SessionCodeBadge';
 import { SettingsModal } from './SettingsModal';
 
@@ -309,6 +310,125 @@ export function MobileSetupScreen({
                 </Pressable>
               ))}
             </HStack>
+          </Box>
+
+          {/* Match format card */}
+          <Box className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
+            <Text className="px-5 pt-5 pb-3 text-sm font-extrabold text-slate-400 dark:text-slate-500 tracking-widest uppercase">
+              Format Pertandingan
+            </Text>
+            <Divider />
+            <VStack className="px-5 py-4 gap-3">
+              {(
+                [
+                  { type: 'open', label: 'Bebas', desc: 'Akhiri kapan saja' },
+                  { type: 'fixed-games', label: 'Total Game', desc: 'Main sejumlah game lalu berhenti' },
+                  { type: 'race-to', label: 'Kejar Target', desc: 'Pertama capai N game menang' },
+                ] as const
+              ).map(({ type, label, desc }) => {
+                const active = (setup.matchFormat ?? { type: 'open' }).type === type;
+                return (
+                  <Pressable
+                    key={type}
+                    className={`py-4 px-4 rounded-xl border-2 active:opacity-80 ${
+                      active
+                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-600'
+                        : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'
+                    }`}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      let fmt: MatchFormat = { type: 'open' };
+                      if (type === 'fixed-games') fmt = { type: 'fixed-games', totalGames: 4, goldenGameOnTie: false };
+                      if (type === 'race-to') fmt = { type: 'race-to', raceTo: 4 };
+                      onUpdateSetup({ matchFormat: fmt });
+                    }}
+                  >
+                    <Text style={{ fontSize: 17, fontWeight: '800', color: active ? '#d97706' : (dark ? '#94a3b8' : '#64748b') }}>
+                      {label}
+                    </Text>
+                    <Text style={{ fontSize: 14, color: dark ? '#64748b' : '#94a3b8', marginTop: 2 }}>{desc}</Text>
+                  </Pressable>
+                );
+              })}
+
+              {/* fixed-games sub-options */}
+              {(setup.matchFormat?.type === 'fixed-games') && (
+                <>
+                  <Divider />
+                  <HStack className="justify-between items-center py-1">
+                    <Text style={{ fontSize: 16, fontWeight: '700' }}>Jumlah Game</Text>
+                    <HStack className="items-center gap-3">
+                      <Pressable
+                        className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-70"
+                        onPress={() => {
+                          const cur = (setup.matchFormat as { type: 'fixed-games'; totalGames: number; goldenGameOnTie: boolean }).totalGames;
+                          if (cur > 2) { Haptics.selectionAsync(); onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, totalGames: cur - 1 } }); }
+                        }}
+                      >
+                        <Ionicons name="remove" size={20} color={dark ? '#e2e8f0' : '#0f172a'} />
+                      </Pressable>
+                      <Text style={{ fontSize: 22, fontWeight: '900', minWidth: 32, textAlign: 'center' }}>
+                        {(setup.matchFormat as { type: 'fixed-games'; totalGames: number }).totalGames}
+                      </Text>
+                      <Pressable
+                        className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-70"
+                        onPress={() => {
+                          const cur = (setup.matchFormat as { type: 'fixed-games'; totalGames: number; goldenGameOnTie: boolean }).totalGames;
+                          if (cur < 20) { Haptics.selectionAsync(); onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, totalGames: cur + 1 } }); }
+                        }}
+                      >
+                        <Ionicons name="add" size={20} color={dark ? '#e2e8f0' : '#0f172a'} />
+                      </Pressable>
+                    </HStack>
+                  </HStack>
+                  <HStack className="justify-between items-center py-1">
+                    <VStack className="flex-1 gap-0.5">
+                      <Text style={{ fontSize: 16, fontWeight: '700' }}>Golden Game saat seri</Text>
+                      <Text style={{ fontSize: 13, color: dark ? '#64748b' : '#94a3b8' }}>Main 1 game tambahan jika skor sama</Text>
+                    </VStack>
+                    <Switch
+                      value={(setup.matchFormat as { type: 'fixed-games'; goldenGameOnTie: boolean }).goldenGameOnTie}
+                      onValueChange={v => { Haptics.selectionAsync(); onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, goldenGameOnTie: v } }); }}
+                      trackColor={{ false: dark ? '#475569' : '#cbd5e1', true: '#fcd34d' }}
+                      thumbColor={(setup.matchFormat as any).goldenGameOnTie ? '#d97706' : (dark ? '#1e293b' : '#f8fafc')}
+                    />
+                  </HStack>
+                </>
+              )}
+
+              {/* race-to sub-options */}
+              {(setup.matchFormat?.type === 'race-to') && (
+                <>
+                  <Divider />
+                  <HStack className="justify-between items-center py-1">
+                    <Text style={{ fontSize: 16, fontWeight: '700' }}>Target Game</Text>
+                    <HStack className="items-center gap-3">
+                      <Pressable
+                        className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-70"
+                        onPress={() => {
+                          const cur = (setup.matchFormat as { type: 'race-to'; raceTo: number }).raceTo;
+                          if (cur > 1) { Haptics.selectionAsync(); onUpdateSetup({ matchFormat: { type: 'race-to', raceTo: cur - 1 } }); }
+                        }}
+                      >
+                        <Ionicons name="remove" size={20} color={dark ? '#e2e8f0' : '#0f172a'} />
+                      </Pressable>
+                      <Text style={{ fontSize: 22, fontWeight: '900', minWidth: 32, textAlign: 'center' }}>
+                        {(setup.matchFormat as { type: 'race-to'; raceTo: number }).raceTo}
+                      </Text>
+                      <Pressable
+                        className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-70"
+                        onPress={() => {
+                          const cur = (setup.matchFormat as { type: 'race-to'; raceTo: number }).raceTo;
+                          if (cur < 20) { Haptics.selectionAsync(); onUpdateSetup({ matchFormat: { type: 'race-to', raceTo: cur + 1 } }); }
+                        }}
+                      >
+                        <Ionicons name="add" size={20} color={dark ? '#e2e8f0' : '#0f172a'} />
+                      </Pressable>
+                    </HStack>
+                  </HStack>
+                </>
+              )}
+            </VStack>
           </Box>
 
           {/* Deuce setting card */}

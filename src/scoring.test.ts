@@ -12,6 +12,7 @@ function createSingleConfig(deuceMode: MatchConfig['deuceMode']): MatchConfig {
   return {
     mode: 'single',
     deuceMode,
+    matchFormat: { type: 'open' },
     players: [
       { id: 'A1', name: 'Alice', team: 'A' },
       { id: 'B1', name: 'Bob', team: 'B' },
@@ -24,6 +25,7 @@ function createDoubleConfig(deuceMode: MatchConfig['deuceMode']): MatchConfig {
   return {
     mode: 'double',
     deuceMode,
+    matchFormat: { type: 'open' },
     players: [
       { id: 'A1', name: 'A1', team: 'A' },
       { id: 'A2', name: 'A2', team: 'A' },
@@ -103,6 +105,7 @@ describe('scoring engine', () => {
     const config: MatchConfig = {
       mode: 'double',
       deuceMode: 'standard',
+      matchFormat: { type: 'open' },
       players: [
         { id: 'A1', name: 'A1', team: 'A' },
         { id: 'A2', name: 'A2', team: 'A' },

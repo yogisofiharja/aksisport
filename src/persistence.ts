@@ -1,4 +1,5 @@
 import { PersistedAppState, SetupForm, TeamASide } from './appTypes';
+import { MatchFormat } from './scoring';
 
 export const STORAGE_KEY = 'poinyuk.weekend.v1';
 
@@ -58,15 +59,33 @@ export function parsePersistedState(raw: string | null): PersistedAppState | nul
       parsed.matchState.completedSets = [];
     }
 
+    if (parsed.matchState && !parsed.matchState.config.matchFormat) {
+      parsed.matchState.config.matchFormat = { type: 'open' };
+    }
+
     return parsed;
   } catch {
     return null;
   }
 }
 
+function normalizeMatchFormat(raw: unknown): MatchFormat {
+  if (raw && typeof raw === 'object' && 'type' in raw) {
+    const fmt = raw as Record<string, unknown>;
+    if (fmt.type === 'fixed-games' && typeof fmt.totalGames === 'number') {
+      return { type: 'fixed-games', totalGames: fmt.totalGames, goldenGameOnTie: Boolean(fmt.goldenGameOnTie) };
+    }
+    if (fmt.type === 'race-to' && typeof fmt.raceTo === 'number') {
+      return { type: 'race-to', raceTo: fmt.raceTo };
+    }
+  }
+  return { type: 'open' };
+}
+
 function normalizeSetup(rawSetup: Record<string, unknown>): SetupForm {
   const mode = rawSetup.mode === 'double' ? 'double' : 'single';
   const singleDeuceSuddenDeath = Boolean(rawSetup.singleDeuceSuddenDeath);
+  const matchFormat = normalizeMatchFormat(rawSetup.matchFormat);
 
   // Current format: players is a flat string array.
   if (Array.isArray(rawSetup.players)) {
@@ -74,6 +93,7 @@ function normalizeSetup(rawSetup: Record<string, unknown>): SetupForm {
       mode,
       singleDeuceSuddenDeath,
       players: rawSetup.players.filter((name): name is string => typeof name === 'string' && name.trim() !== ''),
+      matchFormat,
     };
   }
 
@@ -81,7 +101,7 @@ function normalizeSetup(rawSetup: Record<string, unknown>): SetupForm {
   if (typeof rawSetup.playerPoolA === 'string' || typeof rawSetup.playerPoolB === 'string') {
     const poolA = splitPool(String(rawSetup.playerPoolA ?? ''));
     const poolB = splitPool(String(rawSetup.playerPoolB ?? ''));
-    return { mode, singleDeuceSuddenDeath, players: [...poolA, ...poolB] };
+    return { mode, singleDeuceSuddenDeath, players: [...poolA, ...poolB], matchFormat };
   }
 
   // Oldest format: playerA1 / playerA2 / playerB1 / playerB2 individual fields.
@@ -89,7 +109,7 @@ function normalizeSetup(rawSetup: Record<string, unknown>): SetupForm {
     .filter((name): name is string => typeof name === 'string' && name.trim() !== '')
     .map((name) => name.trim());
 
-  return { mode, singleDeuceSuddenDeath, players };
+  return { mode, singleDeuceSuddenDeath, players, matchFormat };
 }
 
 function splitPool(raw: string): string[] {

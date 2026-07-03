@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SetupForm } from '../appTypes';
+import { MatchFormat } from '../scoring';
 import { Button, Card, DecorativeBackdrop, palette, Pill } from './ui';
 import { SessionCodeBadge } from './SessionCodeBadge';
 
@@ -239,6 +240,102 @@ export function MatchSetup({
             )}
           </Card>
 
+          {/* Format Pertandingan */}
+          <Card>
+            <Text style={styles.sectionTitle}>Format Pertandingan</Text>
+            <View style={styles.pillRow}>
+              {(
+                [
+                  { type: 'open' as const, label: 'Bebas' },
+                  { type: 'fixed-games' as const, label: 'Total Game' },
+                  { type: 'race-to' as const, label: 'Kejar Target' },
+                ]
+              ).map(({ type, label }) => (
+                <Pill
+                  key={type}
+                  label={label}
+                  active={(setup.matchFormat ?? { type: 'open' }).type === type}
+                  onPress={() => {
+                    let fmt: MatchFormat = { type: 'open' };
+                    if (type === 'fixed-games') fmt = { type: 'fixed-games', totalGames: 4, goldenGameOnTie: false };
+                    if (type === 'race-to') fmt = { type: 'race-to', raceTo: 4 };
+                    onUpdateSetup({ matchFormat: fmt });
+                  }}
+                />
+              ))}
+            </View>
+
+            {setup.matchFormat?.type === 'fixed-games' && (
+              <View style={{ marginTop: 10, gap: 10 }}>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchTitle}>Jumlah Game</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Pressable
+                      style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
+                      onPress={() => {
+                        const cur = (setup.matchFormat as { type: 'fixed-games'; totalGames: number; goldenGameOnTie: boolean }).totalGames;
+                        if (cur > 2) onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, totalGames: cur - 1 } });
+                      }}
+                    >
+                      <Text style={styles.stepBtnText}>−</Text>
+                    </Pressable>
+                    <Text style={styles.stepValue}>{(setup.matchFormat as any).totalGames}</Text>
+                    <Pressable
+                      style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
+                      onPress={() => {
+                        const cur = (setup.matchFormat as { type: 'fixed-games'; totalGames: number; goldenGameOnTie: boolean }).totalGames;
+                        if (cur < 20) onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, totalGames: cur + 1 } });
+                      }}
+                    >
+                      <Text style={styles.stepBtnText}>+</Text>
+                    </Pressable>
+                  </View>
+                </View>
+                <View style={styles.switchRow}>
+                  <View style={styles.switchInfo}>
+                    <Text style={styles.switchTitle}>Golden Game saat seri</Text>
+                    <Text style={styles.switchDesc}>Main 1 game tambahan jika skor sama</Text>
+                  </View>
+                  <Switch
+                    value={(setup.matchFormat as any).goldenGameOnTie}
+                    onValueChange={v => onUpdateSetup({ matchFormat: { ...setup.matchFormat as any, goldenGameOnTie: v } })}
+                    trackColor={{ false: '#cbd5e1', true: '#7dd3fc' }}
+                    thumbColor={(setup.matchFormat as any).goldenGameOnTie ? '#2563eb' : '#f8fafc'}
+                  />
+                </View>
+              </View>
+            )}
+
+            {setup.matchFormat?.type === 'race-to' && (
+              <View style={{ marginTop: 10 }}>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchTitle}>Target Game</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Pressable
+                      style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
+                      onPress={() => {
+                        const cur = (setup.matchFormat as { type: 'race-to'; raceTo: number }).raceTo;
+                        if (cur > 1) onUpdateSetup({ matchFormat: { type: 'race-to', raceTo: cur - 1 } });
+                      }}
+                    >
+                      <Text style={styles.stepBtnText}>−</Text>
+                    </Pressable>
+                    <Text style={styles.stepValue}>{(setup.matchFormat as any).raceTo}</Text>
+                    <Pressable
+                      style={({ pressed }) => [styles.stepBtn, pressed && { opacity: 0.7 }]}
+                      onPress={() => {
+                        const cur = (setup.matchFormat as { type: 'race-to'; raceTo: number }).raceTo;
+                        if (cur < 20) onUpdateSetup({ matchFormat: { type: 'race-to', raceTo: cur + 1 } });
+                      }}
+                    >
+                      <Text style={styles.stepBtnText}>+</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            )}
+          </Card>
+
           <Card tone="muted">
             <View style={styles.switchRow}>
               <View style={styles.switchInfo}>
@@ -426,5 +523,28 @@ const styles = StyleSheet.create({
   switchDesc: {
     fontSize: 12,
     color: palette.mutedForeground,
+  },
+  stepBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1f2937',
+    lineHeight: 22,
+  },
+  stepValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#111827',
+    minWidth: 28,
+    textAlign: 'center',
   },
 });

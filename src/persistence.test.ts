@@ -14,12 +14,15 @@ const validState: PersistedAppState = {
     mode: 'single',
     singleDeuceSuddenDeath: false,
     players: ['Alice', 'Bob'],
+    matchFormat: { type: 'open' },
   },
   teamASide: 'left',
   matchState: null,
   history: [],
   backgroundPhotoDataUrl: null,
   playerPlayCounts: {},
+  matchHistory: [],
+  sessionCode: null,
 };
 
 class MemoryStorage implements StorageLike {

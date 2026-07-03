@@ -2,6 +2,11 @@ export type MatchMode = 'single' | 'double';
 
 export type DeuceMode = 'standard' | 'singleDeuceSuddenDeath';
 
+export type MatchFormat =
+  | { type: 'open' }
+  | { type: 'fixed-games'; totalGames: number; goldenGameOnTie: boolean }
+  | { type: 'race-to'; raceTo: number };
+
 export type Team = 'A' | 'B';
 
 export type Player = {
@@ -15,6 +20,7 @@ export type MatchConfig = {
   deuceMode: DeuceMode;
   players: Player[];
   serviceOrderPlayerIds?: string[];
+  matchFormat: MatchFormat;
 };
 
 export type MatchState = {
@@ -36,7 +42,7 @@ export type MatchState = {
   currentServerPlayerId: string;
   isEnded: boolean;
   winner: Team | null;
-  endReason: 'manual' | 'none';
+  endReason: 'manual' | 'auto' | 'none';
 };
 
 const POINT_LABELS = ['0', '15', '30', '40'];
@@ -119,7 +125,35 @@ export function addPoint(state: MatchState, team: Team): MatchState {
   nextState.deuceCount = 0;
   nextState.currentServerPlayerId = getNextServerId(nextState);
 
-  // First to 6 games wins the set; record the final game score then reset.
+  const fmt = nextState.config.matchFormat ?? { type: 'open' };
+
+  if (fmt.type === 'race-to') {
+    if (nextState.games[pointWinner] >= fmt.raceTo) {
+      nextState.isEnded = true;
+      nextState.winner = pointWinner;
+      nextState.endReason = 'auto';
+    }
+    return nextState;
+  }
+
+  if (fmt.type === 'fixed-games') {
+    const totalPlayed = nextState.games.A + nextState.games.B;
+    if (totalPlayed >= fmt.totalGames) {
+      const tied = nextState.games.A === nextState.games.B;
+      const pastLimit = totalPlayed > fmt.totalGames;
+      if (!tied || !fmt.goldenGameOnTie || pastLimit) {
+        nextState.isEnded = true;
+        nextState.winner =
+          nextState.games.A > nextState.games.B ? 'A' :
+          nextState.games.B > nextState.games.A ? 'B' :
+          null;
+        nextState.endReason = 'auto';
+      }
+    }
+    return nextState;
+  }
+
+  // 'open': standard set logic — first to 6 games wins the set.
   if (nextState.games[pointWinner] >= 6) {
     nextState.completedSets = [...nextState.completedSets, { ...nextState.games }];
     nextState.sets[pointWinner] += 1;

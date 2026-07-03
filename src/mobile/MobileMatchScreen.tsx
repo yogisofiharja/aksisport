@@ -63,6 +63,14 @@ export function MobileMatchScreen({
   const rightSets = matchState.sets[rightTeam];
   const hasSets = leftSets > 0 || rightSets > 0;
 
+  const fmt = matchState.config.matchFormat ?? { type: 'open' };
+  const formatLabel: string | null =
+    fmt.type === 'fixed-games'
+      ? `${leftGames + rightGames} / ${fmt.totalGames}${fmt.goldenGameOnTie && leftGames + rightGames === fmt.totalGames && leftGames === rightGames ? ' ★' : ''}`
+      : fmt.type === 'race-to'
+      ? `→ ${fmt.raceTo}`
+      : null;
+
   const isAdvantage = (matchState.points.A + matchState.points.B) % 2 === 1;
   const scoreFontSize = courtHeight > 0 ? Math.floor(courtHeight * 0.70) : 240;
 
@@ -124,6 +132,10 @@ export function MobileMatchScreen({
               <Text style={{ fontSize: 12, color: '#64748b', marginHorizontal: 8 }}>–</Text>
               <Text style={{ fontSize: 16, fontWeight: '900', color: '#fbbf24', minWidth: 16, textAlign: 'center' }}>{rightGames}</Text>
             </View>
+            {/* Format progress label */}
+            {formatLabel && (
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569', marginTop: 3, letterSpacing: 0.5 }}>{formatLabel}</Text>
+            )}
           </View>
         </View>
 

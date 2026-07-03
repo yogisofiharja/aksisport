@@ -1,4 +1,4 @@
-import { MatchMode, MatchState } from './scoring';
+import { MatchFormat, MatchMode, MatchState } from './scoring';
 
 export type TeamASide = 'left' | 'right';
 
@@ -6,6 +6,7 @@ export type SetupForm = {
   mode: MatchMode;
   singleDeuceSuddenDeath: boolean;
   players: string[];
+  matchFormat: MatchFormat;
 };
 
 export type LineupResult = {
