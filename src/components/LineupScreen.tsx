@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { LineupResult } from '../appTypes';
@@ -24,12 +25,13 @@ type LineupScreenProps = {
   sessionCode?: string | null;
   onConfirm: (result: LineupResult) => void;
   onBack: () => void;
+  onAddPlayer?: (name: string) => void;
 };
 
 const LEFT_COLORS = { bg: '#dbeafe', border: '#2563eb', text: '#1e40af', badge: '#3b82f6' };
 const RIGHT_COLORS = { bg: '#fee2e2', border: '#dc2626', text: '#991b1b', badge: '#ef4444' };
 
-export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onConfirm, onBack }: LineupScreenProps) {
+export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onConfirm, onBack, onAddPlayer }: LineupScreenProps) {
   const { t } = useTranslation();
   const perTeam = mode === 'double' ? 2 : 1;
   const maxAssigned = perTeam * 2;
@@ -39,6 +41,7 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
   const [isRandomizing, setIsRandomizing] = useState(false);
   const [animatedServer, setAnimatedServer] = useState<string | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState('');
 
   const randInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const randTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -116,6 +119,13 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
     }, 1200);
   }
 
+  function handleAddNewPlayer() {
+    const trimmed = newPlayerName.trim();
+    if (!trimmed) return;
+    onAddPlayer?.(trimmed);
+    setNewPlayerName('');
+  }
+
   function handleConfirm() {
     if (!isFull || !firstServerName) return;
     onConfirm({
@@ -185,6 +195,26 @@ export function LineupScreen({ players, mode, playerPlayCounts, sessionCode, onC
                 );
               })}
             </View>
+            {onAddPlayer && (
+              <View style={styles.addPlayerRow}>
+                <TextInput
+                  value={newPlayerName}
+                  onChangeText={setNewPlayerName}
+                  placeholder={t('playerNamePlaceholder')}
+                  placeholderTextColor="#9ca3af"
+                  onSubmitEditing={handleAddNewPlayer}
+                  returnKeyType="done"
+                  blurOnSubmit={false}
+                  style={styles.addPlayerInput}
+                />
+                <Pressable
+                  onPress={handleAddNewPlayer}
+                  style={({ pressed }) => [styles.addPlayerBtn, pressed && styles.pressed]}
+                >
+                  <Text style={styles.addPlayerBtnText}>+</Text>
+                </Pressable>
+              </View>
+            )}
           </Card>
 
           {/* Side labels — pulse on swap */}
@@ -459,4 +489,38 @@ const styles = StyleSheet.create({
   flexButton: { flex: 1 },
 
   pressed: { opacity: 0.75 },
+
+  addPlayerRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  addPlayerInput: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    backgroundColor: '#f8fafc',
+    letterSpacing: 0,
+  },
+  addPlayerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#d97706',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addPlayerBtnText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#ffffff',
+    lineHeight: 26,
+  },
 });
