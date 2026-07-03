@@ -103,37 +103,10 @@ All three formats below support the existing `singleDeuceSuddenDeath` toggle. It
 - Large font, auto-rotating landscape layout, same colour scheme
 - QR button in `MobileMatchScreen` should encode this URL so scanning opens the spectator page directly
 
-### 3.2 Match duration
-- Record `startedAt: number` (Date.now()) when the match begins
-- Display elapsed time on the final screen and in match history cards
-- Optionally show a running clock on `MobileMatchScreen` (small, unobtrusive)
-
-### 3.3 Player statistics
+### 3.2 Player statistics
 - Aggregate match history into per-player W/L record, sets won, games won
 - Show on a stats tab or player card in the setup/history screens
 - Extend the existing `playerPlayCounts` mechanism (already persisted)
-
----
-
-## Milestone 4 — Polish
-
-> Low-effort improvements with meaningful feel.
-
-### 4.1 Haptic feedback on scoring
-- Light impact on every point tap
-- Medium impact on game win
-- Strong impact (notification) on set/match win
-- `expo-haptics` is already a dependency (used in lineup screen); just wire it to `onAddPoint`
-
-### 4.2 No-Ad scoring rule
-- Optional toggle: skip deuce entirely — at 40–40 the next point wins the game
-- Single line change in `addPoint()` in `src/scoring.ts`
-- Common in timed recreational sessions
-
-### 4.3 Warm-up / practice mode
-- Start a scoring session that does not record to history
-- Useful for warming up or demoing the app
-- Flag in `SetupForm`, read in `App.tsx` when persisting history
 
 ---
 
@@ -156,4 +129,4 @@ All three formats below support the existing `singleDeuceSuddenDeath` toggle. It
 | 1.4 Best-of-sets | — |
 | 1.5 Super tiebreak | — |
 
-All M2–M4 items are currently **—**.
+All M2–M3 items are currently **—**.
