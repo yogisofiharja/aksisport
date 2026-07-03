@@ -145,4 +145,15 @@ All three formats below support the existing `singleDeuceSuddenDeath` toggle. It
 | 🔨 | In progress |
 | ✅ | Done |
 
-All items above are currently **—**.
+### M1 status
+
+| Sub-item | Status |
+|----------|--------|
+| 1.0 matchFormat config (MatchConfig + SetupForm + persistence migration) | ✅ |
+| 1.1 Fixed Games (auto-end after N games + golden game option) | ✅ |
+| 1.2 Race-to-N (auto-end when team reaches N wins) | ✅ |
+| 1.3 Tiebreak at 6–6 | — |
+| 1.4 Best-of-sets | — |
+| 1.5 Super tiebreak | — |
+
+All M2–M4 items are currently **—**.
