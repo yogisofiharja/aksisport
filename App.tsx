@@ -351,12 +351,35 @@ function AppContent() {
   }
 
   function handleUndo() {
-    if (!history.length) return;
-    if (!matchState || (matchState.points.A === 0 && matchState.points.B === 0)) return;
-    const previous = history[history.length - 1];
-    setHistory((prev) => prev.slice(0, -1));
-    setMatchState(previous);
-    if (!previous.isEnded) setScreen('match');
+    if (!history.length || !matchState) return;
+
+    const isAtGameStart = matchState.points.A === 0 && matchState.points.B === 0 && !matchState.tiebreak;
+
+    if (!isAtGameStart) {
+      // Mid-game or mid-tiebreak: pop one point
+      const previous = history[history.length - 1];
+      setHistory((h) => h.slice(0, -1));
+      setMatchState(previous);
+      if (!previous.isEnded) setScreen('match');
+      return;
+    }
+
+    // At game start: undo the last completed game (same set only)
+    const currentGamesTotal = matchState.games.A + matchState.games.B;
+    const currentSetsTotal = matchState.sets.A + matchState.sets.B;
+    if (currentGamesTotal === 0) return;
+
+    let idx = history.length - 1;
+    while (idx >= 0) {
+      const h = history[idx];
+      if (h.sets.A + h.sets.B !== currentSetsTotal) return; // don't cross set boundary
+      if (h.games.A + h.games.B === currentGamesTotal - 1 && h.points.A === 0 && h.points.B === 0) break;
+      idx--;
+    }
+    if (idx < 0) return;
+
+    setHistory((h) => h.slice(0, idx));
+    setMatchState(history[idx]);
   }
 
   function handleEndMatch() {
@@ -613,7 +636,13 @@ function AppContent() {
           matchState={matchState}
           teamNames={teamNames}
           teamASide={teamASide}
-          hasUndo={history.length > 0 && ((matchState?.points.A ?? 0) > 0 || (matchState?.points.B ?? 0) > 0)}
+          history={history}
+          hasUndo={history.length > 0 && (
+            (matchState?.points.A ?? 0) > 0 ||
+            (matchState?.points.B ?? 0) > 0 ||
+            matchState?.tiebreak != null ||
+            (matchState?.games.A ?? 0) + (matchState?.games.B ?? 0) > 0
+          )}
           voiceEnabled={voiceEnabled}
           sessionCode={sessionCode}
           onAddPoint={handleAddPoint}

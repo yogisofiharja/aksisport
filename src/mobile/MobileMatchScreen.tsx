@@ -1,16 +1,20 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { useEffect, useState } from 'react';
-import { Pressable, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { TeamNames, TeamASide } from '../appTypes';
 import { getPointLabel, MatchState, Team } from '../scoring';
+
+const HOLD_MS = 700;
 
 type Props = {
   matchState: MatchState;
   teamNames: TeamNames;
   teamASide: TeamASide;
+  history: MatchState[];
   hasUndo: boolean;
   voiceEnabled: boolean;
   sessionCode?: string | null;
@@ -20,10 +24,61 @@ type Props = {
   onToggleVoice: () => void;
 };
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function getScorer(prev: MatchState, cur: MatchState): Team | null {
+  if (cur.sets.A > prev.sets.A) return 'A';
+  if (cur.sets.B > prev.sets.B) return 'B';
+  if (cur.games.A > prev.games.A) return 'A';
+  if (cur.games.B > prev.games.B) return 'B';
+  if (cur.points.A > prev.points.A) return 'A';
+  if (cur.points.B > prev.points.B) return 'B';
+  return null;
+}
+
+type LogEntry = {
+  scorer: Team;
+  kind: 'point' | 'game' | 'set';
+  pointA: string;
+  pointB: string;
+  gameA: number;
+  gameB: number;
+  setA: number;
+  setB: number;
+};
+
+function buildLog(history: MatchState[], current: MatchState): LogEntry[] {
+  const states = [...history, current];
+  const entries: LogEntry[] = [];
+  for (let i = 1; i < states.length; i++) {
+    const prev = states[i - 1];
+    const cur = states[i];
+    const scorer = getScorer(prev, cur);
+    if (!scorer) continue;
+    const setChanged = cur.sets.A + cur.sets.B > prev.sets.A + prev.sets.B;
+    const gameChanged = cur.games.A + cur.games.B > prev.games.A + prev.games.B ||
+      (prev.tiebreak != null && cur.tiebreak == null);
+    entries.push({
+      scorer,
+      kind: setChanged ? 'set' : gameChanged ? 'game' : 'point',
+      pointA: getPointLabel(cur, 'A'),
+      pointB: getPointLabel(cur, 'B'),
+      gameA: cur.games.A,
+      gameB: cur.games.B,
+      setA: cur.sets.A,
+      setB: cur.sets.B,
+    });
+  }
+  return entries.reverse();
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function MobileMatchScreen({
   matchState,
   teamNames,
   teamASide,
+  history,
   hasUndo,
   voiceEnabled,
   sessionCode,
@@ -32,9 +87,12 @@ export function MobileMatchScreen({
   onEndMatch,
   onToggleVoice,
 }: Props) {
-  const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showPointLog, setShowPointLog] = useState(false);
   const [scoreBoxHalfW, setScoreBoxHalfW] = useState(0);
+
+  const pressAnim = useRef(new Animated.Value(0)).current;
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { height: wh, width: ww } = useWindowDimensions();
   const courtHeight = Math.min(wh, ww);
@@ -63,6 +121,9 @@ export function MobileMatchScreen({
   const rightSets = matchState.sets[rightTeam];
   const hasSets = leftSets > 0 || rightSets > 0;
 
+  const isAdvantage = (matchState.points.A + matchState.points.B) % 2 === 1;
+  const scoreFontSize = courtHeight > 0 ? Math.floor(courtHeight * 0.70) : 240;
+
   const fmt = matchState.config.matchFormat ?? { type: 'open' };
   const formatLabel: string | null =
     matchState.tiebreak
@@ -75,15 +136,35 @@ export function MobileMatchScreen({
       ? `BO${fmt.setsToWin * 2 - 1}`
       : null;
 
-  const isAdvantage = (matchState.points.A + matchState.points.B) % 2 === 1;
-  const scoreFontSize = courtHeight > 0 ? Math.floor(courtHeight * 0.70) : 240;
-
   const leftBallPos = isAdvantage
     ? { position: 'absolute' as const, top: 14, left: 14 }
     : { position: 'absolute' as const, bottom: 14, left: 14 };
   const rightBallPos = isAdvantage
     ? { position: 'absolute' as const, bottom: 14, right: 14 }
     : { position: 'absolute' as const, top: 14, right: 14 };
+
+  // ── Long-press end match handlers ─────────────────────────────────────────
+
+  function handleAkhiriPressIn() {
+    Animated.timing(pressAnim, { toValue: 1, duration: HOLD_MS, useNativeDriver: false }).start();
+    holdTimer.current = setTimeout(() => {
+      pressAnim.setValue(0);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      onEndMatch();
+    }, HOLD_MS);
+  }
+
+  function handleAkhiriPressOut() {
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+    Animated.timing(pressAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start();
+  }
+
+  // ── Point log ────────────────────────────────────────────────────────────
+
+  const pointLog = buildLog(history, matchState);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#020617' }}>
@@ -124,13 +205,13 @@ export function MobileMatchScreen({
             onLayout={e => setScoreBoxHalfW(e.nativeEvent.layout.width / 2)}
             style={{ backgroundColor: '#0f172a', paddingHorizontal: 24, paddingTop: 6, paddingBottom: 9, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, alignItems: 'center' }}
           >
-            {/* Set row — always rendered to keep box height stable; invisible until a set is won */}
+            {/* Set row — always rendered to keep box height stable */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2, opacity: hasSets ? 1 : 0 }}>
               <Text style={{ fontSize: 26, fontWeight: '900', color: leftSets > rightSets ? '#f8fafc' : '#475569', minWidth: 22, textAlign: 'center' }}>{leftSets}</Text>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#475569', marginHorizontal: 8 }}>–</Text>
               <Text style={{ fontSize: 26, fontWeight: '900', color: rightSets > leftSets ? '#f8fafc' : '#475569', minWidth: 22, textAlign: 'center' }}>{rightSets}</Text>
             </View>
-            {/* Game row — fixed font size regardless of set state */}
+            {/* Game row */}
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{ fontSize: 16, fontWeight: '900', color: '#fbbf24', minWidth: 16, textAlign: 'center' }}>{leftGames}</Text>
               <Text style={{ fontSize: 12, color: '#64748b', marginHorizontal: 8 }}>–</Text>
@@ -173,7 +254,20 @@ export function MobileMatchScreen({
           </View>
         )}
 
-        {/* ── Undo button: always full opacity, icon grey when disabled ── */}
+        {/* ── Point log button: top-right corner ── */}
+        <View
+          pointerEvents="box-none"
+          style={{ position: 'absolute', top: 6, right: 10 }}
+        >
+          <Pressable
+            onPress={() => setShowPointLog(true)}
+            style={{ padding: 10, backgroundColor: '#1e293b', borderRadius: 12 }}
+          >
+            <Ionicons name="list-outline" size={18} color="#94a3b8" />
+          </Pressable>
+        </View>
+
+        {/* ── Undo button ── */}
         <View
           pointerEvents="box-none"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
@@ -199,13 +293,15 @@ export function MobileMatchScreen({
           </View>
         )}
 
-        {/* ── Akhiri: own centred absolute container ── */}
+        {/* ── Akhiri: long-press to end match ── */}
         <View
           pointerEvents="box-none"
           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' }}
         >
-          <Pressable
-            onPress={() => setShowEndConfirm(true)}
+          <TouchableOpacity
+            onPressIn={handleAkhiriPressIn}
+            onPressOut={handleAkhiriPressOut}
+            activeOpacity={1}
             style={{
               backgroundColor: '#1e293b',
               paddingHorizontal: 22,
@@ -214,13 +310,25 @@ export function MobileMatchScreen({
               borderTopLeftRadius: 16,
               borderTopRightRadius: 16,
               alignItems: 'center',
+              overflow: 'hidden',
             }}
           >
+            {/* Fill progress animation */}
+            <Animated.View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                backgroundColor: '#991b1b',
+                width: pressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+              }}
+            />
             <Ionicons name="stop-circle-outline" size={30} color="#fca5a5" />
-          </Pressable>
+          </TouchableOpacity>
         </View>
 
-        {/* ── Player names: per-player colour — only the server's name is yellow ── */}
+        {/* ── Player names ── */}
         <View
           pointerEvents="none"
           style={{ position: 'absolute', bottom: 10, left: 0, right: 0, flexDirection: 'row' }}
@@ -266,29 +374,60 @@ export function MobileMatchScreen({
         </Pressable>
       )}
 
-      {/* End-match confirmation dialog */}
-      {showEndConfirm && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ backgroundColor: '#1e293b', borderRadius: 16, borderWidth: 1, borderColor: '#334155', paddingHorizontal: 32, paddingVertical: 28, alignItems: 'center', width: 320 }}>
-            <Ionicons name="stop-circle-outline" size={32} color="#fca5a5" />
-            <Text style={{ fontSize: 21, fontWeight: '900', color: '#f8fafc', textAlign: 'center', marginTop: 8 }}>Akhiri Pertandingan?</Text>
-            <Text style={{ fontSize: 16, color: '#94a3b8', textAlign: 'center', lineHeight: 24, marginTop: 6, marginBottom: 4 }}>Skor saat ini akan dicatat sebagai hasil akhir.</Text>
-            <View style={{ flexDirection: 'row', marginTop: 16, width: '100%' }}>
-              <Pressable
-                onPress={() => setShowEndConfirm(false)}
-                style={{ flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155', marginRight: 6 }}
-              >
-                <Text style={{ fontSize: 17, fontWeight: '800', color: '#94a3b8' }}>Batal</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => { setShowEndConfirm(false); onEndMatch(); }}
-                style={{ flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', backgroundColor: '#991b1b', marginLeft: 6 }}
-              >
-                <Text style={{ fontSize: 17, fontWeight: '900', color: '#fecaca' }}>Akhiri</Text>
+      {/* Point log panel */}
+      {showPointLog && (
+        <Pressable
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}
+          onPress={() => setShowPointLog(false)}
+        >
+          <Pressable
+            onPress={() => {}}
+            style={{ backgroundColor: '#1e293b', borderRadius: 20, padding: 20, width: '70%', maxHeight: '85%' }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <Text style={{ fontSize: 17, fontWeight: '900', color: '#f8fafc' }}>Riwayat Poin</Text>
+              <Pressable onPress={() => setShowPointLog(false)}>
+                <Ionicons name="close" size={20} color="#64748b" />
               </Pressable>
             </View>
-          </View>
-        </View>
+            {pointLog.length === 0 ? (
+              <Text style={{ color: '#475569', fontSize: 15, textAlign: 'center', paddingVertical: 20 }}>Belum ada poin</Text>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {pointLog.map((entry, i) => {
+                  const isLeft = entry.scorer === leftTeam;
+                  const scorerName = entry.scorer === 'A' ? teamNames.A : teamNames.B;
+                  const isGameOrSet = entry.kind !== 'point';
+                  return (
+                    <View
+                      key={i}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 6,
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#1e3a5f',
+                        backgroundColor: isGameOrSet ? 'rgba(255,255,255,0.04)' : 'transparent',
+                      }}
+                    >
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isLeft ? '#60a5fa' : '#f87171', marginRight: 8 }} />
+                      <Text style={{ color: isLeft ? '#93c5fd' : '#fca5a5', fontWeight: '700', fontSize: 13, flex: 1 }} numberOfLines={1}>
+                        {scorerName}
+                      </Text>
+                      <Text style={{ color: isGameOrSet ? '#fbbf24' : '#94a3b8', fontSize: 13, fontWeight: isGameOrSet ? '700' : '400' }}>
+                        {entry.kind === 'set'
+                          ? `SET ${entry.setA}–${entry.setB}`
+                          : entry.kind === 'game'
+                          ? `Game  ${entry.gameA}–${entry.gameB}`
+                          : `${entry.pointA} – ${entry.pointB}`}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </Pressable>
+        </Pressable>
       )}
     </View>
   );

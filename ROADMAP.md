@@ -129,4 +129,12 @@ All three formats below support the existing `singleDeuceSuddenDeath` toggle. It
 | 1.4 Best-of-sets | ✅ |
 | 1.5 Super tiebreak | ✅ |
 
-All M2–M3 items are currently **—**.
+### M2 status
+
+| Sub-item | Status |
+|----------|--------|
+| 2.1 Game-level undo | ✅ |
+| 2.2 Long-press to end match | ✅ |
+| 2.3 Point log / rally history | ✅ |
+
+M3 items are currently **—**.
