@@ -65,10 +65,14 @@ export function MobileMatchScreen({
 
   const fmt = matchState.config.matchFormat ?? { type: 'open' };
   const formatLabel: string | null =
-    fmt.type === 'fixed-games'
+    matchState.tiebreak
+      ? matchState.tiebreak.target === 10 ? 'SUPER TB' : 'TIEBREAK'
+      : fmt.type === 'fixed-games'
       ? `${leftGames + rightGames} / ${fmt.totalGames}${fmt.goldenGameOnTie && leftGames + rightGames === fmt.totalGames && leftGames === rightGames ? ' ★' : ''}`
       : fmt.type === 'race-to'
       ? `→ ${fmt.raceTo}`
+      : fmt.type === 'best-of-sets'
+      ? `BO${fmt.setsToWin * 2 - 1}`
       : null;
 
   const isAdvantage = (matchState.points.A + matchState.points.B) % 2 === 1;

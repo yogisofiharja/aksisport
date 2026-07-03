@@ -324,6 +324,7 @@ export function MobileSetupScreen({
                   { type: 'open', label: 'Bebas', desc: 'Akhiri kapan saja' },
                   { type: 'fixed-games', label: 'Total Game', desc: 'Main sejumlah game lalu berhenti' },
                   { type: 'race-to', label: 'Kejar Target', desc: 'Pertama capai N game menang' },
+                  { type: 'best-of-sets', label: 'Best of Sets', desc: 'Pertama menang N set (tenis standar)' },
                 ] as const
               ).map(({ type, label, desc }) => {
                 const active = (setup.matchFormat ?? { type: 'open' }).type === type;
@@ -340,6 +341,7 @@ export function MobileSetupScreen({
                       let fmt: MatchFormat = { type: 'open' };
                       if (type === 'fixed-games') fmt = { type: 'fixed-games', totalGames: 4, goldenGameOnTie: false };
                       if (type === 'race-to') fmt = { type: 'race-to', raceTo: 4 };
+                      if (type === 'best-of-sets') fmt = { type: 'best-of-sets', setsToWin: 2, superTiebreak: false };
                       onUpdateSetup({ matchFormat: fmt });
                     }}
                   >
@@ -428,6 +430,44 @@ export function MobileSetupScreen({
                   </HStack>
                 </>
               )}
+
+              {/* best-of-sets sub-options */}
+              {(setup.matchFormat?.type === 'best-of-sets') && (() => {
+                const bos = setup.matchFormat as { type: 'best-of-sets'; setsToWin: number; superTiebreak: boolean };
+                return (
+                  <>
+                    <Divider />
+                    <HStack className="justify-between items-center py-1">
+                      <Text style={{ fontSize: 16, fontWeight: '700' }}>Set untuk Menang</Text>
+                      <HStack className="items-center gap-3">
+                        {([1, 2, 3] as const).map(n => (
+                          <Pressable
+                            key={n}
+                            className={`w-10 h-10 rounded-xl items-center justify-center active:opacity-70 ${bos.setsToWin === n ? 'bg-amber-600' : 'bg-slate-100 dark:bg-slate-700'}`}
+                            onPress={() => { Haptics.selectionAsync(); onUpdateSetup({ matchFormat: { ...bos, setsToWin: n, superTiebreak: n === 1 ? false : bos.superTiebreak } }); }}
+                          >
+                            <Text style={{ fontSize: 17, fontWeight: '900', color: bos.setsToWin === n ? '#ffffff' : (dark ? '#e2e8f0' : '#0f172a') }}>{n}</Text>
+                          </Pressable>
+                        ))}
+                      </HStack>
+                    </HStack>
+                    {bos.setsToWin > 1 && (
+                      <HStack className="justify-between items-center py-1">
+                        <VStack className="flex-1 gap-0.5">
+                          <Text style={{ fontSize: 16, fontWeight: '700' }}>Super Tiebreak (set penentu)</Text>
+                          <Text style={{ fontSize: 13, color: dark ? '#64748b' : '#94a3b8' }}>Ganti set terakhir dengan tiebreak 10 poin</Text>
+                        </VStack>
+                        <Switch
+                          value={bos.superTiebreak}
+                          onValueChange={v => { Haptics.selectionAsync(); onUpdateSetup({ matchFormat: { ...bos, superTiebreak: v } }); }}
+                          trackColor={{ false: dark ? '#475569' : '#cbd5e1', true: '#fcd34d' }}
+                          thumbColor={bos.superTiebreak ? '#d97706' : (dark ? '#1e293b' : '#f8fafc')}
+                        />
+                      </HStack>
+                    )}
+                  </>
+                );
+              })()}
             </VStack>
           </Box>
 

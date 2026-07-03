@@ -249,6 +249,7 @@ export function MatchSetup({
                   { type: 'open' as const, label: 'Bebas' },
                   { type: 'fixed-games' as const, label: 'Total Game' },
                   { type: 'race-to' as const, label: 'Kejar Target' },
+                  { type: 'best-of-sets' as const, label: 'Best of Sets' },
                 ]
               ).map(({ type, label }) => (
                 <Pill
@@ -259,6 +260,7 @@ export function MatchSetup({
                     let fmt: MatchFormat = { type: 'open' };
                     if (type === 'fixed-games') fmt = { type: 'fixed-games', totalGames: 4, goldenGameOnTie: false };
                     if (type === 'race-to') fmt = { type: 'race-to', raceTo: 4 };
+                    if (type === 'best-of-sets') fmt = { type: 'best-of-sets', setsToWin: 2, superTiebreak: false };
                     onUpdateSetup({ matchFormat: fmt });
                   }}
                 />
@@ -334,6 +336,47 @@ export function MatchSetup({
                 </View>
               </View>
             )}
+
+            {setup.matchFormat?.type === 'best-of-sets' && (() => {
+              const bos = setup.matchFormat as { type: 'best-of-sets'; setsToWin: number; superTiebreak: boolean };
+              return (
+                <View style={{ marginTop: 10, gap: 10 }}>
+                  <View style={styles.switchRow}>
+                    <Text style={styles.switchTitle}>Set untuk Menang</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {([1, 2, 3] as const).map(n => (
+                        <Pressable
+                          key={n}
+                          style={({ pressed }) => [{
+                            width: 36, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+                            backgroundColor: bos.setsToWin === n ? '#d97706' : '#f1f5f9',
+                            borderWidth: 1, borderColor: bos.setsToWin === n ? '#d97706' : '#e2e8f0',
+                            opacity: pressed ? 0.7 : 1,
+                          }]}
+                          onPress={() => onUpdateSetup({ matchFormat: { ...bos, setsToWin: n, superTiebreak: n === 1 ? false : bos.superTiebreak } })}
+                        >
+                          <Text style={{ fontSize: 16, fontWeight: '900', color: bos.setsToWin === n ? '#ffffff' : '#1f2937' }}>{n}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                  {bos.setsToWin > 1 && (
+                    <View style={styles.switchRow}>
+                      <View style={styles.switchInfo}>
+                        <Text style={styles.switchTitle}>Super Tiebreak (set penentu)</Text>
+                        <Text style={styles.switchDesc}>Ganti set terakhir dengan tiebreak 10 poin</Text>
+                      </View>
+                      <Switch
+                        value={bos.superTiebreak}
+                        onValueChange={v => onUpdateSetup({ matchFormat: { ...bos, superTiebreak: v } })}
+                        trackColor={{ false: '#cbd5e1', true: '#7dd3fc' }}
+                        thumbColor={bos.superTiebreak ? '#2563eb' : '#f8fafc'}
+                      />
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
           </Card>
 
           <Card tone="muted">

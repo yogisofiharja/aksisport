@@ -63,6 +63,10 @@ export function parsePersistedState(raw: string | null): PersistedAppState | nul
       parsed.matchState.config.matchFormat = { type: 'open' };
     }
 
+    if (parsed.matchState && typeof parsed.matchState.tiebreak === 'undefined') {
+      parsed.matchState.tiebreak = null;
+    }
+
     return parsed;
   } catch {
     return null;
@@ -77,6 +81,9 @@ function normalizeMatchFormat(raw: unknown): MatchFormat {
     }
     if (fmt.type === 'race-to' && typeof fmt.raceTo === 'number') {
       return { type: 'race-to', raceTo: fmt.raceTo };
+    }
+    if (fmt.type === 'best-of-sets' && typeof fmt.setsToWin === 'number') {
+      return { type: 'best-of-sets', setsToWin: fmt.setsToWin, superTiebreak: Boolean(fmt.superTiebreak) };
     }
   }
   return { type: 'open' };
