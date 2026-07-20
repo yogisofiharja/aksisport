@@ -1,0 +1,113 @@
+PoinYuk — App Overview
+======================
+
+WHAT IS IT?
+-----------
+PoinYuk is a tennis scoring app built for casual and club-level matches. The name
+"PoinYuk" is Indonesian slang — "Poin" means point, "Yuk" means "let's go". The
+app is designed for groups of players who rotate games (like a padel/tennis club
+session), not for professional tournament use.
+
+The primary product is a web app (poinyuk.vercel.app). A native iOS/Android app
+is in development and will eventually replace the web app once it's on the App Store.
+
+
+WHAT IT CAN DO (CURRENT FEATURES)
+----------------------------------
+
+1. MATCH SETUP
+   - Supports singles (1v1) and doubles (2v2)
+   - Multiple match formats:
+     * Free game (open) — play until you manually end it; game count can exceed 6
+     * Fixed games — play a set number of games total (e.g. first to 8 games)
+     * Race to — first team to reach X games wins automatically
+     * Best of sets — standard tennis set format (win 6 with 2-game lead, tiebreak at 6-6,
+       super tiebreak option for deciding set)
+   - Deuce modes:
+     * Standard — unlimited deuce/advantage until 2-point lead
+     * Single deuce / sudden death — one deuce, then the next point wins
+   - Player pool management — add players before the match, sorted by play count
+     (least played first to encourage rotation)
+
+2. PLAYER LINEUP
+   - Tap players from the pool to assign them to left (Team A) or right (Team B) side
+   - Swap sides button with animation
+   - First server selector — manual pick or randomise with animated roulette
+   - Add new players on the fly from the lineup screen (useful when someone arrives late)
+   - Play count badges shown on each player pill (how many matches they've played)
+
+3. LIVE SCORING (MATCH SCREEN)
+   - Tap left or right side of the screen to award a point
+   - Score displayed in tennis notation: 0 / 15 / 30 / 40 / Deuce / Advantage
+   - Server indicator — shows who is currently serving, rotates automatically after each game
+   - Tiebreak mode — switches to numeric point counting (0, 1, 2...) at 6-6
+   - Undo — revert the last point (goes back to previous match state)
+   - Voice announcements — reads out the score after each point (e.g. "Thirty, forty")
+     and announces the match result when the match ends
+   - Applause sound when a match ends
+   - End match button — manually end the match at any time; determines winner by
+     current score (sets → games → points)
+   - Point log — scrollable history of every point in the current match
+
+4. SESSION SHARING (LIVE SCORE SYNC)
+   - The scorer creates a session; a 5-character code is generated (e.g. "AB3KP")
+   - Friends can join using the code on their own device (web or mobile)
+   - All joined devices see the live score in real time via Firebase
+   - Anyone who joins on mobile can also score (collaborative handoff — useful when
+     the scorer needs to play and wants to pass scoring duty to someone else)
+   - Web viewers can also score after joining
+   - QR code button in the match screen (mobile) for easy sharing
+   - Session is automatically cleaned up when the match ends
+
+5. MATCH HISTORY
+   - All completed matches are saved locally
+   - Shows teams, score, winner, and date
+   - Share card generation — creates a 1080x1920 image with the match result,
+     customisable with a background photo, shareable to social media or messaging apps
+
+6. INTERNATIONALISATION
+   - UI available in English and Bahasa Indonesia
+   - Language switcher in the settings
+
+7. MOBILE APP (IN DEVELOPMENT)
+   - Native iOS/Android app built with React Native + Expo
+   - Landscape-locked match screen — full screen split into two halves (tap your side
+     to score), optimised for holding the phone horizontally during a match
+   - Haptic feedback on score events
+   - Text-to-speech voice announcements with voice selector (different voices per language)
+   - Dark/light/system theme support
+   - Same session sharing as web — scan QR code to join
+
+
+THE TECH STACK (FOR CONTEXT)
+-----------------------------
+- React Native + Expo (TypeScript)
+- Web: react-native-web, bundled with Webpack via Expo
+- Native: iOS/Android via Expo dev client
+- Styling: NativeWind v4 (Tailwind for React Native) on mobile; StyleSheet on web
+- State: React useState/useRef, no external state library
+- Persistence: localStorage (web) / AsyncStorage (native)
+- Real-time sync: Firebase Realtime Database
+- Deployment: Vercel (web), App Store pending (native)
+- Audio: Web Audio API (web) / expo-audio (native)
+- TTS: SpeechSynthesis API (web) / expo-speech (native)
+
+
+WHAT IT DOES NOT DO (YET)
+--------------------------
+- No user accounts or login
+- No cloud-based history (history is device-local only)
+- No tournament brackets or round-robin scheduling
+- No statistics beyond play count per player
+- No push notifications
+- No spectator-only role (all joiners can score — roles are planned for later)
+- No leaderboard
+- No support for other racket sports (badminton, squash, pickleball) — tennis only for now
+
+
+TARGET USER
+-----------
+A group of friends or club members who play casual tennis regularly.
+One person runs the app to keep score. Others might want to watch the live score
+on their own phones, or take over scoring when needed. After the match, they share
+the result card to a group chat.
