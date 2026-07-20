@@ -6,7 +6,8 @@ import {
   getPointLabel,
   MatchConfig,
   MatchState,
-} from './scoring';
+  Team,
+} from './scoringEngine';
 
 function createSingleConfig(deuceMode: MatchConfig['deuceMode']): MatchConfig {
   return {
