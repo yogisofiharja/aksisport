@@ -41,3 +41,6 @@ yarn-error.*
 /android
 .vercel
 .env*
+
+# Go backend
+server/bin/

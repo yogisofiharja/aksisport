@@ -1,5 +1,5 @@
 import { PersistedAppState, SetupForm, TeamASide } from './appTypes';
-import { MatchFormat } from './scoring';
+import { MatchFormat } from './sports/tennis/scoringEngine';
 
 export const STORAGE_KEY = 'poinyuk.weekend.v1';
 

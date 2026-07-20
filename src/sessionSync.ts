@@ -1,15 +1,20 @@
 import { off, onValue, ref, remove, set } from 'firebase/database';
 import { db } from './firebase';
 import { TeamASide } from './appTypes';
-import { MatchState } from './scoring';
+import { MatchState } from './sports/tennis/scoringEngine';
 
 export type SessionPayload = {
-  setup: import('./appTypes').SetupForm;
+  // Optional: only the local-setup-scoped flow (ScoringFlow) sets these.
+  // Activity-scoped matches (ActivityMatchScreen) omit them and set
+  // activityId/scorerUid instead.
+  setup?: import('./appTypes').SetupForm;
   matchState: MatchState | null;
   history: MatchState[];
   teamASide: TeamASide;
-  playerPlayCounts: Record<string, number>;
+  playerPlayCounts?: Record<string, number>;
   updatedAt: number;
+  activityId?: string;
+  scorerUid?: string;
 };
 
 const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

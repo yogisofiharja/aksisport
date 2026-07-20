@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TeamNames } from '../appTypes';
-import { MatchState, Team } from '../scoring';
+import { MatchState, Team } from '../sports/tennis/scoringEngine';
 import { Button, Card, DecorativeBackdrop } from './ui';
 import { ShareCardModal } from './ShareCardModal';
 import { SessionCodeBadge } from './SessionCodeBadge';

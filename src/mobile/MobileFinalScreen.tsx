@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { Text } from '../../components/ui/text';
 import { TeamNames } from '../appTypes';
-import { MatchState, Team } from '../scoring';
+import { MatchState, Team } from '../sports/tennis/scoringEngine';
 import { SessionCodeBadge } from '../components/SessionCodeBadge';
 import { useTranslation } from '../i18n';
 

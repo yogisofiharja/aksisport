@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SetupForm } from '../appTypes';
-import { MatchFormat } from '../scoring';
+import { MatchFormat } from '../sports/tennis/scoringEngine';
 import { Button, Card, DecorativeBackdrop, palette, Pill } from './ui';
 import { SessionCodeBadge } from './SessionCodeBadge';
 import { useTranslation } from '../i18n';

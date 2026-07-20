@@ -17,7 +17,7 @@ import { Heading, Text } from '../../components/ui/text';
 import { Input, InputField } from '../../components/ui/input';
 import { Pressable } from '../../components/ui/pressable';
 import type { SetupForm } from '../appTypes';
-import type { MatchFormat } from '../scoring';
+import type { MatchFormat } from '../sports/tennis/scoringEngine';
 import { SessionCodeBadge } from '../components/SessionCodeBadge';
 import { SettingsModal } from './SettingsModal';
 import { useTranslation } from '../i18n';
@@ -121,7 +121,7 @@ export function MobileSetupScreen({
             <Box className="w-28 h-28 rounded-[32px] bg-amber-100 dark:bg-amber-900/30 items-center justify-center mb-2">
               <Ionicons name="tennisball" size={56} color="#d97706" />
             </Box>
-            <Heading size="3xl" className="tracking-tighter" style={{ fontSize: 48 }}>PoinYuk</Heading>
+            <Heading size="3xl" className="tracking-tighter" style={{ fontSize: 48 }}>Aksi</Heading>
             <Text className="text-slate-500 dark:text-slate-400 text-xl">{t('heroTagline')}</Text>
           </VStack>
 

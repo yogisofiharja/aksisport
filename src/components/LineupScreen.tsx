@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { LineupResult } from '../appTypes';
-import { MatchMode } from '../scoring';
+import { MatchMode } from '../sports/tennis/scoringEngine';
 import { Button, Card, DecorativeBackdrop } from './ui';
 import { SessionCodeBadge } from './SessionCodeBadge';
 import { useTranslation } from '../i18n';

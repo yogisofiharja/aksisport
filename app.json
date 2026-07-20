@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PoinYuk",
-    "slug": "poinyuk",
+    "name": "Aksi",
+    "slug": "aksi",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -14,10 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yogisofiharja.poinyuk",
+      "bundleIdentifier": "com.yogisofiharja.aksi",
       "deploymentTarget": "16.4"
     },
     "android": {
+      "package": "com.yogisofiharja.aksi",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -42,12 +43,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "PoinYuk ingin mengakses foto untuk mengganti latar kartu skor.",
-          "cameraPermission": "PoinYuk ingin mengakses kamera untuk mengambil foto latar kartu skor."
+          "photosPermission": "Aksi ingin mengakses foto untuk mengganti latar kartu skor.",
+          "cameraPermission": "Aksi ingin mengakses kamera untuk mengambil foto latar kartu skor."
         }
       ],
       "expo-audio",
-      "expo-screen-orientation"
+      "expo-screen-orientation",
+      "expo-asset",
+      "expo-font"
     ]
   }
 }

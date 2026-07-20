@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box, HStack, VStack } from '../../components/ui/box';
 import { Text, Heading } from '../../components/ui/text';
 import type { LineupResult } from '../appTypes';
-import type { MatchMode } from '../scoring';
+import type { MatchMode } from '../sports/tennis/scoringEngine';
 import { SessionCodeBadge } from '../components/SessionCodeBadge';
 import { useTranslation } from '../i18n';
 

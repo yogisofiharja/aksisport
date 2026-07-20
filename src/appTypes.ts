@@ -1,4 +1,4 @@
-import { MatchFormat, MatchMode, MatchState } from './scoring';
+import { MatchFormat, MatchMode, MatchState } from './sports/tennis/scoringEngine';
 
 export type TeamASide = 'left' | 'right';
 

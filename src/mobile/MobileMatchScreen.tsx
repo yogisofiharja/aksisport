@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { TeamNames, TeamASide } from '../appTypes';
-import { getPointLabel, MatchState, Team } from '../scoring';
+import { getPointLabel, MatchState, Team } from '../sports/tennis/scoringEngine';
 import { useTranslation } from '../i18n';
 
 const HOLD_MS = 700;

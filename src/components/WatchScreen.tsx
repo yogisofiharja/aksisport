@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { subscribeToSession, SessionPayload } from '../sessionSync';
-import { getPointLabel } from '../scoring';
+import { getPointLabel } from '../sports/tennis/scoringEngine';
 import { useTranslation } from '../i18n';
 
 type Props = {

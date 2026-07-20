@@ -6,7 +6,7 @@ import { Alert, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, Vie
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { TeamASide, TeamNames } from '../appTypes';
-import { getPointLabel, MatchState, Team } from '../scoring';
+import { getPointLabel, MatchState, Team } from '../sports/tennis/scoringEngine';
 import { Button, DecorativeBackdrop } from './ui';
 import { SessionCodeBadge } from './SessionCodeBadge';
 import { useTranslation } from '../i18n';
