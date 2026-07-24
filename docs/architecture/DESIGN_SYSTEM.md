@@ -1,0 +1,191 @@
+# AKSI Design System
+
+The Design System provides the foundation for every screen.
+
+It should remain independent from business logic.
+
+---
+
+# Hierarchy
+
+Foundation
+
+↓
+
+Primitives
+
+↓
+
+UI Components
+
+↓
+
+Domain UI
+
+↓
+
+Pages
+
+↓
+
+Features
+
+---
+
+# Foundation
+
+Contains design tokens.
+
+Examples:
+
+- Colors
+- Typography
+- Spacing
+- Radius
+- Shadows
+- Motion
+
+Foundation contains no React components.
+
+---
+
+# Primitives
+
+Very small building blocks.
+
+Examples:
+
+- Stack
+- HStack
+- VStack
+- Spacer
+- Container
+
+Primitives never know about business logic.
+
+---
+
+# UI Components
+
+Reusable controls.
+
+Examples:
+
+- Button
+- Card
+- Badge
+- Input
+- Icon
+- Modal
+
+These should work in every application.
+
+---
+
+# Domain UI
+
+Reusable business UI.
+
+Examples:
+
+- ClubCard
+- SessionCard
+- PlayerCard
+- MatchCard
+- LeaderboardCard
+
+These understand AKSI concepts.
+
+---
+
+# Pages
+
+Page layouts.
+
+Examples:
+
+- Page
+- ScrollPage
+- ModalPage
+
+Responsible for:
+
+- Safe Area
+- Status Bar
+- Keyboard
+- Background
+- Header
+
+---
+
+# Features
+
+Business logic.
+
+Examples:
+
+- Authentication
+- Club
+- Session
+- Match
+- Profile
+
+Features consume Domain UI.
+
+They never build reusable UI themselves.
+
+---
+
+# Dependency Rules
+
+Foundation
+
+↓
+
+Primitives
+
+↓
+
+UI Components
+
+↓
+
+Domain UI
+
+↓
+
+Pages
+
+↓
+
+Features
+
+Dependencies must only point downward.
+
+Never the opposite.
+
+---
+
+# Design System Rules
+
+Design System must never:
+
+- Call APIs
+- Know Firebase
+- Know navigation
+- Know business logic
+- Know sports
+
+It only renders UI.
+
+---
+
+# Icons
+
+All icons go through a single `Icon` wrapper component. Feature screens must never import an icon library directly.
+
+* **Provider**: `@expo/vector-icons/Ionicons` — already a project dependency, and the icon set used throughout the existing app. `Icon` wraps it; it does not replace it.
+* **API**: `<Icon name="calendar" size="md" color="primary" />` — name matches the underlying Ionicons glyph name, `size` and `color` are semantic tokens, never raw numbers or hex values.
+* **Sizes**: use the `xs`/`sm`/`md`/`lg`/`xl` scale from Design Tokens. Never pass a raw numeric `size`.
+* **Colors**: use semantic color tokens (`primary`, `muted`, `destructive`, etc.), the same palette used everywhere else. Never pass a raw hex value, and never branch on `dark ? '#xxx' : '#yyy'` inline — `Icon` resolves the correct color for the current theme internally.
+* **Rule**: no feature screen may import `Ionicons` (or any other icon library) directly. If a screen needs an icon, it goes through `Icon`.
