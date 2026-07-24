@@ -60,13 +60,16 @@ Use when content may exceed screen height.
 
 Avoid nesting multiple scroll views.
 
----
+Composes Container and Stack internally for horizontal padding and
+inter-child spacing — the same primitives a non-scrolling Page would
+compose directly, not a separately maintained padding value.
 
-# ModalPage
-
-Used inside dialogs and bottom sheets.
-
-Provides consistent spacing and safe area.
+Removed: `ModalPage`. Introduced in Phase 2 ahead of any real dialog
+existing; Phase 4's `Dialog` — the one real candidate — needed a backdrop
++ centered card, not a safe-area-padded content panel, and was built
+without it. Kept as a documented removal rather than silently deleting the
+paragraph, so the reasoning isn't lost if a real bottom sheet or full-page
+modal need ever resurfaces the question.
 
 ---
 

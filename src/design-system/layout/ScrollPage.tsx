@@ -7,7 +7,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
-import { spacing } from '../foundation/spacing';
+import { spacing, type SpacingToken } from '../foundation/spacing';
+import { Container } from './Container';
+import { Stack } from './Stack';
 
 /**
  * Page + scrolling — LAYOUT_SYSTEM.md: "Use when content may exceed screen
@@ -20,15 +22,25 @@ import { spacing } from '../foundation/spacing';
  *   SessionListScreen) — pass `refreshControl` straight through to the
  *   underlying ScrollView, no extra API needed.
  *
- * Default content padding matches the app's single most common wrapper
- * (`px-5 pt-4 pb-6 gap-5`, 7 of 11 screens using this exact shape) —
- * sourced from foundation spacing tokens.
+ * Horizontal padding and inter-child spacing are delegated to Container and
+ * Stack respectively, not duplicated here — matches LAYOUT_SYSTEM.md's
+ * documented hierarchy (Page → Section → Container → Stack → Content).
+ * An earlier version applied `paddingHorizontal` directly in
+ * `contentContainerStyle`, a second, undelegated source of the same value
+ * Container already owns — fixed in the pre-Phase-6 audit. The ScrollView's
+ * own contentContainerStyle now only handles top/bottom scroll-edge
+ * padding, which is genuinely its own concern (nothing else owns scroll
+ * insets).
+ *
+ * Default gap matches the app's single most common wrapper
+ * (`px-5 pt-4 pb-6 gap-5`, 7 of 11 screens using this exact shape).
  */
 
 type ScrollPageProps = Omit<ScrollViewProps, 'contentContainerStyle'> & {
   className?: string;
   contentContainerStyle?: ScrollViewProps['contentContainerStyle'];
   keyboardAvoiding?: boolean;
+  gap?: SpacingToken;
 };
 
 export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function ScrollPage(
@@ -37,6 +49,7 @@ export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function Scrol
     contentContainerStyle,
     keyboardAvoiding = false,
     keyboardShouldPersistTaps,
+    gap = 'xl',
     children,
     ...props
   },
@@ -50,13 +63,15 @@ export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function Scrol
       ref={ref}
       className={className}
       contentContainerStyle={[
-        { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing['2xl'], gap: spacing.xl },
+        { paddingTop: spacing.lg, paddingBottom: spacing['2xl'] },
         contentContainerStyle,
       ]}
       keyboardShouldPersistTaps={keyboardShouldPersistTaps ?? (keyboardAvoiding ? 'handled' : undefined)}
       {...props}
     >
-      {children}
+      <Container>
+        <Stack space={gap}>{children}</Stack>
+      </Container>
     </ScrollView>
   );
 

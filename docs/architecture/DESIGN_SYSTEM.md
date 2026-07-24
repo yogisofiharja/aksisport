@@ -106,7 +106,9 @@ Examples:
 
 - Page
 - ScrollPage
-- ModalPage
+
+(`ModalPage` was introduced in Phase 2 and removed after Phase 4 — see
+LAYOUT_SYSTEM.md and ROADMAP.md's Phase 2 scope note.)
 
 Responsible for:
 

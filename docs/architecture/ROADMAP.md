@@ -26,7 +26,6 @@ Status: Planned
 
 - Page
 - ScrollPage
-- ModalPage
 - Stack
 - HStack
 - VStack
@@ -34,6 +33,14 @@ Status: Planned
 - Container
 
 Status: Planned
+
+Scope note: `ModalPage` was originally built here but removed after the
+Phase 5 pre-Phase-6 audit. Its one real candidate consumer, Phase 4's
+`Dialog`, needed a backdrop + centered card, not the safe-area-padded
+content panel `ModalPage` provided — real usage showed the abstraction
+didn't fit, so it was deleted rather than kept speculatively. Unlike
+Avatar/Chip/Skeleton/etc. (deferred, not yet needed), this isn't in
+Optional — the shape itself was wrong, not just premature.
 
 ---
 
