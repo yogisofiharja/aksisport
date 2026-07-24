@@ -61,12 +61,15 @@ Optional — see below.
 
 - Empty State
 - Loading State
-- Skeleton
 - Dialog
-- Bottom Sheet
-- Toast
 
 Status: Planned
+
+Scope note: `Skeleton`, `Bottom Sheet`, and `Toast` were originally listed
+here but have zero current consumers (every loading state today is a
+spinner, not a skeleton; no bottom sheet exists anywhere; errors are shown
+as inline text, not a toast). Same reasoning as Avatar/Chip in Phase 3.
+Moved to Optional — see below.
 
 ---
 
@@ -118,6 +121,11 @@ build ahead of need — implement only once a real screen requires one.
 - **Chip** — the closest existing visual (`AddMatchScreen`'s participant
   selection pills) is bespoke match-assignment logic, not a generic
   reusable chip.
+- **Skeleton** — no skeleton-loading pattern exists anywhere; every loading
+  state today is an `ActivityIndicator` spinner.
+- **Bottom Sheet** — not used anywhere in the app.
+- **Toast** — errors are shown as inline text under forms today, not a
+  toast/snackbar.
 
 ---
 

@@ -68,6 +68,17 @@ This ordering exists specifically to defer the behavior-heavy screens (stages 6�
 
 ---
 
+# Dialog vs. Alert.alert
+
+Phase 4 introduced `Dialog` (`src/design-system/feedback/Dialog.tsx`) to unify the app's confirm-dialog implementations. It is **not** a blanket replacement for every `Alert.alert` call site. Distinguish:
+
+* **Workflow confirmations** (End Match, End Session, Leave Screen, and similar in-app decisions) — migrate to `Dialog`.
+* **System-style confirmations or platform-native interactions** — `Alert.alert` may still be the right choice; a native OS dialog is sometimes the correct UX, not a gap to close.
+
+Apply this distinction at each Phase 6 call site individually rather than converting every `Alert.alert` on sight.
+
+---
+
 # Migration Checklist
 
 Before merging:
