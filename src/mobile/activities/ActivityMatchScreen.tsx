@@ -331,6 +331,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
           matchState={matchState}
           teamNames={teamNames}
           sessionCode={null}
+          readOnly={!isScorer}
           onShare={handleShare}
           onBackToSetup={onDone}
           onClearSavedState={isScorer ? handleLeaveLiveSession : onDone}

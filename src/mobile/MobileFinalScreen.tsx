@@ -15,6 +15,10 @@ type Props = {
   matchState: MatchState;
   teamNames: TeamNames;
   sessionCode: string | null;
+  /** Viewer mode: hides "New Match" and "End Session" — both are scorer
+   * actions, and "End Session"'s copy ("data will be permanently deleted")
+   * is actively wrong for a viewer, who isn't deleting anything. */
+  readOnly?: boolean;
   onShare: () => void;
   onBackToSetup: () => void;
   onClearSavedState: () => void;
@@ -25,6 +29,7 @@ export function MobileFinalScreen({
   matchState,
   teamNames,
   sessionCode,
+  readOnly = false,
   onShare,
   onBackToSetup,
   onClearSavedState,
@@ -89,15 +94,17 @@ export function MobileFinalScreen({
             <Text className="text-white text-[20px] font-black tracking-wide">{t('shareResult')}</Text>
           </TouchableOpacity>
 
-          {/* Match Baru — full-width outlined */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={onBackToSetup}
-            className="bg-white dark:bg-slate-800 border-[1.5px] border-slate-200 dark:border-slate-600 rounded-2xl py-4 flex-row items-center justify-center gap-2"
-          >
-            <Ionicons name="add-circle-outline" size={20} color={dark ? '#f1f5f9' : '#111827'} />
-            <Text className="text-[17px] font-extrabold text-slate-800 dark:text-slate-100">{t('newMatch')}</Text>
-          </TouchableOpacity>
+          {/* Match Baru — full-width outlined (scorer only) */}
+          {!readOnly && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={onBackToSetup}
+              className="bg-white dark:bg-slate-800 border-[1.5px] border-slate-200 dark:border-slate-600 rounded-2xl py-4 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="add-circle-outline" size={20} color={dark ? '#f1f5f9' : '#111827'} />
+              <Text className="text-[17px] font-extrabold text-slate-800 dark:text-slate-100">{t('newMatch')}</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Riwayat — text link */}
           <TouchableOpacity onPress={onShowHistory} className="items-center py-1.5">
@@ -106,16 +113,18 @@ export function MobileFinalScreen({
 
         </ScrollView>
 
-        {/* Akhiri Sesi — pinned to bottom */}
-        <View className="border-t border-slate-200 dark:border-slate-700 py-2.5 items-center">
-          <TouchableOpacity className="py-2.5 px-6" onPress={() => setShowEndConfirm(true)}>
-            <Text className="text-[15px] font-bold text-slate-400 dark:text-slate-500 underline">{t('endSession')}</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Akhiri Sesi — pinned to bottom (scorer only) */}
+        {!readOnly && (
+          <View className="border-t border-slate-200 dark:border-slate-700 py-2.5 items-center">
+            <TouchableOpacity className="py-2.5 px-6" onPress={() => setShowEndConfirm(true)}>
+              <Text className="text-[15px] font-bold text-slate-400 dark:text-slate-500 underline">{t('endSession')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       </SafeAreaView>
 
-      {showEndConfirm && (
+      {!readOnly && showEndConfirm && (
         <View className="absolute inset-0 bg-black/55 items-center justify-center">
           <View className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 px-7 py-7 items-center w-[300px] gap-2">
             <Ionicons name="warning-outline" size={32} color="#f59e0b" />
