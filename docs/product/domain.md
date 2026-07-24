@@ -1,8 +1,17 @@
 # Domain Model
 
-Migrated from `prd.md`. Preserves existing wording and decisions —
-see the "Open Questions" section at the end for gaps found during
-migration, not new product decisions.
+Migrated from `prd.md`. Preserves existing wording and decisions,
+except where noted — see "Decisions" below for the two Core Hierarchy
+gaps this document originally flagged as open, since resolved.
+
+## Decisions
+
+- **Sport is not a standalone entity.** It's `sportType`, an attribute
+  of Activity. Values: `TENNIS`, `PADEL`, `PICKLEBALL`. This supports
+  multi-sport without adding another aggregate.
+- **Result is not a standalone entity.** The hierarchy ends at Match.
+  Match owns Score, Winner, Statistics, and Events. Result/Outcome is
+  derived from Match data, not stored separately.
 
 ---
 
@@ -28,11 +37,9 @@ Club
     ↓
 Session
     ↓
-Sport
-    ↓
 Activity
     ↓
-Result
+Match
 ```
 
 ---
@@ -161,6 +168,8 @@ Definitions
 
 Sport-specific unit inside a session.
 
+`sportType` attribute: `TENNIS` | `PADEL` | `PICKLEBALL`.
+
 Examples
 
 Tennis
@@ -179,11 +188,27 @@ Future
 
 Contains
 
-- Sport
+- Sport Type
 - Participants
-- Result
-- Events
+- Match
 - Permissions
+
+---
+
+## Match
+
+The concrete play instance for Activities whose type is Match (Tennis,
+Padel today — see Activity examples above).
+
+Owns
+
+- Score
+- Winner
+- Statistics
+- Events
+
+Result/Outcome is derived from Match data. It is not a separately
+stored entity.
 
 ---
 
@@ -250,7 +275,7 @@ Stored under
 
 - User
 - Club
-- Sport
+- Sport Type
 
 ---
 
@@ -276,21 +301,8 @@ Club
 
 ---
 
-## Open Questions
+## Note
 
-Found while migrating `prd.md` — not resolved here, flagging per
-migration instructions rather than assuming an answer.
-
-- **"Result" in the Core Hierarchy** has no standalone definition
-  elsewhere in `prd.md`. It's implied to be the outcome data of an
-  Activity (`Activity` → "Contains: ... Result ... Events"), but
-  whether it's a distinct entity or just a field on Activity is unstated.
-- **"Sport" in the Core Hierarchy** sits as its own layer between
-  Session and Activity, but no section defines "Sport" as an entity —
-  `Session` has a "Sport" field, and `Activity` is described as
-  "Sport-specific," but there's no explicit model for what a Sport
-  record contains (vs. it just being a string/enum like `tennis`).
-- **`prd.md`'s "Technical Direction" section** (frontend/backend stack,
-  Core Platform vs. Sport Modules folder layout) was intentionally
-  **not** migrated here — it belongs in `docs/engineering/`, which
-  doesn't have content yet. It remains in `prd.md` until that exists.
+`prd.md`'s "Technical Direction" section (frontend/backend stack, Core
+Platform vs. Sport Modules folder layout) belongs in
+`docs/engineering/`, not here — see `docs/engineering/technical-direction.md`.

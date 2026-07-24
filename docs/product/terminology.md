@@ -1,8 +1,8 @@
 # Terminology
 
 Migrated from `prd.md`. Definitions are quoted or closely paraphrased
-from existing wording — nothing invented. See "Open Questions" for
-terms `prd.md` uses but never explicitly defines.
+from existing wording, except **Sport Type** and **Match**/**Result**,
+which reflect the Core Hierarchy decision recorded in `domain.md`.
 
 ---
 
@@ -12,9 +12,13 @@ terms `prd.md` uses but never explicitly defines.
 
 **Session** — Represents a scheduled community gathering.
 
-**Activity** — Sport-specific unit inside a session.
+**Activity** — Sport-specific unit inside a session. Not a standalone hierarchy layer for its sport — see Sport Type.
 
-**Match** — The Activity type used for Tennis and Padel (`Activity` examples list "Match" under both).
+**Sport Type** — Attribute of Activity, not a standalone entity. Values: `TENNIS`, `PADEL`, `PICKLEBALL`.
+
+**Match** — The concrete play instance for Activities whose type is Match (Tennis, Padel today). Owns Score, Winner, Statistics, Events.
+
+**Result** / **Outcome** — Derived from Match data. Not a separately stored entity.
 
 **Owner** (club role) — Manages the club, admins, members, and settings.
 
@@ -29,13 +33,3 @@ terms `prd.md` uses but never explicitly defines.
 **Participated** (session lifecycle state) — Player has played at least one activity.
 
 **Scorer** — The single participant with permission to edit the score during a match. Read-only for everyone else. Temporary role — can be transferred to another participant without interrupting the match.
-
----
-
-## Open Questions
-
-- **Sport** and **Result** are used as Core Hierarchy entities in
-  `domain.md` but `prd.md` never gives either an explicit standalone
-  definition. See `domain.md`'s "Open Questions" section — not
-  duplicated here to avoid two sources answering the same question
-  differently.
