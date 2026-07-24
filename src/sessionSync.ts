@@ -55,41 +55,34 @@ export function subscribeToSession(
 
 // ── Activity-scoped live matches (ActivityMatchScreen) ──────────────────────
 //
-// Keyed directly by activityId under a separate `liveMatches/` path — not
-// the random `sessions/{code}` path above, which stays exclusively for the
-// legacy/web ScoringFlow. Using activityId as the key is a Milestone 1
-// implementation shortcut, not the long-term domain model: it works because
-// today an Activity has at most one live match at a time and no resumable
-// "session" concept beyond the Activity itself. A future LiveSession entity
-// (its own id, its own lifecycle independent of the Activity's) may replace
-// this keying — do not build that now, this is just flagging the seam.
+// Keyed directly by activityId, reusing the same `sessions/` path as the
+// legacy/web ScoringFlow above — not a separate top-level path. A dedicated
+// `liveMatches/` path was tried first but hit Permission_denied: the actual
+// RTDB security rules (configured in the Firebase console, not version
+// controlled — see docs/current/firebase-security.md) only grant access
+// under `sessions/`, and RTDB default-denies any path with no matching
+// rule. Reusing `sessions/` sidesteps that without needing console access.
+// activityId (a UUID) never collides with the random 5-character codes
+// legacy sessions use, so both can safely share the same path.
+//
+// Using activityId as the key is still a Milestone 1 implementation
+// shortcut, not the long-term domain model: it works because today an
+// Activity has at most one live match at a time and no resumable "session"
+// concept beyond the Activity itself. A future LiveSession entity (its own
+// id, its own lifecycle independent of the Activity's) may replace this
+// keying — do not build that now, this is just flagging the seam.
 
 export async function pushLiveMatchState(activityId: string, payload: SessionPayload): Promise<void> {
-  if (!db) return;
-  try {
-    await set(ref(db, `liveMatches/${activityId}`), payload);
-  } catch (err) {
-    console.error('Live match push failed', err);
-  }
+  return pushSessionState(activityId, payload);
 }
 
 export async function deleteLiveMatch(activityId: string): Promise<void> {
-  if (!db) return;
-  try {
-    await remove(ref(db, `liveMatches/${activityId}`));
-  } catch {
-    // ignore
-  }
+  return deleteSession(activityId);
 }
 
 export function subscribeToLiveMatch(
   activityId: string,
   callback: (payload: SessionPayload | null) => void,
 ): () => void {
-  if (!db) return () => {};
-  const liveRef = ref(db, `liveMatches/${activityId}`);
-  onValue(liveRef, (snapshot) => {
-    callback((snapshot.val() as SessionPayload | null) ?? null);
-  });
-  return () => off(liveRef);
+  return subscribeToSession(activityId, callback);
 }
