@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../../components/ui/button';
 import { VStack } from '../../../components/ui/box';
 import { Text } from '../../../components/ui/text';
@@ -46,7 +46,7 @@ export function CreateSessionScreen({ clubId, onBack, onCreated }: Props) {
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5" keyboardShouldPersistTaps="handled">
           <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-            <Ionicons name="arrow-back" size={24} />
+            <Icon name="arrow-back" size="lg" />
           </Pressable>
 
           <VStack className="gap-2">

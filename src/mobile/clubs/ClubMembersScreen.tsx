@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../../components/ui/button';
 import { Box, HStack, VStack } from '../../../components/ui/box';
 import { Heading, Text } from '../../../components/ui/text';
@@ -106,7 +106,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
       <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5">
         <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-          <Ionicons name="arrow-back" size={24} />
+          <Icon name="arrow-back" size="lg" />
         </Pressable>
 
         <Heading size="2xl">{t('clubMembersTitle')}</Heading>
