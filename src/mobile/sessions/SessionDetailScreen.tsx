@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../../components/ui/button';
 import { Box, HStack, VStack } from '../../../components/ui/box';
 import { Heading, Text } from '../../../components/ui/text';
@@ -10,7 +10,7 @@ import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
-import { addGuestParticipant, checkIn, getSession, listParticipants } from '../../core/sessions/api';
+import { addGuestParticipant, checkIn, getSession, listParticipants, publishSession } from '../../core/sessions/api';
 import { listMembers } from '../../core/clubs/api';
 import { listActivities } from '../../core/activities/api';
 import type { ActivityDetail, Session, SessionParticipant } from '../../core/api/types';
@@ -79,6 +79,17 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     }
   }
 
+  async function handlePublish() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await publishSession(sessionId);
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleAddGuest() {
     const name = guestName.trim();
     if (!name || busy) return;
@@ -107,13 +118,27 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
       <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5">
         <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-          <Ionicons name="arrow-back" size={24} />
+          <Icon name="arrow-back" size="lg" />
         </Pressable>
 
         <VStack className="gap-1">
           <Heading size="2xl">{session.name || session.sport}</Heading>
           {session.location && <Text className="text-slate-500 dark:text-slate-400">{session.location}</Text>}
         </VStack>
+
+        {/* DP-001: a draft session is invisible to members until published
+            — minimal affordance so the create-session flow isn't a dead
+            end; not the full Draft-editing experience described in the
+            product decision (courts/pricing/duplicate), just the one
+            action needed to avoid silently breaking session creation. */}
+        {isOwnerOrAdmin && session.status === 'draft' && (
+          <Box className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 gap-3">
+            <Text className="text-sm text-amber-800 dark:text-amber-300">{t('sessionDraftNotice')}</Text>
+            <Button size="sm" className="rounded-xl bg-amber-600" isDisabled={busy} onPress={handlePublish}>
+              <ButtonText className="text-white">{t('sessionPublish')}</ButtonText>
+            </Button>
+          </Box>
+        )}
 
         {!myParticipant || myParticipant.status !== 'checked_in' ? (
           <Button action="secondary" size="xl" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handleCheckIn}>

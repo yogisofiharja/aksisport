@@ -40,7 +40,11 @@ export type ClubMember = {
   joinedAt: string;
 };
 
-export type SessionStatus = 'open' | 'in_progress' | 'completed';
+// DP-001: 'draft' (explicit, pre-publish) and 'cancelled' (explicit,
+// terminal) added. 'open' covers what DP-001 calls Recruiting/Ready/Full —
+// those are a derived display layer over 'open', not stored — see
+// core/sessions/deriveStatus.ts.
+export type SessionStatus = 'draft' | 'open' | 'in_progress' | 'completed' | 'cancelled';
 
 export type Session = {
   id: string;
@@ -50,12 +54,20 @@ export type Session = {
   location?: string;
   courtCount: number;
   status: SessionStatus;
+  // DP-003: minimum is owned by the Sport Engine; Session only defines the
+  // maximum. Nullable — no screen sets this yet.
+  maxParticipants?: number;
+  // DP-004: seeds a new match's format picker. Opaque, same as
+  // Activity.config — only the relevant sports/<name>/ module reads it.
+  defaultMatchFormat?: unknown;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
 };
 
-export type ParticipantStatus = 'registered' | 'checked_in' | 'participated';
+// DP-002: 'participated' removed — declared in the original schema but
+// never set by any code path; not part of the five-state model.
+export type ParticipantStatus = 'registered' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 
 export type SessionParticipant = {
   id: string;
@@ -66,6 +78,7 @@ export type SessionParticipant = {
   displayName?: string;
   status: ParticipantStatus;
   checkedInAt?: string;
+  checkedOutAt?: string;
   joinedAt: string;
 };
 

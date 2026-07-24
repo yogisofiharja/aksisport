@@ -44,14 +44,19 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 
 | Method | Path | Auth | Extra check | Notes |
 |---|---|---|---|---|
-| POST | `/v1/clubs/:clubId/sessions` | profile | owner/admin of club | Body `{sport, name?, location?, courtCount?}`. `sport` required. Name auto-generated (`"Session on <date>"`) if omitted. |
-| GET | `/v1/clubs/:clubId/sessions` | profile | member | |
+| POST | `/v1/clubs/:clubId/sessions` | profile | owner/admin of club | Body `{sport, name?, location?, courtCount?, maxParticipants?, defaultMatchFormat?}`. `sport` required. Name auto-generated (`"Session on <date>"`) if omitted. `maxParticipants`/`defaultMatchFormat` added for DP-003/DP-004 — no screen sets either yet. |
+| GET | `/v1/clubs/:clubId/sessions` | profile | member | DP-001: `draft` sessions excluded from the list unless the caller is owner/admin of the club. |
 | GET | `/v1/sessions/:id` | profile | member of parent club | |
-| PATCH | `/v1/sessions/:id` | profile | owner/admin | Body `{name?, location?, status?}`. `status` must be one of `open`/`in_progress`/`completed` if present. |
+| PATCH | `/v1/sessions/:id` | profile | owner/admin | Body `{name?, location?, status?, maxParticipants?, defaultMatchFormat?}`. `status` is now a guarded transition — `draft→open→in_progress→completed`, `cancelled` reachable from any non-terminal state — 409 if the transition from the session's current status isn't allowed, not just a flat set of valid strings. `publishSession`/`startSession`/`completeSession`/`cancelSession` in `core/sessions/api.ts` are named wrappers over this same endpoint, not separate routes. |
 | GET | `/v1/sessions/:id/participants` | profile | member | |
 | POST | `/v1/sessions/:id/register` | profile | member | Self-registers caller, idempotent. |
 | POST | `/v1/sessions/:id/checkin` | profile | member | Self check-in; auto-registers first if no row exists yet. |
+| POST | `/v1/sessions/:id/checkout` | profile | member | Self-service, mirrors `/checkin`'s shape. DP-002. No screen calls this yet — API only. |
+| POST | `/v1/sessions/:id/cancel` | profile | member | Self-service. DP-002. No screen calls this yet — API only. |
+| POST | `/v1/sessions/:id/participants/:userId/no-show` | profile | owner/admin | Marks another participant `no_show` — not self-service, unlike checkout/cancel. DP-002. No screen calls this yet — API only. |
 | POST | `/v1/sessions/:id/participants` | profile | owner/admin | Body `{guestName}`. Adds a guest directly as `checked_in`. |
+
+`session_participants.status` now also accepts `checked_out`/`cancelled`/`no_show` alongside the original `registered`/`checked_in` — see `lifecycle-session.md`. `participated` was dropped (never set by any code path).
 
 ## Activities
 

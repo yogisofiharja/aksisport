@@ -10,12 +10,12 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
-const participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.joined_at
+const participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.checked_out_at, sp.joined_at
 	 FROM session_participants sp LEFT JOIN users u ON u.id = sp.user_id`
 
 func scanParticipant(row pgx.CollectableRow) (models.SessionParticipant, error) {
 	var p models.SessionParticipant
-	err := row.(pgx.Rows).Scan(&p.ID, &p.SessionID, &p.UserID, &p.GuestName, &p.Username, &p.DisplayName, &p.Status, &p.CheckedInAt, &p.JoinedAt)
+	err := row.(pgx.Rows).Scan(&p.ID, &p.SessionID, &p.UserID, &p.GuestName, &p.Username, &p.DisplayName, &p.Status, &p.CheckedInAt, &p.CheckedOutAt, &p.JoinedAt)
 	return p, err
 }
 
@@ -72,6 +72,52 @@ func CheckIn(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) 
 		 VALUES ($1, $2, 'checked_in', now())
 		 ON CONFLICT (session_id, user_id) WHERE user_id IS NOT NULL
 		 DO UPDATE SET status = 'checked_in', checked_in_at = now()`,
+		sessionID, userID,
+	); err != nil {
+		return models.SessionParticipant{}, err
+	}
+	return getParticipantByUser(ctx, pool, sessionID, userID)
+}
+
+// CheckOut marks an existing participant row as checked_out. Unlike
+// CheckIn, this does not upsert — checking out only makes sense for a
+// participant who already has a row (there's nothing to "check out" of
+// otherwise). No transition-guard on prior status, matching CheckIn's
+// existing simplicity — this is last-write-wins, same as every other
+// status write in this file today.
+func CheckOut(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
+	if _, err := pool.Exec(ctx,
+		`UPDATE session_participants SET status = 'checked_out', checked_out_at = now()
+		 WHERE session_id = $1 AND user_id = $2`,
+		sessionID, userID,
+	); err != nil {
+		return models.SessionParticipant{}, err
+	}
+	return getParticipantByUser(ctx, pool, sessionID, userID)
+}
+
+// CancelParticipant marks an existing participant row as cancelled —
+// either the participant cancelling their own registration, or an
+// owner/admin cancelling on their behalf (see requireSelfOrOwnerAdmin in
+// the handler).
+func CancelParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
+	if _, err := pool.Exec(ctx,
+		`UPDATE session_participants SET status = 'cancelled'
+		 WHERE session_id = $1 AND user_id = $2`,
+		sessionID, userID,
+	); err != nil {
+		return models.SessionParticipant{}, err
+	}
+	return getParticipantByUser(ctx, pool, sessionID, userID)
+}
+
+// MarkNoShow marks an existing participant row as no_show — an
+// owner/admin-only action (marking someone else's absence is inherently
+// not self-service, unlike CheckOut/Cancel).
+func MarkNoShow(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
+	if _, err := pool.Exec(ctx,
+		`UPDATE session_participants SET status = 'no_show'
+		 WHERE session_id = $1 AND user_id = $2`,
 		sessionID, userID,
 	); err != nil {
 		return models.SessionParticipant{}, err

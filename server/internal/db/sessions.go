@@ -11,26 +11,42 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
-const sessionColumns = "id, club_id, sport, name, location, court_count, status, created_by, created_at, updated_at"
+const sessionColumns = "id, club_id, sport, name, location, court_count, status, max_participants, default_match_format, created_by, created_at, updated_at"
 
 func scanSession(row pgx.CollectableRow) (models.Session, error) {
 	var s models.Session
-	err := row.(pgx.Rows).Scan(&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt)
+	err := row.(pgx.Rows).Scan(&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.MaxParticipants, &s.DefaultMatchFormat, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt)
 	return s, err
 }
 
-func CreateSession(ctx context.Context, pool *pgxpool.Pool, clubID, sport string, name, location *string, courtCount int, createdBy string) (models.Session, error) {
+// CreateSessionParams groups the optional, DP-003/DP-004 fields alongside
+// the original required ones, rather than growing CreateSession's
+// positional-argument list further.
+type CreateSessionParams struct {
+	ClubID             string
+	Sport              string
+	Name               *string
+	Location           *string
+	CourtCount         int
+	MaxParticipants    *int
+	DefaultMatchFormat []byte
+	CreatedBy          string
+}
+
+func CreateSession(ctx context.Context, pool *pgxpool.Pool, p CreateSessionParams) (models.Session, error) {
+	name := p.Name
 	if name == nil {
 		generated := "Session on " + time.Now().Format("Jan 2, 2006")
 		name = &generated
 	}
+	courtCount := p.CourtCount
 	if courtCount <= 0 {
 		courtCount = 1
 	}
 	rows, err := pool.Query(ctx,
-		`INSERT INTO sessions (club_id, sport, name, location, court_count, created_by)
-		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING `+sessionColumns,
-		clubID, sport, name, location, courtCount, createdBy,
+		`INSERT INTO sessions (club_id, sport, name, location, court_count, max_participants, default_match_format, created_by)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING `+sessionColumns,
+		p.ClubID, p.Sport, name, p.Location, courtCount, p.MaxParticipants, p.DefaultMatchFormat, p.CreatedBy,
 	)
 	if err != nil {
 		return models.Session{}, err
@@ -52,8 +68,16 @@ func GetSession(ctx context.Context, pool *pgxpool.Pool, sessionID string) (mode
 	return s, err
 }
 
-func ListSessionsForClub(ctx context.Context, pool *pgxpool.Pool, clubID string) ([]models.Session, error) {
-	rows, err := pool.Query(ctx, "SELECT "+sessionColumns+" FROM sessions WHERE club_id = $1 ORDER BY created_at DESC", clubID)
+// ListSessionsForClub excludes 'draft' sessions unless includeDrafts is
+// true — DP-001: a draft session "should not be visible or joinable by
+// club members," only its owner/admin creators.
+func ListSessionsForClub(ctx context.Context, pool *pgxpool.Pool, clubID string, includeDrafts bool) ([]models.Session, error) {
+	query := "SELECT " + sessionColumns + " FROM sessions WHERE club_id = $1"
+	if !includeDrafts {
+		query += " AND status != 'draft'"
+	}
+	query += " ORDER BY created_at DESC"
+	rows, err := pool.Query(ctx, query, clubID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +95,11 @@ func ListSessionsForClub(ctx context.Context, pool *pgxpool.Pool, clubID string)
 }
 
 type SessionUpdate struct {
-	Name     *string
-	Location *string
-	Status   *string
+	Name               *string
+	Location           *string
+	Status             *string
+	MaxParticipants    *int
+	DefaultMatchFormat []byte
 }
 
 func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u SessionUpdate) (models.Session, error) {
@@ -82,10 +108,12 @@ func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u 
 			name = COALESCE($2, name),
 			location = COALESCE($3, location),
 			status = COALESCE($4, status),
+			max_participants = COALESCE($5, max_participants),
+			default_match_format = COALESCE($6, default_match_format),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+sessionColumns,
-		sessionID, u.Name, u.Location, u.Status,
+		sessionID, u.Name, u.Location, u.Status, u.MaxParticipants, u.DefaultMatchFormat,
 	)
 	if err != nil {
 		return models.Session{}, err

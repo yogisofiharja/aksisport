@@ -8,26 +8,32 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 .
 ├── App.tsx                  Entry point. Platform.OS branches web vs mobile.
 ├── app.json                 Expo config — name "Aksi", bundle id com.yogisofiharja.aksi
-├── CLAUDE.md
-├── prd.md                   Historical planning doc, temporary until migrated
+├── CLAUDE.md                 The only other root-level markdown file, by design — see
+│                              docs/archive/ below for everything that used to live here.
 ├── README.md                Setup only
-├── ROADMAP.md                Pre-Aksi, web-only milestone tracker — stale, not archived
-├── plan.md                   Pre-Aksi, web-only phase tracker — stale, not archived
-├── poinyuk-overview.txt      Plain-language snapshot of app capabilities
 │
 ├── docs/
 │   ├── product/               Target product docs (vision, principles, navigation,
 │   │                           context, interaction, domain, roadmap, terminology)
-│   ├── engineering/            Target technical docs (only technical-direction.md so far)
+│   ├── engineering/            Target technical docs (architecture, project-structure,
+│   │                           state-management, api-guidelines, coding-standards,
+│   │                           testing, technical-direction)
 │   ├── current/                 This folder — descriptive, generated from implementation
-│   └── decisions/                Decision records (e.g. documentation strategy)
+│   ├── decisions/                Decision records (ADRs, documentation strategy)
+│   └── archive/                   Historical planning docs, moved from repo root —
+│                                  prd.md (partially migrated, see docs/archive/README.md)
+│                                  and three pre-Aksi PoinYuk planning docs (fully
+│                                  superseded, kept for reference only)
 │
 ├── src/
 │   ├── core/                    Sport-agnostic API layer, one subfolder per feature
 │   │   ├── api/                  client.ts (fetch wrapper), types.ts (DTOs)
 │   │   ├── auth/                  AuthContext.tsx, firebaseAuth.ts
 │   │   ├── clubs/                 api.ts
-│   │   ├── sessions/               api.ts
+│   │   ├── sessions/               api.ts, deriveStatus.ts (+ test) — DP-001 client-side
+│   │   │                          Recruiting/Ready/Full derivation, pure function;
+│   │   │                          scheduler.ts (+ test) — DP-005 SchedulingPolicy,
+│   │   │                          firstCheckedInPolicy suggestion-only implementation
 │   │   └── activities/              api.ts
 │   │
 │   ├── navigation/               React Navigation, mobile only
@@ -55,8 +61,12 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │                              FinalScoreScreen, WatchScreen, HistoryScreen,
 │   │                              NativeShareModal, ui/ (design system primitives)
 │   │
+│   ├── sports/types.ts             SportModule/SportRules contract (DP-003) — minParticipants
+│   │                              only; scoringEngine/formatter not yet part of the shared shape
+│   ├── sports/registry.ts          sportId -> SportModule lookup (DP-001 needs it; tennis-only entry)
 │   ├── sports/tennis/             scoringEngine.ts (+ test) — the relocated
-│   │                              src/scoring.ts, unchanged logic
+│   │                              src/scoring.ts, unchanged logic — plus rules.ts
+│   │                              (minParticipants) and index.ts (tennisSportModule)
 │   │
 │   ├── i18n.tsx                   English + Indonesian, manual dictionary + t()
 │   ├── firebase.ts                 Firebase app/auth/db init
@@ -84,7 +94,11 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
     │   ├── models/                     Plain structs, JSON tags mirror API responses
     │   └── httpapi/                    Route registration + handlers, one file per
     │                                  aggregate + router.go + respond.go
-    └── migrations/                     0001_init.up.sql, 0002_drop_personal_club.up.sql
+    └── migrations/                     0001_init.up.sql, 0002_drop_personal_club.up.sql,
+                                        0003_session_max_participants.up.sql,
+                                        0004_participant_lifecycle.up.sql,
+                                        0005_session_default_match_format.up.sql,
+                                        0006_session_lifecycle_draft_cancelled.up.sql
                                         Forward-only — no .down.sql files exist anywhere.
 ```
 
@@ -94,7 +108,11 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
   (see the `Mobile*.tsx` vs. feature-subfolder split above) — this is
   a real artifact of the migration, not a mistake to "fix" without
   discussion.
-- `README.md`, `ROADMAP.md`, and `plan.md` all describe the pre-Aksi,
-  web-only app and reference `src/scoring.ts`, a path that no longer
-  exists (moved to `src/sports/tennis/scoringEngine.ts`). They are not
-  yet archived (see `docs/decisions/Documentation_Update_Project_Decision.md`).
+- `README.md` still describes the pre-Aksi, web-only app in places and
+  references `src/scoring.ts`, a path that no longer exists (moved to
+  `src/sports/tennis/scoringEngine.ts`). Unlike the equivalent legacy
+  planning docs (`docs/archive/poinyuk-legacy-roadmap.md`,
+  `poinyuk-legacy-plan.md`), `README.md` is meant to stay at root
+  (setup only, per `CLAUDE.md`'s Documentation Authority) — its content
+  wasn't in scope when the root was consolidated down to `CLAUDE.md` +
+  `README.md`, so this staleness is still unresolved.

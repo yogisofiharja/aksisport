@@ -46,41 +46,64 @@ of it unless a specific handler's business logic grows past what's
 comfortable to read in the handler + one db function. Most handlers
 today are ~10–20 lines; that's the bar for "still simple enough."
 
-## Sport modules — target contract
+## Sport modules — contract
 
-`prd.md`'s "Technical Direction" (see
-`docs/engineering/technical-direction.md`) describes a `sports/<name>/`
-folder per sport. Today only `sports/tennis/scoringEngine.ts` exists —
-no shared contract file. Before Padel is implemented (`docs/product/roadmap.md`
-Phase 5), introduce `src/sports/types.ts`:
+`src/sports/types.ts` exists (`SportModule`/`SportRules`), introduced for
+`docs/AKSI_PRODUCT_DECISIONS.md`'s DP-003 (minimum participants owned by
+the Sport Engine, not hardcoded in a screen). Deliberately smaller than
+originally sketched here — only `rules.minParticipants(mode): number`
+today. `scoringEngine`/`formatter` are **not** part of the shared contract
+yet; `src/sports/tennis/scoringEngine.ts` stays a standalone module with
+its own concrete types, consumed directly by the screens that need it
+(`AddMatchScreen`, `ActivityMatchScreen`). Add fields to the shared
+contract only when a second sport actually needs the same shape — per
+`docs/AKSI_PRODUCT_DECISIONS.md`'s explicit note that Basketball/Running
+in DP-003's examples are architectural illustrations, not a near-term
+implementation target; Tennis remains the only implemented sport.
 
 ```ts
-interface SportModule<Config, Result> {
-  id: string;                                    // 'tennis' | 'padel'
-  scoringEngine: {
-    createInitialState(config: Config): unknown;
-    // addPoint/endMatchNow etc. — sport-specific signatures, no shared
-    // interface forced beyond createInitialState, since scoring rules
-    // genuinely differ per sport
-  };
-  rules: {
-    validateParticipants(config: Config): boolean;  // e.g. 2 or 4 players
-  };
-  formatter: {
-    pointLabel(state: unknown, team: 'A' | 'B'): string;
-    resultSummary(state: unknown): string;           // history lists, share text, voice
-  };
+// src/sports/types.ts — current, not aspirational
+export interface SportRules {
+  minParticipants(mode: string): number;
+}
+
+export interface SportModule {
+  id: string;
+  rules: SportRules;
 }
 ```
 
-Core code (session/activity screens, future history views, live sync)
-should depend only on this contract plus the opaque `config`/`result`
-JSON columns already in Postgres (`activities.config`,
-`activities.result`) — never on `sports/tennis`'s concrete types
-directly. This is already true in practice for the server (the columns
-are `JSONB`, never parsed server-side); the client-side contract just
-hasn't been written down yet because there's only been one sport to
-implement against.
+`src/sports/tennis/rules.ts` implements it (`minParticipants('single') →
+2`, `minParticipants('double') → 4`), and `src/sports/tennis/index.ts`
+exports `tennisSportModule: SportModule`. `AddMatchScreen` now calls
+`minParticipants(mode)` directly from `rules.ts` rather than the
+`SportModule` wrapper — the app only ever runs Tennis today, so there's no
+dynamic sport dispatch yet to justify going through the abstraction at the
+call site.
+
+Core code depending only on this contract plus the opaque `config`/`result`
+JSON columns (never `sports/tennis`'s concrete types directly) is still the
+target for everything beyond `rules.minParticipants` — unchanged from
+before, just no longer entirely aspirational.
+
+`src/sports/registry.ts` adds a small `sportId -> SportModule` lookup, so
+session-level code (see below) doesn't import a specific sport by name.
+Tennis is still the only registered entry.
+
+## Derived state stays client-side, by design
+
+`DP-001` (Session Lifecycle) needed exactly this contract to resolve a
+real fork: Recruiting/Ready/Full depend on "minimum participants," which
+is Sport-Engine-owned per `DP-003` — client-side only, deliberately not
+replicated in Go. Rather than duplicating that rule server-side (which
+would mean two sources of truth for the same number), the derivation
+itself lives client-side: `src/core/sessions/deriveStatus.ts` computes
+Recruiting/Ready/Full from data the client already has (the session, its
+participants, and `getSportModule(session.sport).rules.minParticipants`).
+The server only ever stores and returns `draft`/`open`/`in_progress`/
+`completed`/`cancelled` — `open` is the one value with a derived
+sub-state, resolved client-side, never stored as `recruiting`/`ready`/
+`full` in Postgres.
 
 ## What this deliberately does not introduce
 

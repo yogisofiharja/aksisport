@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Icon } from '../../design-system/ui/Icon';
 import { ActivityIndicator, ScrollView, Switch, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ButtonText } from '../../../components/ui/button';
@@ -7,10 +7,12 @@ import { Box, Divider, HStack, VStack } from '../../../components/ui/box';
 import { Heading, Text } from '../../../components/ui/text';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
-import { createActivity } from '../../core/activities/api';
-import { listParticipants } from '../../core/sessions/api';
-import type { SessionParticipant } from '../../core/api/types';
+import { createActivity, listActivities } from '../../core/activities/api';
+import { getSession, listParticipants } from '../../core/sessions/api';
+import type { ActivityDetail, SessionParticipant } from '../../core/api/types';
 import type { MatchConfig, MatchFormat, MatchMode, Player, Team } from '../../sports/tennis/scoringEngine';
+import { minParticipants } from '../../sports/tennis/rules';
+import { firstCheckedInPolicy } from '../../core/sessions/scheduler';
 
 type Props = {
   sessionId: string;
@@ -39,24 +41,58 @@ function buildServiceOrder(players: Player[], firstServerId: string): string[] {
 export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
   const { t } = useTranslation();
   const [participants, setParticipants] = useState<SessionParticipant[]>([]);
+  const [activities, setActivities] = useState<ActivityDetail[]>([]);
+  const [sport, setSport] = useState('tennis');
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<MatchMode>('single');
   const [assignedOrder, setAssignedOrder] = useState<string[]>([]);
   const [firstServerId, setFirstServerId] = useState<string | null>(null);
+  const [suggestionReason, setSuggestionReason] = useState<string | null>(null);
   const [matchFormat, setMatchFormat] = useState<MatchFormat>({ type: 'open' });
   const [singleDeuceSuddenDeath, setSingleDeuceSuddenDeath] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // DP-005: suggest, never auto-create — this only pre-fills the same
+  // participant-picker the organizer already reviews and can override.
+  function applySuggestion(nextMode: MatchMode, parts: SessionParticipant[], acts: ActivityDetail[], sportId: string) {
+    const suggestion = firstCheckedInPolicy.suggestNextMatch({
+      checkedIn: parts.filter((p) => p.status === 'checked_in'),
+      busyActivities: acts.filter((a) => a.status === 'queued' || a.status === 'live'),
+      sport: sportId,
+      mode: nextMode,
+    });
+    if (suggestion) {
+      setAssignedOrder(suggestion.participantIds);
+      setFirstServerId(suggestion.participantIds[0] ?? null);
+      setSuggestionReason(suggestion.reason);
+    } else {
+      setSuggestionReason(null);
+    }
+  }
+
   useEffect(() => {
-    listParticipants(sessionId)
-      .then(setParticipants)
+    Promise.all([listParticipants(sessionId), getSession(sessionId), listActivities(sessionId)])
+      .then(([parts, session, acts]) => {
+        setParticipants(parts);
+        setActivities(acts);
+        setSport(session.sport);
+        // DP-004: seed the format picker from the session's default, if
+        // one is set. Opaque on the wire — cast, not validated, matching
+        // how Activity.config is already treated everywhere else.
+        if (session.defaultMatchFormat) {
+          setMatchFormat(session.defaultMatchFormat as MatchFormat);
+        }
+        applySuggestion(mode, parts, acts, session.sport);
+      })
       .finally(() => setLoading(false));
   }, [sessionId]);
 
   const checkedIn = participants.filter((p) => p.status === 'checked_in');
   const perTeam = mode === 'double' ? 2 : 1;
-  const maxAssigned = perTeam * 2;
+  // DP-003: required participant count is owned by the Sport Engine, not
+  // hardcoded here. For tennis, min IS the exact count needed to start.
+  const maxAssigned = minParticipants(mode);
   const isFull = assignedOrder.length === maxAssigned;
   const canCreate = isFull && Boolean(firstServerId) && !submitting;
 
@@ -71,9 +107,11 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
     setMode(next);
     setAssignedOrder([]);
     setFirstServerId(null);
+    applySuggestion(next, participants, activities, sport);
   }
 
   function handleTap(id: string) {
+    setSuggestionReason(null);
     if (assignedOrder.includes(id)) {
       setAssignedOrder((prev) => prev.filter((p) => p !== id));
       if (firstServerId === id) setFirstServerId(null);
@@ -128,7 +166,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
       <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5">
         <HStack className="justify-between items-center">
           <Pressable className="p-2 -ml-2 active:opacity-60" onPress={onBack}>
-            <Ionicons name="arrow-back" size={24} />
+            <Icon name="arrow-back" size="lg" />
           </Pressable>
           <Heading size="xl">{t('activityAddTitle')}</Heading>
           <Box className="w-10" />
@@ -165,6 +203,11 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
             </Text>
             <Text className="text-sm font-bold text-slate-400">{assignedOrder.length} / {maxAssigned}</Text>
           </HStack>
+          {suggestionReason && (
+            <Text className="px-5 pb-2 text-sm text-teal-600 dark:text-teal-400">
+              {t('schedulerSuggested')}: {t(suggestionReason)}
+            </Text>
+          )}
           <Divider />
           {checkedIn.length === 0 ? (
             <Text className="px-5 py-4 text-slate-500 dark:text-slate-400">{t('activityNoCheckedIn')}</Text>
