@@ -56,8 +56,8 @@ What a user must be able to do, end to end, on a real device:
   created with their participants already chosen).
 - Start a match they're a checked-in participant of.
 - Score the match (singles or doubles, any supported format).
-- Watch a live match in progress as a checked-in participant who
-  isn't the scorer (read-only — see Live Match Viewer below).
+- View the live score while another player is scoring (read-only —
+  see Live Match Viewer below).
 - Finish the match (automatically, by format rule, or manually).
 - See the result immediately after the match ends.
 
@@ -71,6 +71,13 @@ own later phase — see Out of Scope).
 ---
 
 ## In Scope
+
+**Terminology**: this document uses *Match* as the product-facing
+term throughout. *Activity* is the underlying technical entity name
+(API, database, code — `ActivityMatchScreen`, `activities` table,
+`live`/`queued`/`completed` status) for the same concept. They refer
+to the same thing; product language says Match, implementation
+references say Activity.
 
 ### Authentication
 
@@ -91,15 +98,13 @@ Members view/list sessions in their club. Members self-register and
 self check-in. Owner/admin can add a walk-in guest (no account)
 directly as checked-in.
 
-### Activities
-
-Owner/admin creates a match ("Activity") by picking participants from
-the checked-in list and a tennis format/deuce configuration — it
-starts `queued`. Any checked-in participant of that specific match can
-start it, which makes them the scorer. Only the current scorer can
-mark it complete.
-
 ### Matches
+
+Owner/admin creates a match by picking participants from the
+checked-in list and a tennis format/deuce configuration — it starts
+queued. Any checked-in participant of that specific match can start
+it, which makes them the scorer. Only the current scorer can mark it
+complete.
 
 Full tennis rules: singles and doubles, all four match formats (open,
 fixed-games, race-to, best-of-sets with optional super-tiebreak), both
@@ -118,11 +123,12 @@ progress.
 
 **Live Match Viewer (required for Milestone 1)**: a checked-in
 participant who is not the assigned scorer must be able to open the
-session, open the in-progress activity, and watch the score update in
+session, open the in-progress match, and watch the score update in
 real time. Read-only — only the assigned scorer may modify the score.
 This does not exist yet (`docs/current/navigation.md`,
-`SessionDetailScreen` currently has no action for a `live` activity)
-and is treated as a missing MVP feature, not a future enhancement.
+`SessionDetailScreen` currently has no action for a `live`-status
+Activity) and is treated as a missing MVP feature, not a future
+enhancement.
 
 Security hardening of who is *allowed* to write to a live match
 (RTDB rules) is explicitly **not** part of this — see Technical
@@ -131,9 +137,12 @@ Requirements and `docs/current/firebase-security.md`/`ADR-001`.
 ### Player Profile
 
 Username and display name, established at sign-up, used to identify
-people throughout the app (participant lists, "(You)" labeling). No
-dedicated profile screen — this is data, not a UI surface, in
-Milestone 1.
+people throughout the app (participant lists, "(You)" labeling).
+Profile editing (display name, avatar, etc.) is not required for
+Milestone 1 — the API to support it already exists (`PATCH /v1/me`),
+but no screen needs to expose it yet. This leaves room for a dedicated
+profile view to land later as part of the target Me tab
+(`docs/product/navigation.md`), without requiring rework now.
 
 ### Settings
 
@@ -185,6 +194,22 @@ it already exists as a component elsewhere (e.g. the legacy
 
 ---
 
+## Non-Goals
+
+Milestone 1 is not intended to:
+
+- Replace tournament software.
+- Support very large clubs.
+- Support every tennis workflow.
+- Compete with professional scoring platforms.
+
+The goal is to validate the core experience — organizing a session and
+scoring a match together on personal devices — for small recreational
+tennis clubs. Everything in this document is scoped to prove that,
+not to build a complete or general-purpose sports platform.
+
+---
+
 ## Technical Requirements
 
 - Mobile-first: Expo dev client, **both iOS and Android required.**
@@ -210,16 +235,16 @@ it already exists as a component elsewhere (e.g. the legacy
 
 ## Release Checklist
 
-- [ ] Build the Live Match Viewer: from a session, open a `live`
-      activity as a checked-in non-scorer participant and watch score
-      updates in real time, read-only. (`SessionDetailScreen`
-      currently has no action at all for a `live` activity.)
+- [ ] Build the Live Match Viewer: from a session, open a live match
+      as a checked-in non-scorer participant and watch score updates
+      in real time, read-only. (`SessionDetailScreen` currently has no
+      action at all for a `live`-status Activity.)
 - [ ] Add a warning before leaving an in-progress scoring screen,
       informing the scorer that progress may be interrupted without a
       network connection. (Offline/resume recovery itself is out of
       scope — Milestone 2.)
 - [ ] Build a Settings screen with exactly Theme, Language, Logout,
-      reachable from the club/session/activity navigation.
+      reachable from the club/session/match navigation.
 - [ ] Android build verified on a physical device or emulator —
       required, not optional, for Milestone 1.
 - [ ] Backend deployed somewhere reachable outside a private dev VM.
@@ -239,11 +264,20 @@ Decisions): Firebase RTDB security rules, offline/resume recovery.
 
 ## Definition of Done
 
-Milestone 1 is done when every item in Success Criteria works
-end-to-end on a real device without developer intervention (no manual
-database edits, no directly-invoked API calls), the Release Checklist
-is fully checked, and the Out of Scope list has been explicitly
-confirmed rather than assumed.
+Milestone 1 is complete when all of the following are true:
+
+- All Success Criteria items work end-to-end on a real device, without
+  developer intervention (no manual database edits, no
+  directly-invoked API calls).
+- All Release Checklist items are complete.
+- The iOS and Android builds are usable by a non-developer — install
+  and use the app without engineering assistance, not just runnable
+  via `expo run` from a connected laptop.
+- No known critical or high-severity bugs.
+- Documentation (`docs/product`, `docs/current`, `docs/engineering`)
+  matches the shipped implementation.
+- The Out of Scope list has been explicitly confirmed by product
+  review, not just assumed.
 
 ---
 
@@ -259,9 +293,9 @@ resolutions are already reflected in the sections above.
    Milestone 2, after the scoring-device authentication design
    (`ADR-001`) is implemented.
 2. **Mobile spectator view** — required for Milestone 1. A checked-in
-   participant must be able to open an activity, open a live match,
-   and watch the score update in real time. Only the assigned scorer
-   may modify it.
+   participant must be able to open a session, open a live match, and
+   watch the score update in real time. Only the assigned scorer may
+   modify it.
 3. **Android** — required. Milestone 1 targets both iOS and Android;
    iOS-only is not sufficient.
 4. **Settings** — scoped to exactly Theme, Language, Logout. Nothing else.
