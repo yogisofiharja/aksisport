@@ -79,10 +79,16 @@ Moved to Optional — see below.
 - PlayerCard
 - MatchCard
 - SessionCard
-- ActivityCard
-- LeaderboardCard
 
 Status: Planned
+
+Scope note: `ActivityCard` was originally listed alongside `MatchCard` as a
+separate item, but in this app's domain model they're the same real thing
+under two names — SessionDetailScreen's activity queue row *is* the match
+card (`ActivityDetail.config` is literally a `MatchConfig`). Built once, as
+`MatchCard`, per MULTI_SPORT_ARCHITECTURE.md's preference for the
+sport-neutral term. `LeaderboardCard` deferred — zero current consumer, no
+leaderboard/ranking screen exists anywhere in the app. Moved to Optional.
 
 ---
 
@@ -126,6 +132,8 @@ build ahead of need — implement only once a real screen requires one.
 - **Bottom Sheet** — not used anywhere in the app.
 - **Toast** — errors are shown as inline text under forms today, not a
   toast/snackbar.
+- **LeaderboardCard** — no leaderboard/ranking screen exists anywhere in
+  the app.
 
 ---
 
