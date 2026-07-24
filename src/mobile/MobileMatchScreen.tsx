@@ -19,6 +19,10 @@ type Props = {
   hasUndo: boolean;
   voiceEnabled: boolean;
   watchUrl?: string | null;
+  /** Viewer mode: no scoring, undo, or end-match controls. */
+  readOnly?: boolean;
+  /** Shown in the LIVE badge when readOnly. */
+  scorerName?: string | null;
   onAddPoint: (team: Team) => void;
   onUndo: () => void;
   onEndMatch: () => void;
@@ -83,6 +87,8 @@ export function MobileMatchScreen({
   hasUndo,
   voiceEnabled,
   watchUrl,
+  readOnly = false,
+  scorerName,
   onAddPoint,
   onUndo,
   onEndMatch,
@@ -180,7 +186,7 @@ export function MobileMatchScreen({
       <View style={{ flex: 1, flexDirection: 'row' }}>
 
         {/* Left (blue) side */}
-        <TouchableOpacity activeOpacity={0.85} onPress={() => onAddPoint(leftTeam)} style={{ flex: 1 }}>
+        <TouchableOpacity activeOpacity={readOnly ? 1 : 0.85} disabled={readOnly} onPress={() => onAddPoint(leftTeam)} style={{ flex: 1 }}>
           <View style={{ flex: 1, backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontSize: scoreFontSize, fontWeight: '800', color: '#ffffff', letterSpacing: -2, includeFontPadding: false }}>
               {leftPoint}
@@ -189,7 +195,7 @@ export function MobileMatchScreen({
         </TouchableOpacity>
 
         {/* Right (red) side */}
-        <TouchableOpacity activeOpacity={0.85} onPress={() => onAddPoint(rightTeam)} style={{ flex: 1 }}>
+        <TouchableOpacity activeOpacity={readOnly ? 1 : 0.85} disabled={readOnly} onPress={() => onAddPoint(rightTeam)} style={{ flex: 1 }}>
           <View style={{ flex: 1, backgroundColor: '#7f1d1d', alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontSize: scoreFontSize, fontWeight: '800', color: '#ffffff', letterSpacing: -2, includeFontPadding: false }}>
               {rightPoint}
@@ -246,7 +252,7 @@ export function MobileMatchScreen({
         </View>
 
         {/* ── Suara button: right of score box ── */}
-        {scoreBoxHalfW > 0 && (
+        {!readOnly && scoreBoxHalfW > 0 && (
           <View
             pointerEvents="box-none"
             style={{ position: 'absolute', top: 6, left: '50%', marginLeft: scoreBoxHalfW + 10 }}
@@ -292,18 +298,20 @@ export function MobileMatchScreen({
 
 
   {/* ── Undo button ── */}
-        <View
-          pointerEvents="box-none"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Pressable
-            onPress={onUndo}
-            disabled={!hasUndo}
-            style={{ padding: 14, backgroundColor: '#ea580c', borderRadius: 18 }}
+        {!readOnly && (
+          <View
+            pointerEvents="box-none"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="arrow-undo-outline" size={24} color={hasUndo ? '#ffffff' : '#9a3412'} />
-          </Pressable>
-        </View>
+            <Pressable
+              onPress={onUndo}
+              disabled={!hasUndo}
+              style={{ padding: 14, backgroundColor: '#ea580c', borderRadius: 18 }}
+            >
+              <Ionicons name="arrow-undo-outline" size={24} color={hasUndo ? '#ffffff' : '#9a3412'} />
+            </Pressable>
+          </View>
+        )}
 
         {/* ── Tennis ball: deuce / advantage corner ── */}
         {leftIsServing && (
@@ -317,41 +325,71 @@ export function MobileMatchScreen({
           </View>
         )}
 
-        {/* ── Akhiri: long-press to end match ── */}
-        <View
-          pointerEvents="box-none"
-          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' }}
-        >
-          <TouchableOpacity
-            onPressIn={handleAkhiriPressIn}
-            onPressOut={handleAkhiriPressOut}
-            activeOpacity={1}
-            style={{
-              backgroundColor: '#1e293b',
-              paddingHorizontal: 22,
-              paddingTop: 10,
-              paddingBottom: 8,
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              alignItems: 'center',
-              overflow: 'hidden',
-            }}
+        {/* ── Akhiri: long-press to end match (scorer only) ── */}
+        {!readOnly ? (
+          <View
+            pointerEvents="box-none"
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' }}
           >
-            {/* Fill progress animation */}
-            <Animated.View
+            <TouchableOpacity
+              onPressIn={handleAkhiriPressIn}
+              onPressOut={handleAkhiriPressOut}
+              activeOpacity={1}
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: '#991b1b',
-                opacity: pressAnim,
+                backgroundColor: '#1e293b',
+                paddingHorizontal: 22,
+                paddingTop: 10,
+                paddingBottom: 8,
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                alignItems: 'center',
+                overflow: 'hidden',
               }}
-            />
-            <Ionicons name="stop-circle-outline" size={30} color="#fca5a5" />
-          </TouchableOpacity>
-        </View>
+            >
+              {/* Fill progress animation */}
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: '#991b1b',
+                  opacity: pressAnim,
+                }}
+              />
+              <Ionicons name="stop-circle-outline" size={30} color="#fca5a5" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          /* ── LIVE badge: viewer mode, shows who's scoring ── */
+          <View
+            pointerEvents="none"
+            style={{ position: 'absolute', bottom: 14, left: 0, right: 0, alignItems: 'center' }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: '#1e293b',
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 999,
+              }}
+            >
+              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#ef4444' }} />
+              <Text style={{ color: '#f87171', fontSize: 12, fontWeight: '900', letterSpacing: 1.5 }}>
+                {t('liveMatchBadge')}
+              </Text>
+              {scorerName && (
+                <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '600' }}>
+                  · {t('scoredBy', scorerName)}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* ── Player names ── */}
         <View

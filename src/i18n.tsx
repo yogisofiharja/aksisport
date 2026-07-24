@@ -229,9 +229,14 @@ const en: Dict = {
   activityStatusLive: 'Live',
   activityStatusCompleted: 'Completed',
   activityStart: 'Start',
+  activityWatch: 'Watch',
+  activityResume: 'Resume',
   activityLoading: 'Starting match…',
   activityLoadError: 'Could not load this match. Please go back and try again.',
+  activityLiveUnavailable: "Live viewing isn't available right now.",
   activityNoCheckedIn: 'No one is checked in yet — check in first.',
+  liveMatchBadge: 'LIVE',
+  scoredBy: (name: string) => `Scored by ${name}`,
 };
 
 const id: Dict = {
@@ -458,9 +463,14 @@ const id: Dict = {
   activityStatusLive: 'Berlangsung',
   activityStatusCompleted: 'Selesai',
   activityStart: 'Mulai',
+  activityWatch: 'Tonton',
+  activityResume: 'Lanjutkan',
   activityLoading: 'Memulai pertandingan…',
   activityLoadError: 'Tidak dapat memuat pertandingan ini. Silakan kembali dan coba lagi.',
+  activityLiveUnavailable: 'Menonton langsung tidak tersedia saat ini.',
   activityNoCheckedIn: 'Belum ada yang check-in — check in dulu.',
+  liveMatchBadge: 'LANGSUNG',
+  scoredBy: (name: string) => `Dinilai oleh ${name}`,
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

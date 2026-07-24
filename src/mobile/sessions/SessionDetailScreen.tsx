@@ -163,18 +163,37 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                 a.status === 'queued' &&
                 myParticipant?.status === 'checked_in' &&
                 a.participants.some((p) => p.userId === profile?.id);
+              // Any checked-in participant of the session (not just this
+              // match's own players) can watch — matches domain.md's Member
+              // permission to "watch live score."
+              const canWatch = a.status === 'live' && myParticipant?.status === 'checked_in';
+              const isLiveScorer = a.status === 'live' && a.scorerUserId === profile?.id;
               return (
                 <Box key={a.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4">
                   <HStack className="justify-between items-center gap-3">
                     <VStack className="flex-1 gap-1">
                       <Text className="font-bold text-slate-900 dark:text-white">{activityParticipantNames(a)}</Text>
-                      <Text className="text-xs text-slate-400">
-                        {a.status === 'queued' ? t('activityStatusQueued') : a.status === 'live' ? t('activityStatusLive') : t('activityStatusCompleted')}
-                      </Text>
+                      {a.status === 'live' ? (
+                        <HStack className="items-center gap-1.5">
+                          <Box className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                          <Text className="text-xs font-extrabold text-red-500 tracking-wide">
+                            {t('activityStatusLive').toUpperCase()}
+                          </Text>
+                        </HStack>
+                      ) : (
+                        <Text className="text-xs text-slate-400">
+                          {a.status === 'queued' ? t('activityStatusQueued') : t('activityStatusCompleted')}
+                        </Text>
+                      )}
                     </VStack>
                     {canStart && (
                       <Button size="sm" className="rounded-xl bg-amber-600" onPress={() => onOpenMatch(a.id)}>
                         <ButtonText className="text-white">{t('activityStart')}</ButtonText>
+                      </Button>
+                    )}
+                    {canWatch && (
+                      <Button size="sm" className="rounded-xl bg-red-600" onPress={() => onOpenMatch(a.id)}>
+                        <ButtonText className="text-white">{isLiveScorer ? t('activityResume') : t('activityWatch')}</ButtonText>
                       </Button>
                     )}
                   </HStack>

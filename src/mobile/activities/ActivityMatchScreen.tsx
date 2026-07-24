@@ -13,15 +13,16 @@ import {
   Team,
 } from '../../sports/tennis/scoringEngine';
 import type { TeamNames } from '../../appTypes';
+import type { ActivityParticipant } from '../../core/api/types';
 import { getActivity, startActivity, completeActivity } from '../../core/activities/api';
 import { ApiRequestError } from '../../core/api/client';
 import { useAuth } from '../../core/auth/AuthContext';
 import { prefetchAudio, initAudio, playApplause } from '../../audio';
 import { cancelSpeech, loadTTSPreferences, speakText, speakTextWithCallback } from '../../tts';
 import {
-  deleteSession,
-  generateSessionCode,
-  pushSessionState,
+  deleteLiveMatch,
+  pushLiveMatchState,
+  subscribeToLiveMatch,
   SessionPayload,
 } from '../../sessionSync';
 import { isFirebaseReady } from '../../firebase';
@@ -40,24 +41,27 @@ function cloneState(state: MatchState): MatchState {
   return JSON.parse(JSON.stringify(state)) as MatchState;
 }
 
-function getWatchUrl(code: string): string {
-  return `https://poin-yuk.vercel.app/watch/${code}`;
+function resolveScorerName(participants: ActivityParticipant[], scorerUserId: string | null): string | null {
+  if (!scorerUserId) return null;
+  const p = participants.find((p) => p.userId === scorerUserId);
+  return p?.displayName || p?.username || null;
 }
 
 export function ActivityMatchScreen({ activityId, onDone }: Props) {
   const { t } = useTranslation();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, profile } = useAuth();
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [history, setHistory] = useState<MatchState[]>([]);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [sessionCode, setSessionCode] = useState<string | null>(null);
+  const [isScorer, setIsScorer] = useState(false);
+  const [scorerName, setScorerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nativeShareData, setNativeShareData] = useState<NativeShareData | null>(null);
 
-  const sessionCodeRef = useRef<string | null>(null);
   const startedRef = useRef(false);
   const completedRef = useRef(false);
+  const unsubscribeLiveRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     prefetchAudio();
@@ -71,21 +75,53 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
       try {
         const detail = await getActivity(activityId);
         const config = detail.config as MatchConfig;
-        setMatchState(createInitialState(config));
 
+        // Already finished before this device ever opened it — render the
+        // stored result directly. Never rely on RTDB for a completed match;
+        // the live node may already be gone (see cleanup notes below).
+        if (detail.status === 'completed') {
+          completedRef.current = true;
+          const scorerUserId = detail.scorerUserId ?? null;
+          setIsScorer(scorerUserId != null && scorerUserId === profile?.id);
+          setScorerName(resolveScorerName(detail.participants, scorerUserId));
+          setMatchState((detail.result as MatchState) ?? createInitialState(config));
+          setHistory((detail.pointLog as MatchState[] | undefined) ?? []);
+          setLoading(false);
+          return;
+        }
+
+        let scorerUserId = detail.scorerUserId ?? null;
         if (detail.status === 'queued') {
           try {
-            await startActivity(activityId);
+            const started = await startActivity(activityId);
+            scorerUserId = started.scorerUserId ?? null;
           } catch (err) {
-            // 409 = someone else's device already started it — fine, just join.
-            if (!(err instanceof ApiRequestError && err.status === 409)) throw err;
+            // 409 = someone else's device already started it — fine, just join
+            // as whichever role we actually end up being once we re-check.
+            if (err instanceof ApiRequestError && err.status === 409) {
+              const refreshed = await getActivity(activityId);
+              scorerUserId = refreshed.scorerUserId ?? null;
+            } else {
+              throw err;
+            }
           }
         }
 
-        if (isFirebaseReady) {
-          const code = generateSessionCode();
-          sessionCodeRef.current = code;
-          setSessionCode(code);
+        const iAmScorer = scorerUserId != null && scorerUserId === profile?.id;
+        setIsScorer(iAmScorer);
+        setScorerName(resolveScorerName(detail.participants, scorerUserId));
+        setMatchState(createInitialState(config));
+
+        if (!iAmScorer) {
+          if (!isFirebaseReady) {
+            setError(t('activityLiveUnavailable'));
+          } else {
+            unsubscribeLiveRef.current = subscribeToLiveMatch(activityId, (payload) => {
+              if (!payload) return; // no live data yet/anymore — keep last-known local state
+              if (payload.matchState) setMatchState(payload.matchState);
+              if (payload.history) setHistory(payload.history);
+            });
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : t('activityLoadError'));
@@ -95,14 +131,18 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
     })();
 
     return () => {
-      if (sessionCodeRef.current) deleteSession(sessionCodeRef.current);
+      unsubscribeLiveRef.current?.();
+      unsubscribeLiveRef.current = null;
+      // Deliberately does NOT delete the live match node here. A scorer
+      // backing out of this screen (accidentally, or to reopen later) must
+      // not wipe the last known score out from under any spectators — see
+      // handleLeaveLiveSession for the only explicit deletion path.
     };
   }, [activityId]);
 
-  // Push live state to Firebase for spectators/QR viewers on every change.
+  // Push live state to Firebase — scorer only.
   useEffect(() => {
-    const code = sessionCodeRef.current;
-    if (!code || !matchState) return;
+    if (!isScorer || !matchState) return;
     const payload: SessionPayload = {
       matchState,
       history,
@@ -111,8 +151,8 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
       activityId,
       scorerUid: firebaseUser?.uid,
     };
-    pushSessionState(code, payload);
-  }, [matchState, history]);
+    pushLiveMatchState(activityId, payload);
+  }, [isScorer, matchState, history]);
 
   const teamNames: TeamNames = useMemo(() => {
     if (!matchState) return { A: '', B: '' };
@@ -208,7 +248,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
   }
 
   function handleAddPoint(team: Team) {
-    if (!matchState || matchState.isEnded) return;
+    if (!isScorer || !matchState || matchState.isEnded) return;
     initAudio();
     const next = addPoint(matchState, team);
     const prev = matchState;
@@ -223,7 +263,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
   }
 
   function handleUndo() {
-    if (!history.length || !matchState) return;
+    if (!isScorer || !history.length || !matchState) return;
     cancelSpeech();
     const previous = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
@@ -231,7 +271,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
   }
 
   function handleEndMatch() {
-    if (!matchState || matchState.isEnded) return;
+    if (!isScorer || !matchState || matchState.isEnded) return;
     const ended = endMatchNow(matchState);
     const nextHistory = [...history, cloneState(matchState)];
     setHistory(nextHistory);
@@ -262,11 +302,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
   }
 
   function handleLeaveLiveSession() {
-    if (sessionCodeRef.current) {
-      deleteSession(sessionCodeRef.current);
-      sessionCodeRef.current = null;
-      setSessionCode(null);
-    }
+    deleteLiveMatch(activityId);
     onDone();
   }
 
@@ -294,10 +330,10 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
         <MobileFinalScreen
           matchState={matchState}
           teamNames={teamNames}
-          sessionCode={sessionCode}
+          sessionCode={null}
           onShare={handleShare}
           onBackToSetup={onDone}
-          onClearSavedState={handleLeaveLiveSession}
+          onClearSavedState={isScorer ? handleLeaveLiveSession : onDone}
           onShowHistory={onDone}
         />
         <NativeShareModal data={nativeShareData} onClose={() => setNativeShareData(null)} />
@@ -319,7 +355,8 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
           matchState.games.A + matchState.games.B > 0
         )}
         voiceEnabled={voiceEnabled}
-        watchUrl={sessionCode ? getWatchUrl(sessionCode) : null}
+        readOnly={!isScorer}
+        scorerName={scorerName}
         onAddPoint={handleAddPoint}
         onUndo={handleUndo}
         onEndMatch={handleEndMatch}
