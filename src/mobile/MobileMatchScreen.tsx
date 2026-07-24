@@ -97,10 +97,12 @@ export function MobileMatchScreen({
   const [showQrModal, setShowQrModal] = useState(false);
   const [showPointLog, setShowPointLog] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [showHoldHint, setShowHoldHint] = useState(false);
   const [scoreBoxHalfW, setScoreBoxHalfW] = useState(0);
 
   const pressAnim = useRef(new Animated.Value(0)).current;
   const holdAnim = useRef<Animated.CompositeAnimation | null>(null);
+  const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { height: wh, width: ww } = useWindowDimensions();
   const { t } = useTranslation();
@@ -111,6 +113,7 @@ export function MobileMatchScreen({
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       holdAnim.current?.stop();
+      if (hintTimeout.current) clearTimeout(hintTimeout.current);
     };
   }, []);
 
@@ -173,6 +176,18 @@ export function MobileMatchScreen({
     holdAnim.current.stop();
     holdAnim.current = null;
     Animated.timing(pressAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+  }
+
+  // Fires on every completed tap regardless of hold duration. If the hold
+  // already succeeded, showEndConfirm is true by the time this runs (it's
+  // set synchronously inside the animation callback, before release) — skip
+  // the hint in that case so we don't show it right next to the dialog.
+  function handleAkhiriTap() {
+    if (showEndConfirm) return;
+    Haptics.selectionAsync().catch(() => {});
+    setShowHoldHint(true);
+    if (hintTimeout.current) clearTimeout(hintTimeout.current);
+    hintTimeout.current = setTimeout(() => setShowHoldHint(false), 1800);
   }
 
   // ── Point log ────────────────────────────────────────────────────────────
@@ -331,9 +346,29 @@ export function MobileMatchScreen({
             pointerEvents="box-none"
             style={{ position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' }}
           >
+            {showHoldHint && (
+              // Fixed bottom offset, not bottom: '100%' — this container's
+              // height is content-driven (just the button, ~48px), and
+              // percentage positioning against a content-sized parent is
+              // unreliable in Yoga. 56px clears the button with a small gap.
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  bottom: 56,
+                  backgroundColor: '#1e293b',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                }}
+              >
+                <Text style={{ color: '#e2e8f0', fontSize: 12, fontWeight: '700' }}>{t('holdToEndHint')}</Text>
+              </View>
+            )}
             <TouchableOpacity
               onPressIn={handleAkhiriPressIn}
               onPressOut={handleAkhiriPressOut}
+              onPress={handleAkhiriTap}
               activeOpacity={1}
               style={{
                 backgroundColor: '#1e293b',
@@ -363,9 +398,13 @@ export function MobileMatchScreen({
           </View>
         ) : (
           /* ── LIVE badge: viewer mode, shows who's scoring ── */
+          /* bottom: 46, not 14 — must clear the player-names row below
+             (bottom: 10, ~18px text), which this badge previously overlapped
+             since its "Scored by <name>" text can be wider than Akhiri's
+             compact icon button ever was. */
           <View
             pointerEvents="none"
-            style={{ position: 'absolute', bottom: 14, left: 0, right: 0, alignItems: 'center' }}
+            style={{ position: 'absolute', bottom: 46, left: 0, right: 0, alignItems: 'center' }}
           >
             <View
               style={{
