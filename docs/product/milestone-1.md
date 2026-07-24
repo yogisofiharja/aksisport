@@ -235,10 +235,9 @@ not to build a complete or general-purpose sports platform.
 
 ## Release Checklist
 
-- [ ] Build the Live Match Viewer: from a session, open a live match
+- [x] Build the Live Match Viewer: from a session, open a live match
       as a checked-in non-scorer participant and watch score updates
-      in real time, read-only. (`SessionDetailScreen` currently has no
-      action at all for a `live`-status Activity.)
+      in real time, read-only.
 - [ ] Add a warning before leaving an in-progress scoring screen,
       informing the scorer that progress may be interrupted without a
       network connection. (Offline/resume recovery itself is out of
