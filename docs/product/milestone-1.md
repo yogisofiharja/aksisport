@@ -5,9 +5,10 @@ implementation contract — features not listed here are not part of
 Milestone 1, regardless of how much of them already exists in code.
 
 Built from `docs/product/{vision,principles,domain,roadmap}.md`,
-`docs/current/*`, and `docs/engineering/*`. Nothing here is invented;
-where the source documents left something ambiguous, it's marked as an
-Open Question below rather than decided unilaterally.
+`docs/current/*`, and `docs/engineering/*`. Nothing here is invented.
+Ambiguities found while writing the first revision were surfaced
+rather than decided unilaterally, then resolved by product review —
+see "Resolved Decisions" at the end.
 
 ---
 
@@ -52,9 +53,11 @@ What a user must be able to do, end to end, on a real device:
 - Check in to a session.
 - Be added as a participant to a match by the session's
   owner/admin (there is no self-service "join a match" — matches are
-  created with their participants already chosen; see Open Questions).
+  created with their participants already chosen).
 - Start a match they're a checked-in participant of.
 - Score the match (singles or doubles, any supported format).
+- Watch a live match in progress as a checked-in participant who
+  isn't the scorer (read-only — see Live Match Viewer below).
 - Finish the match (automatically, by format rule, or manually).
 - See the result immediately after the match ends.
 
@@ -111,10 +114,19 @@ and at match end, native share of the result.
 ### Realtime
 
 Live score sync via Firebase Realtime Database while a match is in
-progress, for devices holding the session's join code. **As currently
-implemented, this only reaches the scorer's own device** — see the gap
-noted in Open Questions before treating "realtime" as meaning
-multi-device spectating on mobile.
+progress.
+
+**Live Match Viewer (required for Milestone 1)**: a checked-in
+participant who is not the assigned scorer must be able to open the
+session, open the in-progress activity, and watch the score update in
+real time. Read-only — only the assigned scorer may modify the score.
+This does not exist yet (`docs/current/navigation.md`,
+`SessionDetailScreen` currently has no action for a `live` activity)
+and is treated as a missing MVP feature, not a future enhancement.
+
+Security hardening of who is *allowed* to write to a live match
+(RTDB rules) is explicitly **not** part of this — see Technical
+Requirements and `docs/current/firebase-security.md`/`ADR-001`.
 
 ### Player Profile
 
@@ -125,9 +137,18 @@ Milestone 1.
 
 ### Settings
 
-Language (English / Bahasa Indonesia) exists as a component. Not
-currently reachable from anywhere in the club/session/activity
-navigation — see Open Questions.
+Exactly three controls, reachable from the club/session/activity
+navigation (currently not reachable from anywhere in it — see Release
+Checklist):
+
+- Theme
+- Language (English / Bahasa Indonesia)
+- Logout
+
+Nothing else. Any other preference (notifications, voice/announcement
+settings, etc.) is out of scope for Milestone 1 regardless of whether
+it already exists as a component elsewhere (e.g. the legacy
+`SettingsModal`'s TTS voice picker).
 
 ---
 
@@ -152,45 +173,55 @@ navigation — see Open Questions.
 - Club ownership transfer (explicitly deferred to a future
   permissions/admin system).
 - Scorer transfer mid-match (explicitly called an upcoming feature,
-  not current scope — see Open Questions for the related permissions question).
+  not current scope).
+- Firebase RTDB security hardening (rules requiring scorer
+  authorization to write). Current fully-open realtime access is
+  sufficient for Milestone 1. Deferred to Milestone 2, after the
+  scoring-device authentication design (`ADR-001`) is implemented —
+  see `docs/current/firebase-security.md`.
+- Offline/resume recovery for in-progress matches. Milestone 1 assumes
+  an active network connection while scoring — see Technical
+  Requirements.
 
 ---
 
 ## Technical Requirements
 
-- Mobile-first: Expo dev client. iOS verified on a physical device;
-  **Android not yet verified on any device or emulator.**
+- Mobile-first: Expo dev client, **both iOS and Android required.**
+  iOS is verified on a physical device; Android is not yet verified on
+  any device or emulator — iOS-only is not sufficient to call
+  Milestone 1 complete.
 - Firebase Auth for identity.
 - Go + Gin backend, PostgreSQL for durable data, forward-only migrations.
-- Firebase Realtime Database for live match sync.
+- Firebase Realtime Database for live match sync. **No security rules
+  required for Milestone 1** — current fully-open access is accepted
+  as sufficient; hardening is Milestone 2 (`ADR-001`).
 - Expo / React Native / TypeScript throughout.
-- **Offline tolerance: not currently met.** The Activity-based match
-  flow (`ActivityMatchScreen`) has no local persistence — an app
-  kill or crash mid-match loses all score progress (it isn't written
-  to Postgres until `complete`, and isn't cached locally the way the
-  legacy `ScoringFlow` is via `src/persistence.ts`). If offline
-  tolerance is a hard Milestone 1 requirement, this is unbuilt work,
-  not a minor gap.
+- **No offline tolerance requirement.** Milestone 1 assumes an active
+  network connection for the duration of scoring a match. The
+  Activity-based match flow (`ActivityMatchScreen`) has no local
+  persistence today — an app kill or network loss mid-match loses
+  score progress (nothing is written to Postgres until `complete`).
+  This is an accepted MVP limitation, not a gap to close now. Mitigate
+  with a warning, not a fix — see Release Checklist. Full offline/resume
+  recovery moves to Milestone 2.
 
 ---
 
 ## Release Checklist
 
-- [ ] Firebase RTDB security rules — currently fully open to anyone
-      holding a session code (`docs/current/firebase-security.md`,
-      `ADR-001`). No rules are applied yet.
-- [ ] **Decision needed**: is hardened scorer-permission enforcement
-      required to ship Milestone 1, or can it ship with today's
-      client-side-only convention? (See Open Questions.)
-- [ ] Mobile spectator/watch flow for checked-in participants who
-      aren't the scorer — currently there is no way to view a live
-      match on mobile except as the scorer themselves.
-- [ ] Offline/resume tolerance for in-progress matches (see Technical
-      Requirements).
-- [ ] Settings (language) reachable from the club/session navigation —
-      currently orphaned inside the legacy, unreachable-on-mobile
-      `ScoringFlow`.
-- [ ] Android build verified on a physical device.
+- [ ] Build the Live Match Viewer: from a session, open a `live`
+      activity as a checked-in non-scorer participant and watch score
+      updates in real time, read-only. (`SessionDetailScreen`
+      currently has no action at all for a `live` activity.)
+- [ ] Add a warning before leaving an in-progress scoring screen,
+      informing the scorer that progress may be interrupted without a
+      network connection. (Offline/resume recovery itself is out of
+      scope — Milestone 2.)
+- [ ] Build a Settings screen with exactly Theme, Language, Logout,
+      reachable from the club/session/activity navigation.
+- [ ] Android build verified on a physical device or emulator —
+      required, not optional, for Milestone 1.
 - [ ] Backend deployed somewhere reachable outside a private dev VM.
 - [ ] Mobile distribution mechanism decided (EAS build + TestFlight /
       Play Console, vs. continuing manual on-device builds).
@@ -200,6 +231,9 @@ navigation — see Open Questions.
       the legacy flow it was ported from.
 - [ ] All product decisions in this document confirmed by product
       review, not just engineering read of existing docs.
+
+Explicitly **not** on this checklist, by decision (see Resolved
+Decisions): Firebase RTDB security rules, offline/resume recovery.
 
 ---
 
@@ -213,28 +247,29 @@ confirmed rather than assumed.
 
 ---
 
-## Open Questions
+## Resolved Decisions
 
-Surfacing rather than guessing, per instructions:
+The four open questions from the previous revision of this document,
+and the two implementation gaps found while writing it, were resolved
+by product review as follows. Recorded here for traceability; the
+resolutions are already reflected in the sections above.
 
-1. **Is scorer-permission enforcement (RTDB rules) required for
-   Milestone 1?** `docs/product/roadmap.md` Phase 3 lists "Scorer
-   permissions" alongside "Move Tennis scoring into Sport Engine" as
-   one phase — but a separate instruction called scorer *transfer*
-   "an upcoming feature, not a bug," which reads as deferred. It's not
-   clear whether permission *enforcement* (distinct from *transfer*)
-   is meant to ship with Milestone 1 or move with transfer into a
-   later milestone.
-2. **Is mobile spectator viewing of a live match in scope?**
-   `docs/product/domain.md`'s Member role explicitly lists "Watch live
-   score" as a permission, and it's technically live in RTDB — but no
-   screen currently exposes it on mobile (only the scorer's own device
-   shows the live match). Not named as postponed anywhere, but also
-   never explicitly scoped as Milestone 1 work.
-3. **Does Milestone 1 require Android**, or is an iOS-only first
-   release acceptable given "mobile-first" doesn't specify which
-   platform first?
-4. **Is a minimal Settings entry point (at least language switching)
-   required in Milestone 1's navigation**, or is defaulting to English
-   with no in-app way to switch acceptable until the target Me tab
-   exists?
+1. **RTDB security** — not required for Milestone 1. Current
+   fully-open realtime access is sufficient. Hardening moves to
+   Milestone 2, after the scoring-device authentication design
+   (`ADR-001`) is implemented.
+2. **Mobile spectator view** — required for Milestone 1. A checked-in
+   participant must be able to open an activity, open a live match,
+   and watch the score update in real time. Only the assigned scorer
+   may modify it.
+3. **Android** — required. Milestone 1 targets both iOS and Android;
+   iOS-only is not sufficient.
+4. **Settings** — scoped to exactly Theme, Language, Logout. Nothing else.
+5. **Live Match Viewer** (implementation gap) — treated as a missing
+   MVP feature, added to Milestone 1 (see Success Criteria, Realtime,
+   Release Checklist).
+6. **Offline/resume** (implementation gap) — not a Milestone 1
+   requirement. MVP assumes an active network connection while
+   scoring. A warning before leaving an in-progress scoring screen is
+   the Milestone 1 mitigation; full offline/resume recovery moves to
+   Milestone 2.
