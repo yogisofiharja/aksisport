@@ -1,3 +1,5 @@
+const primaryTokens = require('./src/design-system/foundation/tokens/colors');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'media',
@@ -17,14 +19,11 @@ module.exports = {
         foreground: '#1f2937',
         muted: '#58657a',
         'app-border': '#263054',
+        // Single source of truth: src/design-system/foundation/tokens/colors.js
+        // (also imported directly by the Design System's colors.ts).
         primary: {
-          DEFAULT: '#d97706',
-          50: '#fffbeb',
-          100: '#fef3c7',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
+          DEFAULT: primaryTokens[600],
+          ...primaryTokens,
         },
         secondary: '#64748b',
         accent: {
