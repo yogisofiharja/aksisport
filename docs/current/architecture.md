@@ -71,5 +71,5 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
 Only `src/sports/tennis/` exists and contains only
 `scoringEngine.ts` (+ its test). There is no `src/sports/types.ts`
 contract file and no `src/sports/padel/` directory yet, despite both
-being described in `prd.md`'s "Technical Direction" section — not
+being described in `docs/archive/prd.md`'s "Technical Direction" section — not
 implemented.

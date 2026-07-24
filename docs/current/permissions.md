@@ -24,7 +24,7 @@ re-checks independently.
    `(club_id, user_id)` in `club_members.role`. No cross-club roles —
    being an owner of one club has no effect on another.
 
-## Role capabilities (as enforced, not as documented in `prd.md`)
+## Role capabilities (as enforced, not as documented in `docs/archive/prd.md`)
 
 | Action | Required role |
 |---|---|
@@ -37,7 +37,7 @@ re-checks independently.
 | Start an activity | **not role-based** — see below |
 | Complete an activity | **not role-based** — see below |
 
-`prd.md`'s Club Roles section lists Admin as able to "Assign scorer" —
+`docs/archive/prd.md`'s Club Roles section lists Admin as able to "Assign scorer" —
 there is no assign-scorer endpoint; the closest actual behavior is
 that starting an activity makes the starter the scorer (see
 `lifecycle-activity.md`), which is participant-based, not

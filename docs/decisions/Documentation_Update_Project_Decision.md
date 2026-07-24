@@ -141,7 +141,7 @@ Priority order:
 1.  `docs/product/`
 2.  `docs/engineering/`
 3.  `docs/current/`
-4.  `prd.md` (temporary until migrated)
+4.  `docs/archive/prd.md` (temporary until migrated)
 5.  `README.md` (setup only)
 
 Legacy planning documents should be archived after their useful content

@@ -1,6 +1,6 @@
 # Terminology
 
-Migrated from `prd.md`. Definitions are quoted or closely paraphrased
+Migrated from `docs/archive/prd.md`. Definitions are quoted or closely paraphrased
 from existing wording, except **Sport Type** and **Match**/**Result**,
 which reflect the Core Hierarchy decision recorded in `domain.md`.
 

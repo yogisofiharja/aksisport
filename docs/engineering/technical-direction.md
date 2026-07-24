@@ -1,6 +1,6 @@
 # Technical Direction
 
-Migrated from `prd.md`. Preserves existing wording and decisions.
+Migrated from `docs/archive/prd.md`. Preserves existing wording and decisions.
 
 ---
 

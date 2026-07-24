@@ -94,7 +94,7 @@ set). Closing that gap fully would require the write to check the
 caller is an actual participant of the corresponding Activity, which
 RTDB rules can't verify against Postgres — would need either (a) the
 Go backend to mint a scoped custom token on `/start`, or (b) moving
-live sync off RTDB entirely (see `prd.md`'s deferred "self-hosted
+live sync off RTDB entirely (see `docs/archive/prd.md`'s deferred "self-hosted
 replacement" idea, out of scope here).
 
 ## Options for review, not a decision made here

@@ -1,6 +1,6 @@
 # Roadmap
 
-Migrated from `prd.md`. Preserves existing wording and decisions.
+Migrated from `docs/archive/prd.md`. Preserves existing wording and decisions.
 
 ---
 
@@ -98,7 +98,7 @@ Invitation methods
 
 ## Open Questions
 
-- `prd.md` doesn't state a checkmark/status convention beyond "Phase 2 —
+- `docs/archive/prd.md` doesn't state a checkmark/status convention beyond "Phase 2 —
   Sessions ✅" — it's unclear whether Phase 1 (Foundation) is considered
   complete but unmarked, or genuinely not yet checked off. Not assumed
-  here; preserved exactly as written in `prd.md`.
+  here; preserved exactly as written in `docs/archive/prd.md`.

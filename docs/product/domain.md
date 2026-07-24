@@ -1,6 +1,6 @@
 # Domain Model
 
-Migrated from `prd.md`. Preserves existing wording and decisions,
+Migrated from `docs/archive/prd.md`. Preserves existing wording and decisions,
 except where noted — see "Decisions" below for the two Core Hierarchy
 gaps this document originally flagged as open, since resolved.
 
@@ -303,6 +303,6 @@ Club
 
 ## Note
 
-`prd.md`'s "Technical Direction" section (frontend/backend stack, Core
+`docs/archive/prd.md`'s "Technical Direction" section (frontend/backend stack, Core
 Platform vs. Sport Modules folder layout) belongs in
 `docs/engineering/`, not here — see `docs/engineering/technical-direction.md`.
