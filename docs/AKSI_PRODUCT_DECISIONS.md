@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.2.0
+Version: 0.3.2
 
 Status: Living Document
 
@@ -170,7 +170,25 @@ Escalate decisions that affect:
 
 ## Community
 
-Communities organize Sessions.
+Communities organize:
+
+- Recurring Schedules
+- Sessions
+
+---
+
+## Recurring Schedule
+
+A Recurring Schedule defines how Sessions are generated over time.
+
+A Recurring Schedule owns:
+
+- Template
+- Recurrence Rule
+- Generation Policy
+- Status (Active / Paused)
+
+Generated Sessions become independent after creation.
 
 ---
 
@@ -468,15 +486,98 @@ Only checked-in participants may participate.
 
 ---
 
-## DP-007 — Session Templates
+## DP-007 — Recurring Schedules
 
 Status
 
 Approved
 
-Templates create Sessions.
+### Decision
 
-Templates are never played directly.
+Introduce a new domain object: **Recurring Schedule**.
+
+A Recurring Schedule generates Sessions. It is not a Session.
+
+It owns:
+
+- Template
+- Recurrence Rule
+- Generation Policy
+- Status (Active / Paused)
+
+The Template consists of the Organizer Preferences defined in DP-004. It is not a standalone entity.
+
+Each point in time defined by the Recurrence Rule is an occurrence. An occurrence generates at most one Session.
+
+Occurrence tracking is an internal implementation detail. It is not required to become a first-class domain object.
+
+### Schedule Editing
+
+Editing a Recurring Schedule:
+
+- always affects future Sessions that have not yet been generated
+- optionally updates all already-generated upcoming Sessions after organizer confirmation
+- does not support selecting individual Sessions for synchronization
+
+Session Synchronization must not be implemented until the following are resolved:
+
+- Which Template fields are synchronized to already-generated upcoming Sessions, and which remain local to the Session.
+- Whether synchronization overwrites a Session that has already been manually edited, or excludes it.
+- The definition of "upcoming" for synchronization purposes, relative to Session Lifecycle (DP-001) states.
+
+### Session Editing
+
+Editing a Session:
+
+- affects only that Session
+- never updates the parent Recurring Schedule
+- never affects other Sessions
+
+### Generation Policy
+
+Configuration:
+
+- Generate X days before
+- Optional generation time
+
+If generation time is omitted, the Session start time is used.
+
+Generation is eventually consistent. If generation is unavailable for any period, once it resumes it must generate every missed occurrence that still satisfies the Generation Policy. Generation must remain idempotent — each occurrence generates at most one Session regardless of how many times generation runs.
+
+### Pause
+
+Paused schedules stop generating future Sessions.
+
+Existing Sessions remain unchanged.
+
+### Delete
+
+Deleting a Recurring Schedule:
+
+- stops future generation
+- preserves all generated Sessions
+
+### Skipping an Occurrence
+
+An organizer may intentionally skip an occurrence, either before it generates a Session or after (for example, by deleting the Session already generated for that occurrence).
+
+A skipped occurrence must never generate a Session.
+
+Skipping an occurrence is not the same business event as cancelling a Session. A Cancelled Session communicates that a Session existed and was cancelled. A skipped occurrence communicates that the occurrence should never produce a Session at all. Session Lifecycle (DP-001) is not extended with a "deleted" state to represent this.
+
+### Additional Rules
+
+Generated Sessions should keep a nullable reference to their originating Recurring Schedule.
+
+Generated Sessions are automatically published.
+
+A Recurring Schedule may optionally define an end date. If no end date is provided, generation continues until the Schedule is paused or deleted.
+
+Product invariant:
+
+- One occurrence may generate at most one Session.
+- A skipped occurrence must never generate a Session.
+
 
 ---
 
@@ -568,7 +669,7 @@ Foundation
 - Participants
 - Activities
 - Scheduler
-- Templates
+- Recurring Schedules
 
 ---
 
@@ -604,6 +705,51 @@ Intelligence
 ---
 
 # Change Log
+
+## v0.3.2
+
+Recurring Schedule semantics finalized ahead of implementation.
+
+Major updates:
+
+- Introduced the occurrence concept between Recurring Schedule and Session; skipping an occurrence is explicitly distinguished from cancelling a Session, and does not extend Session Lifecycle with a "deleted" state. Occurrence tracking remains an internal implementation detail, not a first-class domain object.
+- Simplified auto-publish wording: generated Sessions are always automatically published (removed "by default," which implied configurability that isn't intended).
+- Defined generation as eventually consistent: a generation outage must be followed by catch-up generation of every missed occurrence, and generation must stay idempotent.
+- Template is now defined by reference: "the Organizer Preferences defined in DP-004," rather than a duplicated field list.
+- Session Synchronization is explicitly called out as blocked on three unresolved questions (field scope, manual-edit conflict, definition of "upcoming") and must not be implemented until they're resolved.
+
+---
+
+## v0.3.1
+
+Recurring Schedule specification refined.
+
+Major updates:
+
+- Generated Sessions reference their originating Recurring Schedule.
+- Generated Sessions are automatically published.
+- Added optional Schedule end date.
+- Added recurrence idempotency invariant.
+- Clarified deleted occurrences must never be regenerated.
+
+---
+
+## v0.3.0
+
+Recurring Schedules introduced.
+
+Major updates:
+
+- Replaced Session Templates with Recurring Schedules.
+- Added Recurring Schedule as a Core Domain.
+- Template is now owned by a Recurring Schedule.
+- Formalized Schedule vs Session ownership.
+- Added Generation Policy.
+- Added Active / Paused schedule lifecycle.
+- Defined synchronization behavior for generated Sessions.
+- Deleted generated Sessions are never recreated.
+
+---
 
 ## v0.2.0
 
