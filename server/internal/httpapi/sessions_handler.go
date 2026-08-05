@@ -170,6 +170,12 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusBadRequest, "startsAt and durationMinutes are required")
 			return
 		}
+		// Milestone 2: mirrors the client-side check in CreateSessionScreen —
+		// a Session can't be scheduled in the past.
+		if body.StartsAt.Before(time.Now()) {
+			respondError(c, http.StatusBadRequest, "startsAt cannot be in the past")
+			return
+		}
 		if !isValidDurationMinutes(*body.DurationMinutes) {
 			respondError(c, http.StatusBadRequest, "durationMinutes must be a multiple of 60 between 60 and 1440")
 			return
@@ -198,11 +204,15 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		// Host Playing: the organizer's own declared intent to play, not a
-		// third-party join — auto-check-in bypasses the Strict Skill Level
-		// gate (enforceStrictSkillLevel) entirely by calling db.CheckIn
-		// directly instead of going through the /checkin route.
+		// third-party join — lands at 'registered' (not 'checked_in'), same
+		// as any other roster-building add. Checked In specifically means
+		// physically present and ready to play, which is what the Check-In
+		// Window (1h before start) exists to gate — even the organizer
+		// still checks in for real once they're actually there. Bypasses
+		// the Strict Skill Level gate (enforceStrictSkillLevel) entirely,
+		// same trust already extended to organizer-added members.
 		if *body.HostPlaying {
-			if _, err := dbpkg.CheckIn(c.Request.Context(), pool, session.ID, user.ID); err != nil {
+			if _, err := dbpkg.AddRegisteredParticipant(c.Request.Context(), pool, session.ID, user.ID); err != nil {
 				respondError(c, http.StatusInternalServerError, "internal error")
 				return
 			}
@@ -305,6 +315,12 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusBadRequest, "durationMinutes must be a multiple of 60 between 60 and 1440")
 			return
 		}
+		// Milestone 2: mirrors the create-time check above — updating a
+		// Session's schedule to a past date/time isn't allowed either.
+		if body.StartsAt != nil && body.StartsAt.Before(time.Now()) {
+			respondError(c, http.StatusBadRequest, "startsAt cannot be in the past")
+			return
+		}
 		session, err := dbpkg.UpdateSession(c.Request.Context(), pool, sessionID, dbpkg.SessionUpdate{
 			Name: body.Name, Location: body.Location, Description: body.Description, Status: body.Status,
 			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, ActivityType: body.ActivityType,
@@ -317,6 +333,34 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		c.JSON(http.StatusOK, session)
+	})
+
+	// Milestone 2: "Discard" — hard-deletes a Draft Session. Draft-only by
+	// design (see dbpkg.DeleteSession's doc comment) — a published Session
+	// still only has Cancel as its terminal action, never a hard delete.
+	authed.DELETE("/sessions/:id", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		if !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "only owner/admin can discard this session")
+			return
+		}
+		if err := dbpkg.DeleteSession(c.Request.Context(), pool, sessionID); err != nil {
+			if errors.Is(err, dbpkg.ErrNotFound) {
+				respondError(c, http.StatusNotFound, "session not found")
+				return
+			}
+			if errors.Is(err, dbpkg.ErrConflict) {
+				respondError(c, http.StatusConflict, "only a draft session can be discarded")
+				return
+			}
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.Status(http.StatusNoContent)
 	})
 
 	authed.GET("/sessions/:id/participants", func(c *gin.Context) {
@@ -417,10 +461,14 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 
 	// Owner/admin removes a participant entirely (e.g. declining a join
 	// request, or removing someone outright) — a hard delete, unlike
-	// Cancel/NoShow which record what happened.
+	// Cancel/NoShow which record what happened. The path param accepts
+	// either a member's user_id or a guest's own participant row id —
+	// db.DeleteParticipant matches on either column, since guests have no
+	// user_id (Milestone 2: the "×" remove badge on a guest's avatar in
+	// SessionDetailScreen passes the participant's own id here).
 	authed.DELETE("/sessions/:id/participants/:userId", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		targetUserID := c.Param("userId")
+		targetID := c.Param("userId")
 		_, role, ok := requireSessionAccess(c, pool, sessionID)
 		if !ok {
 			return
@@ -429,7 +477,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusForbidden, "only owner/admin can remove a participant")
 			return
 		}
-		if err := dbpkg.DeleteParticipant(c.Request.Context(), pool, sessionID, targetUserID); err != nil {
+		if err := dbpkg.DeleteParticipant(c.Request.Context(), pool, sessionID, targetID); err != nil {
 			if errors.Is(err, dbpkg.ErrNotFound) {
 				respondError(c, http.StatusNotFound, "participant not found")
 				return
@@ -472,14 +520,46 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		c.JSON(http.StatusOK, p)
 	})
 
-	// Owner/admin checking in another club member on their behalf (e.g. a
-	// walk-in who hasn't opened the app) — same db.CheckIn upsert
-	// self-checkin uses (auto-registers if the member has no participant
-	// row yet), same Strict Skill Level gate applied to the target member,
-	// not the caller.
-	authed.POST("/sessions/:id/participants/:userId/checkin", func(c *gin.Context) {
+	// Milestone 2 (revised): organizer adds an existing club member
+	// directly to the roster as 'registered' — used by
+	// SessionDetailScreen's participant-placeholder "Member" option.
+	// Deliberately available any time the Session is published (unlike
+	// /checkin below, no checkInWindowOpen gate — this is roster-building,
+	// not a check-in action). Strict Skill Level is deliberately NOT
+	// enforced here — an organizer manually adding a specific member is a
+	// deliberate decision, same trust already extended to Host Playing's
+	// own auto-check-in bypass (DP-004).
+	authed.POST("/sessions/:id/participants/:userId/add", func(c *gin.Context) {
 		sessionID := c.Param("id")
 		targetUserID := c.Param("userId")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		if !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "only owner/admin can add a participant")
+			return
+		}
+		p, err := dbpkg.AddRegisteredParticipant(c.Request.Context(), pool, sessionID, targetUserID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, p)
+	})
+
+	// Milestone 2 (revised): checks in an already-'registered' participant
+	// (member or guest) by their own participant row id — the only action
+	// that actually moves someone to 'checked_in', separate from adding
+	// them to the roster. Keyed by row id rather than user_id (unlike the
+	// old organizer-override db.CheckIn upsert this replaces) so it works
+	// uniformly for guests too, which have no user_id. Strict Skill Level
+	// is not re-checked here — same as self-check-in, it was already
+	// enforced at the "join" moment (self-request, or here it's an
+	// organizer's own manual add, which deliberately bypasses it, DP-004).
+	authed.POST("/sessions/:id/checkin/:participantId", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		participantID := c.Param("participantId")
 		sess, role, ok := requireSessionAccess(c, pool, sessionID)
 		if !ok {
 			return
@@ -492,16 +572,22 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusForbidden, "check-in is only available from 1 hour before the session starts until it ends")
 			return
 		}
-		if !enforceStrictSkillLevel(c, pool, sess, targetUserID) {
+		p, err := dbpkg.CheckInParticipantByID(c.Request.Context(), pool, sessionID, participantID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "participant not found")
 			return
 		}
-		p, err := dbpkg.CheckIn(c.Request.Context(), pool, sessionID, targetUserID)
+		if errors.Is(err, dbpkg.ErrConflict) {
+			respondError(c, http.StatusConflict, "this participant is not registered")
+			return
+		}
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
 		c.JSON(http.StatusOK, p)
 	})
+
 
 	// DP-002: self-service, mirrors /checkin's existing shape exactly (acts
 	// on the caller, no userId in the path). Owner/admin managing another
@@ -556,20 +642,18 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		c.JSON(http.StatusOK, p)
 	})
 
+	// Milestone 2 (revised): a guest is added directly as 'registered'
+	// (AddGuestParticipant) — roster-building, not a check-in action, so
+	// no checkInWindowOpen gate (mirrors the member-add route above).
+	// Checking them in is the separate /checkin/:participantId action.
 	authed.POST("/sessions/:id/participants", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		sess, role, ok := requireSessionAccess(c, pool, sessionID)
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
 		if !ok {
 			return
 		}
 		if !isOwnerOrAdmin(role) {
 			respondError(c, http.StatusForbidden, "only owner/admin can add a guest")
-			return
-		}
-		// A guest is inserted directly as checked_in (AddGuestParticipant) —
-		// it's a check-in action, so the same window applies.
-		if !checkInWindowOpen(sess.StartsAt, sess.DurationMinutes, time.Now()) {
-			respondError(c, http.StatusForbidden, "check-in is only available from 1 hour before the session starts until it ends")
 			return
 		}
 		var body struct {

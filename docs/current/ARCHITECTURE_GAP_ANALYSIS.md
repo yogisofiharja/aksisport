@@ -201,32 +201,30 @@ reaches into another domain's internals.
 
 Classification: **Category A.**
 
-### 2.10 State Management / Backend-Owned Derived State
+### 2.10 State Management / Backend-Owned Derived State — RESOLVED (Milestone 2)
 
 **Target** (DP-ARCH-003): "Business state shared across multiple
 clients should be derived by the backend... Examples: Session
 lifecycle." Derived values should not be persisted unless required.
 
-**Current**: `docs/engineering/architecture.md` documents, as a
-**deliberate, already-made decision**, that Recruiting/Ready/Full
-derivation stays **client-side** (`src/core/sessions/deriveStatus.ts`),
-specifically to avoid duplicating the Sport-Engine's
-`minParticipants` rule server-side. This is a direct textual conflict
-with DP-ARCH-003's own example list, which names "Session lifecycle"
-as backend-derived.
-
-Classification: **Category C**, but small and self-contained —
-either (a) move the derivation server-side (the backend already has
-every input it needs: participant count, status, and it could import
-the same rule the client uses today), which is genuinely a small,
-isolated change, not a navigation-scale milestone; or (b) explicitly
-amend DP-ARCH-003 to carve out an exception for Sport-Engine-dependent
-derivations. This is a product/architecture decision, not an
-engineering-autonomy one (`AKSI_PRODUCT_DECISIONS.md`'s own rule: "not
-here to ask whether an approved feature should be implemented" doesn't
-apply when two approved documents disagree with each other) —
-recommend flagging for an explicit decision rather than silently
-picking one.
+**Resolved 2026-08-05, implemented in Milestone 2 — Session
+Experience**: the derivation moved server-side. The backend now
+resolves `lifecycleStatus` (Go: `internal/db/sessions.go`'s
+`resolveLifecycleStatus`) on every Session response, never persisted.
+The Sport-Engine dependency this was blocked on (`minParticipants`) is
+satisfied by a small, deliberately minimal Tennis-only mirror in a new
+`internal/sports` Go package — user's explicit ruling: "a Session
+simply asks the Sport Module for the minimum participant requirement
+in order to derive its own lifecycle. That is a dependency, not an
+ownership transfer," which DP-ARCH-002's own text already permits ("A
+Session may ask the Sport Module for sport-specific knowledge"). No
+amendment to `AKSI_PRODUCT_DECISIONS.md` was needed — its text was
+already correct; only `docs/engineering/architecture.md` (which had
+documented the client-side approach as deliberate) needed correcting,
+and has been. Longer-term direction, also from the user: evolve
+`internal/sports` into a real backend Sport Module/registry (mirroring
+`src/sports/registry.ts`) once a second sport needs its own rules
+exposed the same way — not required now.
 
 ### 2.11 Terminology: "Club" vs. "Community"
 
@@ -307,7 +305,7 @@ lowest-risk item in this document.
 | Explore (real discovery behavior) | Planning — not in scope | Product decision to promote out of Planning |
 | Draft Recovery surfacing | B | Community Home |
 | Sport Module / Session domain boundaries | A | — |
-| Backend-owned derived lifecycle state | C (small) | Product/architecture decision (2.10) |
+| Backend-owned derived lifecycle state | Resolved (Milestone 2) | — |
 | "Club" → "Community" UI copy | B | — |
 | "Club" → "Community" data layer | Out of scope for now | — |
 | `docs/product/` conflicting docs | D | — |
@@ -387,11 +385,9 @@ alongside Milestone 1, not before it.
   Community → Session navigation path) — sequenced here because
   Milestones 3 and 4 depend on the lifecycle model it establishes.
 - **Risks**: low on data (nothing new to plumb), moderate on UI scope
-  — touches the Session's primary screen substantially. Worth
-  resolving 2.10 (backend- vs. client-owned lifecycle derivation)
-  before or alongside this milestone, since this is exactly where that
-  derivation logic gets touched anyway (see the independent item
-  below).
+  — touches the Session's primary screen substantially. 2.10
+  (backend- vs. client-owned lifecycle derivation) was resolved
+  alongside this milestone, as anticipated — see 2.10 above.
 - **User-visible improvement**: a Session always makes its current
   state and next action obvious, for organizers and members alike.
 
@@ -494,19 +490,12 @@ alongside Milestone 1, not before it.
   incrementally growing scope while reusing the same message-thread
   shape gets the same architectural generality without that bet.
 
-### Independent — Backend-Owned Lifecycle Derivation (engineering-only, no fixed position)
-- **Objective**: resolve 2.10 — either move Recruiting/Ready/Full
-  derivation server-side, or formally amend DP-ARCH-003 to note the
-  Sport-Engine-dependent exception. Requires a product/architecture
-  decision first (this isn't an engineering-autonomy call, since it
-  involves two Foundation-adjacent documents disagreeing).
-- **Size**: S (once the decision is made).
-- **Dependencies**: none — can run in parallel with any milestone, but
-  recommended around Milestone 2 since that's when this exact logic is
-  next touched anyway.
-- **Risks**: low, self-contained.
-- **User-visible improvement**: none directly; closes a documentation/
-  implementation inconsistency.
+### Independent — Backend-Owned Lifecycle Derivation — RESOLVED, implemented in Milestone 2
+Resolved 2.10: derivation moved server-side, folded into Milestone 2
+rather than run independently, since that's exactly where the logic
+was touched anyway. See 2.10 above for the resolution and
+`docs/engineering/architecture.md`'s "Derived state is resolved
+server-side" section for the implementation.
 
 ---
 

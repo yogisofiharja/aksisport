@@ -42,9 +42,16 @@ export type ClubMember = {
 
 // DP-001: 'draft' (explicit, pre-publish) and 'cancelled' (explicit,
 // terminal) added. 'open' covers what DP-001 calls Recruiting/Ready/Full —
-// those are a derived display layer over 'open', not stored — see
-// core/sessions/deriveStatus.ts.
+// those are a derived sub-state of 'open', never persisted (see
+// DerivedSessionStatus below).
 export type SessionStatus = 'draft' | 'open' | 'in_progress' | 'completed' | 'cancelled';
+
+// DP-001's resolved lifecycle state — 'open' expands into its derived
+// sub-state (recruiting/ready/full), everything else passes through
+// SessionStatus unchanged. Resolved server-side (DP-ARCH-003) and
+// returned as Session.lifecycleStatus below; the client no longer derives
+// this itself (the former core/sessions/deriveStatus.ts is retired).
+export type DerivedSessionStatus = 'draft' | 'recruiting' | 'ready' | 'full' | 'in_progress' | 'completed' | 'cancelled';
 
 export type Session = {
   id: string;
@@ -91,6 +98,8 @@ export type Session = {
   // Computed, not stored — DP-002 headcount (registered/checked_in/
   // checked_out; cancelled/no_show excluded). Populated by GET endpoints only.
   joinedCount: number;
+  // Resolved server-side (DP-001/DP-ARCH-003) — see DerivedSessionStatus.
+  lifecycleStatus: DerivedSessionStatus;
 };
 
 // DP-002: 'participated' removed — declared in the original schema but

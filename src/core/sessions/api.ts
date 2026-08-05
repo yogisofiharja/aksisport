@@ -67,16 +67,20 @@ export function publishSession(sessionId: string): Promise<Session> {
   return updateSession(sessionId, { status: 'open' });
 }
 
-export function startSession(sessionId: string): Promise<Session> {
-  return updateSession(sessionId, { status: 'in_progress' });
-}
-
-export function completeSession(sessionId: string): Promise<Session> {
-  return updateSession(sessionId, { status: 'completed' });
-}
+// No manual "start" or "complete" wrapper — both In Progress and
+// Completed are reached only via DP-009's auto-start/auto-transition
+// (starts_at arriving, then starts_at+duration_minutes elapsing), never
+// an organizer UI action. See docs/current/lifecycle-session.md.
 
 export function cancelSession(sessionId: string): Promise<Session> {
   return updateSession(sessionId, { status: 'cancelled' });
+}
+
+// "Discard" — hard-deletes a Draft Session (Milestone 2). Draft-only,
+// enforced server-side; a published Session only has cancelSession as
+// its terminal action, never a hard delete.
+export function discardDraftSession(sessionId: string): Promise<void> {
+  return apiFetch(`/v1/sessions/${sessionId}`, { method: 'DELETE' });
 }
 
 export function listParticipants(sessionId: string): Promise<SessionParticipant[]> {
@@ -103,19 +107,32 @@ export function confirmParticipantPayment(sessionId: string, userId: string): Pr
 }
 
 // Owner/admin removes a participant entirely (e.g. declining a join
-// request) — a hard delete, unlike Cancel/NoShow.
-export function deleteParticipant(sessionId: string, userId: string): Promise<void> {
-  return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}`, { method: 'DELETE' });
+// request) — a hard delete, unlike Cancel/NoShow. Accepts either a
+// member's userId or a guest's own participant id — the server matches
+// on either column, since guests have no userId.
+export function deleteParticipant(sessionId: string, participantIdOrUserId: string): Promise<void> {
+  return apiFetch(`/v1/sessions/${sessionId}/participants/${participantIdOrUserId}`, { method: 'DELETE' });
 }
 
 export function checkIn(sessionId: string): Promise<SessionParticipant> {
   return apiFetch(`/v1/sessions/${sessionId}/checkin`, { method: 'POST' });
 }
 
-// Owner/admin checking in another club member on their behalf (e.g. a
-// walk-in who hasn't opened the app) — same upsert as self check-in.
-export function checkInParticipant(sessionId: string, userId: string): Promise<SessionParticipant> {
-  return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}/checkin`, { method: 'POST' });
+// Owner/admin adds an existing club member directly to the roster as
+// 'registered' — used by SessionDetailScreen's participant-placeholder
+// "Member" option. Available any time the Session is published; not a
+// check-in action, so no Check-In Window restriction (unlike
+// checkInParticipantById below).
+export function addRegisteredParticipant(sessionId: string, userId: string): Promise<SessionParticipant> {
+  return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}/add`, { method: 'POST' });
+}
+
+// Owner/admin checks in an already-'registered' participant (member or
+// guest) by their participant row id — the only action that actually
+// moves someone to 'checked_in', separate from adding them to the
+// roster. Works for guests too, unlike a user-id-keyed check-in would.
+export function checkInParticipantById(sessionId: string, participantId: string): Promise<SessionParticipant> {
+  return apiFetch(`/v1/sessions/${sessionId}/checkin/${participantId}`, { method: 'POST' });
 }
 
 // DP-002: self-service, mirrors checkIn exactly — acts on the caller.
@@ -132,6 +149,10 @@ export function markNoShow(sessionId: string, userId: string): Promise<SessionPa
   return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}/no-show`, { method: 'POST' });
 }
 
+// Owner/admin names a guest who will be attending — lands as 'registered'
+// (roster-building, not a check-in action), same as addRegisteredParticipant.
+// Checking them in is checkInParticipantById above, once the Check-In
+// Window opens — a guest has no user id to key a user-based check-in on.
 export function addGuestParticipant(sessionId: string, guestName: string): Promise<SessionParticipant> {
   return apiFetch(`/v1/sessions/${sessionId}/participants`, {
     method: 'POST',

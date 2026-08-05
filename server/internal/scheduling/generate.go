@@ -112,10 +112,13 @@ func createGeneratedSession(ctx context.Context, pool *pgxpool.Pool, sched model
 	if err != nil {
 		return models.Session{}, err
 	}
-	// Host Playing (part of the Template): auto-check-in the host on every
-	// generated Session, same as ad-hoc creation — see sessions_handler.go.
+	// Host Playing (part of the Template): register the host as a
+	// participant on every generated Session, same as ad-hoc creation —
+	// see sessions_handler.go. Lands at 'registered', not 'checked_in' —
+	// the host still checks in for real once the Check-In Window opens
+	// and they're actually there.
 	if sched.HostPlaying {
-		if _, err := db.CheckIn(ctx, pool, session.ID, sched.CreatedBy); err != nil {
+		if _, err := db.AddRegisteredParticipant(ctx, pool, session.ID, sched.CreatedBy); err != nil {
 			return models.Session{}, err
 		}
 	}

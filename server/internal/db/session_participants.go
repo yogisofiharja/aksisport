@@ -148,9 +148,14 @@ func ConfirmPayment(ctx context.Context, pool *pgxpool.Pool, sessionID, userID s
 // DeleteParticipant removes a session_participants row entirely —
 // owner/admin only. Unlike Cancel/NoShow (which record what happened),
 // this is a hard removal, e.g. for declining a join request or removing
-// someone outright.
-func DeleteParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) error {
-	tag, err := pool.Exec(ctx, "DELETE FROM session_participants WHERE session_id = $1 AND user_id = $2", sessionID, userID)
+// someone outright. Matches on either user_id or the row's own id, so
+// the same route/function works for guests too (they have no user_id to
+// match on) — the caller passes whichever identifier it has.
+func DeleteParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, participantIDOrUserID string) error {
+	tag, err := pool.Exec(ctx,
+		"DELETE FROM session_participants WHERE session_id = $1 AND (user_id = $2 OR id = $2)",
+		sessionID, participantIDOrUserID,
+	)
 	if err != nil {
 		return err
 	}
@@ -161,11 +166,10 @@ func DeleteParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, userI
 }
 
 // SelfCheckIn transitions a self-service /checkin call from 'registered'
-// (organizer-approved) to 'checked_in' — DP-002 Approval: unlike CheckIn
-// below, this never upserts/auto-registers; a player must already be
-// approved. Returns ErrConflict if not currently 'registered'
-// (never requested, still pending approval, or already checked in),
-// ErrNotFound if there's no row at all.
+// (organizer-approved) to 'checked_in' — DP-002 Approval: never upserts/
+// auto-registers; a player must already be approved. Returns ErrConflict
+// if not currently 'registered' (never requested, still pending
+// approval, or already checked in), ErrNotFound if there's no row at all.
 func SelfCheckIn(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
 	tag, err := pool.Exec(ctx,
 		`UPDATE session_participants SET status = 'checked_in', checked_in_at = now()
@@ -184,33 +188,10 @@ func SelfCheckIn(ctx context.Context, pool *pgxpool.Pool, sessionID, userID stri
 	return getParticipantByUser(ctx, pool, sessionID, userID)
 }
 
-// CheckIn is the organizer-override path: marks userID as checked_in
-// directly, auto-registering (upserting past any existing status) if
-// needed — used by Host Playing's creation-time auto-check-in, the
-// host-initiated "check in a member" action, and nowhere else. This
-// deliberately bypasses request/approval — it's already an organizer
-// decision, same reasoning as AddGuestParticipant skipping straight to
-// checked_in. Self-service check-in uses SelfCheckIn instead, which does
-// require prior approval.
-func CheckIn(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
-	if _, err := pool.Exec(ctx,
-		`INSERT INTO session_participants (session_id, user_id, status, checked_in_at)
-		 VALUES ($1, $2, 'checked_in', now())
-		 ON CONFLICT (session_id, user_id) WHERE user_id IS NOT NULL
-		 DO UPDATE SET status = 'checked_in', checked_in_at = now()`,
-		sessionID, userID,
-	); err != nil {
-		return models.SessionParticipant{}, err
-	}
-	return getParticipantByUser(ctx, pool, sessionID, userID)
-}
-
-// CheckOut marks an existing participant row as checked_out. Unlike
-// CheckIn, this does not upsert — checking out only makes sense for a
-// participant who already has a row (there's nothing to "check out" of
-// otherwise). No transition-guard on prior status, matching CheckIn's
-// existing simplicity — this is last-write-wins, same as every other
-// status write in this file today.
+// CheckOut marks an existing participant row as checked_out — does not
+// upsert, since checking out only makes sense for a participant who
+// already has a row. No transition-guard on prior status — last-write-
+// wins, same as most other status writes in this file.
 func CheckOut(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
 	if _, err := pool.Exec(ctx,
 		`UPDATE session_participants SET status = 'checked_out', checked_out_at = now()
@@ -252,12 +233,16 @@ func MarkNoShow(ctx context.Context, pool *pgxpool.Pool, sessionID, userID strin
 }
 
 // AddGuestParticipant adds a freeform guest (no account) directly as
-// checked_in — an owner/admin action for walk-ins without the app.
+// 'registered' — an owner/admin action, roster-building rather than a
+// check-in action (Milestone 2, revised): a guest named this way still
+// needs to be checked in, same as an organizer-added member, once the
+// Check-In Window opens (CheckInParticipantByID, below — the only way to
+// check in a guest, since they have no user_id for a user-keyed check-in).
 func AddGuestParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, guestName string) (models.SessionParticipant, error) {
 	var participantID string
 	err := pool.QueryRow(ctx,
-		`INSERT INTO session_participants (session_id, guest_name, status, checked_in_at)
-		 VALUES ($1, $2, 'checked_in', now())
+		`INSERT INTO session_participants (session_id, guest_name, status)
+		 VALUES ($1, $2, 'registered')
 		 RETURNING id`,
 		sessionID, guestName,
 	).Scan(&participantID)
@@ -271,4 +256,69 @@ func AddGuestParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, gue
 	}
 	defer rows.Close()
 	return pgx.CollectOneRow(rows, scanParticipant)
+}
+
+// AddRegisteredParticipant is the organizer-initiated "add an existing
+// member to the roster" path — used by SessionDetailScreen's
+// participant-placeholder "Member" option, and by session creation/
+// generation for Host Playing (sessions_handler.go, generate.go). Lands
+// directly at 'registered' — skips request/approval, but stops short of
+// 'checked_in': an organizer-added member (including the organizer
+// themselves, via Host Playing) still isn't physically present yet, so
+// they still need Check-In (self, or the organizer's own
+// CheckInParticipantByID) once the Check-In Window opens. Idempotent like
+// RegisterParticipant: a pre-existing row (any status) is left unchanged,
+// never downgraded.
+func AddRegisteredParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO session_participants (session_id, user_id, status)
+		 VALUES ($1, $2, 'registered')
+		 ON CONFLICT (session_id, user_id) WHERE user_id IS NOT NULL DO NOTHING`,
+		sessionID, userID,
+	); err != nil {
+		return models.SessionParticipant{}, err
+	}
+	return getParticipantByUser(ctx, pool, sessionID, userID)
+}
+
+func getParticipantByID(ctx context.Context, pool *pgxpool.Pool, sessionID, participantID string) (models.SessionParticipant, error) {
+	rows, err := pool.Query(ctx, participantSelect+" WHERE sp.session_id = $1 AND sp.id = $2", sessionID, participantID)
+	if err != nil {
+		return models.SessionParticipant{}, err
+	}
+	defer rows.Close()
+	p, err := pgx.CollectOneRow(rows, scanParticipant)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.SessionParticipant{}, ErrNotFound
+	}
+	return p, err
+}
+
+// CheckInParticipantByID transitions an existing 'registered' participant
+// row to 'checked_in', identified by its own row id rather than user_id —
+// this requires the row already be 'registered' and works for guests too
+// (which have no user_id to key a user-based check-in on). This is the
+// Check-In Window-gated action that follows AddRegisteredParticipant/
+// AddGuestParticipant, both of which land at 'registered' rather than
+// 'checked_in' directly — adding a participant to a published Session
+// (including the organizer, via Host Playing) never checks them in
+// immediately; Checked In specifically means physically present, which
+// only the Check-In Window (1h before start) is meant to gate. Returns
+// ErrConflict if not currently 'registered', ErrNotFound if no row at all.
+func CheckInParticipantByID(ctx context.Context, pool *pgxpool.Pool, sessionID, participantID string) (models.SessionParticipant, error) {
+	tag, err := pool.Exec(ctx,
+		`UPDATE session_participants SET status = 'checked_in', checked_in_at = now()
+		 WHERE id = $1 AND session_id = $2 AND status = 'registered'`,
+		participantID, sessionID,
+	)
+	if err != nil {
+		return models.SessionParticipant{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		if _, gerr := getParticipantByID(ctx, pool, sessionID, participantID); errors.Is(gerr, ErrNotFound) {
+			return models.SessionParticipant{}, ErrNotFound
+		}
+		return models.SessionParticipant{}, ErrConflict
+	}
+	return getParticipantByID(ctx, pool, sessionID, participantID)
 }

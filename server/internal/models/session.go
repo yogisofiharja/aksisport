@@ -50,9 +50,20 @@ type Session struct {
 	// When true, the host is auto-checked-in as a participant on creation.
 	HostPlaying bool `json:"hostPlaying"`
 	// JoinedCount is computed, not stored — participants counted per DP-002
-	// (registered/checked_in/checked_out; cancelled/no_show excluded), same
-	// definition as the client's own countJoined in deriveStatus.ts. Set by
-	// ListSessionsForClub/GetSession only; zero value elsewhere (e.g. right
-	// after CreateSession/UpdateSession, before any participant exists).
+	// (registered/checked_in/checked_out; cancelled/no_show excluded). Set
+	// wherever a Session is returned to a caller (Create/Get/List/Update in
+	// internal/db/sessions.go) — zero value only for a brand-new Session,
+	// which is correct (no participants can exist yet).
 	JoinedCount int `json:"joinedCount"`
+	// LifecycleStatus is DP-001's derived Session state — Recruiting/Ready/
+	// Full are never persisted (only draft/open/in_progress/completed/
+	// cancelled are, in Status above); this is resolved server-side on every
+	// response per DP-ARCH-003, from Status/JoinedCount/MaxParticipants plus
+	// the Sport Module's minimum-participants rule (see
+	// internal/sports.MinParticipantsToStart — a Session asking the Sport
+	// Module for sport-specific knowledge, not an ownership transfer,
+	// DP-ARCH-002). Mirrors the client's former deriveStatus.ts, now
+	// retired — the frontend consumes this field instead of deriving its
+	// own copy.
+	LifecycleStatus string `json:"lifecycleStatus"`
 }

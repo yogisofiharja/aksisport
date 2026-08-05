@@ -39,13 +39,26 @@ written despite the column existing.
 ## queued → live (start)
 
 `POST /v1/activities/:id/start`. Requires the caller to be a
-checked-in participant of *this* activity (see `permissions.md`).
+checked-in participant of *this* activity, **or** owner/admin of the
+parent club (see `permissions.md`) — an owner/admin can start any
+queued match administratively, becoming its scorer even if they're not
+one of its players.
+
+Before either check, the handler requires the parent Session's own
+`status` be `in_progress` — 409 otherwise. Matches can be generated
+(and sit `queued`) ahead of the Session actually starting (e.g. right
+after Publish, well before `starts_at`), but none of them can be
+*started* until the Session itself has, via DP-009's auto-start.
+`SessionDetailScreen`'s `canStart` mirrors this client-side
+(`session?.status === 'in_progress'`) so the Start button doesn't even
+render on a not-yet-started Session's queued matches.
+
 `StartActivity`: `UPDATE activities SET status='live',
 scorer_user_id=$caller, started_at=now() WHERE id=$1 AND
 status='queued'`. If the `WHERE` matches zero rows, the handler
 disambiguates: activity genuinely not found → 404, activity exists but
-isn't `queued` → 409. This means **the first person to successfully
-call `/start` becomes the scorer** — there's no separate
+isn't `queued` → 409. This means **the first eligible person to
+successfully call `/start` becomes the scorer** — there's no separate
 "assign scorer" step, and no explicit conflict handling beyond the
 race being resolved by whichever request's `UPDATE` commits first.
 

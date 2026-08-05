@@ -9,7 +9,27 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yogisofiharja/aksi-server/internal/models"
+	"github.com/yogisofiharja/aksi-server/internal/sports"
 )
+
+// resolveLifecycleStatus computes DP-001's derived Session state.
+// draft/in_progress/completed/cancelled pass through Status unchanged —
+// only 'open' has a derived sub-state (recruiting/ready/full), resolved
+// from JoinedCount/MaxParticipants plus the Sport Module's minimum-
+// participants rule. Never persisted — call after JoinedCount is set.
+func resolveLifecycleStatus(s models.Session) string {
+	switch s.Status {
+	case "draft", "in_progress", "completed", "cancelled":
+		return s.Status
+	}
+	if s.MaxParticipants != nil && s.JoinedCount >= *s.MaxParticipants {
+		return "full"
+	}
+	if s.JoinedCount >= sports.MinParticipantsToStart(s.Sport) {
+		return "ready"
+	}
+	return "recruiting"
+}
 
 const sessionColumns = "id, club_id, sport, name, location, court_count, status, max_participants, default_match_format, created_by, created_at, updated_at, starts_at, recurring_schedule_id, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing"
 
@@ -71,7 +91,14 @@ func CreateSession(ctx context.Context, pool *pgxpool.Pool, p CreateSessionParam
 		return models.Session{}, err
 	}
 	defer rows.Close()
-	return pgx.CollectOneRow(rows, scanSession)
+	s, err := pgx.CollectOneRow(rows, scanSession)
+	if err != nil {
+		return models.Session{}, err
+	}
+	// JoinedCount is correctly zero — a brand-new Session has no
+	// participants yet, no query needed to confirm that.
+	s.LifecycleStatus = resolveLifecycleStatus(s)
+	return s, nil
 }
 
 func GetSession(ctx context.Context, pool *pgxpool.Pool, sessionID string) (models.Session, error) {
@@ -92,6 +119,7 @@ func GetSession(ctx context.Context, pool *pgxpool.Pool, sessionID string) (mode
 		return models.Session{}, err
 	}
 	s.JoinedCount = counts[s.ID]
+	s.LifecycleStatus = resolveLifecycleStatus(s)
 	return s, nil
 }
 
@@ -132,6 +160,7 @@ func ListSessionsForClub(ctx context.Context, pool *pgxpool.Pool, clubID string,
 	}
 	for i := range result {
 		result[i].JoinedCount = counts[result[i].ID]
+		result[i].LifecycleStatus = resolveLifecycleStatus(result[i])
 	}
 	return result, nil
 }
@@ -182,7 +211,48 @@ func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.Session{}, ErrNotFound
 	}
-	return s, err
+	if err != nil {
+		return models.Session{}, err
+	}
+	// Pre-existing gap, fixed here: the UPDATE...RETURNING above only
+	// scans raw columns, so JoinedCount would otherwise be left at its
+	// zero value regardless of actual participant count — wrong for any
+	// Session that already has participants when PATCHed (e.g.
+	// publishing a Session an organizer already checked guests into).
+	// Needed for LifecycleStatus below to be correct on this path, which
+	// Start/Complete Session now call constantly.
+	counts, err := CountJoinedParticipants(ctx, pool, []string{s.ID})
+	if err != nil {
+		return models.Session{}, err
+	}
+	s.JoinedCount = counts[s.ID]
+	s.LifecycleStatus = resolveLifecycleStatus(s)
+	return s, nil
+}
+
+// DeleteSession hard-deletes a Session — Milestone 2's "Discard" action,
+// Draft-only (enforced here too, defense in depth beyond the handler's
+// own check). Unlike every other terminal path (Cancel, Complete), this
+// is a real DELETE, not a status write: appropriate for a Draft nobody
+// but the organizer has ever seen (DP-001: drafts are invisible to non-
+// owner/admin members), unlike a published Session others may already
+// have joined, where Cancel's visible record is the right terminal
+// action instead. Participants/Activities cascade via FK (ON DELETE
+// CASCADE, migrations/0001_init.up.sql) — no separate cleanup needed.
+// Returns ErrConflict if the Session exists but isn't a draft,
+// ErrNotFound if it doesn't exist at all.
+func DeleteSession(ctx context.Context, pool *pgxpool.Pool, sessionID string) error {
+	tag, err := pool.Exec(ctx, "DELETE FROM sessions WHERE id = $1 AND status = 'draft'", sessionID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		if _, gerr := GetSession(ctx, pool, sessionID); errors.Is(gerr, ErrNotFound) {
+			return ErrNotFound
+		}
+		return ErrConflict
+	}
+	return nil
 }
 
 // ListElapsedSessions returns every Session whose starts_at+duration_minutes
@@ -196,6 +266,35 @@ func ListElapsedSessions(ctx context.Context, pool *pgxpool.Pool) ([]models.Sess
 		 WHERE starts_at IS NOT NULL AND duration_minutes IS NOT NULL
 		   AND starts_at + (duration_minutes || ' minutes')::interval <= now()
 		   AND status NOT IN ('completed', 'cancelled')`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := []models.Session{}
+	for rows.Next() {
+		s, err := scanSession(rows)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, s)
+	}
+	return result, rows.Err()
+}
+
+// ListDueToStartSessions returns every 'open' Session whose starts_at has
+// arrived — the candidate set for auto-start (Milestone 2, revised: no
+// manual "Start Session" organizer action anymore, the Session starts
+// itself once its scheduled time comes). Deliberately status = 'open'
+// only — a Draft Session's starts_at passing doesn't auto-start it (it
+// was never published, nobody could have joined); that case is instead
+// caught by ListElapsedSessions once its full window (starts_at+duration)
+// passes, same as before, auto-cancelling it.
+func ListDueToStartSessions(ctx context.Context, pool *pgxpool.Pool) ([]models.Session, error) {
+	rows, err := pool.Query(ctx,
+		`SELECT `+sessionColumns+` FROM sessions
+		 WHERE starts_at IS NOT NULL AND status = 'open' AND starts_at <= now()`,
 	)
 	if err != nil {
 		return nil, err

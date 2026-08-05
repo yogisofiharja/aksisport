@@ -104,8 +104,8 @@ export function HomeScreen({ onOpenClub, onCreateClub, onJoinClub, onOpenSession
                     title={session.name ?? club.name}
                     subtitle={club.name}
                     dateTime={formatSessionDateTime(session.startsAt)}
-                    status={statusLabel(session.status, t)}
-                    statusAction={sessionStatusColor(session.status)}
+                    status={statusLabel(session.lifecycleStatus, t)}
+                    statusAction={sessionStatusColor(session.lifecycleStatus)}
                     onPress={() => onOpenSession(session.id)}
                   />
                 ))}

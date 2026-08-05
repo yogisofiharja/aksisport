@@ -24,6 +24,7 @@ export type MainStackParamList = {
   SessionList: { clubId: string };
   SessionHistory: { clubId: string };
   CreateSession: { clubId: string };
+  EditSession: { sessionId: string };
   SessionDetail: { sessionId: string };
   AddMatch: { sessionId: string };
   ActivityMatch: { activityId: string };
@@ -151,6 +152,21 @@ export function MainStack() {
         )}
       </Stack.Screen>
 
+      <Stack.Screen name="EditSession">
+        {({ navigation, route }) => (
+          <CreateSessionScreen
+            // Unused in edit mode — CreateSessionScreen resolves clubId
+            // itself from the fetched Session (editingSessionId is set).
+            clubId=""
+            editingSessionId={route.params.sessionId}
+            onBack={() => navigation.goBack()}
+            onSessionCreated={() => {}}
+            onScheduleCreated={() => {}}
+            onSessionUpdated={() => navigation.goBack()}
+          />
+        )}
+      </Stack.Screen>
+
       <Stack.Screen name="SessionDetail">
         {({ navigation, route }) => (
           <SessionDetailScreen
@@ -158,6 +174,8 @@ export function MainStack() {
             onBack={() => navigation.goBack()}
             onAddMatch={(sessionId) => navigation.navigate('AddMatch', { sessionId })}
             onOpenMatch={(activityId) => navigation.navigate('ActivityMatch', { activityId })}
+            onEdit={(sessionId) => navigation.navigate('EditSession', { sessionId })}
+            onDiscarded={() => navigation.goBack()}
           />
         )}
       </Stack.Screen>

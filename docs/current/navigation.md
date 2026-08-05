@@ -51,8 +51,14 @@ Personal (initial) — see PersonalTabs below
               ├─→ CreateSession { clubId }   → replaces with SessionDetail on success
               └─→ SessionDetail { sessionId }
                     ├─→ AddMatch { sessionId }        → goBack() on success
-                    └─→ ActivityMatch { activityId }  → goBack() on done
+                    ├─→ ActivityMatch { activityId }  → goBack() on done
+                    └─→ EditSession { sessionId }     → goBack() on save (Milestone 2,
+                                                          Draft only — see lifecycle-session.md)
 ```
+
+`EditSession` reuses `CreateSessionScreen` in an "edit mode" (`editingSessionId` prop) rather than a
+separate component — same form, pre-filled from the existing (Draft) Session, sport/recurring-toggle
+hidden (both immutable after creation), submits via `updateSession()` instead of `createSession()`.
 
 Every screen that isn't the initial route is reached via
 `navigation.navigate` (pushes) or `navigation.replace` (create/join

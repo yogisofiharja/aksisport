@@ -23,26 +23,29 @@ type Props = {
   onOpenHistory: () => void;
 };
 
-export function statusLabel(status: Session['status'], t: (key: string) => string) {
-  // DP-001: draft/cancelled added — without these two cases, both would
-  // have silently fallen through to "Open" once the server started
-  // returning them (every new session now starts as draft).
+// Milestone 2: branches on the server-resolved lifecycleStatus, not raw
+// status — 'open' no longer collapses into a single "Open" label,
+// Recruiting/Ready/Full (DP-001's derived sub-states) get their own copy.
+export function statusLabel(status: Session['lifecycleStatus'], t: (key: string) => string) {
   if (status === 'draft') return t('sessionStatusDraft');
   if (status === 'cancelled') return t('sessionStatusCancelled');
   if (status === 'in_progress') return t('sessionStatusInProgress');
   if (status === 'completed') return t('sessionStatusCompleted');
-  return t('sessionStatusOpen');
+  if (status === 'recruiting') return t('sessionStatusRecruiting');
+  if (status === 'ready') return t('sessionStatusReady');
+  return t('sessionStatusFull');
 }
 
-// Distinct colors per status so the list is scannable without reading
-// every pill's text — draft/open/in_progress/completed/cancelled
-// previously all rendered as the same neutral gray.
-export function sessionStatusColor(status: Session['status']): BadgeAction {
+// Distinct colors per lifecycle status so the list is scannable without
+// reading every pill's text.
+export function sessionStatusColor(status: Session['lifecycleStatus']): BadgeAction {
   if (status === 'draft') return 'warning';
   if (status === 'cancelled') return 'error';
   if (status === 'in_progress') return 'success';
   if (status === 'completed') return 'muted';
-  return 'info'; // open
+  if (status === 'recruiting') return 'info';
+  if (status === 'ready') return 'success';
+  return 'warning'; // full
 }
 
 function byStartsAtAsc(a: Session, b: Session) {
@@ -84,8 +87,8 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
         title={session.name || session.sport}
         subtitle={session.location}
         dateTime={formatSessionDateTime(session.startsAt)}
-        status={statusLabel(session.status, t)}
-        statusAction={sessionStatusColor(session.status)}
+        status={statusLabel(session.lifecycleStatus, t)}
+        statusAction={sessionStatusColor(session.lifecycleStatus)}
         joinedCount={session.joinedCount}
         maxParticipants={session.maxParticipants}
         onPress={() => onOpenSession(session.id)}

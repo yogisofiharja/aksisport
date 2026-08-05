@@ -138,18 +138,38 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 
 	authed.POST("/activities/:id/start", func(c *gin.Context) {
 		activityID := c.Param("id")
-		if _, _, _, ok := requireActivityAccess(c, pool, activityID); !ok {
+		_, sessionID, role, ok := requireActivityAccess(c, pool, activityID)
+		if !ok {
 			return
 		}
-		user := authjwt.CurrentUser(c)
-		eligible, err := dbpkg.IsCheckedInActivityParticipant(c.Request.Context(), pool, activityID, user.ID)
+		// A match can only be started once its Session is actually live —
+		// not while still Recruiting/Ready/Full, even if matches were
+		// already generated ahead of the start time.
+		sess, err := dbpkg.GetSession(c.Request.Context(), pool, sessionID)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
-		if !eligible {
-			respondError(c, http.StatusForbidden, "only a checked-in participant of this match can start it")
+		if sess.Status != "in_progress" {
+			respondError(c, http.StatusConflict, "the session hasn't started yet")
 			return
+		}
+		user := authjwt.CurrentUser(c)
+		// Owner/admin can start any queued match administratively — e.g. an
+		// organizer scoring on behalf of players without the app — without
+		// needing to be a checked-in participant of that specific match
+		// themselves. Regular players still need to be one of the match's
+		// own checked-in participants.
+		if !isOwnerOrAdmin(role) {
+			eligible, err := dbpkg.IsCheckedInActivityParticipant(c.Request.Context(), pool, activityID, user.ID)
+			if err != nil {
+				respondError(c, http.StatusInternalServerError, "internal error")
+				return
+			}
+			if !eligible {
+				respondError(c, http.StatusForbidden, "only a checked-in participant of this match can start it")
+				return
+			}
 		}
 		activity, err := dbpkg.StartActivity(c.Request.Context(), pool, activityID, user.ID)
 		if errors.Is(err, dbpkg.ErrConflict) {

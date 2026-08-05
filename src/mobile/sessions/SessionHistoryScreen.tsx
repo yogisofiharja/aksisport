@@ -71,8 +71,8 @@ export function SessionHistoryScreen({ clubId, onBack, onOpenSession }: Props) {
               title={session.name || session.sport}
               subtitle={session.location}
               dateTime={formatSessionDateTime(session.startsAt)}
-              status={statusLabel(session.status, t)}
-              statusAction={sessionStatusColor(session.status)}
+              status={statusLabel(session.lifecycleStatus, t)}
+              statusAction={sessionStatusColor(session.lifecycleStatus)}
               joinedCount={session.joinedCount}
               maxParticipants={session.maxParticipants}
               onPress={() => onOpenSession(session.id)}

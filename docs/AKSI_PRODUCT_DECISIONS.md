@@ -521,11 +521,21 @@ forced to think about it in the common case, but the value is always
 explicit, never silently inferred.
 
 When Host Playing is "yes", the organizer is automatically added as a
-checked-in participant (DP-002) the moment the Session is created — for a
+registered participant (DP-002) the moment the Session is created — for a
 Recurring Schedule, this happens on every generated Session. This is the
 organizer's own declared intent to play, not a third-party join request,
 so it is not subject to a Session's Strict Skill Level requirement
 (DP-008) — an organizer is never blocked from their own Session.
+
+Checked In specifically means physically present and ready to play —
+that's the entire reason the Check-In Window (DP-002, 1 hour before the
+Session starts) exists. Host Playing being "yes" is a declaration of
+intent made in advance, not a claim of presence, so it lands the
+organizer at Registered, not Checked In. The organizer still checks
+themselves in for real, same as anyone else, once the Check-In Window
+opens and they're actually there. (Revised — this previously landed the
+organizer directly at Checked In on creation, before that distinction
+was drawn out explicitly.)
 
 ---
 
@@ -624,12 +634,19 @@ Planning-only.
 ### Regenerate
 
 Once matches exist, if a player checks in who isn't covered by any
-currently queued (not yet started) match, the organizer sees a
-**Regenerate** option. Regenerating deletes every currently queued match
-and generates the same number of matches again, fairly, from everyone now
-checked in — live and completed matches are never touched. Regeneration
-only happens when the organizer explicitly taps Regenerate; there is no
-silent/automatic regeneration on check-in.
+currently queued (not yet started) match, the organizer also sees a
+**Regenerate** option they can trigger manually at any time. Regenerating
+deletes every currently queued match and generates the same number of
+matches again, fairly, from everyone now checked in — live and completed
+matches are never touched.
+
+Regeneration also now happens **automatically**: whenever the checked-in
+pool changes for any reason (a late check-in, a checked-in player
+cancelling their participation, being removed by the organizer, marked a
+no-show, or checking out) while matches are still queued, the app
+regenerates the queue itself — the organizer doesn't have to notice the
+mismatch and remember to tap Regenerate. (Revised — this previously
+required an explicit tap every time, with no silent/automatic path.)
 
 ---
 

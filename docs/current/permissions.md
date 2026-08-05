@@ -34,23 +34,29 @@ re-checks independently.
 | View session, list sessions, register, check in, view participants | any member |
 | Create activity (`POST /v1/sessions/:id/activities`) | `owner` or `admin` |
 | View activity/activities | any member of the parent club |
-| Start an activity | **not role-based** — see below |
+| Start an activity | **partly role-based** — see below |
 | Complete an activity | **not role-based** — see below |
 
 `docs/archive/prd.md`'s Club Roles section lists Admin as able to "Assign scorer" —
 there is no assign-scorer endpoint; the closest actual behavior is
 that starting an activity makes the starter the scorer (see
-`lifecycle-activity.md`), which is participant-based, not
-admin-triggered.
+`lifecycle-activity.md`). Owner/admin can trigger this administratively
+on any queued match (see below); a regular member can only trigger it
+for a match they're actually playing in.
 
-## Activity-specific rules (not role-based)
+## Activity-specific rules
 
 - **Start** (`POST /v1/activities/:id/start`): caller must be a
   **checked-in participant of that specific activity** — i.e. present
   in `activity_participants` for this activity AND their
-  `session_participants.status = 'checked_in'` for the parent session.
-  Club role is irrelevant here; an owner who isn't one of the
-  activity's participants cannot start it.
+  `session_participants.status = 'checked_in'` for the parent session —
+  **or** `owner`/`admin` of the parent club. The role check is an
+  `isOwnerOrAdmin(role)` bypass added around the checked-in-participant
+  check (`dbpkg.IsCheckedInActivityParticipant`) — an owner/admin can
+  start any queued match in the session even if they're not one of its
+  players, becoming its scorer (e.g. scoring on behalf of players
+  without the app). A regular member who isn't one of the activity's
+  participants still cannot start it.
 - **Complete** (`POST /v1/activities/:id/complete`): caller must be
   exactly `activities.scorer_user_id` (set when the activity was
   started). No one else — not even the club owner — can complete a

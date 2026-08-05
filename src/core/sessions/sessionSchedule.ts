@@ -6,13 +6,19 @@ function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-// Buckets a Session by its calendar date (not exact time) relative to
-// today — "today" includes every Session scheduled for today regardless
-// of status, so a same-day cancelled Session stays in the main list
-// instead of disappearing into Past history. Sessions with no startsAt
-// (legacy, pre-DP-009-mandate) are treated as upcoming rather than
-// silently hidden.
+// Buckets a Session for SessionListScreen ("Today"/"Upcoming") and
+// SessionHistoryScreen ("Past"). Status takes precedence over date
+// (Milestone 2, revised): a Completed or Cancelled Session always
+// buckets as 'past', regardless of when it was scheduled — "Today"/
+// "Upcoming" are for what's still active or hasn't happened yet, not a
+// historical record. (Earlier behavior bucketed purely by calendar date,
+// so a same-day Cancelled Session stayed in the active list — reversed
+// per explicit product decision.) Otherwise, buckets by calendar date
+// (not exact time) relative to today. Sessions with no startsAt (legacy,
+// pre-DP-009-mandate) are treated as upcoming rather than silently
+// hidden.
 export function sessionDateBucket(session: Session, now: Date = new Date()): SessionDateBucket {
+  if (session.status === 'completed' || session.status === 'cancelled') return 'past';
   if (!session.startsAt) return 'upcoming';
   const start = startOfDay(new Date(session.startsAt));
   const today = startOfDay(now);

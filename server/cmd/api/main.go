@@ -62,10 +62,11 @@ func main() {
 		}
 	}()
 
-	// DP-007 generation + DP-009 auto-transition. Same in-process ticker
-	// rather than separate job/cron processes — this repo has no second
-	// deployment target today, and both are idempotent/safe under any
-	// interval, including missed ticks (see GenerateDueSessions and
+	// DP-007 generation + DP-009 auto-start/auto-transition. Same
+	// in-process ticker rather than separate job/cron processes — this
+	// repo has no second deployment target today, and all three are
+	// idempotent/safe under any interval, including missed ticks (see
+	// GenerateDueSessions, AutoStartDueSessions, and
 	// AutoTransitionElapsedSessions).
 	go func() {
 		ticker := time.NewTicker(cfg.RecurringScheduleGenerationInterval)
@@ -77,6 +78,9 @@ func main() {
 			case <-ticker.C:
 				if err := scheduling.GenerateDueSessions(ctx, pool); err != nil {
 					log.Printf("recurring schedule generation: %v", err)
+				}
+				if err := scheduling.AutoStartDueSessions(ctx, pool); err != nil {
+					log.Printf("session auto-start: %v", err)
 				}
 				if err := scheduling.AutoTransitionElapsedSessions(ctx, pool); err != nil {
 					log.Printf("session auto-transition: %v", err)

@@ -90,20 +90,42 @@ before, just no longer entirely aspirational.
 session-level code (see below) doesn't import a specific sport by name.
 Tennis is still the only registered entry.
 
-## Derived state stays client-side, by design
+## Derived state is resolved server-side (DP-ARCH-003)
 
-`DP-001` (Session Lifecycle) needed exactly this contract to resolve a
-real fork: Recruiting/Ready/Full depend on "minimum participants," which
-is Sport-Engine-owned per `DP-003` — client-side only, deliberately not
-replicated in Go. Rather than duplicating that rule server-side (which
-would mean two sources of truth for the same number), the derivation
-itself lives client-side: `src/core/sessions/deriveStatus.ts` computes
-Recruiting/Ready/Full from data the client already has (the session, its
-participants, and `getSportModule(session.sport).rules.minParticipants`).
-The server only ever stores and returns `draft`/`open`/`in_progress`/
-`completed`/`cancelled` — `open` is the one value with a derived
-sub-state, resolved client-side, never stored as `recruiting`/`ready`/
-`full` in Postgres.
+`DP-001` (Session Lifecycle) is explicit: "the backend should expose the
+resolved lifecycle state." An earlier version of this document described
+keeping Recruiting/Ready/Full client-side instead, to avoid duplicating
+the Sport-Engine's `minParticipants` rule in Go — that was a deviation
+from `DP-001`/`DP-ARCH-003`, not a sanctioned exception, and has been
+corrected (Milestone 2 — Session Experience).
+
+The server now resolves `LifecycleStatus` (Go) / `lifecycleStatus`
+(JSON) on every Session response — `internal/db/sessions.go`'s
+`resolveLifecycleStatus`, called wherever a `Session` is returned
+(`CreateSession`/`GetSession`/`ListSessionsForClub`/`UpdateSession`).
+`draft`/`in_progress`/`completed`/`cancelled` pass through unchanged;
+`open` resolves to `recruiting`/`ready`/`full` from `JoinedCount`/
+`MaxParticipants` plus a minimum-participants threshold. **Still never
+persisted** — computed fresh on every request, exactly as `DP-001`
+requires ("derived values should not be persisted unless explicitly
+required").
+
+That minimum-participants threshold comes from a new
+`internal/sports` package (`MinParticipantsToStart`) — a small,
+Tennis-only mirror of `src/sports/tennis/rules.ts`'s
+`minParticipants('single')`. This is a Session asking the Sport Module
+for sport-specific knowledge, not an ownership transfer — `DP-ARCH-002`
+already explicitly allows this ("A Session may ask the Sport Module for
+sport-specific knowledge"). The mirror is a deliberately small stand-in,
+not a real registry — evolve `internal/sports` toward mirroring
+`src/sports/registry.ts`'s `sportId -> SportModule` shape once a second
+sport needs its own rules exposed the same way; nothing here blocks
+that.
+
+The client no longer derives this itself — the former
+`src/core/sessions/deriveStatus.ts` (dead code with zero production
+call sites even before this) is deleted. `Session.lifecycleStatus`
+(`src/core/api/types.ts`) is consumed directly.
 
 ## What this deliberately does not introduce
 
