@@ -1,5 +1,5 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ClubListScreen } from '../mobile/clubs/ClubListScreen';
+import { PersonalTabs } from './PersonalTabs';
 import { CreateClubScreen } from '../mobile/clubs/CreateClubScreen';
 import { JoinClubScreen } from '../mobile/clubs/JoinClubScreen';
 import { ClubDetailScreen } from '../mobile/clubs/ClubDetailScreen';
@@ -12,11 +12,11 @@ import { AddMatchScreen } from '../mobile/activities/AddMatchScreen';
 import { ActivityMatchScreen } from '../mobile/activities/ActivityMatchScreen';
 import { RecurringScheduleListScreen } from '../mobile/recurringSchedules/RecurringScheduleListScreen';
 import { RecurringScheduleDetailScreen } from '../mobile/recurringSchedules/RecurringScheduleDetailScreen';
-import { SkillLevelsScreen } from '../mobile/profile/SkillLevelsScreen';
+import { SettingsScreen } from '../mobile/me/SettingsScreen';
 
 export type MainStackParamList = {
-  ClubList: undefined;
-  SkillLevels: undefined;
+  Personal: undefined;
+  Settings: undefined;
   CreateClub: undefined;
   JoinClub: undefined;
   ClubDetail: { clubId: string };
@@ -36,20 +36,11 @@ const Stack = createNativeStackNavigator<MainStackParamList>();
 
 export function MainStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ClubList">
-        {({ navigation }) => (
-          <ClubListScreen
-            onOpenClub={(clubId) => navigation.navigate('ClubDetail', { clubId })}
-            onCreateClub={() => navigation.navigate('CreateClub')}
-            onJoinClub={() => navigation.navigate('JoinClub')}
-            onOpenProfile={() => navigation.navigate('SkillLevels')}
-          />
-        )}
-      </Stack.Screen>
+    <Stack.Navigator initialRouteName="Personal" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Personal" component={PersonalTabs} />
 
-      <Stack.Screen name="SkillLevels">
-        {({ navigation }) => <SkillLevelsScreen onBack={() => navigation.goBack()} />}
+      <Stack.Screen name="Settings">
+        {({ navigation }) => <SettingsScreen onBack={() => navigation.goBack()} />}
       </Stack.Screen>
 
       <Stack.Screen name="CreateClub">
@@ -78,7 +69,7 @@ export function MainStack() {
             onOpenMembers={(clubId) => navigation.navigate('ClubMembers', { clubId })}
             onOpenSessions={(clubId) => navigation.navigate('SessionList', { clubId })}
             onOpenRecurringSchedules={(clubId) => navigation.navigate('RecurringScheduleList', { clubId })}
-            onDeleted={() => navigation.navigate('ClubList')}
+            onDeleted={() => navigation.navigate('Personal')}
           />
         )}
       </Stack.Screen>

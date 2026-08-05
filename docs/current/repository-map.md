@@ -13,8 +13,11 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 ├── README.md                Setup only
 │
 ├── docs/
-│   ├── product/               Target product docs (vision, principles, navigation,
-│   │                           context, interaction, domain, roadmap, terminology)
+│   ├── product/               Target product docs (vision, domain, roadmap, terminology,
+│   │                           milestone-1) — navigation/principles/context/interaction
+│   │                           retired, superseded by the three Foundation Docs at the
+│   │                           docs/ root (AKSI_PRODUCT_DECISIONS/UX_PRINCIPLES/
+│   │                           INFORMATION_ARCHITECTURE.md)
 │   ├── engineering/            Target technical docs (architecture, project-structure,
 │   │                           state-management, api-guidelines, coding-standards,
 │   │                           testing, technical-direction)
@@ -51,7 +54,10 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   ├── navigation/               React Navigation, mobile only
 │   │   ├── RootNavigator.tsx       Picks AuthStack vs MainStack based on auth state
 │   │   ├── AuthStack.tsx            Login, SignUp
-│   │   └── MainStack.tsx            Everything else (see docs/current/navigation.md)
+│   │   ├── MainStack.tsx            Personal (tabs) + Community/Object screens
+│   │   │                          (see docs/current/navigation.md)
+│   │   └── PersonalTabs.tsx         Home/Explore/Inbox/Me bottom-tab navigator
+│   │                              (Milestone 1 — Personal Context Shell)
 │   │
 │   ├── mobile/                   Native UI — two conventions coexist:
 │   │   ├── Mobile*.tsx              Legacy scoring-flow screens (MobileMatchScreen,
@@ -62,7 +68,17 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   │                            web; on mobile it is no longer reachable from
 │   │   │                            navigation (retired as an entry point).
 │   │   ├── auth/                    SignUpScreen, LoginScreen, CompleteProfileScreen
-│   │   ├── clubs/                    ClubListScreen, CreateClubScreen, JoinClubScreen,
+│   │   ├── home/                     HomeScreen — Personal Context "My Communities" +
+│   │   │                            cross-club attention surfacing (Milestone 1;
+│   │   │                            supersedes the old ClubListScreen-as-root)
+│   │   ├── explore/                  ExploreScreen — placeholder (Milestone 1)
+│   │   ├── inbox/                    InboxScreen — placeholder (Milestone 1)
+│   │   ├── me/                       MeScreen (identity hub + inline per-sport skill-level
+│   │   │                            editing, absorbing the retired SkillLevelsScreen),
+│   │   │                            SettingsScreen (Theme/Language/Logout — Milestone 1,
+│   │   │                            supersedes the legacy SettingsModal for the
+│   │   │                            authenticated flow)
+│   │   ├── clubs/                    CreateClubScreen, JoinClubScreen,
 │   │   │                            ClubDetailScreen, ClubMembersScreen
 │   │   ├── sessions/                  SessionListScreen (Today/Upcoming, v0.6.3),
 │   │   │                            SessionHistoryScreen (Past, v0.6.3, Club-scoped
@@ -78,12 +94,11 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   │                              legacy components/ui/* set before), ActivityMatchScreen
 │   │   ├── recurringSchedules/          RecurringScheduleListScreen,
 │   │   │                              RecurringScheduleDetailScreen, weekday.ts
-│   │   ├── skillLevels/                 SkillLevelRangePicker.tsx — shared by
-│   │   │                              CreateSessionScreen's two modes, always
-│   │   │                              visible (mandatory, not collapsible)
-│   │   └── profile/                     SkillLevelsScreen — only profile-ish screen in the
-│   │                                  new app; entry point is a header icon on ClubListScreen
-│   │       (auth/clubs/sessions/activities/recurringSchedules/profile screens have no web equivalent)
+│   │   └── skillLevels/                 SkillLevelRangePicker.tsx — shared by
+│   │                                  CreateSessionScreen's two modes, always
+│   │                                  visible (mandatory, not collapsible)
+│   │       (auth/home/explore/inbox/me/clubs/sessions/activities/recurringSchedules
+│   │        screens have no web equivalent)
 │   │
 │   ├── components/                Web UI only. MatchSetup, LineupScreen, MatchScreen,
 │   │                              FinalScoreScreen, WatchScreen, HistoryScreen,

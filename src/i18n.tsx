@@ -167,16 +167,14 @@ const en: Dict = {
   authContinue: 'Continue',
   authGenericError: 'Something went wrong. Please try again.',
 
-  // Clubs
-  clubListTitle: 'Your Clubs',
-  clubEmptyState: 'No clubs yet — create one or join with a code.',
-  clubCreate: 'Create Club',
-  clubJoin: 'Join with Code',
-  clubNamePlaceholder: 'Club name',
+  // Clubs (product-facing term is now "Community" — AKSI_PRODUCT_DECISIONS.md;
+  // key names keep the `club` prefix, only display copy changed, to avoid
+  // an unrelated identifier-rename churn)
+  clubNamePlaceholder: 'Community name',
   clubDescriptionPlaceholder: 'Description (optional)',
   clubCreateSubmit: 'Create',
-  clubJoinTitle: 'Join a Club',
-  clubJoinDesc: 'Enter the 5-letter invite code from the club owner',
+  clubJoinTitle: 'Join a Community',
+  clubJoinDesc: 'Enter the 5-letter invite code from the community owner',
   clubJoinCodePlaceholder: 'A B C D E',
   clubJoinSubmit: 'Join',
   clubMembersTitle: 'Members',
@@ -191,10 +189,10 @@ const en: Dict = {
   clubPromote: 'Make Admin',
   clubDemote: 'Make Member',
   clubRemove: 'Remove',
-  clubLeaveClub: 'Leave Club',
-  clubDeleteClub: 'Delete Club',
-  clubDeleteConfirmTitle: 'Delete this club?',
-  clubDeleteConfirmDesc: 'This removes the club and all its members. This cannot be undone.',
+  clubLeaveClub: 'Leave Community',
+  clubDeleteClub: 'Delete Community',
+  clubDeleteConfirmTitle: 'Delete this community?',
+  clubDeleteConfirmDesc: 'This removes the community and all its members. This cannot be undone.',
   clubCancel: 'Cancel',
   clubConfirm: 'Confirm',
 
@@ -342,8 +340,6 @@ const en: Dict = {
 
   // Skill Levels (DP-008)
   sportTennis: 'Tennis',
-  skillLevelsTitle: 'Skill Levels',
-  skillLevelsSubtitle: 'Self-reported — set your level per sport. You can change it anytime.',
   skillLevelNotSet: 'Not set',
   skillLevelRequireToggleLabel: 'Require a skill level?',
   skillLevelRangeLabel: 'Skill level requirement',
@@ -359,6 +355,37 @@ const en: Dict = {
   skillLevelStrictBlockedOutOfRange: (min: string, max: string) =>
     `This session requires ${min}–${max}. Your skill level is outside that range.`,
   skillLevelStrictBlockedNotSet: (sport: string) => `Set your ${sport} skill level before joining this session.`,
+
+  // Personal Navigation tab bar labels (Milestone 1). Explore/Inbox reuse
+  // their own exploreTitle/inboxTitle for their on-page heading (separate
+  // keys, same text); Home reuses this same key as its on-page heading too
+  // (HomeScreen.tsx), with homeAttentionTitle/homeMyCommunitiesTitle as
+  // subsection labels underneath it. @react-navigation/bottom-tabs falls
+  // back to `options.title` for the tab label when `tabBarLabel` is unset,
+  // so these must be passed as `tabBarLabel` explicitly, not `title`.
+  tabHome: 'Home',
+  tabExplore: 'Explore',
+  tabInbox: 'Inbox',
+  tabMe: 'Me',
+
+  // Home (Personal Context Shell — Milestone 1)
+  homeAttentionTitle: 'Needs Attention',
+  homeMyCommunitiesTitle: 'My Communities',
+  homeCommunitiesEmptyState: 'No communities yet — create one or join with a code.',
+  homeCreateCommunity: 'Create Community',
+  homeJoinCommunity: 'Join with Code',
+
+  // Explore (Milestone 1 — placeholder, real discovery is Planning-only)
+  exploreTitle: 'Explore',
+  exploreEmptyState: 'Discovering communities and activities near you is coming soon.',
+
+  // Inbox (Milestone 1 — placeholder, no backing data model yet)
+  inboxTitle: 'Inbox',
+  inboxEmptyState: "You're all caught up — nothing here yet.",
+
+  // Me (Milestone 1)
+  meSportsTitle: 'Sports',
+  logout: 'Log Out',
 };
 
 const id: Dict = {
@@ -523,16 +550,13 @@ const id: Dict = {
   authContinue: 'Lanjutkan',
   authGenericError: 'Terjadi kesalahan. Silakan coba lagi.',
 
-  // Clubs
-  clubListTitle: 'Klub Kamu',
-  clubEmptyState: 'Belum ada klub — buat satu atau gabung pakai kode.',
-  clubCreate: 'Buat Klub',
-  clubJoin: 'Gabung dengan Kode',
-  clubNamePlaceholder: 'Nama klub',
+  // Clubs (istilah produk sekarang "Community/Komunitas" — nama key tetap
+  // berawalan `club`, hanya teks tampilan yang berubah)
+  clubNamePlaceholder: 'Nama komunitas',
   clubDescriptionPlaceholder: 'Deskripsi (opsional)',
   clubCreateSubmit: 'Buat',
-  clubJoinTitle: 'Gabung Klub',
-  clubJoinDesc: 'Masukkan kode undangan 5 huruf dari pemilik klub',
+  clubJoinTitle: 'Gabung Komunitas',
+  clubJoinDesc: 'Masukkan kode undangan 5 huruf dari pemilik komunitas',
   clubJoinCodePlaceholder: 'A B C D E',
   clubJoinSubmit: 'Gabung',
   clubMembersTitle: 'Anggota',
@@ -547,10 +571,10 @@ const id: Dict = {
   clubPromote: 'Jadikan Admin',
   clubDemote: 'Jadikan Anggota',
   clubRemove: 'Hapus',
-  clubLeaveClub: 'Keluar Klub',
-  clubDeleteClub: 'Hapus Klub',
-  clubDeleteConfirmTitle: 'Hapus klub ini?',
-  clubDeleteConfirmDesc: 'Ini akan menghapus klub beserta semua anggotanya. Tindakan ini tidak dapat dibatalkan.',
+  clubLeaveClub: 'Keluar Komunitas',
+  clubDeleteClub: 'Hapus Komunitas',
+  clubDeleteConfirmTitle: 'Hapus komunitas ini?',
+  clubDeleteConfirmDesc: 'Ini akan menghapus komunitas beserta semua anggotanya. Tindakan ini tidak dapat dibatalkan.',
   clubCancel: 'Batal',
   clubConfirm: 'Konfirmasi',
 
@@ -698,8 +722,6 @@ const id: Dict = {
 
   // Skill Levels (DP-008)
   sportTennis: 'Tenis',
-  skillLevelsTitle: 'Level Kemampuan',
-  skillLevelsSubtitle: 'Dilaporkan sendiri — atur levelmu per olahraga. Bisa diubah kapan saja.',
   skillLevelNotSet: 'Belum diatur',
   skillLevelRequireToggleLabel: 'Wajibkan level kemampuan?',
   skillLevelRangeLabel: 'Persyaratan level kemampuan',
@@ -715,6 +737,33 @@ const id: Dict = {
   skillLevelStrictBlockedOutOfRange: (min: string, max: string) =>
     `Sesi ini memerlukan level ${min}–${max}. Level kemampuanmu di luar rentang tersebut.`,
   skillLevelStrictBlockedNotSet: (sport: string) => `Atur level kemampuan ${sport}-mu sebelum bergabung ke sesi ini.`,
+
+  // Label tab bar Navigasi Personal (Milestone 1) — berbeda dari judul
+  // di dalam masing-masing layar (mis. judul Home adalah "Komunitas
+  // Saya", bukan "Home").
+  tabHome: 'Beranda',
+  tabExplore: 'Jelajahi',
+  tabInbox: 'Kotak Masuk',
+  tabMe: 'Saya',
+
+  // Home (Personal Context Shell — Milestone 1)
+  homeAttentionTitle: 'Perlu Perhatian',
+  homeMyCommunitiesTitle: 'Komunitas Saya',
+  homeCommunitiesEmptyState: 'Belum ada komunitas — buat satu atau gabung pakai kode.',
+  homeCreateCommunity: 'Buat Komunitas',
+  homeJoinCommunity: 'Gabung dengan Kode',
+
+  // Explore (Milestone 1 — placeholder, penemuan sesungguhnya masih Planning)
+  exploreTitle: 'Jelajahi',
+  exploreEmptyState: 'Menemukan komunitas dan aktivitas di sekitarmu akan segera hadir.',
+
+  // Inbox (Milestone 1 — placeholder, belum ada model data pendukung)
+  inboxTitle: 'Kotak Masuk',
+  inboxEmptyState: 'Belum ada yang perlu dilihat di sini.',
+
+  // Me (Milestone 1)
+  meSportsTitle: 'Olahraga',
+  logout: 'Keluar',
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

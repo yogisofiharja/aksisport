@@ -85,3 +85,15 @@ entire `MatchState` (plus `history`, `activityId`, `scorerUid`) to
 Firebase RTDB on every state change (`pushSessionState`), for
 spectators/QR viewers only. The Activity row in Postgres is untouched
 between `start` and `complete`.
+
+## UX rules this screen follows
+
+Relocated from the now-retired `docs/product/interaction.md` (its other
+two rules, "One primary action per screen" and "Progressive
+disclosure," are already restated in `AKSI_UX_PRINCIPLES.md`):
+
+- **Preserve momentum** — scoring a point should never require
+  confirmation or a secondary step.
+- **Never interrupt live play** — no modal, navigation, or blocking UI
+  may appear while a match is in progress except when the scorer
+  explicitly requests it (e.g. undo, manual end).

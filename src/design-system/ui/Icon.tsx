@@ -19,7 +19,7 @@ import { iconSize, type IconSizeToken } from '../foundation/icon-size';
  * replaces).
  */
 
-type IconColor = 'default' | 'muted' | 'brand' | 'destructive' | 'onBrand';
+type IconColor = 'default' | 'muted' | 'brand' | 'secondary' | 'destructive' | 'onBrand';
 
 type IconProps = {
   name: ComponentProps<typeof Ionicons>['name'];
@@ -37,6 +37,9 @@ export function Icon({ name, size = 'md', color: colorToken = 'default', style }
     default: palette.text.default,
     muted: palette.text.muted,
     brand: palette.brand.primary,
+    // Matches Button's action="secondary" — see Typography.tsx's `secondary`
+    // color for the same rationale.
+    secondary: palette.brand.secondary,
     destructive: palette.destructive,
     onBrand: '#ffffff', // icon on top of a solid brand-filled surface, e.g. inside a solid Button
   };

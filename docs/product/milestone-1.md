@@ -84,6 +84,17 @@ references say Activity.
 Firebase Auth, username + password only (synthetic email under the
 hood). Sign up, log in, session persists across app restart.
 
+**Known gap, not yet a product decision**: there is no password
+recovery of any kind. Firebase's standard "forgot password" email flow
+can't work as-is — accounts authenticate against a synthetic email
+(`username@accounts.aksi.app`, `src/core/auth/firebaseAuth.ts`), not a
+real address anyone controls, and sign-up never collects a real email
+(`SignUpScreen.tsx`, `UserProfile.email` exists in the schema but is
+never populated by the mobile client). Closing this needs a product
+decision (e.g. start collecting a real email at sign-up vs. an
+in-app/support-mediated reset) before it can be implemented — flagged
+here rather than assumed.
+
 ### Clubs
 
 Create a club, join by invite code. Owner can update/delete the club,
@@ -140,9 +151,12 @@ Username and display name, established at sign-up, used to identify
 people throughout the app (participant lists, "(You)" labeling).
 Profile editing (display name, avatar, etc.) is not required for
 Milestone 1 — the API to support it already exists (`PATCH /v1/me`),
-but no screen needs to expose it yet. This leaves room for a dedicated
-profile view to land later as part of the target Me tab
-(`docs/product/navigation.md`), without requiring rework now.
+but no screen needs to expose it yet. The Me tab itself now exists
+(`docs/AKSI_INFORMATION_ARCHITECTURE.md`, built by the separately
+numbered "Milestone 1 — Personal Context Shell" from the IA roadmap in
+`docs/current/ARCHITECTURE_GAP_ANALYSIS.md` — not this document); a
+dedicated profile-editing view within it can land later without
+requiring rework now.
 
 ### Settings
 
@@ -163,11 +177,19 @@ it already exists as a component elsewhere (e.g. the legacy
 
 ## Out of Scope
 
-- Visitor mode / unauthenticated preview (`docs/product/principles.md`:
-  explicit future milestone, "auth remains mandatory in Phase 1").
-- Today / Play / Me tab navigation (`docs/product/navigation.md` is a
-  target, already clarified elsewhere as "the long-term destination
-  rather than an immediate migration," not Milestone 1).
+- Visitor mode / unauthenticated preview — explicit future milestone,
+  auth remains mandatory for this milestone (no longer separately
+  documented; was `docs/product/principles.md`, since retired).
+- A tab-bar shell for Personal navigation was, at the time this
+  document was written, a future target and explicitly out of scope
+  here. It has since been built — but by a **different, separately
+  numbered** "Milestone 1 — Personal Context Shell" (the IA roadmap in
+  `docs/current/ARCHITECTURE_GAP_ANALYSIS.md`, implementing
+  `docs/AKSI_INFORMATION_ARCHITECTURE.md`'s Home/Explore/Inbox/Me tabs
+  — not the old Today/Play/Me design this bullet originally cited,
+  which is itself retired). This document's own Milestone 1 (MVP
+  scope) did not require or plan for that shell; its arrival is
+  incidental, not a completed item of this checklist.
 - Cross-club feed of any kind.
 - Match/session history browsing (`docs/product/roadmap.md` Phase 4 —
   not started).
@@ -242,8 +264,12 @@ not to build a complete or general-purpose sports platform.
       informing the scorer that progress may be interrupted without a
       network connection. (Offline/resume recovery itself is out of
       scope — Milestone 2.)
-- [ ] Build a Settings screen with exactly Theme, Language, Logout,
-      reachable from the club/session/match navigation.
+- [x] Build a Settings screen with exactly Theme, Language, Logout,
+      reachable from the club/session/match navigation. Landed
+      incidentally via the separate "Milestone 1 — Personal Context
+      Shell" (see the Out of Scope note above) — reachable from the
+      Me tab rather than wired into club/session/match navigation
+      directly, since that tab is now always available.
 - [ ] Android build verified on a physical device or emulator —
       required, not optional, for Milestone 1.
 - [ ] Backend deployed somewhere reachable outside a private dev VM.
