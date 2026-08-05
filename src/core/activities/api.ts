@@ -32,3 +32,10 @@ export function completeActivity(activityId: string, result: unknown, pointLog?:
     body: JSON.stringify({ result, pointLog }),
   });
 }
+
+// Only a queued (not yet started) match can be deleted — used by the
+// Regenerate-matches flow to clear the upcoming queue before generating a
+// fresh fair round.
+export function deleteActivity(activityId: string): Promise<void> {
+  return apiFetch(`/v1/activities/${activityId}`, { method: 'DELETE' });
+}

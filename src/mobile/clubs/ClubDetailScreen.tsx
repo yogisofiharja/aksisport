@@ -20,14 +20,16 @@ type Props = {
   onBack: () => void;
   onOpenMembers: (clubId: string) => void;
   onOpenSessions: (clubId: string) => void;
+  onOpenRecurringSchedules: (clubId: string) => void;
   onDeleted: () => void;
 };
 
-export function ClubDetailScreen({ clubId, onBack, onOpenMembers, onOpenSessions, onDeleted }: Props) {
+export function ClubDetailScreen({ clubId, onBack, onOpenMembers, onOpenSessions, onOpenRecurringSchedules, onDeleted }: Props) {
   const { t } = useTranslation();
   const { profile } = useAuth();
   const [club, setClub] = useState<Club | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -36,6 +38,9 @@ export function ClubDetailScreen({ clubId, onBack, onOpenMembers, onOpenSessions
       const [clubResult, members] = await Promise.all([getClub(clubId), listMembers(clubId)]);
       setClub(clubResult);
       setIsOwner(members.some((m) => m.userId === profile?.id && m.role === 'owner'));
+      // Recurring Schedules is an organizer-only management surface
+      // (DP-007) — owner or admin, same as who can create Sessions.
+      setIsOwnerOrAdmin(members.some((m) => m.userId === profile?.id && (m.role === 'owner' || m.role === 'admin')));
     } catch {
       // leave stale state; user can back out and retry
     } finally {
@@ -129,6 +134,14 @@ export function ClubDetailScreen({ clubId, onBack, onOpenMembers, onOpenSessions
           {t('clubMembersTitle')}
         </ButtonText>
       </Button>
+
+      {isOwnerOrAdmin && (
+        <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={() => onOpenRecurringSchedules(clubId)}>
+          <ButtonText action="secondary" variant="outline" className="text-lg">
+            {t('recurringScheduleListTitle')}
+          </ButtonText>
+        </Button>
+      )}
 
       {isOwner && (
         <Pressable className="items-center py-3" onPress={handleDelete} disabled={busy}>

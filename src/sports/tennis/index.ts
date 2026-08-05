@@ -7,4 +7,5 @@ export const tennisSportModule: SportModule = {
   rules: {
     minParticipants: (mode) => minParticipants(mode as MatchMode),
   },
+  activityTypes: ['single', 'double', 'class'],
 };

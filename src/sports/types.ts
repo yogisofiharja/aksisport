@@ -15,4 +15,12 @@ export interface SportRules {
 export interface SportModule {
   id: string;
   rules: SportRules;
+  /**
+   * Activity Type ids this sport offers at Session creation (e.g. tennis:
+   * 'single' | 'double' | 'class') — distinct from MatchFormat, which
+   * seeds a match's *scoring* format, not this. Opaque ids; the UI maps
+   * each to a translated label (no labels live here — this is data, i18n
+   * is a client concern).
+   */
+  activityTypes: string[];
 }

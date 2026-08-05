@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl } from 'react-native';
+import { Pressable, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
+import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
+import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
@@ -17,9 +19,10 @@ type Props = {
   onOpenClub: (clubId: string) => void;
   onCreateClub: () => void;
   onJoinClub: () => void;
+  onOpenProfile: () => void;
 };
 
-export function ClubListScreen({ onOpenClub, onCreateClub, onJoinClub }: Props) {
+export function ClubListScreen({ onOpenClub, onCreateClub, onJoinClub, onOpenProfile }: Props) {
   const { t } = useTranslation();
   const [clubs, setClubs] = useState<ClubWithRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +50,12 @@ export function ClubListScreen({ onOpenClub, onCreateClub, onJoinClub }: Props) 
 
   return (
     <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <Typography variant="display">{t('clubListTitle')}</Typography>
+      <HStack className="justify-between items-center">
+        <Typography variant="display">{t('clubListTitle')}</Typography>
+        <Pressable className="p-2 active:opacity-60" onPress={onOpenProfile}>
+          <Icon name="person-circle-outline" size="lg" />
+        </Pressable>
+      </HStack>
 
       {loading && clubs.length === 0 ? (
         <Loading />

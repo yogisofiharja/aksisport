@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -43,20 +44,49 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 		respondError(c, http.StatusNotFound, "session not found")
 		return dbSession{}, "", false
 	}
-	return dbSession{ID: sess.ID, ClubID: sess.ClubID, Sport: sess.Sport, Status: sess.Status}, m.Role, true
+	return dbSession{
+		ID: sess.ID, ClubID: sess.ClubID, Sport: sess.Sport, Status: sess.Status,
+		SkillLevelMinID: sess.SkillLevelMinID, SkillLevelMaxID: sess.SkillLevelMaxID, SkillLevelEnforcement: sess.SkillLevelEnforcement,
+		StartsAt: sess.StartsAt, DurationMinutes: sess.DurationMinutes,
+	}, m.Role, true
 }
 
 // dbSession is a tiny local alias to avoid importing models directly here
 // for a value only used to pass a couple of fields around this file.
 type dbSession struct {
-	ID     string
-	ClubID string
-	Sport  string
-	Status string
+	ID                    string
+	ClubID                string
+	Sport                 string
+	Status                string
+	SkillLevelMinID       *string
+	SkillLevelMaxID       *string
+	SkillLevelEnforcement *string
+	StartsAt              *time.Time
+	DurationMinutes       *int
+}
+
+// checkInWindowOpen: check-in (self, host-initiated, or adding a guest) is
+// only allowed from 1 hour before the Session starts until it ends
+// (startsAt + durationMinutes) — an explicit product rule, not just a
+// convenience. Sessions missing either field (legacy, pre-DP-009) have no
+// defined window, so nothing is restricted for them.
+func checkInWindowOpen(startsAt *time.Time, durationMinutes *int, now time.Time) bool {
+	if startsAt == nil || durationMinutes == nil {
+		return true
+	}
+	windowStart := startsAt.Add(-1 * time.Hour)
+	windowEnd := startsAt.Add(time.Duration(*durationMinutes) * time.Minute)
+	return !now.Before(windowStart) && now.Before(windowEnd)
 }
 
 func isOwnerOrAdmin(role string) bool {
 	return role == "owner" || role == "admin"
+}
+
+// isValidDurationMinutes: 1-24 hours in hourly increments (DP-009 v0.6.0) —
+// no tournament-length Sessions yet, so 24 hours is the ceiling for now.
+func isValidDurationMinutes(minutes int) bool {
+	return minutes >= 60 && minutes <= 1440 && minutes%60 == 0
 }
 
 // sessionStatusTransitions: DP-001's explicit states (Draft, Cancelled,
@@ -106,25 +136,76 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 
 		var body struct {
-			Sport              string          `json:"sport"`
-			Name               *string         `json:"name"`
-			Location           *string         `json:"location"`
-			CourtCount         int             `json:"courtCount"`
-			MaxParticipants    *int            `json:"maxParticipants"`
-			DefaultMatchFormat json.RawMessage `json:"defaultMatchFormat"`
+			Sport                 string          `json:"sport"`
+			Name                  *string         `json:"name"`
+			Location              *string         `json:"location"`
+			Description           *string         `json:"description"`
+			CourtCount            int             `json:"courtCount"`
+			MaxParticipants       *int            `json:"maxParticipants"`
+			DefaultMatchFormat    json.RawMessage `json:"defaultMatchFormat"`
+			ActivityType          *string         `json:"activityType"`
+			StartsAt              *time.Time      `json:"startsAt"`
+			DurationMinutes       *int            `json:"durationMinutes"`
+			SkillLevelMinID       *string         `json:"skillLevelMinId"`
+			SkillLevelMaxID       *string         `json:"skillLevelMaxId"`
+			SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
+			HostPlaying           *bool           `json:"hostPlaying"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil || body.Sport == "" {
 			respondError(c, http.StatusBadRequest, "sport is required")
 			return
 		}
+		// DP-004: Name and Location are mandatory as of this round — no more
+		// server-side auto-generated name fallback for ad-hoc creation.
+		if body.Name == nil || *body.Name == "" || body.Location == nil || *body.Location == "" {
+			respondError(c, http.StatusBadRequest, "name and location are required")
+			return
+		}
+		if body.ActivityType == nil || *body.ActivityType == "" {
+			respondError(c, http.StatusBadRequest, "activityType is required")
+			return
+		}
+		// DP-009: startsAt + durationMinutes are mandatory together as of v0.5.1.
+		if body.StartsAt == nil || body.DurationMinutes == nil {
+			respondError(c, http.StatusBadRequest, "startsAt and durationMinutes are required")
+			return
+		}
+		if !isValidDurationMinutes(*body.DurationMinutes) {
+			respondError(c, http.StatusBadRequest, "durationMinutes must be a multiple of 60 between 60 and 1440")
+			return
+		}
+		if body.HostPlaying == nil {
+			respondError(c, http.StatusBadRequest, "hostPlaying is required")
+			return
+		}
+		// DP-008: a Skill Level range is optional — but if skillLevelMinId is
+		// set, skillLevelMaxId (and enforcement) become mandatory, and vice
+		// versa; validateSkillLevelRange enforces the all-or-nothing rule.
+		if _, errMsg := validateSkillLevelRange(c.Request.Context(), pool, body.Sport, body.SkillLevelMinID, body.SkillLevelMaxID, body.SkillLevelEnforcement); errMsg != "" {
+			respondError(c, http.StatusBadRequest, errMsg)
+			return
+		}
 		session, err := dbpkg.CreateSession(c.Request.Context(), pool, dbpkg.CreateSessionParams{
-			ClubID: clubID, Sport: body.Sport, Name: body.Name, Location: body.Location,
+			ClubID: clubID, Sport: body.Sport, Name: body.Name, Location: body.Location, Description: body.Description,
 			CourtCount: body.CourtCount, MaxParticipants: body.MaxParticipants,
-			DefaultMatchFormat: body.DefaultMatchFormat, CreatedBy: user.ID,
+			DefaultMatchFormat: body.DefaultMatchFormat, ActivityType: body.ActivityType, CreatedBy: user.ID, StartsAt: body.StartsAt,
+			DurationMinutes: body.DurationMinutes,
+			SkillLevelMinID: body.SkillLevelMinID, SkillLevelMaxID: body.SkillLevelMaxID, SkillLevelEnforcement: body.SkillLevelEnforcement,
+			HostPlaying: *body.HostPlaying,
 		})
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
+		}
+		// Host Playing: the organizer's own declared intent to play, not a
+		// third-party join — auto-check-in bypasses the Strict Skill Level
+		// gate (enforceStrictSkillLevel) entirely by calling db.CheckIn
+		// directly instead of going through the /checkin route.
+		if *body.HostPlaying {
+			if _, err := dbpkg.CheckIn(c.Request.Context(), pool, session.ID, user.ID); err != nil {
+				respondError(c, http.StatusInternalServerError, "internal error")
+				return
+			}
 		}
 		c.JSON(http.StatusCreated, session)
 	})
@@ -177,11 +258,19 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		var body struct {
-			Name               *string         `json:"name"`
-			Location           *string         `json:"location"`
-			Status             *string         `json:"status"`
-			MaxParticipants    *int            `json:"maxParticipants"`
-			DefaultMatchFormat json.RawMessage `json:"defaultMatchFormat"`
+			Name                  *string         `json:"name"`
+			Location              *string         `json:"location"`
+			Description           *string         `json:"description"`
+			Status                *string         `json:"status"`
+			MaxParticipants       *int            `json:"maxParticipants"`
+			DefaultMatchFormat    json.RawMessage `json:"defaultMatchFormat"`
+			ActivityType          *string         `json:"activityType"`
+			StartsAt              *time.Time      `json:"startsAt"`
+			DurationMinutes       *int            `json:"durationMinutes"`
+			SkillLevelMinID       *string         `json:"skillLevelMinId"`
+			SkillLevelMaxID       *string         `json:"skillLevelMaxId"`
+			SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
+			HostPlaying           *bool           `json:"hostPlaying"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			respondError(c, http.StatusBadRequest, "invalid body")
@@ -200,9 +289,28 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 				return
 			}
 		}
+		if ok, errMsg := validateSkillLevelIDForUpdate(c.Request.Context(), pool, sess.Sport, body.SkillLevelMinID); !ok {
+			respondError(c, http.StatusBadRequest, errMsg)
+			return
+		}
+		if ok, errMsg := validateSkillLevelIDForUpdate(c.Request.Context(), pool, sess.Sport, body.SkillLevelMaxID); !ok {
+			respondError(c, http.StatusBadRequest, errMsg)
+			return
+		}
+		if body.SkillLevelEnforcement != nil && *body.SkillLevelEnforcement != "strict" && *body.SkillLevelEnforcement != "guidance" {
+			respondError(c, http.StatusBadRequest, `skillLevelEnforcement must be "strict" or "guidance"`)
+			return
+		}
+		if body.DurationMinutes != nil && !isValidDurationMinutes(*body.DurationMinutes) {
+			respondError(c, http.StatusBadRequest, "durationMinutes must be a multiple of 60 between 60 and 1440")
+			return
+		}
 		session, err := dbpkg.UpdateSession(c.Request.Context(), pool, sessionID, dbpkg.SessionUpdate{
-			Name: body.Name, Location: body.Location, Status: body.Status,
-			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat,
+			Name: body.Name, Location: body.Location, Description: body.Description, Status: body.Status,
+			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, ActivityType: body.ActivityType,
+			StartsAt: body.StartsAt, DurationMinutes: body.DurationMinutes,
+			SkillLevelMinID: body.SkillLevelMinID, SkillLevelMaxID: body.SkillLevelMaxID, SkillLevelEnforcement: body.SkillLevelEnforcement,
+			HostPlaying: body.HostPlaying,
 		})
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
@@ -224,12 +332,21 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		c.JSON(http.StatusOK, participants)
 	})
 
+	// DP-002 Approval: this is the "request to join" action — creates a
+	// 'requested' row, not an immediate join. Organizer approval
+	// (ApproveParticipant) is required before the player can self check-in.
+	// Strict Skill Level is enforced here, at the point of requesting —
+	// not at check-in — so an ineligible player can't even ask.
 	authed.POST("/sessions/:id/register", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+		sess, _, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
 			return
 		}
 		user := authjwt.CurrentUser(c)
+		if !enforceStrictSkillLevel(c, pool, sess, user.ID) {
+			return
+		}
 		p, err := dbpkg.RegisterParticipant(c.Request.Context(), pool, sessionID, user.ID)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
@@ -238,13 +355,147 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		c.JSON(http.StatusOK, p)
 	})
 
+	// Owner/admin approves a 'requested' join request, moving it to
+	// 'waitlist' — approved, but the slot isn't claimed until payment is
+	// confirmed. The only path from requested to waitlist.
+	authed.POST("/sessions/:id/participants/:userId/approve", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		targetUserID := c.Param("userId")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		if !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "only owner/admin can approve a join request")
+			return
+		}
+		p, err := dbpkg.ApproveParticipant(c.Request.Context(), pool, sessionID, targetUserID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "no join request from this user")
+			return
+		}
+		if errors.Is(err, dbpkg.ErrConflict) {
+			respondError(c, http.StatusConflict, "this participant is not awaiting approval")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, p)
+	})
+
+	// Owner/admin confirms payment was received (outside the app — no
+	// payment gateway) for a 'waitlist' participant, moving them to
+	// 'registered'. The only path from waitlist to registered.
+	authed.POST("/sessions/:id/participants/:userId/confirm-payment", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		targetUserID := c.Param("userId")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		if !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "only owner/admin can confirm payment")
+			return
+		}
+		p, err := dbpkg.ConfirmPayment(c.Request.Context(), pool, sessionID, targetUserID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "this participant is not on the waitlist")
+			return
+		}
+		if errors.Is(err, dbpkg.ErrConflict) {
+			respondError(c, http.StatusConflict, "this participant is not awaiting payment")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, p)
+	})
+
+	// Owner/admin removes a participant entirely (e.g. declining a join
+	// request, or removing someone outright) — a hard delete, unlike
+	// Cancel/NoShow which record what happened.
+	authed.DELETE("/sessions/:id/participants/:userId", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		targetUserID := c.Param("userId")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		if !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "only owner/admin can remove a participant")
+			return
+		}
+		if err := dbpkg.DeleteParticipant(c.Request.Context(), pool, sessionID, targetUserID); err != nil {
+			if errors.Is(err, dbpkg.ErrNotFound) {
+				respondError(c, http.StatusNotFound, "participant not found")
+				return
+			}
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	// DP-002 Approval: self check-in requires the caller already be
+	// 'registered' (approved) — SelfCheckIn never upserts/auto-registers,
+	// unlike CheckIn (the organizer-override path used elsewhere). Strict
+	// Skill Level is not re-checked here — it already gated the original
+	// join request at /register.
 	authed.POST("/sessions/:id/checkin", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+		sess, _, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		if !checkInWindowOpen(sess.StartsAt, sess.DurationMinutes, time.Now()) {
+			respondError(c, http.StatusForbidden, "check-in is only available from 1 hour before the session starts until it ends")
 			return
 		}
 		user := authjwt.CurrentUser(c)
-		p, err := dbpkg.CheckIn(c.Request.Context(), pool, sessionID, user.ID)
+		p, err := dbpkg.SelfCheckIn(c.Request.Context(), pool, sessionID, user.ID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "request to join before checking in")
+			return
+		}
+		if errors.Is(err, dbpkg.ErrConflict) {
+			respondError(c, http.StatusConflict, "your join request hasn't been approved yet")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, p)
+	})
+
+	// Owner/admin checking in another club member on their behalf (e.g. a
+	// walk-in who hasn't opened the app) — same db.CheckIn upsert
+	// self-checkin uses (auto-registers if the member has no participant
+	// row yet), same Strict Skill Level gate applied to the target member,
+	// not the caller.
+	authed.POST("/sessions/:id/participants/:userId/checkin", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		targetUserID := c.Param("userId")
+		sess, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		if !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "only owner/admin can check in a participant")
+			return
+		}
+		if !checkInWindowOpen(sess.StartsAt, sess.DurationMinutes, time.Now()) {
+			respondError(c, http.StatusForbidden, "check-in is only available from 1 hour before the session starts until it ends")
+			return
+		}
+		if !enforceStrictSkillLevel(c, pool, sess, targetUserID) {
+			return
+		}
+		p, err := dbpkg.CheckIn(c.Request.Context(), pool, sessionID, targetUserID)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
@@ -307,12 +558,18 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 
 	authed.POST("/sessions/:id/participants", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		sess, role, ok := requireSessionAccess(c, pool, sessionID)
 		if !ok {
 			return
 		}
 		if !isOwnerOrAdmin(role) {
 			respondError(c, http.StatusForbidden, "only owner/admin can add a guest")
+			return
+		}
+		// A guest is inserted directly as checked_in (AddGuestParticipant) —
+		// it's a check-in action, so the same window applies.
+		if !checkInWindowOpen(sess.StartsAt, sess.DurationMinutes, time.Now()) {
+			respondError(c, http.StatusForbidden, "check-in is only available from 1 hour before the session starts until it ends")
 			return
 		}
 		var body struct {

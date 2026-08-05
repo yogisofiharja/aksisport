@@ -1,10 +1,24 @@
 import { apiFetch } from '../api/client';
-import type { Session, SessionParticipant, SessionStatus } from '../api/types';
+import type { Session, SessionParticipant, SessionStatus, SkillLevelEnforcement } from '../api/types';
 
 export function createSession(
   clubId: string,
   sport: string,
-  options?: { name?: string; location?: string; courtCount?: number; maxParticipants?: number; defaultMatchFormat?: unknown }
+  options?: {
+    name?: string;
+    location?: string;
+    description?: string;
+    courtCount?: number;
+    maxParticipants?: number;
+    defaultMatchFormat?: unknown;
+    activityType?: string;
+    startsAt?: string;
+    durationMinutes?: number;
+    skillLevelMinId?: string;
+    skillLevelMaxId?: string;
+    skillLevelEnforcement?: SkillLevelEnforcement;
+    hostPlaying?: boolean;
+  }
 ): Promise<Session> {
   return apiFetch(`/v1/clubs/${clubId}/sessions`, {
     method: 'POST',
@@ -25,9 +39,17 @@ export function updateSession(
   updates: {
     name?: string;
     location?: string;
+    description?: string;
     status?: SessionStatus;
     maxParticipants?: number;
     defaultMatchFormat?: unknown;
+    activityType?: string;
+    startsAt?: string;
+    durationMinutes?: number;
+    skillLevelMinId?: string;
+    skillLevelMaxId?: string;
+    skillLevelEnforcement?: SkillLevelEnforcement;
+    hostPlaying?: boolean;
   }
 ): Promise<Session> {
   return apiFetch(`/v1/sessions/${sessionId}`, {
@@ -61,12 +83,39 @@ export function listParticipants(sessionId: string): Promise<SessionParticipant[
   return apiFetch(`/v1/sessions/${sessionId}/participants`);
 }
 
+// DP-002 Join Approval: this is the "request to join" action — creates a
+// 'requested' row, not an immediate join. See approveParticipant/
+// confirmParticipantPayment for the rest of the chain.
 export function registerForSession(sessionId: string): Promise<SessionParticipant> {
   return apiFetch(`/v1/sessions/${sessionId}/register`, { method: 'POST' });
 }
 
+// Owner/admin approves a 'requested' join request, moving it to
+// 'waitlist' (approved, slot not yet claimed).
+export function approveParticipant(sessionId: string, userId: string): Promise<SessionParticipant> {
+  return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}/approve`, { method: 'POST' });
+}
+
+// Owner/admin confirms payment was received (outside the app — no
+// payment gateway), moving a 'waitlist' participant to 'registered'.
+export function confirmParticipantPayment(sessionId: string, userId: string): Promise<SessionParticipant> {
+  return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}/confirm-payment`, { method: 'POST' });
+}
+
+// Owner/admin removes a participant entirely (e.g. declining a join
+// request) — a hard delete, unlike Cancel/NoShow.
+export function deleteParticipant(sessionId: string, userId: string): Promise<void> {
+  return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}`, { method: 'DELETE' });
+}
+
 export function checkIn(sessionId: string): Promise<SessionParticipant> {
   return apiFetch(`/v1/sessions/${sessionId}/checkin`, { method: 'POST' });
+}
+
+// Owner/admin checking in another club member on their behalf (e.g. a
+// walk-in who hasn't opened the app) — same upsert as self check-in.
+export function checkInParticipant(sessionId: string, userId: string): Promise<SessionParticipant> {
+  return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}/checkin`, { method: 'POST' });
 }
 
 // DP-002: self-service, mirrors checkIn exactly — acts on the caller.

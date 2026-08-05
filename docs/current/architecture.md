@@ -25,6 +25,16 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
   applied automatically on server startup (`db.RunMigrations` in
   `cmd/api/main.go`) — there is no separate deploy-time migration step,
   and no `.down.sql` files exist.
+- **Recurring Schedule generation** (DP-007) — the app's first background
+  process. An in-process `time.Ticker` goroutine in `cmd/api/main.go`
+  (interval `RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES`, default 15)
+  calls `internal/scheduling.GenerateDueSessions` on every tick. Not a
+  separate binary/cron/job queue — this repo has no second deployment
+  target, so generation lives in the same process as the HTTP server and
+  shares its lifecycle (started after the server goroutine, stopped by the
+  same shutdown context). Idempotent by construction (a DB unique index
+  plus catch-up-by-recomputation, see `lifecycle-recurring-schedule.md`),
+  so this is safe under any interval, missed ticks included.
 - **Firebase Auth** — username/password only, via a synthetic email
   (`<username>@accounts.aksi.app`, see `src/core/auth/firebaseAuth.ts`).
   No Google/Apple sign-in, no phone/OTP.

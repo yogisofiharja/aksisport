@@ -22,10 +22,19 @@ body, all in a single transaction (`CreateActivity` in
 and read entirely client-side by
 `src/sports/tennis/scoringEngine.ts`/`AddMatchScreen.tsx`.
 
-**Not implemented**: no auto-generation from an idle player pool, no
-editing or cancelling a queued activity (`PATCH`/`DELETE
-/v1/activities/:id` don't exist), no `queue_position` is ever written
-despite the column existing.
+**Generation from checked-in players** (v0.8.0, DP-005 Match Generation):
+there is no dedicated generation endpoint — `AddMatchScreen`'s Generate
+Match/Generate Matches tabs compute fair pairings client-side
+(`core/sessions/matchGenerator.ts`, fewest-played-first) from
+already-fetched checked-in participants and activities, then call the
+same `POST /v1/sessions/:id/activities` once per match (looped
+sequentially for "Generate Matches," to keep queue order matching the
+previewed order). `DELETE /v1/activities/:id` (queued-only) now exists,
+added specifically for the Regenerate flow — see `api.md`.
+
+**Still not implemented**: editing a queued activity's participants/config
+in place (no `PATCH /v1/activities/:id`), `queue_position` is never
+written despite the column existing.
 
 ## queued → live (start)
 

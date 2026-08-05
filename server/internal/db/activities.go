@@ -171,6 +171,25 @@ func IsCheckedInActivityParticipant(ctx context.Context, pool *pgxpool.Pool, act
 	return exists, err
 }
 
+// DeleteActivity removes a 'queued' activity (and its participants, via
+// ON DELETE CASCADE). Returns ErrConflict if the activity isn't queued —
+// a live or completed match must never be silently removed, only a
+// not-yet-started one. Used by the Regenerate-matches flow, which deletes
+// every currently queued activity before generating a fresh fair round.
+func DeleteActivity(ctx context.Context, pool *pgxpool.Pool, activityID string) error {
+	tag, err := pool.Exec(ctx, "DELETE FROM activities WHERE id = $1 AND status = 'queued'", activityID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() > 0 {
+		return nil
+	}
+	if _, err := GetActivity(ctx, pool, activityID); errors.Is(err, ErrNotFound) {
+		return ErrNotFound
+	}
+	return ErrConflict
+}
+
 // StartActivity transitions a 'queued' activity to 'live', assigning the
 // caller as scorer. Returns ErrConflict if the activity isn't queued.
 func StartActivity(ctx context.Context, pool *pgxpool.Pool, activityID, scorerUserID string) (models.Activity, error) {

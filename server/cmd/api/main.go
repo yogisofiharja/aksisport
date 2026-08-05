@@ -14,6 +14,7 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/config"
 	"github.com/yogisofiharja/aksi-server/internal/db"
 	"github.com/yogisofiharja/aksi-server/internal/httpapi"
+	"github.com/yogisofiharja/aksi-server/internal/scheduling"
 )
 
 func main() {
@@ -58,6 +59,29 @@ func main() {
 		log.Printf("aksi-server listening on :%s", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
+		}
+	}()
+
+	// DP-007 generation + DP-009 auto-transition. Same in-process ticker
+	// rather than separate job/cron processes — this repo has no second
+	// deployment target today, and both are idempotent/safe under any
+	// interval, including missed ticks (see GenerateDueSessions and
+	// AutoTransitionElapsedSessions).
+	go func() {
+		ticker := time.NewTicker(cfg.RecurringScheduleGenerationInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := scheduling.GenerateDueSessions(ctx, pool); err != nil {
+					log.Printf("recurring schedule generation: %v", err)
+				}
+				if err := scheduling.AutoTransitionElapsedSessions(ctx, pool); err != nil {
+					log.Printf("session auto-transition: %v", err)
+				}
+			}
 		}
 	}()
 

@@ -32,9 +32,21 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   ├── clubs/                 api.ts
 │   │   ├── sessions/               api.ts, deriveStatus.ts (+ test) — DP-001 client-side
 │   │   │                          Recruiting/Ready/Full derivation, pure function;
+│   │   │                          sessionSchedule.ts — Today/Upcoming/Past date
+│   │   │                          bucketing + date/time formatting (v0.6.3);
 │   │   │                          scheduler.ts (+ test) — DP-005 SchedulingPolicy,
 │   │   │                          firstCheckedInPolicy suggestion-only implementation
-│   │   └── activities/              api.ts
+│   │   │                          (Custom Match's suggestion only);
+│   │   │                          matchGenerator.ts — DP-005 Match Generation (v0.8.0),
+│   │   │                          fewest-played-first fair match/round generation,
+│   │   │                          deliberately separate from scheduler.ts's simpler policy
+│   │   ├── activities/              api.ts;
+│   │   │                          buildGeneratedMatchPayload.ts — turns a
+│   │   │                          matchGenerator.ts GeneratedMatch into a createActivity
+│   │   │                          payload, shared by AddMatchScreen and
+│   │   │                          SessionDetailScreen's Regenerate (v0.8.0)
+│   │   ├── recurringSchedules/       api.ts — DP-007, organizer-only management surface
+│   │   └── skillLevels/              api.ts — DP-008, Level Scale (per-sport) + self-reported levels
 │   │
 │   ├── navigation/               React Navigation, mobile only
 │   │   ├── RootNavigator.tsx       Picks AuthStack vs MainStack based on auth state
@@ -52,10 +64,26 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   ├── auth/                    SignUpScreen, LoginScreen, CompleteProfileScreen
 │   │   ├── clubs/                    ClubListScreen, CreateClubScreen, JoinClubScreen,
 │   │   │                            ClubDetailScreen, ClubMembersScreen
-│   │   ├── sessions/                  SessionListScreen, CreateSessionScreen,
-│   │   │                            SessionDetailScreen
-│   │   └── activities/                 AddMatchScreen, ActivityMatchScreen
-│   │       (auth/clubs/sessions/activities screens have no web equivalent)
+│   │   ├── sessions/                  SessionListScreen (Today/Upcoming, v0.6.3),
+│   │   │                            SessionHistoryScreen (Past, v0.6.3, Club-scoped
+│   │   │                            only), SessionDetailScreen,
+│   │   │                            CreateSessionScreen — unified ad-hoc/recurring
+│   │   │                            creation behind a "make this recurring" toggle
+│   │   │                            (v0.5.1; CreateRecurringScheduleScreen retired,
+│   │   │                            merged in here)
+│   │   ├── activities/                 AddMatchScreen (Generate Match/Generate Matches/
+│   │   │                              Custom Match tabs, v0.8.0; migrated to
+│   │   │                              design-system/* components, matching newer
+│   │   │                              screens like SessionListScreen — was on the
+│   │   │                              legacy components/ui/* set before), ActivityMatchScreen
+│   │   ├── recurringSchedules/          RecurringScheduleListScreen,
+│   │   │                              RecurringScheduleDetailScreen, weekday.ts
+│   │   ├── skillLevels/                 SkillLevelRangePicker.tsx — shared by
+│   │   │                              CreateSessionScreen's two modes, always
+│   │   │                              visible (mandatory, not collapsible)
+│   │   └── profile/                     SkillLevelsScreen — only profile-ish screen in the
+│   │                                  new app; entry point is a header icon on ClubListScreen
+│   │       (auth/clubs/sessions/activities/recurringSchedules/profile screens have no web equivalent)
 │   │
 │   ├── components/                Web UI only. MatchSetup, LineupScreen, MatchScreen,
 │   │                              FinalScoreScreen, WatchScreen, HistoryScreen,
@@ -83,22 +111,33 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │                                    screens and src/components/
 │
 └── server/                          Go + Gin backend, own go.mod
-    ├── cmd/api/main.go               Entry point: load .env, run migrations, start HTTP server
+    ├── cmd/api/main.go               Entry point: load .env, run migrations, start HTTP
+    │                                server, start the shared DP-007 generation +
+    │                                DP-009 auto-transition ticker goroutine
     ├── cmd/migrate/main.go            Standalone `migrate up` command
     ├── internal/
     │   ├── config/                    Env var loading
     │   ├── authjwt/                    Firebase ID token verification + Gin middleware
     │   ├── db/                         One file per aggregate: users, clubs,
     │   │                              club_members, sessions, session_participants,
-    │   │                              activities. Raw SQL via pgx, no ORM.
+    │   │                              activities, recurring_schedules, skill_levels,
+    │   │                              user_skill_levels. Raw SQL via pgx, no ORM.
     │   ├── models/                     Plain structs, JSON tags mirror API responses
+    │   ├── scheduling/                  occurrence.go (pure due-occurrence computation
+    │   │                              + test — no DB), generate.go (DP-007, ties it to
+    │   │                              the db layer), autotransition.go (DP-009 — elapsed
+    │   │                              Session -> completed/cancelled)
     │   └── httpapi/                    Route registration + handlers, one file per
     │                                  aggregate + router.go + respond.go
     └── migrations/                     0001_init.up.sql, 0002_drop_personal_club.up.sql,
                                         0003_session_max_participants.up.sql,
                                         0004_participant_lifecycle.up.sql,
                                         0005_session_default_match_format.up.sql,
-                                        0006_session_lifecycle_draft_cancelled.up.sql
+                                        0006_session_lifecycle_draft_cancelled.up.sql,
+                                        0007_recurring_schedules.up.sql,
+                                        0008_skill_levels.up.sql,
+                                        0009_session_duration.up.sql,
+                                        0010_activity_type.up.sql
                                         Forward-only — no .down.sql files exist anywhere.
 ```
 

@@ -9,8 +9,10 @@ import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
+import type { BadgeAction } from '../../design-system/ui/Badge';
 import { useTranslation } from '../../i18n';
 import { listSessions } from '../../core/sessions/api';
+import { formatSessionDateTime, sessionDateBucket } from '../../core/sessions/sessionSchedule';
 import type { Session } from '../../core/api/types';
 
 type Props = {
@@ -18,9 +20,10 @@ type Props = {
   onBack: () => void;
   onOpenSession: (sessionId: string) => void;
   onCreateSession: () => void;
+  onOpenHistory: () => void;
 };
 
-function statusLabel(status: Session['status'], t: (key: string) => string) {
+export function statusLabel(status: Session['status'], t: (key: string) => string) {
   // DP-001: draft/cancelled added — without these two cases, both would
   // have silently fallen through to "Open" once the server started
   // returning them (every new session now starts as draft).
@@ -31,7 +34,22 @@ function statusLabel(status: Session['status'], t: (key: string) => string) {
   return t('sessionStatusOpen');
 }
 
-export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSession }: Props) {
+// Distinct colors per status so the list is scannable without reading
+// every pill's text — draft/open/in_progress/completed/cancelled
+// previously all rendered as the same neutral gray.
+export function sessionStatusColor(status: Session['status']): BadgeAction {
+  if (status === 'draft') return 'warning';
+  if (status === 'cancelled') return 'error';
+  if (status === 'in_progress') return 'success';
+  if (status === 'completed') return 'muted';
+  return 'info'; // open
+}
+
+function byStartsAtAsc(a: Session, b: Session) {
+  return (a.startsAt ?? '').localeCompare(b.startsAt ?? '');
+}
+
+export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSession, onOpenHistory }: Props) {
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +70,29 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
     }, [load])
   );
 
+  // Main list is Today + Upcoming only — a cancelled Session still on
+  // today's date stays visible (bucketed by date, not status). Past
+  // Sessions (any status, earlier date) move to their own entry point,
+  // per DP-009's Session History.
+  const todaySessions = sessions.filter((s) => sessionDateBucket(s) === 'today').sort(byStartsAtAsc);
+  const upcomingSessions = sessions.filter((s) => sessionDateBucket(s) === 'upcoming').sort(byStartsAtAsc);
+
+  function renderCard(session: Session) {
+    return (
+      <SessionCard
+        key={session.id}
+        title={session.name || session.sport}
+        subtitle={session.location}
+        dateTime={formatSessionDateTime(session.startsAt)}
+        status={statusLabel(session.status, t)}
+        statusAction={sessionStatusColor(session.status)}
+        joinedCount={session.joinedCount}
+        maxParticipants={session.maxParticipants}
+        onPress={() => onOpenSession(session.id)}
+      />
+    );
+  }
+
   return (
     <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
       <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
@@ -62,21 +103,34 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
 
       {loading && sessions.length === 0 ? (
         <Loading />
-      ) : sessions.length === 0 ? (
+      ) : todaySessions.length === 0 && upcomingSessions.length === 0 ? (
         <EmptyState message={t('sessionEmptyState')} />
       ) : (
-        <VStack space="md">
-          {sessions.map((session) => (
-            <SessionCard
-              key={session.id}
-              title={session.name || session.sport}
-              subtitle={session.location}
-              status={statusLabel(session.status, t)}
-              onPress={() => onOpenSession(session.id)}
-            />
-          ))}
-        </VStack>
+        <>
+          {todaySessions.length > 0 && (
+            <VStack space="sm">
+              <Typography variant="caption" color="muted">
+                {t('sessionSectionToday')}
+              </Typography>
+              <VStack space="md">{todaySessions.map(renderCard)}</VStack>
+            </VStack>
+          )}
+          {upcomingSessions.length > 0 && (
+            <VStack space="sm">
+              <Typography variant="caption" color="muted">
+                {t('sessionSectionUpcoming')}
+              </Typography>
+              <VStack space="md">{upcomingSessions.map(renderCard)}</VStack>
+            </VStack>
+          )}
+        </>
       )}
+
+      <Pressable className="items-center py-2 active:opacity-60" onPress={onOpenHistory}>
+        <Typography variant="label" color="brand">
+          {t('sessionPastSessions')}
+        </Typography>
+      </Pressable>
 
       <Button action="secondary" size="xl" className="w-full" onPress={onCreateSession}>
         <ButtonText className="text-lg">{t('sessionCreate')}</ButtonText>

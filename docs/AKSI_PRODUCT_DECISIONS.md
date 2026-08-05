@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.3.2
+Version: 0.10.0
 
 Status: Living Document
 
@@ -15,6 +15,8 @@ Everything under **Ready to Develop** is approved for implementation.
 Everything under **Planning** exists only to guide future architecture and should not be implemented until promoted into Ready to Develop.
 
 When new product decisions are approved, this document should be updated before implementation continues.
+
+Change history lives in `AKSI_PRODUCT_DECISIONS_CHANGELOG.md`, not here — this document only ever describes the current state.
 
 ---
 
@@ -330,6 +332,16 @@ Draft sessions
 
 ---
 
+### Terminal Session Actions
+
+A Cancelled or Completed Session accepts no further actions — no
+check-in, no adding a match, no adding a guest, no starting or watching a
+queued/live match. The Session and its history (who was there, what
+matches happened) remain fully visible; only the actions that would
+change it are removed.
+
+---
+
 ## DP-002 — Participant Lifecycle
 
 Status
@@ -338,6 +350,8 @@ Approved
 
 ### Participant States
 
+- Requested
+- Waitlist
 - Registered
 - Checked In
 - Checked Out
@@ -348,10 +362,19 @@ Approved
 
 ### Ownership
 
+Requested
+
+- Self-service only (a join request)
+
+Waitlist
+
+- Organizer only (approving a request)
+
 Registered
 
-- Organizer
-- Self-service
+- Organizer (confirming payment)
+- Self-service (organizer-initiated actions bypass Requested/Waitlist
+  entirely — see Join Approval below)
 
 Checked In
 
@@ -373,6 +396,54 @@ No Show
 - Organizer only
 
 Strict transition validation will be introduced in a future milestone.
+
+---
+
+### Join Approval
+
+Joining a Session always requires organizer approval — no exception, and
+no per-Session opt-out. The self-service flow is:
+
+```
+Requested --organizer approves--> Waitlist --organizer confirms
+  payment--> Registered --self check-in (Check-In Window)--> Checked In
+```
+
+- **Requested**: a member asks to join. Strict Skill Level (DP-008) is
+  enforced at this point — an ineligible member can't even request.
+- **Waitlist**: the organizer has approved the request, but the slot
+  isn't claimed yet — the member must pay to claim it.
+- **Registered**: payment is confirmed and the slot is claimed. There is
+  no payment gateway — the organizer receives payment outside the app
+  (cash, transfer, etc.) and confirms it manually. Building an actual
+  payment gateway integration is future work (see Payments, Planning),
+  not part of this decision.
+- **Checked In**: the member confirms their own arrival, self-service,
+  only once Registered and within the Check-In Window.
+
+Organizer-initiated actions — Host Playing's auto-check-in on Session
+creation, an organizer directly checking in a club member, and adding a
+guest — all bypass this entire chain and go straight to Checked In. They
+are already an organizer decision; approval and payment don't apply to
+them.
+
+Organizers may remove a participant entirely at any point (declining a
+request, or removing someone outright) — a hard removal, distinct from
+Cancelled/No Show, which record what happened rather than erase it.
+
+---
+
+### Check-In Window
+
+Check-in (self, organizer checking someone else in, or adding a guest —
+a guest is inserted directly as checked-in) is only allowed from 1 hour
+before the Session's start time until the Session ends
+(`startsAt + duration`). Outside that window, check-in is blocked, no
+exception. This applies uniformly regardless of who initiates it.
+
+Host Playing (DP-004) auto-check-in on Session creation is not affected —
+it is the organizer's own declared intent at creation time, not a
+check-in action subject to this window.
 
 ---
 
@@ -408,11 +479,76 @@ Organizer preferences describe how the organizer intends to run the Session.
 
 Examples:
 
+- Name
 - Venue
+- Description
 - Schedule
 - Pricing
 - Maximum participants
+- Activity Type
 - Default Activity Configuration
+
+---
+
+### Session Identity
+
+Every Session (and every Recurring Schedule Template) must define a Name
+and a Venue. This applies uniformly — ad-hoc Session creation and
+Recurring Schedule creation both require both fields, with no exception.
+
+Venue is currently a free-text field. Selecting a Venue from a real map
+(for example, via a map provider's place picker) is planned but not yet
+implemented — see Planning.
+
+---
+
+### Description
+
+A Session (and every Recurring Schedule Template) may optionally include a
+free-text Description — details for players such as what to bring, house
+rules, or anything else the organizer wants to communicate. Description is
+not part of Session Identity and is never required.
+
+---
+
+### Host Playing
+
+Every Session (and every Recurring Schedule Template) must declare whether
+the organizer intends to play, not just run, the Session. This applies
+uniformly — ad-hoc Session creation and Recurring Schedule creation both
+require it, with no exception. It defaults to "yes" so the organizer isn't
+forced to think about it in the common case, but the value is always
+explicit, never silently inferred.
+
+When Host Playing is "yes", the organizer is automatically added as a
+checked-in participant (DP-002) the moment the Session is created — for a
+Recurring Schedule, this happens on every generated Session. This is the
+organizer's own declared intent to play, not a third-party join request,
+so it is not subject to a Session's Strict Skill Level requirement
+(DP-008) — an organizer is never blocked from their own Session.
+
+---
+
+### Activity Type
+
+Every Session (and every Recurring Schedule Template) must declare an
+Activity Type. The organizer chooses Sport first, then Activity Type —
+the available choices depend on the chosen Sport.
+
+Activity Type is owned by the Sport Module (DP-ARCH-002), the same as the
+Sport itself — each Sport defines its own set of Activity Types.
+
+Tennis's Activity Types:
+
+- Singles
+- Doubles
+- Class
+
+Activity Type is distinct from Default Activity Configuration below —
+Activity Type describes what kind of Activity a Session is for (a match
+mode, or a non-match Activity like a coached Class); Default Activity
+Configuration seeds a new Activity's scoring format. They answer different
+questions and are not substitutes for one another.
 
 ---
 
@@ -444,7 +580,56 @@ Responsibilities:
 - Never create Activities automatically.
 - Never override organizer decisions.
 
-Organizer confirmation is always required.
+Organizer confirmation is always required — every action below still needs
+an explicit organizer tap; none of them fire on their own in the
+background.
+
+---
+
+### Match Generation
+
+For a Session (or Recurring Schedule) whose Activity Type is Singles or
+Doubles, the organizer has two ways to add matches:
+
+- **Generate Matches** — the organizer sets how many matches to generate
+  (a number, defaulting to a rough estimate from the Session's Duration —
+  organizer-adjustable, not fixed). Matches are fairly drawn from
+  currently checked-in players who aren't already in a queued or live
+  match; if the requested count needs more matches than there are
+  players to cover in one pass, players cycle through again rather than
+  the batch stopping early. Generating just one match is simply setting
+  the count to 1 — there is no separate "one match" action, since that
+  would only duplicate Custom Match's own suggested pre-fill.
+- **Custom Match** — the organizer manually builds a match: participants,
+  mode, and all. The mode is not required to match the Session's own
+  Activity Type — a Doubles Session may still have a one-off Custom
+  Singles match. This is the original, unrestricted match-creation flow,
+  unchanged.
+
+Once a generated batch is played through, if there's still time left in
+the Session, the organizer can generate another batch (any size) or add a
+Custom Match — Generate Matches is not a one-time action.
+
+A Class Activity Type has no match-generation concept — only Custom Match
+applies there, same as before this decision.
+
+Fairness: Generate Matches always prioritizes whichever checked-in
+players have played the fewest matches so far this Session, ties broken
+randomly. This is the "Match balance" item promoted here from Scheduler
+Evolution (Planning) — an explicit product requirement ("each player
+should have an equal or fair playing number"), not a general fairness/AI
+engine. Partner diversity, opponent diversity, and skill balancing remain
+Planning-only.
+
+### Regenerate
+
+Once matches exist, if a player checks in who isn't covered by any
+currently queued (not yet started) match, the organizer sees a
+**Regenerate** option. Regenerating deletes every currently queued match
+and generates the same number of matches again, fairly, from everyone now
+checked in — live and completed matches are never touched. Regeneration
+only happens when the organizer explicitly taps Regenerate; there is no
+silent/automatic regeneration on check-in.
 
 ---
 
@@ -578,6 +763,129 @@ Product invariant:
 - One occurrence may generate at most one Session.
 - A skipped occurrence must never generate a Session.
 
+---
+
+## DP-008 — Player Skill Level
+
+Status
+
+Approved
+
+### Decision
+
+Introduce Player Skill Level.
+
+A player's skill level is owned by the player, scoped per Sport — a player
+may be at a different level in Tennis than in Padel.
+
+A Player has exactly one Skill Level per Sport.
+
+Player Skill Level is self-reported.
+
+Players may update their own Skill Level at any time.
+
+Future milestones may introduce optional supporting evidence (for example, certificates) without changing player ownership of the Skill Level.
+
+### Level Scale
+
+The Level Scale is owned by the Sport Module (DP-ARCH-002), not shared
+globally across sports — different sports commonly grade players
+differently (for example, Tennis with named tiers, Padel with a numeric
+ladder). A player's Skill Level is always scoped to one Sport's own scale.
+
+Tennis's Level Scale, ordered lowest to highest:
+
+- Newbie
+- Beginner
+- Upper Beginner
+- Intermediate
+- Upper Intermediate
+- Advanced
+
+Each Sport's scale is expected to be reconfigured over time — renamed,
+reordered, or extended — independently of other Sports' scales. It must
+not be implemented as a fixed, unchangeable set.
+
+Other Sports' scales (for example, Padel) are defined when that Sport
+itself is introduced, not in advance.
+
+### Session Level Requirement
+
+A Skill Level range on a Session (or Recurring Schedule Template) is
+optional — most Sessions won't set one. But the range is bounded: if a
+minimum is defined, a maximum (and an enforcement mode) must be defined
+too, and vice versa. There is no such thing as a one-sided range. This
+applies uniformly — ad-hoc Session creation and Recurring Schedule
+creation both follow the same all-or-nothing rule.
+
+The organizer chooses, per Session, one of two enforcement modes:
+
+- Strict — a player outside the Session's level range cannot register.
+- Guidance — a player outside the Session's level range sees a warning but
+  may still register.
+
+Skill Level ranges are inclusive.
+
+Example:
+
+Beginner → Intermediate includes:
+
+- Beginner
+- Upper Beginner
+- Intermediate
+
+---
+
+## DP-009 — Session Duration
+
+Status
+
+Approved
+
+### Decision
+
+Every Session must define a Duration and a start time (a core Session
+property, see DP-007). Duration is only meaningful together with a start
+time, so both are required together at creation — this applies uniformly
+to ad-hoc Session creation and Recurring Schedule creation.
+
+### Duration Range
+
+Duration is selected in hourly increments, from a minimum of 1 hour up to
+a maximum of 24 hours. There is no support for tournament-length Sessions
+(multi-day) yet — the 24-hour ceiling is a deliberate scope boundary, not
+a technical limit, and will be revisited when tournament support is
+planned.
+
+### Auto-Transition
+
+When a Session's Duration elapses:
+
+- If the Session is In Progress, it automatically transitions to
+  Completed.
+- If the Session was never started (any non-terminal state other than In
+  Progress), it automatically transitions to Cancelled.
+
+This is a backend-driven transition (DP-ARCH-003). Organizers are not
+required to act for a Session's lifecycle to resolve once its scheduled
+time has passed.
+
+### Session History
+
+Sessions are surfaced as history once their scheduled date has passed —
+not mixed into the active Session list. A Session scheduled for today
+stays in the active list regardless of status, so a same-day Cancelled
+Session doesn't disappear from view; in practice Completed/Cancelled
+Sessions are exactly what accumulate once a date is behind us, thanks to
+Auto-Transition above.
+
+History is contextual to where the Player is looking:
+
+- Inside a Club, history shows that Club's own past Sessions.
+  **Implemented** (v0.6.3) — the active list splits into Today/Upcoming,
+  with a "Past Sessions" entry point to a separate, read-only history view.
+- Outside a Club (a Player's own view), history shows every Session the
+  Player has joined, across all Clubs. **Not yet implemented.**
 
 ---
 
@@ -604,15 +912,30 @@ These are known design areas, not implementation tasks.
 Future scheduler improvements may include:
 
 - Waiting time
-- Match balance
 - Partner diversity
 - Opponent diversity
 - Skill balancing
 - Court optimization
 
+Match balance (equal/fair playing number) has been implemented — see
+DP-005's Match Generation section — and is removed from this list.
+
 Recommendations must remain explainable.
 
 Organizer authority must always be preserved.
+
+---
+
+## Player Preferences
+
+Potential future capabilities:
+
+- Preferred opponent skill level
+- Preferred partner skill level
+- Competitive vs. casual play preference
+- Coaching / mentoring preference
+
+Player Preferences are independent from Player Skill Level and should never be used as a substitute for actual playing ability.
 
 ---
 
@@ -636,6 +959,13 @@ Potential future capabilities:
 - Guest fees
 - Session fees
 - Refunds
+- An actual payment gateway (card/e-wallet processing, provider
+  integration, webhooks)
+
+A manual, organizer-confirmed payment step exists today as part of DP-002
+Join Approval (Waitlist → Registered) — the organizer records that
+payment happened outside the app. That is not an implementation of this
+Planning item; no payment gateway, provider, or automated charge exists.
 
 ---
 
@@ -659,6 +989,17 @@ Potential future capabilities:
 
 ---
 
+## Map-Based Venue Selection
+
+Session Venue (DP-004) is currently free text. A future milestone should
+let organizers select a real place on a map (for example, via a map
+provider's place picker) instead of typing it, so Sessions carry a real
+location rather than a text label.
+
+Blocked on provisioning a map provider API key — not yet scheduled.
+
+---
+
 # Product Roadmap
 
 ## Phase 1
@@ -670,6 +1011,8 @@ Foundation
 - Activities
 - Scheduler
 - Recurring Schedules
+- Player Skill Level
+- Session Duration
 
 ---
 
@@ -704,67 +1047,5 @@ Intelligence
 
 ---
 
-# Change Log
-
-## v0.3.2
-
-Recurring Schedule semantics finalized ahead of implementation.
-
-Major updates:
-
-- Introduced the occurrence concept between Recurring Schedule and Session; skipping an occurrence is explicitly distinguished from cancelling a Session, and does not extend Session Lifecycle with a "deleted" state. Occurrence tracking remains an internal implementation detail, not a first-class domain object.
-- Simplified auto-publish wording: generated Sessions are always automatically published (removed "by default," which implied configurability that isn't intended).
-- Defined generation as eventually consistent: a generation outage must be followed by catch-up generation of every missed occurrence, and generation must stay idempotent.
-- Template is now defined by reference: "the Organizer Preferences defined in DP-004," rather than a duplicated field list.
-- Session Synchronization is explicitly called out as blocked on three unresolved questions (field scope, manual-edit conflict, definition of "upcoming") and must not be implemented until they're resolved.
-
----
-
-## v0.3.1
-
-Recurring Schedule specification refined.
-
-Major updates:
-
-- Generated Sessions reference their originating Recurring Schedule.
-- Generated Sessions are automatically published.
-- Added optional Schedule end date.
-- Added recurrence idempotency invariant.
-- Clarified deleted occurrences must never be regenerated.
-
----
-
-## v0.3.0
-
-Recurring Schedules introduced.
-
-Major updates:
-
-- Replaced Session Templates with Recurring Schedules.
-- Added Recurring Schedule as a Core Domain.
-- Template is now owned by a Recurring Schedule.
-- Formalized Schedule vs Session ownership.
-- Added Generation Policy.
-- Added Active / Paused schedule lifecycle.
-- Defined synchronization behavior for generated Sessions.
-- Deleted generated Sessions are never recreated.
-
----
-
-## v0.2.0
-
-Foundation milestone completed.
-
-Major updates:
-
-- Established Product Principles.
-- Added Domain Principles.
-- Formalized Session Lifecycle.
-- Formalized Participant Lifecycle.
-- Defined Sport Module responsibilities.
-- Introduced Activity as a first-class domain concept.
-- Renamed Session Configuration to Organizer Preferences.
-- Renamed Default Match Configuration to Default Activity Configuration.
-- Established Scheduler philosophy.
-- Clarified backend ownership of shared business state.
-- Expanded Planning for future domain evolution.
+Change history has moved to `AKSI_PRODUCT_DECISIONS_CHANGELOG.md` — this
+document stays scoped to current decisions only.

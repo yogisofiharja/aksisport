@@ -107,6 +107,35 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		c.JSON(http.StatusOK, detail)
 	})
 
+	// Regenerate-matches support: the client deletes every currently
+	// queued activity before generating a fresh fair round. Only queued
+	// matches can be deleted — db.DeleteActivity enforces that.
+	authed.DELETE("/activities/:id", func(c *gin.Context) {
+		activityID := c.Param("id")
+		_, _, role, ok := requireActivityAccess(c, pool, activityID)
+		if !ok {
+			return
+		}
+		if !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "only owner/admin can delete a match")
+			return
+		}
+		err := dbpkg.DeleteActivity(c.Request.Context(), pool, activityID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "activity not found")
+			return
+		}
+		if errors.Is(err, dbpkg.ErrConflict) {
+			respondError(c, http.StatusConflict, "only a queued match can be deleted")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
+
 	authed.POST("/activities/:id/start", func(c *gin.Context) {
 		activityID := c.Param("id")
 		if _, _, _, ok := requireActivityAccess(c, pool, activityID); !ok {

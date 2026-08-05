@@ -16,3 +16,9 @@ const registry: Record<string, SportModule> = {
 export function getSportModule(sportId: string): SportModule | undefined {
   return registry[sportId];
 }
+
+// Registered sport ids, so screens (e.g. Skill Levels, Session/Schedule
+// level pickers) don't hardcode a sport list of their own.
+export function listSportIds(): string[] {
+  return Object.keys(registry);
+}
