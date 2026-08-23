@@ -1,0 +1,29 @@
+aksisport.com {
+	tls /etc/caddy/certs/aksisport-wildcard.pem /etc/caddy/certs/aksisport-wildcard.key
+	respond "AKSI — coming soon" 200
+}
+
+app.aksisport.com {
+	tls /etc/caddy/certs/aksisport-wildcard.pem /etc/caddy/certs/aksisport-wildcard.key
+	reverse_proxy 127.0.0.1:4000
+}
+
+api.aksisport.com {
+	tls /etc/caddy/certs/aksisport-wildcard.pem /etc/caddy/certs/aksisport-wildcard.key
+	reverse_proxy 127.0.0.1:8080
+}
+
+dev.aksisport.com {
+	tls /etc/caddy/certs/aksisport-wildcard.pem /etc/caddy/certs/aksisport-wildcard.key
+	respond "AKSI staging — coming soon" 200
+}
+
+app-dev.aksisport.com {
+	tls /etc/caddy/certs/aksisport-wildcard.pem /etc/caddy/certs/aksisport-wildcard.key
+	reverse_proxy 127.0.0.1:4001
+}
+
+api-dev.aksisport.com {
+	tls /etc/caddy/certs/aksisport-wildcard.pem /etc/caddy/certs/aksisport-wildcard.key
+	reverse_proxy 127.0.0.1:8081
+}

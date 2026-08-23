@@ -1,0 +1,36 @@
+name: Deploy staging
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'server/**'
+      - 'src/**'
+      - 'components/**'
+      - 'App.tsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'deploy/staging/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reset checkout to latest master
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/aksi-staging
+            git fetch origin
+            git reset --hard origin/master
+
+      - name: Build and restart staging
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: bash /opt/aksi-staging/deploy/staging/deploy.sh
