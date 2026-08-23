@@ -29,10 +29,10 @@ export function buildGeneratedMatchPayload(
   mode: MatchMode,
   matchFormat: MatchFormat,
   singleDeuceSuddenDeath: boolean,
-  checkedIn: SessionParticipant[]
+  eligible: SessionParticipant[]
 ): { config: MatchConfig; participants: ActivityParticipantInput[] } {
   const perTeam = mode === 'double' ? 2 : 1;
-  const assigned = matched.participantIds.map((id) => checkedIn.find((p) => p.id === id)!);
+  const assigned = matched.participantIds.map((id) => eligible.find((p) => p.id === id)!);
   const players: Player[] = assigned.map((p, i) => ({
     id: p.id,
     name: participantLabel(p),
