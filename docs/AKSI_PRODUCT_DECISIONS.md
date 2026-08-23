@@ -603,13 +603,20 @@ Doubles, the organizer has two ways to add matches:
 
 - **Generate Matches** — the organizer sets how many matches to generate
   (a number, defaulting to a rough estimate from the Session's Duration —
-  organizer-adjustable, not fixed). Matches are fairly drawn from
-  currently checked-in players who aren't already in a queued or live
-  match; if the requested count needs more matches than there are
-  players to cover in one pass, players cycle through again rather than
-  the batch stopping early. Generating just one match is simply setting
-  the count to 1 — there is no separate "one match" action, since that
-  would only duplicate Custom Match's own suggested pre-fill.
+  organizer-adjustable, not fixed). Matches are fairly drawn from any
+  participant with a claimed spot — registered or checked-in, not
+  checked-in alone (revised) — who isn't already in a queued or live
+  match; this lets the organizer plan a round before anyone's physically
+  checked in, though a match's own players still need to actually check
+  in before they can start it. If the requested count needs more matches
+  than there are players to cover in one pass, players cycle through
+  again rather than the batch stopping early. Generating just one match
+  is simply setting the count to 1 — there is no separate "one match"
+  action, since that would only duplicate Custom Match's own suggested
+  pre-fill. The organizer may also choose to delete every currently
+  queued match as part of the same action (a "remove existing matches"
+  option), replacing the queue in one step instead of a separate
+  Regenerate trip.
 - **Custom Match** — the organizer manually builds a match: participants,
   mode, and all. The mode is not required to match the Session's own
   Activity Type — a Doubles Session may still have a one-off Custom
@@ -623,30 +630,38 @@ Custom Match — Generate Matches is not a one-time action.
 A Class Activity Type has no match-generation concept — only Custom Match
 applies there, same as before this decision.
 
-Fairness: Generate Matches always prioritizes whichever checked-in
-players have played the fewest matches so far this Session, ties broken
-randomly. This is the "Match balance" item promoted here from Scheduler
-Evolution (Planning) — an explicit product requirement ("each player
-should have an equal or fair playing number"), not a general fairness/AI
-engine. Partner diversity, opponent diversity, and skill balancing remain
-Planning-only.
+Fairness: Generate Matches balances two things, not one. Fewest-played
+is still the primary sort — whichever eligible players have played the
+fewest matches so far this Session go first. Ties are no longer broken
+purely at random: **longest-waiting-since-last-match** is the tiebreak
+(a player is ordered by how long it's been, in match order, since their
+last match; never having played counts as having waited longest). Only
+a genuine remaining tie (same play count and same last-played position —
+e.g. everyone's never played) falls back to random. This is "Match
+balance" (equal/fair playing number) and "Waiting time," both promoted
+here from Scheduler Evolution (Planning) — explicit product requirements
+(a fair number of matches *and* a fair wait between them), not a general
+fairness/AI engine. Partner diversity, opponent diversity, and skill
+balancing remain Planning-only.
 
 ### Regenerate
 
-Once matches exist, if a player checks in who isn't covered by any
-currently queued (not yet started) match, the organizer also sees a
-**Regenerate** option they can trigger manually at any time. Regenerating
-deletes every currently queued match and generates the same number of
-matches again, fairly, from everyone now checked in — live and completed
-matches are never touched.
+Once matches exist, if a player becomes eligible (registered or
+checked-in) who isn't covered by any currently queued (not yet started)
+match, the organizer also sees a **Regenerate** option they can trigger
+manually at any time. Regenerating deletes every currently queued match
+and generates the same number of matches again, fairly, from everyone
+currently eligible — live and completed matches are never touched.
 
-Regeneration also now happens **automatically**: whenever the checked-in
-pool changes for any reason (a late check-in, a checked-in player
-cancelling their participation, being removed by the organizer, marked a
-no-show, or checking out) while matches are still queued, the app
-regenerates the queue itself — the organizer doesn't have to notice the
-mismatch and remember to tap Regenerate. (Revised — this previously
-required an explicit tap every time, with no silent/automatic path.)
+Regeneration also now happens **automatically**: whenever the eligible
+(registered-or-checked-in) pool changes for any reason (a new
+registration, a late check-in, an eligible player cancelling their
+participation, being removed by the organizer, marked a no-show, or
+checking out) while matches are still queued, the app regenerates the
+queue itself — the organizer doesn't have to notice the mismatch and
+remember to tap Regenerate. (Revised — this previously required an
+explicit tap every time, with no silent/automatic path, and only
+tracked the checked-in pool rather than the wider eligible one.)
 
 ---
 
@@ -1084,14 +1099,15 @@ These are known design areas, not implementation tasks.
 
 Future scheduler improvements may include:
 
-- Waiting time
 - Partner diversity
 - Opponent diversity
 - Skill balancing
 - Court optimization
 
-Match balance (equal/fair playing number) has been implemented — see
-DP-005's Match Generation section — and is removed from this list.
+Match balance (equal/fair playing number) and Waiting time
+(longest-waiting-since-last-match as the tiebreak) have both been
+implemented — see DP-005's Match Generation section — and are removed
+from this list.
 
 Recommendations must remain explainable.
 
