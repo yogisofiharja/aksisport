@@ -3,9 +3,11 @@ import { Pressable, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
+import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
+import { Card } from '../../design-system/ui/Card';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
@@ -87,9 +89,17 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
   // Main list is Today + Upcoming only — a cancelled Session still on
   // today's date stays visible (bucketed by date, not status). Past
   // Sessions (any status, earlier date) move to their own entry point,
-  // per DP-009's Session History.
+  // per DP-009's Session History. Drafts appear in both buckets above
+  // (bucketed by their own startsAt, same as any other Session) *and*
+  // get their own callout below (UX-005 Draft Recovery) — the callout is
+  // the proactive nudge at the actual "create new" decision point, not a
+  // replacement for the passive list entry.
   const todaySessions = sessions.filter((s) => sessionDateBucket(s) === 'today').sort(byStartsAtAsc);
   const upcomingSessions = sessions.filter((s) => sessionDateBucket(s) === 'upcoming').sort(byStartsAtAsc);
+  // Most-recently-created first — if more than one Draft exists (rare),
+  // the callout only ever offers the newest; the others are still
+  // reachable via the list above, just without the extra nudge.
+  const [mostRecentDraft] = sessions.filter((s) => s.status === 'draft').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   function renderCard(session: Session) {
     return (
@@ -146,10 +156,42 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
         </Typography>
       </Pressable>
 
+      {isOwnerOrAdmin && mostRecentDraft && (
+        <Card bordered padding="md" className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+          <HStack className="gap-3 items-start">
+            <Icon name="document-text-outline" size="md" color="secondary" />
+            <VStack space="xs" style={{ flex: 1 }}>
+              <Typography variant="label">{t('sessionDraftRecoveryTitle')}</Typography>
+              <Typography variant="body" color="muted" className="text-sm">
+                {t('sessionDraftRecoveryDesc', mostRecentDraft.name || mostRecentDraft.sport)}
+              </Typography>
+              <Button
+                action="secondary"
+                variant="outline"
+                size="sm"
+                className="self-start mt-1"
+                onPress={() => onOpenSession(mostRecentDraft.id)}
+              >
+                <ButtonText action="secondary" variant="outline">
+                  {t('sessionDraftRecoveryContinue')}
+                </ButtonText>
+              </Button>
+            </VStack>
+          </HStack>
+        </Card>
+      )}
+
       {isOwnerOrAdmin && (
-        <Button action="secondary" size="xl" className="w-full" onPress={onCreateSession}>
-          <ButtonText className="text-lg">{t('sessionCreate')}</ButtonText>
-        </Button>
+        <VStack space="xs">
+          <Button action="secondary" size="xl" className="w-full" onPress={onCreateSession}>
+            <ButtonText className="text-lg">{t('sessionCreate')}</ButtonText>
+          </Button>
+          {mostRecentDraft && (
+            <Typography variant="body" color="muted" className="text-xs text-center">
+              {t('sessionDraftRecoveryStartNew')}
+            </Typography>
+          )}
+        </VStack>
       )}
     </ScrollPage>
   );

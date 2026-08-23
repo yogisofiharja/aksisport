@@ -264,6 +264,21 @@ Sessions out of `HomeScreen`'s attention section, which filters on
 cross-Club "every Session I've joined" history view
 remains unbuilt.
 
+**Draft Recovery** (UX-005, Milestone 4): when the caller is owner/
+admin and this Club has at least one Draft Session, `SessionListScreen`
+shows a callout — amber-tinted `Card`, distinct from the plain list
+rows above it — directly above the "Create Session" button: "Continue
+where you left off" plus the most-recently-created Draft's name and a
+"Continue Draft" button that opens it via the normal `onOpenSession`
+(no new route; a Draft's own Publish/Edit/Discard actions already live
+on `SessionDetailScreen`). Deliberately a nudge, not a gate — Create
+Session stays fully available underneath, with a small "Or start a new
+one below" line rather than removing the option. If more than one
+Draft exists (uncommon), only the newest gets the callout; the others
+remain reachable the same way they always were, as ordinary rows in
+the Today/Upcoming list above (Drafts are never excluded from that
+list — this callout is additional emphasis, not a replacement for it).
+
 **`joinedCount`** (v0.6.3): `GET /sessions`/`GET /sessions/:id` now
 include a computed `joinedCount` — DP-002 headcount (registered +
 checked_in + checked_out; cancelled/no_show excluded), computed via
