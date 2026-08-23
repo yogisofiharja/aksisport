@@ -1,5 +1,5 @@
 import { auth } from '../../firebase';
-import type { ApiError, UserProfile } from './types';
+import type { ApiError, UserProfile, UserSummary } from './types';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -35,6 +35,13 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
 
 export function checkUsername(username: string): Promise<{ available: boolean }> {
   return apiFetch(`/v1/users/check-username?username=${encodeURIComponent(username)}`);
+}
+
+// Backs "add member" search dialogs — matches username or display name,
+// case-insensitive substring, excludes the caller. Server returns [] for
+// queries under 2 characters rather than erroring.
+export function searchUsers(query: string): Promise<UserSummary[]> {
+  return apiFetch(`/v1/users/search?q=${encodeURIComponent(query)}`);
 }
 
 export function createProfile(username: string, displayName?: string): Promise<UserProfile> {

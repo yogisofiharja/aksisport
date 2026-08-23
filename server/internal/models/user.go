@@ -13,3 +13,12 @@ type User struct {
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
+
+// UserSummary is the lean, public-safe shape returned by user search — a
+// full User includes email/phoneNumber, which searching users shouldn't
+// expose to whoever is searching.
+type UserSummary struct {
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	DisplayName *string `json:"displayName,omitempty"`
+}

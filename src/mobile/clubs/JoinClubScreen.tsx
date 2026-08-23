@@ -58,7 +58,16 @@ export function JoinClubScreen({ onBack, onJoined }: Props) {
               value={code}
               onChangeText={(v) => setCode(v.toUpperCase())}
               onSubmitEditing={handleSubmit}
-              className="text-3xl font-black tracking-[8px] text-center py-5"
+              className="text-3xl font-black tracking-[8px] text-center"
+              // InputField's shared StyleSheet fixes a 52px height sized for
+              // its normal 16px text (deliberately, to stop the box
+              // resizing between empty/typed states) — nowhere near enough
+              // for this field's much larger text-3xl, which was clipping
+              // vertically. Override height here rather than in the shared
+              // component, since every other InputField in the app is the
+              // normal size. No vertical padding needed — the fixed height
+              // + textAlignVertical="center" already centers the line.
+              style={{ height: 88 }}
             />
           </Input>
 

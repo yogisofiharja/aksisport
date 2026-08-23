@@ -53,6 +53,35 @@ func UsernameTaken(ctx context.Context, pool *pgxpool.Pool, username string) (bo
 	return exists, err
 }
 
+// SearchUsers returns users whose username or display name contains q
+// (case-insensitive substring match), excluding excludeUserID (the
+// caller — searching for yourself to add yourself somewhere never makes
+// sense). Capped at 20, ordered by username. Returns the lean
+// UserSummary shape, not the full User — unlike GetUserByUsername, this
+// never exposes email/phone to the searching caller.
+func SearchUsers(ctx context.Context, pool *pgxpool.Pool, q, excludeUserID string) ([]models.UserSummary, error) {
+	rows, err := pool.Query(ctx,
+		`SELECT id, username, display_name FROM users
+		 WHERE id != $1 AND (username ILIKE '%' || $2 || '%' OR display_name ILIKE '%' || $2 || '%')
+		 ORDER BY username ASC
+		 LIMIT 20`,
+		excludeUserID, q,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := []models.UserSummary{}
+	for rows.Next() {
+		var u models.UserSummary
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName); err != nil {
+			return nil, err
+		}
+		result = append(result, u)
+	}
+	return result, rows.Err()
+}
+
 // CreateUser creates the user's profile row. Club membership is entirely
 // separate — a new user starts with no clubs until they create or join one.
 func CreateUser(ctx context.Context, pool *pgxpool.Pool, firebaseUID, username string, displayName *string) (models.User, error) {

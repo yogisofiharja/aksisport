@@ -5,12 +5,14 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	dbpkg "github.com/yogisofiharja/aksi-server/internal/db"
+	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
 var usernamePattern = regexp.MustCompile(`^[a-z0-9_]{3,20}$`)
@@ -106,5 +108,25 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		c.JSON(http.StatusOK, user)
+	})
+
+	// Backs the "add member" dialog's search — any user with a profile can
+	// search (not scoped to a specific club; the caller filters out
+	// existing members client-side, since it already has that list
+	// loaded). Requires at least 2 characters to avoid a near-full-table
+	// scan on a 0-1 char query.
+	profiled.GET("/users/search", func(c *gin.Context) {
+		q := strings.TrimSpace(c.Query("q"))
+		if len(q) < 2 {
+			c.JSON(http.StatusOK, []models.UserSummary{})
+			return
+		}
+		current := authjwt.CurrentUser(c)
+		users, err := dbpkg.SearchUsers(c.Request.Context(), pool, q, current.ID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, users)
 	})
 }

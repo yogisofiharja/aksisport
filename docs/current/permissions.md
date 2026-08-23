@@ -24,6 +24,13 @@ re-checks independently.
    `(club_id, user_id)` in `club_members.role`. No cross-club roles —
    being an owner of one club has no effect on another.
 
+**Exception to layer 3**: `GET /v1/users/search` requires a profile
+(layer 2) but no club membership at all — any user with a profile can
+search any other user by username/display name, regardless of whether
+they share a club. It exists specifically to back `ClubMembersScreen`'s
+Add Member dialog; "is this person already a member of *this* club" is
+filtered client-side afterward, not by the search endpoint itself.
+
 ## Role capabilities (as enforced, not as documented in `docs/archive/prd.md`)
 
 | Action | Required role |
