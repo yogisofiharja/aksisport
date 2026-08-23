@@ -172,22 +172,33 @@ area being hidden (`isPublished`, above): a `hostPlaying` organizer's
 own row would otherwise show "Checked In" before the Session is even
 visible to anyone else, which reads as more real/final than it is.
 
-**Draft editing** (Milestone 2): `EditSession { sessionId }`
+**Editing, Draft or published-not-started** (Milestone 2, revised —
+originally Draft-only): `EditSession { sessionId }`
 (`docs/current/navigation.md`) reuses `CreateSessionScreen` in an edit
 mode — every field from the original creation form (name, location,
 description, activity type, capacity, host playing, date/time,
-duration, skill level requirement) is editable while still Draft, via
-the same guarded `PATCH /v1/sessions/:id` every other update already
-uses. Sport and the recurring/ad-hoc toggle are **not** editable —
-both are treated as fixed at creation (changing sport would orphan any
-already-set skill level requirement, which is scoped to a sport; a
-Recurring-Schedule-generated Session's schedule link is likewise
-fixed). **Known limitation**: un-requiring a skill level once set can't
-be done through this form — `PATCH`'s `COALESCE`-based partial update
-has no way to distinguish "field omitted" from "explicitly clear this
-field," so the skill level range can be changed but not removed. Not
-solved here; would need an explicit "clear" signal added to the PATCH
-contract.
+duration, skill level requirement, Price/DP-010, Match Setup/DP-005) is editable via the
+same guarded `PATCH /v1/sessions/:id` every other update already uses,
+which was never actually Draft-restricted server-side — only
+`SessionDetailScreen`'s Edit button visibility was. That button now also
+shows for `session.status === 'open'` (published, not yet started; the
+Details tab, alongside Cancel), not just `'draft'` — the direct reason
+was DP-010 Price otherwise having no way to be set or changed once a
+Session is published. Deliberately **not** offered once `in_progress`:
+by then `startsAt` is necessarily already in the past, which would trip
+the form's own past-date validation, and a running Session's plan is
+effectively locked — Cancel remains the only terminal action left for
+it. Sport and the recurring/ad-hoc toggle are **not** editable in either
+case — both are treated as fixed at creation (changing sport would
+orphan any already-set skill level requirement, which is scoped to a
+sport; a Recurring-Schedule-generated Session's schedule link is
+likewise fixed). **Known limitation**: un-requiring a skill level once
+set can't be done through this form — `PATCH`'s `COALESCE`-based partial
+update has no way to distinguish "field omitted" from "explicitly clear
+this field," so the skill level range can be changed but not removed
+(same limitation Price's amount fields have, see DP-010's own note in
+`api.md`). Not solved here; would need an explicit "clear" signal added
+to the PATCH contract.
 
 **No participant picker while Draft** (Milestone 2, revised): an
 earlier pass of this milestone added a "Participants" section to
@@ -406,9 +417,31 @@ opt-out.
   `status='cancelled'` — self-service.
 - `MarkNoShow` (`POST /v1/sessions/:id/participants/:userId/no-show`) sets
   `status='no_show'` — owner/admin only, targets another participant.
-- **Checkout/Cancel/No Show still have no screen** — API only, added as
-  Milestone A foundation work; wiring is expected as part of DP-006's
-  later UX work.
+- **No Show still has no screen** — API only, added as Milestone A
+  foundation work; wiring is expected as part of DP-006's later UX work.
+  **Checkout/Cancel got theirs in Milestone 2 (revised)** — see below.
+
+**Self-service Checkout/Cancel** (Milestone 2, revised): `SessionDetailScreen`'s
+self-service area — previously only Request to Join and Check In — now
+also offers the participant's own way out, the counterpart to the
+organizer's Remove action:
+
+- **Cancel my spot** (`cancelParticipation`/`CancelParticipant`): a small
+  red text link shown alongside the existing `requested`/`waitlist`
+  notice, or under the Check In button while `registered` — "I can't
+  make it," giving up the queue spot voluntarily before ever showing up.
+  Not offered once `checked_in` (Check Out, below, is the equivalent
+  action from there). Confirmed via `Alert.alert` — same pattern as
+  Remove/Discard/Cancel Session — since it gives up the spot.
+- **Check Out** (`checkOut`/`CheckOut`): replaces what used to be a bare
+  `null` once `checked_in` (the status was already visible on the
+  caller's own avatar in the Participants grid, so a banner would have
+  been redundant) with a small "Check Out" link — "I'm leaving." Also
+  confirmed. `load()` afterward picks up the checked-in pool shrinking
+  and auto-regenerates any still-queued match the caller was part of,
+  same as an organizer-initiated removal (see "Automatic regeneration on
+  checked-in pool change" above) — no separate wiring needed for that,
+  it's the same mechanism.
 
 **Check-In Window** (v0.9.0, DP-002; scope revised Milestone 2):
 `checkInWindowOpen` in `sessions_handler.go` gates `/checkin` (self) and
@@ -433,30 +466,89 @@ well before the window.
 
 ## Mobile UI reflection
 
+**Tabs** (Milestone 2, revised; Configuration added DP-005): `SessionDetailScreen.tsx` is split into
+five tabs — **Details**, **Configuration**, **Participants**, **Matches**, **Chat** — with
+the Session's name and start date/time pinned in a header above the tab
+bar, outside the scrolling tab body, so switching tabs never loses which
+Session you're looking at. `activeTab` is plain local state
+(`'details' | 'configuration' | 'participants' | 'matches' | 'chat'`); nothing about it is
+persisted or deep-linkable yet (opening a Session always lands on
+Details). This replaced the previous single long `ScrollView` containing
+every section top to bottom. Section-to-tab mapping:
+
+- **Details**: the Club name (fetched via `getClub(session.clubId)`,
+  new — this screen previously never loaded the parent Club at all) and,
+  only if `session.recurringScheduleId` is set, an "Every &lt;weekday&gt;"
+  line (fetched via `getRecurringSchedule`, reading
+  `recurrenceRule.weekday` through the same `weekdayLabel` helper
+  `CreateSessionScreen` already uses) — both at the very top; the Draft
+  badge/notice, location, Skill Level requirement summary, the sport/
+  activity type/date/duration card, plus a Price row in that same card
+  (DP-010) — "Free"; "&lt;amount&gt; per person" for `per_person`; for
+  `split_bill`, two rows instead of one ("Total Bill" and "Per Person
+  (N joined)", the latter computed client-side as
+  `totalPrice / joinedCount`, "—" if nobody's joined yet to avoid a
+  divide-by-zero); a tappable "X/Y joined" row (or "X
+  joined" if uncapped) that switches to the Participants tab —
+  `session.joinedCount`/`maxParticipants` were already computed, this
+  just surfaces them as a shortcut instead of requiring a tab switch to
+  see them; Description (if set), the lifecycle framing notice for the
+  current stage, the Organizer identity card (see below — it's about
+  identity, not participation, hence Details rather than Participants),
+  and the session-management actions (Publish/Edit/Discard while Draft,
+  Cancel once published).
+- **Configuration** (DP-005, new — own tab, not nested in Details): a
+  read-only summary of Match Setup — `session.defaultMatchFormat`'s type
+  and relevant sub-fields (via the shared `matchFormatSummary` helper,
+  `core/sessions/matchFormatSummary.ts`) and `session.defaultSingleDeuce`
+  (On/Off) — plus an Edit button, same `onEdit(sessionId)` navigation and
+  same editable window as Details' own Edit button (draft, or published-
+  not-yet-started). See "Match Setup" under Match scheduling below for
+  what these fields mean and where they're actually edited.
+- **Participants**: the caller's own self-service action area (Request
+  to Join / Check In / Cancel my spot / Check Out — see below), the
+  participant count, every status sub-section, and the empty-slot
+  placeholders.
+- **Matches**: the activity queue (Regenerate/Add links, each match's
+  Start/Watch). Shows `sessionMatchesUnavailableDraft` instead while
+  still Draft, rather than silently omitting the tab's content with no
+  explanation — matches don't exist as a concept yet, but the tab itself
+  stays reachable.
+- **Chat**: a placeholder shell only (`sessionChatComingSoon`) — real
+  in-session messaging is a new domain (persistence, who can see what,
+  moderation) that `ARCHITECTURE_GAP_ANALYSIS.md`'s roadmap already
+  scopes to its own later milestone ("Communication Foundation") behind
+  a dedicated product decision, not something improvised as a side
+  effect of this tab split. The tab exists now so the navigation shape
+  is in place ahead of that milestone.
+
 `SessionDetailScreen.tsx`'s self-service action area (v0.10.0, revised
-Milestone 2) branches on `myParticipant?.status`:
+Milestone 2; now living in the Participants tab) branches on
+`myParticipant?.status`:
 
 - No row yet → "Request to Join" button (Strict Skill Level block and the
   Guidance-mode confirm dialog both live here now, moved from the old
   Check In button — requesting is the actual "joining" moment now).
-- `requested` → a muted notice ("waiting for organizer approval").
+- `requested` → a muted notice ("waiting for organizer approval") plus a
+  "Cancel my spot" link.
 - `waitlist` → an amber notice ("approved — complete payment to claim
-  your spot").
-- `registered` → the Check In button, if within the Check-In Window;
-  otherwise the existing "check-in opens/closes" notice.
-- `checked_in` → **nothing** (Milestone 2 — the old static "Checked in"
-  badge was removed; that status is already visible on the caller's own
-  avatar in the Participants grid below, right where everyone else's
-  status shows too, so the standalone banner was redundant).
+  your spot") plus a "Cancel my spot" link.
+- `registered` → the Check In button, if within the Check-In Window
+  (otherwise the "check-in opens/closes" notice), plus a "Cancel my
+  spot" link.
+- `checked_in` → a small "Check Out" link (Milestone 2 revised again —
+  see "Self-service Checkout/Cancel" below; no longer literally nothing,
+  though still no repeated "Checked In" banner, since that status is
+  already visible on the caller's own avatar in the Participants grid).
 
-**Organizer section** (Milestone 2, new — shown above Participants,
+**Organizer section** (Milestone 2, new — shown in the Details tab,
 always, any lifecycle stage): a single avatar card for `session.createdBy`
 (looked up in `members`, falling back to the generic "Host" label if
 not found), blue-bordered, name only. This is about identity, not
 participation — if the organizer is also playing (`hostPlaying`),
-they *additionally* appear in Participants' Checked In sub-section
-below, same as any other participant; the Organizer card itself never
-has Remove or any other action.
+they *additionally* appear in the Participants tab's Confirmed/Checked
+In sub-section, same as any other participant; the Organizer card itself
+never has Remove or any other action.
 
 **Participants, split into sub-sections by status** (Milestone 2,
 replaces both the old flat list-of-rows layout and an even-older flat
@@ -551,32 +643,66 @@ original text ("do NOT implement fairness or AI yet"). **This policy now
 only powers the Custom Match tab's pre-fill** — the organizer can still
 freely add, remove, or reorder before submitting, and any manual tap
 clears the "Suggested" banner (`schedulerSuggested` + a reason key like
-`schedulerReasonEarliestCheckedIn`), same as before.
+`schedulerReasonEarliestCheckedIn`), same as before. It remains
+deliberately narrower than the pool below — "who's ready right now" for a
+pre-fill suggestion, not "who's allowed to be planned in."
 
 `src/core/sessions/matchGenerator.ts` is the new, separate fairness-aware
-generator behind the Generate Matches tab — fewest-played-first (ties
-broken randomly), computed from the Session's own activities so far (any
-status counts toward a player's play count, including a still-`queued`
-match — they're already allocated a turn). `generateFairRound(checkedIn,
-busyActivities, activities, needed, count)` draws exactly `count` matches
-(v0.8.2 — previously it drew matches until the checked-in pool ran out
-once; now the organizer picks the count, defaulting to
-`suggestedMatchCount(session.durationMinutes)`, a rough ~3.5
-matches/hour estimate, freely adjustable). Requesting more matches than
-there are checked-in players is expected — players cycle through fairly
-via a running per-batch play count, rather than the batch stopping once
-everyone's had one turn. There is no separate "generate one match" tab —
-it duplicated Custom Match's own suggested pre-fill, so it was removed;
-generating one match is just setting the count to 1. This is DP-005's
-Match Generation decision — "Match balance" promoted here from Scheduler
-Evolution (Planning), an explicit product requirement, not a general
-fairness/AI engine. The generator never calls `createActivity` itself;
-`AddMatchScreen` still does that only once the organizer taps Generate
-Matches. `SessionDetailScreen`'s Regenerate action (queued-only
+generator behind the Generate Matches tab. It draws from the **schedulable
+pool** — any participant with a claimed spot, `registered` or
+`checked_in`, not `checked_in` alone (DP-005). This lets an organizer plan
+the whole round before anyone's physically checked in; a match's own
+players still need to actually check in before they can self-start it
+(`SessionDetailScreen`'s `canStart`, unchanged) — only *planning* got
+wider, not *starting*. `AddMatchScreen`'s Custom Match participant picker
+draws from the same schedulable pool, for the same reason.
+
+Fairness is two-dimensional, computed from the Session's own activities so
+far (any status counts, including a still-`queued` match — they're already
+allocated a turn): **fewest-played-first** is still the primary sort, but
+ties are no longer broken purely at random — **longest-waiting-since-
+last-match** is the tiebreak (players are ordered by the index, in
+chronological match order, of their most recent appearance; never-played
+counts as having waited longest). Only a genuine three-way tie (same play
+count *and* same last-played position, e.g. everyone's never played) falls
+back to random. This directly targets the gap where match *count* balanced
+out but wait *time* between a given player's matches didn't — a small
+group could end up alternating unevenly even though everyone's total count
+came out even.
+
+`generateFairRound(eligible, busyActivities, activities, needed, count)`
+draws exactly `count` matches (v0.8.2 — previously it drew matches until
+the pool ran out once; now the organizer picks the count, defaulting to
+`suggestedMatchCount(session.durationMinutes)`, a rough ~3.5 matches/hour
+estimate, freely adjustable). Requesting more matches than there are
+schedulable players is expected — players cycle through fairly via a
+running per-batch play count and last-played index, rather than the batch
+stopping once everyone's had one turn. There is no separate "generate one
+match" tab — it duplicated Custom Match's own suggested pre-fill, so it
+was removed; generating one match is just setting the count to 1. This is
+DP-005's Match Generation decision — "Match balance" promoted here from
+Scheduler Evolution (Planning), an explicit product requirement, not a
+general fairness/AI engine. The generator never calls `createActivity`
+itself; `AddMatchScreen` still does that only once the organizer taps
+Generate Matches.
+
+**Remove existing matches** (DP-005): when there's at least one `queued`
+match, `AddMatchScreen`'s Generate step shows a toggle to delete all of
+them and generate a fresh batch instead, in the same action — previously
+this required a separate trip to `SessionDetailScreen`'s Regenerate link.
+The preview above the toggle already reflects the outcome as if the
+deletion happened (queued matches are excluded from both the busy-players
+check and the play-count/last-played fairness calculation while the toggle
+is on, since they're about to be deleted and never actually happen); the
+actual `DELETE /v1/activities/:id` calls run immediately before creating
+the replacement batch, so a failure partway through creation can't leave
+the queue half-deleted with no replacement.
+
+`SessionDetailScreen`'s Regenerate action (queued-only
 `DELETE /v1/activities/:id`, then a fresh `generateFairRound` for the
 same match count that was just deleted) is reachable two ways: the
 explicit "Regenerate matches" link (unchanged), or automatically — see
-"Automatic regeneration on checked-in pool change" below.
+"Automatic regeneration on schedulable pool change" below.
 
 **Match count picker** (v0.9.0): "Number of matches" is a collapsible
 wheel picker (1-30, `@react-native-picker/picker`), not a text input —
@@ -584,17 +710,32 @@ matches the app's established pattern for other numeric pickers
 (Session Duration, Skill Level range). Defaults to
 `suggestedMatchCount(session.durationMinutes)`.
 
-**Match Format fields** (v0.9.0): the Match Format card's Fixed Games,
-Race To, and Best of Sets options previously only set hardcoded defaults
-(4 games, no golden game; race to 4; 2 sets, no super tiebreak) with no
-way to adjust them — a real gap against the web version's
-`MatchSetup.tsx`, which has always exposed these. `AddMatchScreen` now
-shows the same fields conditionally on `matchFormat.type`: Fixed Games
-gets a total-games stepper (2-20) and a golden-game-on-tie switch; Race To
-gets a target-games stepper (1-20); Best of Sets gets 1/2/3 sets-to-win
-pills and a super-tiebreak switch (hidden when `setsToWin === 1`, and
-picking `1` force-disables it). This applies to both Generate Matches and
-Custom Match, since both share the same `matchFormat` state.
+**Match Setup, defined once** (DP-005, supersedes the v0.9.0 in-
+`AddMatchScreen` picker described below): what used to be a Match Format
+card + Single Deuce switch re-shown and re-editable every single time
+`AddMatchScreen` opened is now defined once, at Session creation, and
+simply read from then on. Two new Session (and Recurring Schedule
+Template) fields — `defaultMatchFormat` (already existed, previously only
+seeded `AddMatchScreen`'s picker rather than being the actual source of
+truth; nothing ever set it before this) and `defaultSingleDeuce`
+(`migrations/0015_default_single_deuce.up.sql`, nullable — undefined
+means a Session created before Match Setup existed, and every reader
+falls back to `{type: 'open'}` / `true`, the same hardcoded defaults
+`AddMatchScreen` used before). `CreateSessionScreen` gets a "Match
+Format"/"Single Deuce" section (same Fixed Games total-games stepper +
+golden-game switch, Race To target-games stepper, Best of Sets sets-to-
+win pills + super-tiebreak switch as before, just relocated) between
+Duration and the Skill Level toggle, in both create and edit mode, and in
+the ad-hoc preview step's Details card (`matchFormatSummary`, shared with
+Configuration below). `AddMatchScreen` no longer shows this UI at all —
+it reads `session.defaultMatchFormat`/`defaultSingleDeuce` directly for
+both Generate Matches and Custom Match (which also stops offering its own
+copy of these fields; only the Mode/single-vs-double pill remains
+Custom-Match-specific, since a one-off match may deliberately differ from
+the Session's own mode). Editing Match Setup after creation happens
+through the same Edit Session form (`onEdit`) as everything else, or via
+the Configuration tab's own Edit button (see "Tabs" above) — not inline
+in `AddMatchScreen`, which now only ever *reads* it.
 
 This is DP-006's check-in-driven loop in practice: checking a player in
 makes them eligible for the next suggestion or generated match; completing
@@ -604,26 +745,49 @@ Regenerate runs. No separate "suggest next match" trigger or
 auto-navigation was added for `AddMatchScreen` — opening the Add Match
 screen is still the trigger there, always recomputing from current data.
 
-**Automatic regeneration on checked-in pool change** (Milestone 2,
-revised): once matches have been generated, the checked-in pool they
-were generated from can change for any reason — a late check-in, a
-checked-in player cancelling/being removed, a no-show, a checkout —
-and any still-`queued` (unplayed) match no longer reflects who's
-actually available. Rather than requiring the organizer to notice this
-and tap Regenerate manually, `SessionDetailScreen`'s `load()` compares
-the checked-in participant set (by `userId` for members, participant
-row `id` for guests, sorted into a stable key) against what it observed
-on the *previous* successful load. If the set differs — not just the
-count, so a same-size swap still counts — and the viewer is owner/admin
-(matches Regenerate's own permission requirement, and avoids every
-viewer's device racing to regenerate the same queue) and there's at
-least one queued match, it runs the exact same delete-then-
-`generateFairRound` sequence Regenerate does, automatically, before
-rendering. The very first load after opening the screen never triggers
-this (there's no "previous" pool yet to diff against) — only an
-*observed change* does, which happens on every subsequent `load()` call:
-after any participant-affecting action on this screen (check-in,
-check-out, cancel, remove, no-show), on screen focus, and on pull-to-
-refresh. A change made from a different device is only caught the next
-time this device's own `load()` runs, same as everything else in this
-screen — there's no live push/sync.
+**Automatic regeneration on schedulable pool change** (Milestone 2,
+revised; broadened in DP-005): once matches have been generated, the
+schedulable pool they were generated from can change for any reason — a
+new registration, a late check-in, a schedulable player cancelling/being
+removed, a no-show, a checkout — and any still-`queued` (unplayed) match
+no longer reflects who's actually available. Rather than requiring the
+organizer to notice this and tap Regenerate manually,
+`SessionDetailScreen`'s `load()` compares the schedulable participant set
+(registered + checked_in, by `userId` for members, participant row `id`
+for guests, sorted into a stable key) against what it observed on the
+*previous* successful load. If the set differs — not just the count, so a
+same-size swap still counts — and the viewer is owner/admin (matches
+Regenerate's own permission requirement, and avoids every viewer's device
+racing to regenerate the same queue) and there's at least one queued
+match, it runs the exact same delete-then-`generateFairRound` sequence
+Regenerate does, automatically, before rendering. The very first load
+after opening the screen never triggers this (there's no "previous" pool
+yet to diff against) — only an *observed change* does, which happens on
+every subsequent `load()` call: after any participant-affecting action on
+this screen (check-in, check-out, cancel, remove, no-show), on screen
+focus, and on pull-to-refresh. A change made from a different device is
+only caught the next time this device's own `load()` runs, same as
+everything else in this screen — there's no live push/sync.
+
+Note this pool is deliberately wider than the **Checked In** section
+(above) and `canStart`/`canWatch`, which stay `checked_in`-only — physical
+presence is still required to actually start or watch a match; only
+*planning/regenerating* the queue now tracks the broader schedulable pool.
+
+**Approve or Regenerate** (DP-005): with Match Setup no longer something
+to configure here, `AddMatchScreen`'s Generate Matches tab is a single
+screen again — Match Count, the Remove Existing toggle (when there's a
+queue to replace), and the fairness preview, all visible together, same
+as before the brief two-step "Settings, then Generate" pass this
+superseded. What's new is the submit row: instead of one "Generate
+Matches" button, there are two — **Regenerate** (outline) recomputes the
+preview with a fresh shuffle without changing Match Count or Remove
+Existing, for an organizer who wants a different fair arrangement before
+committing; **Approve** (filled) is the actual submit, unchanged from the
+old single button. Regenerate works by bumping a `shuffleSeed` counter
+that's a dependency of the `round` memo but otherwise unused inside it —
+purely a "recompute now" trigger, since `generateFairRound` breaks ties
+with `Math.random()` and there was previously no way to ask for a new
+roll without touching a real input first. Custom Match is unaffected —
+its own single-screen flow (Mode, participant picker, First Server,
+Create) never had a settings step to remove.

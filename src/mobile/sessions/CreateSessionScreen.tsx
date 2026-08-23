@@ -15,7 +15,10 @@ import { createSession, getSession, publishSession, updateSession } from '../../
 import { createRecurringSchedule } from '../../core/recurringSchedules/api';
 import { listSkillLevels } from '../../core/skillLevels/api';
 import { formatSessionDateTime } from '../../core/sessions/sessionSchedule';
-import type { RecurringSchedule, Session, SkillLevel } from '../../core/api/types';
+import { formatIDR } from '../../core/currency';
+import type { PriceModel, RecurringSchedule, Session, SkillLevel } from '../../core/api/types';
+import type { MatchFormat } from '../../sports/tennis/scoringEngine';
+import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
 import { listSportIds, getSportModule } from '../../sports/registry';
 import { weekdayLabel } from '../recurringSchedules/weekday';
 import { SkillLevelRangePicker, type SkillLevelRangeValue } from '../skillLevels/SkillLevelRangePicker';
@@ -79,6 +82,30 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Match Setup's numeric fields (Total Games / Target Games / Sets to Win) —
+// same +/- control AddMatchScreen used to offer, just built on this
+// screen's own `components/ui` primitives instead of design-system's (the
+// two sets are never mixed in one file).
+function Stepper({ value, min, max, onChange }: { value: number; min: number; max: number; onChange: (next: number) => void }) {
+  return (
+    <HStack className="items-center gap-3">
+      <Pressable
+        onPress={() => value > min && onChange(value - 1)}
+        className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-60"
+      >
+        <Text className="text-lg font-bold text-slate-900 dark:text-white">−</Text>
+      </Pressable>
+      <Text className="w-8 text-center font-bold text-slate-900 dark:text-white">{value}</Text>
+      <Pressable
+        onPress={() => value < max && onChange(value + 1)}
+        className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-60"
+      >
+        <Text className="text-lg font-bold text-slate-900 dark:text-white">+</Text>
+      </Pressable>
+    </HStack>
+  );
+}
+
 export function CreateSessionScreen({
   clubId,
   onBack,
@@ -123,6 +150,21 @@ export function CreateSessionScreen({
   // collapsed-by-default treatment.
   const [requireSkillLevel, setRequireSkillLevel] = useState(false);
   const [skillLevelRange, setSkillLevelRange] = useState<SkillLevelRangeValue>({});
+  // Payments: "free" by default — pricePerPerson/totalPrice are plain
+  // text inputs (kept as strings, parsed on validate, same convention as
+  // maxParticipants) since only one is ever relevant, depending on
+  // priceModel.
+  const [priceModel, setPriceModel] = useState<PriceModel>('free');
+  const [pricePerPerson, setPricePerPerson] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
+  // Match Setup: how matches generated from this Session are scored —
+  // defined once here instead of being reconfigured every time a match is
+  // generated (AddMatchScreen now just reads session.defaultMatchFormat/
+  // defaultSingleDeuce). Same defaults AddMatchScreen used to seed itself
+  // with, so a Session that never touches this section behaves exactly as
+  // before.
+  const [matchFormat, setMatchFormat] = useState<MatchFormat>({ type: 'open' });
+  const [singleDeuceSuddenDeath, setSingleDeuceSuddenDeath] = useState(true);
   // Preview-only — resolves skillLevelRange's ids to names, same data
   // SkillLevelRangePicker fetches internally for its own pickers but
   // doesn't expose back to the caller.
@@ -151,6 +193,11 @@ export function CreateSessionScreen({
         setDescription(sess.description ?? '');
         setMaxParticipants(sess.maxParticipants != null ? String(sess.maxParticipants) : '');
         setHostPlaying(sess.hostPlaying);
+        setPriceModel(sess.priceModel);
+        setPricePerPerson(sess.pricePerPerson != null ? String(sess.pricePerPerson) : '');
+        setTotalPrice(sess.totalPrice != null ? String(sess.totalPrice) : '');
+        if (sess.defaultMatchFormat) setMatchFormat(sess.defaultMatchFormat as MatchFormat);
+        if (sess.defaultSingleDeuce != null) setSingleDeuceSuddenDeath(sess.defaultSingleDeuce);
         if (sess.startsAt) {
           const startsAt = new Date(sess.startsAt);
           setDate(startsAt);
@@ -192,7 +239,13 @@ export function CreateSessionScreen({
     return combined;
   }
 
-  type Validated = { trimmedName: string; trimmedLocation: string; parsedMaxParticipants?: number };
+  type Validated = {
+    trimmedName: string;
+    trimmedLocation: string;
+    parsedMaxParticipants?: number;
+    parsedPricePerPerson?: number;
+    parsedTotalPrice?: number;
+  };
 
   // Shared by every save path (edit, recurring, ad-hoc create/preview) —
   // previously duplicated inline in handleSubmit only, now also needed by
@@ -231,8 +284,23 @@ export function CreateSessionScreen({
       setError(t('sessionStartsAtPast'));
       return null;
     }
+    let parsedPricePerPerson: number | undefined;
+    let parsedTotalPrice: number | undefined;
+    if (priceModel === 'per_person') {
+      parsedPricePerPerson = Number.parseInt(pricePerPerson.trim(), 10);
+      if (Number.isNaN(parsedPricePerPerson) || parsedPricePerPerson <= 0) {
+        setError(t('sessionPricePerPersonInvalid'));
+        return null;
+      }
+    } else if (priceModel === 'split_bill') {
+      parsedTotalPrice = Number.parseInt(totalPrice.trim(), 10);
+      if (Number.isNaN(parsedTotalPrice) || parsedTotalPrice <= 0) {
+        setError(t('sessionTotalPriceInvalid'));
+        return null;
+      }
+    }
     setError(null);
-    return { trimmedName, trimmedLocation, parsedMaxParticipants };
+    return { trimmedName, trimmedLocation, parsedMaxParticipants, parsedPricePerPerson, parsedTotalPrice };
   }
 
   function buildSessionPayload(v: Validated) {
@@ -245,6 +313,11 @@ export function CreateSessionScreen({
       hostPlaying,
       startsAt: combinedStartsAt().toISOString(),
       durationMinutes,
+      priceModel,
+      pricePerPerson: v.parsedPricePerPerson,
+      totalPrice: v.parsedTotalPrice,
+      defaultMatchFormat: matchFormat,
+      defaultSingleDeuce: singleDeuceSuddenDeath,
       ...(requireSkillLevel ? skillLevelRange : {}),
     };
   }
@@ -280,6 +353,11 @@ export function CreateSessionScreen({
             maxParticipants: v.parsedMaxParticipants,
             activityType,
             hostPlaying,
+            priceModel,
+            pricePerPerson: v.parsedPricePerPerson,
+            totalPrice: v.parsedTotalPrice,
+            defaultMatchFormat: matchFormat,
+            defaultSingleDeuce: singleDeuceSuddenDeath,
             ...(requireSkillLevel ? skillLevelRange : {}),
           }
         );
@@ -382,6 +460,20 @@ export function CreateSessionScreen({
                 label={t('sessionPreviewMaxParticipantsLabel')}
                 value={maxParticipants.trim() ? maxParticipants.trim() : t('sessionPreviewCapacityUnlimited')}
               />
+              <DetailRow
+                label={t('sessionPriceLabel')}
+                value={
+                  priceModel === 'free'
+                    ? t('sessionPriceFreeDisplay')
+                    : priceModel === 'per_person'
+                      ? (pricePerPerson.trim() ? t('sessionPricePerPersonDisplay', formatIDR(Number(pricePerPerson))) : '—')
+                      : totalPrice.trim()
+                        ? formatIDR(Number(totalPrice))
+                        : '—'
+                }
+              />
+              <DetailRow label={t('matchFormat')} value={matchFormatSummary(matchFormat, t)} />
+              <DetailRow label={t('singleDeuce')} value={singleDeuceSuddenDeath ? t('sessionConfigOn') : t('sessionConfigOff')} />
               {requireSkillLevel && skillLevelRange.skillLevelMinId && skillLevelRange.skillLevelMaxId && skillLevelRange.skillLevelEnforcement && (
                 <>
                   <DetailRow
@@ -503,7 +595,24 @@ export function CreateSessionScreen({
             <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionDescriptionLabel')}</Text>
             <Input className="h-auto items-start py-2">
               <InputField
-                value={description}
+                // Uncontrolled deliberately — this screen is one large
+                // component with 20+ pieces of state, so every keystroke
+                // re-renders the whole form. A controlled `value` here
+                // would feed that re-render straight back into the native
+                // text view on every character; on iOS specifically that
+                // redundant round-trip through a multiline UITextView is
+                // a known source of a visible flash (the native keystroke
+                // paints instantly, then React's controlled update
+                // repaints it a beat later). defaultValue lets the native
+                // view own the text entirely — React only observes via
+                // onChangeText, never writes back — so there's nothing
+                // left to cause a second paint. Safe here specifically
+                // because description is only ever set programmatically
+                // once, in the edit-mode load effect above, which
+                // completes before this form is ever rendered
+                // (loadingExisting gates it) — nothing resets this field
+                // after first mount.
+                defaultValue={description}
                 onChangeText={setDescription}
                 placeholder={t('sessionDescriptionPlaceholder')}
                 multiline
@@ -670,6 +779,133 @@ export function CreateSessionScreen({
             )}
           </VStack>
 
+          <VStack className="gap-3">
+            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('matchFormat')}</Text>
+            <VStack className="gap-2">
+              <Pressable
+                onPress={() => setMatchFormat({ type: 'open' })}
+                className={`py-3 px-4 rounded-xl border-2 ${
+                  matchFormat.type === 'open'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <Text className={matchFormat.type === 'open' ? 'text-blue-600 font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                  {t('formatOpen')}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setMatchFormat({ type: 'fixed-games', totalGames: 4, goldenGameOnTie: false })}
+                className={`py-3 px-4 rounded-xl border-2 ${
+                  matchFormat.type === 'fixed-games'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <Text className={matchFormat.type === 'fixed-games' ? 'text-blue-600 font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                  {t('formatFixedGames')}
+                </Text>
+              </Pressable>
+              {matchFormat.type === 'fixed-games' && (
+                <VStack className="gap-3 pl-2">
+                  <HStack className="justify-between items-center">
+                    <Text className="text-slate-500 dark:text-slate-400">{t('totalGames')}</Text>
+                    <Stepper
+                      value={matchFormat.totalGames}
+                      min={2}
+                      max={20}
+                      onChange={(n) => setMatchFormat({ ...matchFormat, totalGames: n })}
+                    />
+                  </HStack>
+                  <HStack className="justify-between items-center gap-4">
+                    <VStack className="flex-1 gap-1">
+                      <Text className="font-bold text-slate-900 dark:text-white">{t('goldenGame')}</Text>
+                      <Text className="text-sm text-slate-500 dark:text-slate-400">{t('goldenGameDesc')}</Text>
+                    </VStack>
+                    <Switch
+                      value={matchFormat.goldenGameOnTie}
+                      onValueChange={(v) => setMatchFormat({ ...matchFormat, goldenGameOnTie: v })}
+                    />
+                  </HStack>
+                </VStack>
+              )}
+
+              <Pressable
+                onPress={() => setMatchFormat({ type: 'race-to', raceTo: 4 })}
+                className={`py-3 px-4 rounded-xl border-2 ${
+                  matchFormat.type === 'race-to'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <Text className={matchFormat.type === 'race-to' ? 'text-blue-600 font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                  {t('formatRaceTo')}
+                </Text>
+              </Pressable>
+              {matchFormat.type === 'race-to' && (
+                <HStack className="justify-between items-center pl-2">
+                  <Text className="text-slate-500 dark:text-slate-400">{t('targetGames')}</Text>
+                  <Stepper value={matchFormat.raceTo} min={1} max={20} onChange={(n) => setMatchFormat({ ...matchFormat, raceTo: n })} />
+                </HStack>
+              )}
+
+              <Pressable
+                onPress={() => setMatchFormat({ type: 'best-of-sets', setsToWin: 2, superTiebreak: false })}
+                className={`py-3 px-4 rounded-xl border-2 ${
+                  matchFormat.type === 'best-of-sets'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <Text className={matchFormat.type === 'best-of-sets' ? 'text-blue-600 font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                  {t('regularTab')}
+                </Text>
+              </Pressable>
+              {matchFormat.type === 'best-of-sets' && (
+                <VStack className="gap-3 pl-2">
+                  <HStack className="justify-between items-center">
+                    <Text className="text-slate-500 dark:text-slate-400">{t('setsToWin')}</Text>
+                    <HStack className="gap-2">
+                      {([1, 2, 3] as const).map((n) => {
+                        const active = matchFormat.type === 'best-of-sets' && matchFormat.setsToWin === n;
+                        return (
+                          <Pressable
+                            key={n}
+                            onPress={() => setMatchFormat({ type: 'best-of-sets', setsToWin: n, superTiebreak: n === 1 ? false : matchFormat.superTiebreak })}
+                            className={`w-9 h-9 rounded-full items-center justify-center ${active ? 'bg-blue-600' : 'bg-slate-100 dark:bg-slate-700'}`}
+                          >
+                            <Text className={active ? 'text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-bold'}>{n}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </HStack>
+                  </HStack>
+                  {matchFormat.setsToWin > 1 && (
+                    <HStack className="justify-between items-center gap-4">
+                      <VStack className="flex-1 gap-1">
+                        <Text className="font-bold text-slate-900 dark:text-white">{t('superTiebreak')}</Text>
+                        <Text className="text-sm text-slate-500 dark:text-slate-400">{t('superTiebreakDesc')}</Text>
+                      </VStack>
+                      <Switch
+                        value={matchFormat.superTiebreak}
+                        onValueChange={(v) => setMatchFormat({ ...matchFormat, superTiebreak: v })}
+                      />
+                    </HStack>
+                  )}
+                </VStack>
+              )}
+            </VStack>
+
+            <HStack className="justify-between items-center gap-4">
+              <VStack className="flex-1 gap-1">
+                <Text className="font-bold text-slate-900 dark:text-white">{t('singleDeuce')}</Text>
+                <Text className="text-sm text-slate-500 dark:text-slate-400">{t('singleDeuceDesc')}</Text>
+              </VStack>
+              <Switch value={singleDeuceSuddenDeath} onValueChange={setSingleDeuceSuddenDeath} />
+            </HStack>
+          </VStack>
+
           <HStack className="justify-between items-center">
             <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('skillLevelRequireToggleLabel')}</Text>
             <Switch value={requireSkillLevel} onValueChange={setRequireSkillLevel} />
@@ -678,6 +914,49 @@ export function CreateSessionScreen({
           {requireSkillLevel && (
             <SkillLevelRangePicker sport={sport} value={skillLevelRange} onChange={setSkillLevelRange} />
           )}
+
+          <VStack className="gap-2">
+            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionPriceLabel')}</Text>
+            <HStack className="gap-2 flex-wrap">
+              {(['free', 'per_person', 'split_bill'] as PriceModel[]).map((model) => (
+                <Pressable
+                  key={model}
+                  className={`px-3 py-2 rounded-full ${model === priceModel ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                  onPress={() => setPriceModel(model)}
+                >
+                  <Text className={model === priceModel ? 'text-white font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                    {model === 'free'
+                      ? t('sessionPriceModelFree')
+                      : model === 'per_person'
+                        ? t('sessionPriceModelPerPerson')
+                        : t('sessionPriceModelSplitBill')}
+                  </Text>
+                </Pressable>
+              ))}
+            </HStack>
+            {priceModel === 'per_person' && (
+              <Input>
+                <InputField
+                  value={pricePerPerson}
+                  onChangeText={setPricePerPerson}
+                  placeholder={t('sessionPricePerPersonPlaceholder')}
+                  keyboardType="number-pad"
+                  maxLength={12}
+                />
+              </Input>
+            )}
+            {priceModel === 'split_bill' && (
+              <Input>
+                <InputField
+                  value={totalPrice}
+                  onChangeText={setTotalPrice}
+                  placeholder={t('sessionTotalPricePlaceholder')}
+                  keyboardType="number-pad"
+                  maxLength={12}
+                />
+              </Input>
+            )}
+          </VStack>
 
           {error && <Text className="text-sm text-red-500">{error}</Text>}
 

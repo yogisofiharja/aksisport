@@ -906,6 +906,53 @@ History is contextual to where the Player is looking:
 
 ---
 
+## DP-010 — Session Pricing
+
+Status
+
+Approved
+
+### Decision
+
+A Session (and every Recurring Schedule Template, copied onto each
+generated Session same as every other Template field) may optionally
+declare a price. Three models, `free` by default:
+
+- **Free** — no cost. The default; an organizer never has to think
+  about pricing unless they opt in.
+- **Per Person** — a fixed fee (whole IDR) every participant pays.
+- **Split Bill** — the organizer enters one total bill amount (whole
+  IDR); the per-person share is `total / joined count`, always
+  **computed, never stored** — it must reflect the current headcount,
+  not a snapshot from whenever the price was set. "Joined" here is
+  DP-002's existing `joinedCount` definition (registered + checked_in +
+  checked_out; cancelled/no_show excluded) — someone who requested or is
+  waitlisted doesn't have a claimed spot yet, so isn't counted, but
+  someone already checked in still owes their share, so status
+  progressing past `registered` doesn't drop them out of the split.
+
+IDR has no subunit in practice — both amount fields are plain integers,
+not a fractional/decimal type.
+
+### Scope
+
+This is a display/informational feature, not a payment flow: AKSI
+records what a Session costs and shows each participant's computed
+share. It does **not** track who has paid, does not integrate a payment
+gateway or processor, and does not gate Check-In or participation on
+payment for this price — that remains entirely outside the app,
+consistent with DP-002's existing manual "Confirm Payment" step (which
+records that an organizer received payment for a join request, a
+different and pre-existing mechanism this doesn't change).
+
+### Relationship to "Payments" (Planning, below)
+
+This promotes "Session fees" out of Planning. The rest of the Payments
+Planning item — an actual payment gateway, membership/guest fees,
+refunds — remains unapproved and unbuilt.
+
+---
+
 # Planning
 
 ## Domain Evolution
@@ -974,10 +1021,14 @@ Potential future capabilities:
 
 - Membership
 - Guest fees
-- Session fees
 - Refunds
 - An actual payment gateway (card/e-wallet processing, provider
   integration, webhooks)
+
+**Session fees — promoted to DP-010, Ready to Develop.** A Session may
+declare Free/Per Person/Split Bill pricing and show each participant's
+computed share; it does not track who has paid or move any money. The
+rest of this list remains unapproved Planning.
 
 A manual, organizer-confirmed payment step exists today as part of DP-002
 Join Approval (Waitlist → Registered) — the organizer records that

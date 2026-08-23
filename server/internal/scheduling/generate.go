@@ -96,6 +96,7 @@ func createGeneratedSession(ctx context.Context, pool *pgxpool.Pool, sched model
 		CourtCount:          sched.CourtCount,
 		MaxParticipants:     sched.MaxParticipants,
 		DefaultMatchFormat:  sched.DefaultMatchFormat,
+		DefaultSingleDeuce:  sched.DefaultSingleDeuce,
 		ActivityType:        sched.ActivityType,
 		CreatedBy:           sched.CreatedBy,
 		StartsAt:            &occ,
@@ -108,6 +109,10 @@ func createGeneratedSession(ctx context.Context, pool *pgxpool.Pool, sched model
 		SkillLevelMaxID:       sched.SkillLevelMaxID,
 		SkillLevelEnforcement: sched.SkillLevelEnforcement,
 		HostPlaying:           sched.HostPlaying,
+		// Price (Payments), same as every other Template field.
+		PriceModel:     sched.PriceModel,
+		PricePerPerson: sched.PricePerPerson,
+		TotalPrice:     sched.TotalPrice,
 	})
 	if err != nil {
 		return models.Session{}, err

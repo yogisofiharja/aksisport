@@ -89,6 +89,53 @@ func isValidDurationMinutes(minutes int) bool {
 	return minutes >= 60 && minutes <= 1440 && minutes%60 == 0
 }
 
+// validatePriceModel normalizes and validates a Session/Recurring Schedule
+// Template's price fields — shared by both create routes (sessions_handler.go,
+// recurring_schedules_handler.go). priceModel defaults to "free" when the
+// caller omits it entirely (nil), same optional-with-a-default treatment
+// as HostPlaying elsewhere isn't given but Skill Level's absence is. Each
+// model has exactly one meaningful amount field; the other two return
+// values are always nil regardless of what the caller sent, so a stray
+// pricePerPerson sent alongside priceModel:"free" is silently dropped
+// rather than stored.
+func validatePriceModel(priceModel *string, pricePerPerson, totalPrice *int) (model string, perPerson, total *int, errMsg string) {
+	model = "free"
+	if priceModel != nil {
+		model = *priceModel
+	}
+	switch model {
+	case "free":
+		return model, nil, nil, ""
+	case "per_person":
+		if pricePerPerson == nil || *pricePerPerson <= 0 {
+			return "", nil, nil, "pricePerPerson must be a positive amount when priceModel is per_person"
+		}
+		return model, pricePerPerson, nil, ""
+	case "split_bill":
+		if totalPrice == nil || *totalPrice <= 0 {
+			return "", nil, nil, "totalPrice must be a positive amount when priceModel is split_bill"
+		}
+		return model, nil, totalPrice, ""
+	default:
+		return "", nil, nil, `priceModel must be "free", "per_person", or "split_bill"`
+	}
+}
+
+// validatePriceModelForUpdate mirrors validatePriceModel but for PATCH,
+// where omitting priceModel entirely must mean "don't change price at
+// all" — unlike create, there is no default-to-"free" here; a nil model
+// return tells the caller to pass nil straight through to COALESCE.
+func validatePriceModelForUpdate(priceModel *string, pricePerPerson, totalPrice *int) (model *string, perPerson, total *int, errMsg string) {
+	if priceModel == nil {
+		return nil, nil, nil, ""
+	}
+	m, pp, tp, errMsg := validatePriceModel(priceModel, pricePerPerson, totalPrice)
+	if errMsg != "" {
+		return nil, nil, nil, errMsg
+	}
+	return &m, pp, tp, ""
+}
+
 // sessionStatusTransitions: DP-001's explicit states (Draft, Cancelled,
 // Completed) plus the two mechanically-explicit ones (In Progress is
 // reached by an explicit "organizer starts session" action, per the
@@ -143,6 +190,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			CourtCount            int             `json:"courtCount"`
 			MaxParticipants       *int            `json:"maxParticipants"`
 			DefaultMatchFormat    json.RawMessage `json:"defaultMatchFormat"`
+			DefaultSingleDeuce    *bool           `json:"defaultSingleDeuce"`
 			ActivityType          *string         `json:"activityType"`
 			StartsAt              *time.Time      `json:"startsAt"`
 			DurationMinutes       *int            `json:"durationMinutes"`
@@ -150,6 +198,9 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			SkillLevelMaxID       *string         `json:"skillLevelMaxId"`
 			SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
 			HostPlaying           *bool           `json:"hostPlaying"`
+			PriceModel            *string         `json:"priceModel"`
+			PricePerPerson        *int            `json:"pricePerPerson"`
+			TotalPrice            *int            `json:"totalPrice"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil || body.Sport == "" {
 			respondError(c, http.StatusBadRequest, "sport is required")
@@ -191,13 +242,25 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusBadRequest, errMsg)
 			return
 		}
+		// Price (Payments): optional, defaults to "free" — validated/
+		// normalized together since each model has exactly one meaningful
+		// amount field.
+		priceModel, pricePerPerson, totalPrice, errMsg := validatePriceModel(body.PriceModel, body.PricePerPerson, body.TotalPrice)
+		if errMsg != "" {
+			respondError(c, http.StatusBadRequest, errMsg)
+			return
+		}
 		session, err := dbpkg.CreateSession(c.Request.Context(), pool, dbpkg.CreateSessionParams{
 			ClubID: clubID, Sport: body.Sport, Name: body.Name, Location: body.Location, Description: body.Description,
 			CourtCount: body.CourtCount, MaxParticipants: body.MaxParticipants,
-			DefaultMatchFormat: body.DefaultMatchFormat, ActivityType: body.ActivityType, CreatedBy: user.ID, StartsAt: body.StartsAt,
+			DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
+			ActivityType: body.ActivityType, CreatedBy: user.ID, StartsAt: body.StartsAt,
 			DurationMinutes: body.DurationMinutes,
 			SkillLevelMinID: body.SkillLevelMinID, SkillLevelMaxID: body.SkillLevelMaxID, SkillLevelEnforcement: body.SkillLevelEnforcement,
-			HostPlaying: *body.HostPlaying,
+			HostPlaying:    *body.HostPlaying,
+			PriceModel:     priceModel,
+			PricePerPerson: pricePerPerson,
+			TotalPrice:     totalPrice,
 		})
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
@@ -274,6 +337,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			Status                *string         `json:"status"`
 			MaxParticipants       *int            `json:"maxParticipants"`
 			DefaultMatchFormat    json.RawMessage `json:"defaultMatchFormat"`
+			DefaultSingleDeuce    *bool           `json:"defaultSingleDeuce"`
 			ActivityType          *string         `json:"activityType"`
 			StartsAt              *time.Time      `json:"startsAt"`
 			DurationMinutes       *int            `json:"durationMinutes"`
@@ -281,6 +345,9 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			SkillLevelMaxID       *string         `json:"skillLevelMaxId"`
 			SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
 			HostPlaying           *bool           `json:"hostPlaying"`
+			PriceModel            *string         `json:"priceModel"`
+			PricePerPerson        *int            `json:"pricePerPerson"`
+			TotalPrice            *int            `json:"totalPrice"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			respondError(c, http.StatusBadRequest, "invalid body")
@@ -321,12 +388,21 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusBadRequest, "startsAt cannot be in the past")
 			return
 		}
+		priceModel, pricePerPerson, totalPrice, errMsg := validatePriceModelForUpdate(body.PriceModel, body.PricePerPerson, body.TotalPrice)
+		if errMsg != "" {
+			respondError(c, http.StatusBadRequest, errMsg)
+			return
+		}
 		session, err := dbpkg.UpdateSession(c.Request.Context(), pool, sessionID, dbpkg.SessionUpdate{
 			Name: body.Name, Location: body.Location, Description: body.Description, Status: body.Status,
-			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, ActivityType: body.ActivityType,
-			StartsAt: body.StartsAt, DurationMinutes: body.DurationMinutes,
+			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
+			ActivityType: body.ActivityType,
+			StartsAt:     body.StartsAt, DurationMinutes: body.DurationMinutes,
 			SkillLevelMinID: body.SkillLevelMinID, SkillLevelMaxID: body.SkillLevelMaxID, SkillLevelEnforcement: body.SkillLevelEnforcement,
-			HostPlaying: body.HostPlaying,
+			HostPlaying:    body.HostPlaying,
+			PriceModel:     priceModel,
+			PricePerPerson: pricePerPerson,
+			TotalPrice:     totalPrice,
 		})
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")

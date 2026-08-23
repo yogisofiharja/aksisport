@@ -20,6 +20,8 @@ type RecurringSchedule struct {
 	CourtCount         int             `json:"courtCount"`
 	MaxParticipants    *int            `json:"maxParticipants,omitempty"`
 	DefaultMatchFormat json.RawMessage `json:"defaultMatchFormat,omitempty"`
+	// DefaultSingleDeuce, same as Session's own field — copied onto each generated Session.
+	DefaultSingleDeuce *bool `json:"defaultSingleDeuce,omitempty"`
 	// ActivityType, same as Session's own field — copied onto each generated Session.
 	ActivityType *string `json:"activityType,omitempty"`
 	// RecurrenceRule is opaque JSONB, same convention as DefaultMatchFormat —
@@ -41,4 +43,8 @@ type RecurringSchedule struct {
 	// HostPlaying, same as Session's own field — copied onto each generated
 	// Session, and used to auto-check-in the host on each generated Session.
 	HostPlaying bool `json:"hostPlaying"`
+	// Price, same as Session's own field — copied onto each generated Session.
+	PriceModel     string `json:"priceModel"`
+	PricePerPerson *int   `json:"pricePerPerson,omitempty"`
+	TotalPrice     *int   `json:"totalPrice,omitempty"`
 }

@@ -70,18 +70,22 @@ const s = StyleSheet.create({
     // height by default (textAlignVertical="center" above, for Android).
     height: 52,
   },
-  // Description is the one multiline caller — grows with content instead
-  // of a fixed height, top-aligned like a normal textarea.
+  // Description is the one multiline caller — top-aligned like a normal
+  // textarea.
   fieldMultiline: {
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    // Floor matching the caller's numberOfLines={3} intent — without it,
-    // the box shrinks to whatever's actually typed (e.g. down to 1 line
-    // once real content is shorter than the 2-line placeholder), which
-    // reads as the field "jumping" the moment you start typing. A
-    // minHeight (not height) still lets it grow past 3 lines for longer
-    // text instead of clipping/scrolling.
-    minHeight: 90,
+    // Fixed height, not minHeight — was minHeight (a floor, letting it
+    // keep growing past 3 lines), which meant every line-wrap while
+    // typing triggered a real native height recalculation. That
+    // recalculation is what was reported as a glitch where the typed
+    // letter flashed before settling into place — the same root cause
+    // s.field's own fixed height was already chosen to eliminate for the
+    // single-line case (see its comment), just not closed off here too.
+    // TextInput scrolls its own content once it exceeds this height, same
+    // as any textarea — nothing is lost, longer Notes just scroll instead
+    // of growing the box.
+    height: 90,
   },
 });

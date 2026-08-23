@@ -18,6 +18,12 @@ type Session struct {
 	Status             string          `json:"status"`
 	MaxParticipants    *int            `json:"maxParticipants,omitempty"`
 	DefaultMatchFormat json.RawMessage `json:"defaultMatchFormat,omitempty"`
+	// DefaultSingleDeuce is Match Setup's other half — DefaultMatchFormat
+	// covers the game format, this covers the deuce rule. Nil means "not
+	// configured yet" (a Session created before Match Setup existed);
+	// callers building a match fall back to true, matching the prior
+	// hardcoded AddMatchScreen default.
+	DefaultSingleDeuce *bool `json:"defaultSingleDeuce,omitempty"`
 	// ActivityType is opaque, Sport-Module-owned (e.g. tennis:
 	// "single"/"double"/"class") — distinct from DefaultMatchFormat, which
 	// seeds a match's scoring format, not this.
@@ -49,6 +55,14 @@ type Session struct {
 	// just run, this Session. Mandatory at creation, defaults to true.
 	// When true, the host is auto-checked-in as a participant on creation.
 	HostPlaying bool `json:"hostPlaying"`
+	// Price: optional cost to join, "free" by default. PricePerPerson only
+	// meaningful for "per_person"; TotalPrice only meaningful for
+	// "split_bill" — the per-person share for split_bill is computed
+	// client-side from TotalPrice/JoinedCount, never stored (it would go
+	// stale the moment another participant joins or leaves).
+	PriceModel     string `json:"priceModel"`
+	PricePerPerson *int   `json:"pricePerPerson,omitempty"`
+	TotalPrice     *int   `json:"totalPrice,omitempty"`
 	// JoinedCount is computed, not stored — participants counted per DP-002
 	// (registered/checked_in/checked_out; cancelled/no_show excluded). Set
 	// wherever a Session is returned to a caller (Create/Get/List/Update in

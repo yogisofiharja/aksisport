@@ -55,6 +55,7 @@ type recurringScheduleBody struct {
 	CourtCount            int             `json:"courtCount"`
 	MaxParticipants       *int            `json:"maxParticipants"`
 	DefaultMatchFormat    json.RawMessage `json:"defaultMatchFormat"`
+	DefaultSingleDeuce    *bool           `json:"defaultSingleDeuce"`
 	ActivityType          *string         `json:"activityType"`
 	RecurrenceRule        json.RawMessage `json:"recurrenceRule"`
 	GenerationLeadDays    int             `json:"generationLeadDays"`
@@ -64,6 +65,9 @@ type recurringScheduleBody struct {
 	SkillLevelMaxID       *string         `json:"skillLevelMaxId"`
 	SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
 	HostPlaying           *bool           `json:"hostPlaying"`
+	PriceModel            *string         `json:"priceModel"`
+	PricePerPerson        *int            `json:"pricePerPerson"`
+	TotalPrice            *int            `json:"totalPrice"`
 }
 
 func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier) {
@@ -118,14 +122,26 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			respondError(c, http.StatusBadRequest, errMsg)
 			return
 		}
+		// Price (Payments): optional on the Template too, same all-or-
+		// nothing-per-model rule as ad-hoc Sessions — copied onto every
+		// generated Session (see internal/scheduling/generate.go).
+		priceModel, pricePerPerson, totalPrice, errMsg := validatePriceModel(body.PriceModel, body.PricePerPerson, body.TotalPrice)
+		if errMsg != "" {
+			respondError(c, http.StatusBadRequest, errMsg)
+			return
+		}
 		sched, err := dbpkg.CreateRecurringSchedule(c.Request.Context(), pool, dbpkg.CreateRecurringScheduleParams{
 			ClubID: clubID, Sport: body.Sport, Name: body.Name, Location: body.Location, Description: body.Description,
 			CourtCount: body.CourtCount, MaxParticipants: body.MaxParticipants,
-			DefaultMatchFormat: body.DefaultMatchFormat, ActivityType: body.ActivityType, RecurrenceRule: body.RecurrenceRule,
+			DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
+			ActivityType: body.ActivityType, RecurrenceRule: body.RecurrenceRule,
 			GenerationLeadDays: body.GenerationLeadDays, GenerationTime: body.GenerationTime,
 			EndDate: body.EndDate, CreatedBy: user.ID,
 			SkillLevelMinID: body.SkillLevelMinID, SkillLevelMaxID: body.SkillLevelMaxID, SkillLevelEnforcement: body.SkillLevelEnforcement,
-			HostPlaying: *body.HostPlaying,
+			HostPlaying:    *body.HostPlaying,
+			PriceModel:     priceModel,
+			PricePerPerson: pricePerPerson,
+			TotalPrice:     totalPrice,
 		})
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
@@ -178,6 +194,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			CourtCount            *int            `json:"courtCount"`
 			MaxParticipants       *int            `json:"maxParticipants"`
 			DefaultMatchFormat    json.RawMessage `json:"defaultMatchFormat"`
+			DefaultSingleDeuce    *bool           `json:"defaultSingleDeuce"`
 			ActivityType          *string         `json:"activityType"`
 			RecurrenceRule        json.RawMessage `json:"recurrenceRule"`
 			GenerationLeadDays    *int            `json:"generationLeadDays"`
@@ -187,6 +204,9 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			SkillLevelMaxID       *string         `json:"skillLevelMaxId"`
 			SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
 			HostPlaying           *bool           `json:"hostPlaying"`
+			PriceModel            *string         `json:"priceModel"`
+			PricePerPerson        *int            `json:"pricePerPerson"`
+			TotalPrice            *int            `json:"totalPrice"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			respondError(c, http.StatusBadRequest, "invalid body")
@@ -210,13 +230,22 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			respondError(c, http.StatusBadRequest, `skillLevelEnforcement must be "strict" or "guidance"`)
 			return
 		}
+		priceModel, pricePerPerson, totalPrice, priceErrMsg := validatePriceModelForUpdate(body.PriceModel, body.PricePerPerson, body.TotalPrice)
+		if priceErrMsg != "" {
+			respondError(c, http.StatusBadRequest, priceErrMsg)
+			return
+		}
 		sched, err := dbpkg.UpdateRecurringSchedule(c.Request.Context(), pool, c.Param("id"), dbpkg.RecurringScheduleUpdate{
 			Name: body.Name, Location: body.Location, Description: body.Description, CourtCount: body.CourtCount,
-			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, ActivityType: body.ActivityType,
-			HostPlaying: body.HostPlaying,
+			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
+			ActivityType: body.ActivityType,
+			HostPlaying:  body.HostPlaying,
 			RecurrenceRule: body.RecurrenceRule, GenerationLeadDays: body.GenerationLeadDays,
 			GenerationTime: body.GenerationTime, EndDate: body.EndDate,
 			SkillLevelMinID: body.SkillLevelMinID, SkillLevelMaxID: body.SkillLevelMaxID, SkillLevelEnforcement: body.SkillLevelEnforcement,
+			PriceModel:      priceModel,
+			PricePerPerson:  pricePerPerson,
+			TotalPrice:      totalPrice,
 		})
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")

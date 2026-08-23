@@ -11,6 +11,7 @@ export function createSession(
     courtCount?: number;
     maxParticipants?: number;
     defaultMatchFormat?: unknown;
+    defaultSingleDeuce?: boolean;
     activityType?: string;
     startsAt?: string;
     durationMinutes?: number;
@@ -43,6 +44,7 @@ export function updateSession(
     status?: SessionStatus;
     maxParticipants?: number;
     defaultMatchFormat?: unknown;
+    defaultSingleDeuce?: boolean;
     activityType?: string;
     startsAt?: string;
     durationMinutes?: number;

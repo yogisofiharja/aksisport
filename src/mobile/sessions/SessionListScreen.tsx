@@ -11,7 +11,9 @@ import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import type { BadgeAction } from '../../design-system/ui/Badge';
 import { useTranslation } from '../../i18n';
+import { useAuth } from '../../core/auth/AuthContext';
 import { listSessions } from '../../core/sessions/api';
+import { listMembers } from '../../core/clubs/api';
 import { formatSessionDateTime, sessionDateBucket } from '../../core/sessions/sessionSchedule';
 import type { Session } from '../../core/api/types';
 
@@ -54,18 +56,27 @@ function byStartsAtAsc(a: Session, b: Session) {
 
 export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSession, onOpenHistory }: Props) {
   const { t } = useTranslation();
+  const { profile } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  // Create Session is owner/admin only (server already enforces this,
+  // same as Recurring Schedules) — the button used to show to every
+  // member regardless of role, only failing once they'd filled out the
+  // whole form and hit Submit. Gated here instead so it's never offered
+  // to begin with.
+  const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      setSessions(await listSessions(clubId));
+      const [sess, members] = await Promise.all([listSessions(clubId), listMembers(clubId)]);
+      setSessions(sess);
+      setIsOwnerOrAdmin(members.some((m) => m.userId === profile?.id && (m.role === 'owner' || m.role === 'admin')));
     } catch {
       // keep stale list; user can pull to refresh
     } finally {
       setLoading(false);
     }
-  }, [clubId]);
+  }, [clubId, profile?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -107,7 +118,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
       {loading && sessions.length === 0 ? (
         <Loading />
       ) : todaySessions.length === 0 && upcomingSessions.length === 0 ? (
-        <EmptyState message={t('sessionEmptyState')} />
+        <EmptyState message={t(isOwnerOrAdmin ? 'sessionEmptyState' : 'sessionEmptyStateMember')} />
       ) : (
         <>
           {todaySessions.length > 0 && (
@@ -135,9 +146,11 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
         </Typography>
       </Pressable>
 
-      <Button action="secondary" size="xl" className="w-full" onPress={onCreateSession}>
-        <ButtonText className="text-lg">{t('sessionCreate')}</ButtonText>
-      </Button>
+      {isOwnerOrAdmin && (
+        <Button action="secondary" size="xl" className="w-full" onPress={onCreateSession}>
+          <ButtonText className="text-lg">{t('sessionCreate')}</ButtonText>
+        </Button>
+      )}
     </ScrollPage>
   );
 }

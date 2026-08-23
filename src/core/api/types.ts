@@ -40,6 +40,14 @@ export type ClubMember = {
   joinedAt: string;
 };
 
+// Lean, public-safe shape returned by user search — no email/phone,
+// unlike a full profile.
+export type UserSummary = {
+  id: string;
+  username: string;
+  displayName?: string;
+};
+
 // DP-001: 'draft' (explicit, pre-publish) and 'cancelled' (explicit,
 // terminal) added. 'open' covers what DP-001 calls Recruiting/Ready/Full —
 // those are a derived sub-state of 'open', never persisted (see
@@ -70,6 +78,11 @@ export type Session = {
   // DP-004: seeds a new match's format picker. Opaque, same as
   // Activity.config — only the relevant sports/<name>/ module reads it.
   defaultMatchFormat?: unknown;
+  // Match Setup's other half — deuce rule for matches generated from this
+  // Session. Undefined means "not configured yet" (a Session created
+  // before Match Setup existed); callers building a match fall back to
+  // true, matching the old hardcoded AddMatchScreen default.
+  defaultSingleDeuce?: boolean;
   // Opaque, Sport-Module-owned (e.g. tennis: 'single'|'double'|'class') —
   // distinct from defaultMatchFormat, which seeds a match's *scoring*
   // format, not this. Mandatory at creation as of DP-009/v0.5.1.
@@ -95,12 +108,22 @@ export type Session = {
   // Session — mandatory at creation as of v0.6.1. When true, the host is
   // auto-checked-in as a participant on creation.
   hostPlaying: boolean;
+  // Price (Payments) — optional cost to join, "free" by default.
+  // pricePerPerson only meaningful for "per_person"; totalPrice only
+  // meaningful for "split_bill" (the per-person share is computed
+  // client-side from totalPrice/joinedCount, never stored — it would go
+  // stale the moment another participant joins or leaves).
+  priceModel: PriceModel;
+  pricePerPerson?: number;
+  totalPrice?: number;
   // Computed, not stored — DP-002 headcount (registered/checked_in/
   // checked_out; cancelled/no_show excluded). Populated by GET endpoints only.
   joinedCount: number;
   // Resolved server-side (DP-001/DP-ARCH-003) — see DerivedSessionStatus.
   lifecycleStatus: DerivedSessionStatus;
 };
+
+export type PriceModel = 'free' | 'per_person' | 'split_bill';
 
 // DP-002: 'participated' removed — declared in the original schema but
 // never set by any code path; not part of the five-state model.
@@ -193,6 +216,7 @@ export type RecurringSchedule = {
   courtCount: number;
   maxParticipants?: number;
   defaultMatchFormat?: unknown;
+  defaultSingleDeuce?: boolean;
   activityType?: string;
   recurrenceRule: RecurrenceRule;
   generationLeadDays: number;
@@ -208,6 +232,11 @@ export type RecurringSchedule = {
   skillLevelEnforcement?: SkillLevelEnforcement;
   // Same as Session's own field — copied onto each generated Session.
   hostPlaying: boolean;
+  // Price (Payments), same as Session's own field — copied onto each
+  // generated Session.
+  priceModel: PriceModel;
+  pricePerPerson?: number;
+  totalPrice?: number;
 };
 
 export type OccurrenceStatus = 'pending' | 'generated' | 'skipped';

@@ -31,11 +31,11 @@ func resolveLifecycleStatus(s models.Session) string {
 	return "recruiting"
 }
 
-const sessionColumns = "id, club_id, sport, name, location, court_count, status, max_participants, default_match_format, created_by, created_at, updated_at, starts_at, recurring_schedule_id, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing"
+const sessionColumns = "id, club_id, sport, name, location, court_count, status, max_participants, default_match_format, created_by, created_at, updated_at, starts_at, recurring_schedule_id, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce"
 
 func scanSession(row pgx.CollectableRow) (models.Session, error) {
 	var s models.Session
-	err := row.(pgx.Rows).Scan(&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.MaxParticipants, &s.DefaultMatchFormat, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt, &s.StartsAt, &s.RecurringScheduleID, &s.SkillLevelMinID, &s.SkillLevelMaxID, &s.SkillLevelEnforcement, &s.DurationMinutes, &s.ActivityType, &s.Description, &s.HostPlaying)
+	err := row.(pgx.Rows).Scan(&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.MaxParticipants, &s.DefaultMatchFormat, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt, &s.StartsAt, &s.RecurringScheduleID, &s.SkillLevelMinID, &s.SkillLevelMaxID, &s.SkillLevelEnforcement, &s.DurationMinutes, &s.ActivityType, &s.Description, &s.HostPlaying, &s.PriceModel, &s.PricePerPerson, &s.TotalPrice, &s.DefaultSingleDeuce)
 	return s, err
 }
 
@@ -51,6 +51,10 @@ type CreateSessionParams struct {
 	CourtCount         int
 	MaxParticipants    *int
 	DefaultMatchFormat []byte
+	// DefaultSingleDeuce is Match Setup's other half, alongside
+	// DefaultMatchFormat. Validated/defaulted by the caller (handler)
+	// before reaching here, same as PriceModel.
+	DefaultSingleDeuce *bool
 	ActivityType       *string
 	CreatedBy          string
 	StartsAt           *time.Time
@@ -71,6 +75,12 @@ type CreateSessionParams struct {
 	// HostPlaying is mandatory — validated by the caller (handler) before
 	// reaching here, same as Name/Location.
 	HostPlaying bool
+	// Price (Payments). PriceModel defaults to "free" at the column level
+	// if left as the zero value "" — validated/normalized by the caller
+	// (handler) before reaching here, same as Skill Level.
+	PriceModel     string
+	PricePerPerson *int
+	TotalPrice     *int
 }
 
 func CreateSession(ctx context.Context, pool *pgxpool.Pool, p CreateSessionParams) (models.Session, error) {
@@ -82,10 +92,11 @@ func CreateSession(ctx context.Context, pool *pgxpool.Pool, p CreateSessionParam
 		courtCount = 1
 	}
 	rows, err := pool.Query(ctx,
-		`INSERT INTO sessions (club_id, sport, name, location, court_count, max_participants, default_match_format, created_by, starts_at, recurring_schedule_id, status, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'draft'), $12, $13, $14, $15, $16, $17, $18) RETURNING `+sessionColumns,
+		`INSERT INTO sessions (club_id, sport, name, location, court_count, max_participants, default_match_format, created_by, starts_at, recurring_schedule_id, status, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'draft'), $12, $13, $14, $15, $16, $17, $18, COALESCE(NULLIF($19, ''), 'free'), $20, $21, $22) RETURNING `+sessionColumns,
 		p.ClubID, p.Sport, p.Name, p.Location, courtCount, p.MaxParticipants, p.DefaultMatchFormat, p.CreatedBy, p.StartsAt, p.RecurringScheduleID, p.Status,
 		p.SkillLevelMinID, p.SkillLevelMaxID, p.SkillLevelEnforcement, p.DurationMinutes, p.ActivityType, p.Description, p.HostPlaying,
+		p.PriceModel, p.PricePerPerson, p.TotalPrice, p.DefaultSingleDeuce,
 	)
 	if err != nil {
 		return models.Session{}, err
@@ -179,6 +190,18 @@ type SessionUpdate struct {
 	SkillLevelMaxID       *string
 	SkillLevelEnforcement *string
 	HostPlaying           *bool
+	// Price (Payments). Known limitation, same as Skill Level above:
+	// COALESCE can't distinguish "field omitted" from "explicitly clear
+	// this field," so switching PriceModel to "free" doesn't null out a
+	// stale PricePerPerson/TotalPrice from a prior model — harmless, since
+	// display/calculation logic always branches on PriceModel first, but
+	// not solved here.
+	PriceModel     *string
+	PricePerPerson *int
+	TotalPrice     *int
+	// DefaultSingleDeuce, same COALESCE-partial-update convention as the
+	// rest of this struct.
+	DefaultSingleDeuce *bool
 }
 
 func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u SessionUpdate) (models.Session, error) {
@@ -197,11 +220,16 @@ func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u 
 			activity_type = COALESCE($12, activity_type),
 			description = COALESCE($13, description),
 			host_playing = COALESCE($14, host_playing),
+			price_model = COALESCE($15, price_model),
+			price_per_person = COALESCE($16, price_per_person),
+			total_price = COALESCE($17, total_price),
+			default_single_deuce = COALESCE($18, default_single_deuce),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+sessionColumns,
 		sessionID, u.Name, u.Location, u.Status, u.MaxParticipants, u.DefaultMatchFormat, u.StartsAt,
 		u.SkillLevelMinID, u.SkillLevelMaxID, u.SkillLevelEnforcement, u.DurationMinutes, u.ActivityType, u.Description, u.HostPlaying,
+		u.PriceModel, u.PricePerPerson, u.TotalPrice, u.DefaultSingleDeuce,
 	)
 	if err != nil {
 		return models.Session{}, err

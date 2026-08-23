@@ -13,7 +13,7 @@ import { Icon } from '../../design-system/ui/Icon';
 import { Divider } from '../../design-system/ui/Divider';
 import { Loading } from '../../design-system/feedback/Loading';
 import { useTranslation } from '../../i18n';
-import { createActivity, listActivities } from '../../core/activities/api';
+import { createActivity, deleteActivity, listActivities } from '../../core/activities/api';
 import { getSession, listParticipants } from '../../core/sessions/api';
 import type { ActivityDetail, Session, SessionParticipant } from '../../core/api/types';
 import type { MatchConfig, MatchFormat, MatchMode, Player, Team } from '../../sports/tennis/scoringEngine';
@@ -43,32 +43,6 @@ type GenerationTab = 'generateRound' | 'custom';
 const MAX_MATCH_COUNT = 30;
 const MATCH_COUNT_OPTIONS = Array.from({ length: MAX_MATCH_COUNT }, (_, i) => i + 1);
 
-function Stepper({ value, min, max, onChange }: { value: number; min: number; max: number; onChange: (next: number) => void }) {
-  return (
-    <HStack space="sm">
-      <Pressable
-        onPress={() => value > min && onChange(value - 1)}
-        className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-60"
-      >
-        <Typography variant="label" className="text-lg">
-          −
-        </Typography>
-      </Pressable>
-      <Typography variant="label" className="w-8 text-center">
-        {value}
-      </Typography>
-      <Pressable
-        onPress={() => value < max && onChange(value + 1)}
-        className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-60"
-      >
-        <Typography variant="label" className="text-lg">
-          +
-        </Typography>
-      </Pressable>
-    </HStack>
-  );
-}
-
 export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
   const { t } = useTranslation();
   const { colorScheme } = useColorScheme();
@@ -80,6 +54,17 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
   const [tab, setTab] = useState<GenerationTab>('generateRound');
   const [matchCount, setMatchCount] = useState(4);
   const [showMatchCountPicker, setShowMatchCountPicker] = useState(false);
+  // Generate Matches can also replace whatever's already queued in the
+  // same action, instead of requiring a separate trip to
+  // SessionDetailScreen's Regenerate link first — only offered when
+  // there's actually a queue to replace. Deleting only ever touches
+  // 'queued' matches (never live/completed), same as Regenerate.
+  const [removeExisting, setRemoveExisting] = useState(false);
+  // Bumped by the "Regenerate" preview action — not read inside the round
+  // useMemo below, only listed as a dependency, purely to force a fresh
+  // Math.random() shuffle without the organizer having to touch Match
+  // Count or any other real input first.
+  const [shuffleSeed, setShuffleSeed] = useState(0);
 
   // Custom Match's own mode — user-changeable, seeded from the Session's
   // mode but not locked to it (unlike Generate Matches, which always uses
@@ -89,8 +74,6 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
   const [firstServerId, setFirstServerId] = useState<string | null>(null);
   const [suggestionReason, setSuggestionReason] = useState<string | null>(null);
 
-  const [matchFormat, setMatchFormat] = useState<MatchFormat>({ type: 'open' });
-  const [singleDeuceSuddenDeath, setSingleDeuceSuddenDeath] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,12 +104,6 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
         setParticipants(parts);
         setActivities(acts);
         setSession(sess);
-        // DP-004: seed the format picker from the session's default, if
-        // one is set. Opaque on the wire — cast, not validated, matching
-        // how Activity.config is already treated everywhere else.
-        if (sess.defaultMatchFormat) {
-          setMatchFormat(sess.defaultMatchFormat as MatchFormat);
-        }
         const initialMode: MatchMode = sess.activityType === 'double' ? 'double' : 'single';
         setCustomMode(initialMode);
         setTab(sess.activityType === 'single' || sess.activityType === 'double' ? 'generateRound' : 'custom');
@@ -140,25 +117,52 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
   const sessionMode: MatchMode = session?.activityType === 'double' ? 'double' : 'single';
   const needed = minParticipants(sessionMode);
 
-  // Memoized on participants/activities specifically (not recomputed every
-  // render) — the round preview below uses Math.random() to break
-  // fairness ties, so if these were re-derived on every render (e.g.
-  // toggling the deuce switch), the preview would re-shuffle for no reason.
-  const checkedIn = useMemo(() => participants.filter((p) => p.status === 'checked_in'), [participants]);
-  const busyActivities = useMemo(() => activities.filter((a) => a.status === 'queued' || a.status === 'live'), [activities]);
+  // Match Setup — configured once on the Session (CreateSessionScreen /
+  // its Configuration tab), not reconfigured here every time a match is
+  // generated. Undefined means a Session created before Match Setup
+  // existed; the fallbacks match what this screen used to hardcode.
+  const matchFormat: MatchFormat = (session?.defaultMatchFormat as MatchFormat) ?? { type: 'open' };
+  const singleDeuceSuddenDeath = session?.defaultSingleDeuce ?? true;
+
+  const queuedActivities = useMemo(() => activities.filter((a) => a.status === 'queued'), [activities]);
+  const hasQueuedMatches = queuedActivities.length > 0;
+
+  // Eligible for planning: a claimed spot (registered or checked_in), not
+  // checked_in alone — matches can be planned before anyone's physically
+  // checked in (core/sessions/matchGenerator.ts's module comment).
+  // Actually starting a match still requires its own players be checked
+  // in (SessionDetailScreen's canStart), unaffected by this.
+  const schedulable = useMemo(
+    () => participants.filter((p) => p.status === 'registered' || p.status === 'checked_in'),
+    [participants]
+  );
+  // When "remove existing matches" is on, the preview (and the eventual
+  // submit) treats already-queued matches as if they're already gone —
+  // their players become available again, and those matches no longer
+  // count toward anyone's play count/last-played for fairness purposes,
+  // since they're about to be deleted and never actually happen.
+  const effectiveActivities = useMemo(
+    () => (removeExisting ? activities.filter((a) => a.status !== 'queued') : activities),
+    [activities, removeExisting]
+  );
+  const busyActivities = useMemo(
+    () => effectiveActivities.filter((a) => a.status === 'queued' || a.status === 'live'),
+    [effectiveActivities]
+  );
 
   const round = useMemo(
-    () => generateFairRound(checkedIn, busyActivities, activities, needed, matchCount),
-    [checkedIn, busyActivities, activities, needed, matchCount]
+    () => generateFairRound(schedulable, busyActivities, effectiveActivities, needed, matchCount),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [schedulable, busyActivities, effectiveActivities, needed, matchCount, shuffleSeed]
   );
-  const availableCount = availableToPlay(checkedIn, busyActivities).length;
+  const availableCount = availableToPlay(schedulable, busyActivities).length;
 
-  function findCheckedIn(id: string): SessionParticipant | undefined {
-    return checkedIn.find((p) => p.id === id);
+  function findSchedulable(id: string): SessionParticipant | undefined {
+    return schedulable.find((p) => p.id === id);
   }
 
   function matchLabel(m: GeneratedMatch): string {
-    const names = m.participantIds.map((id) => participantLabel(findCheckedIn(id) ?? ({} as SessionParticipant)));
+    const names = m.participantIds.map((id) => participantLabel(findSchedulable(id) ?? ({} as SessionParticipant)));
     if (needed === 2) return `${names[0]} ${t('activityVersus')} ${names[1]}`;
     return `${names[0]} / ${names[1]} ${t('activityVersus')} ${names[2]} / ${names[3]}`;
   }
@@ -199,7 +203,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      const assigned = assignedOrder.map((id) => checkedIn.find((p) => p.id === id)!);
+      const assigned = assignedOrder.map((id) => schedulable.find((p) => p.id === id)!);
       const players: Player[] = assigned.map((p, i) => ({
         id: p.id,
         name: participantLabel(p),
@@ -226,16 +230,26 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
     }
   }
 
-  // --- Generate Matches (fair, checked-in-based, organizer-sized batch) ---
+  // --- Generate Matches (fair, registered-or-checked-in pool, organizer-sized batch) ---
   async function handleGenerateRound() {
     if (round.length === 0 || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
+      // "Remove existing matches" was already factored into the round
+      // preview above (effectiveActivities excludes queued matches) — the
+      // actual deletion happens here, right before creating the
+      // replacement batch, so a failure partway through creation doesn't
+      // leave the queue in a half-deleted state with no replacement.
+      if (removeExisting) {
+        for (const a of queuedActivities) {
+          await deleteActivity(a.id);
+        }
+      }
       // Sequential, not Promise.all — keeps queue order matching the
       // previewed order (created_at determines display order).
       for (const m of round) {
-        const { config, participants: parts } = buildGeneratedMatchPayload(m, sessionMode, matchFormat, singleDeuceSuddenDeath, checkedIn);
+        const { config, participants: parts } = buildGeneratedMatchPayload(m, sessionMode, matchFormat, singleDeuceSuddenDeath, schedulable);
         await createActivity(sessionId, config, parts);
       }
       onCreated();
@@ -335,6 +349,20 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
             </VStack>
           </Card>
 
+          {hasQueuedMatches && (
+            <Card padding="none">
+              <HStack className="px-5 py-4 justify-between items-center gap-4">
+                <VStack className="flex-1 gap-1" space="xs" style={{ flex: 1 }}>
+                  <Typography variant="label">{t('activityRemoveExistingLabel')}</Typography>
+                  <Typography variant="body" color="muted" className="text-sm">
+                    {t('activityRemoveExistingDesc', queuedActivities.length)}
+                  </Typography>
+                </VStack>
+                <Switch value={removeExisting} onValueChange={setRemoveExisting} />
+              </HStack>
+            </Card>
+          )}
+
           <Card padding="none">
             <Typography variant="caption" color="muted" className="px-5 pt-4 pb-2">
               {t('activityGenerateMatchesPreviewTitle')}
@@ -404,13 +432,13 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
               </Typography>
             )}
             <Divider />
-            {checkedIn.length === 0 ? (
+            {schedulable.length === 0 ? (
               <Typography variant="body" color="muted" className="px-5 py-4">
                 {t('activityNoCheckedIn')}
               </Typography>
             ) : (
               <HStack className="px-5 py-4 flex-wrap gap-2" space="sm" style={{ flexWrap: 'wrap' }}>
-                {checkedIn.map((p) => {
+                {schedulable.map((p) => {
                   const side = getSide(p.id);
                   return (
                     <Pressable
@@ -447,7 +475,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
               <Divider />
               <HStack className="px-5 py-4 flex-wrap gap-2" space="sm" style={{ flexWrap: 'wrap' }}>
                 {assignedOrder.map((id) => {
-                  const p = checkedIn.find((cp) => cp.id === id)!;
+                  const p = schedulable.find((cp) => cp.id === id)!;
                   const active = firstServerId === id;
                   return (
                     <Pressable
@@ -469,148 +497,6 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
         </>
       )}
 
-      <Card padding="none">
-        <Typography variant="caption" color="muted" className="px-5 pt-4 pb-2">
-          {t('matchFormat')}
-        </Typography>
-        <Divider />
-        <VStack className="px-5 py-4 gap-2" space="sm">
-          <Pressable
-            onPress={() => setMatchFormat({ type: 'open' })}
-            className={`py-3 px-4 rounded-xl border-2 ${
-              matchFormat.type === 'open'
-                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'
-            }`}
-          >
-            <Typography variant="label" className={matchFormat.type === 'open' ? 'text-blue-600' : ''}>
-              {t('formatOpen')}
-            </Typography>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setMatchFormat({ type: 'fixed-games', totalGames: 4, goldenGameOnTie: false })}
-            className={`py-3 px-4 rounded-xl border-2 ${
-              matchFormat.type === 'fixed-games'
-                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'
-            }`}
-          >
-            <Typography variant="label" className={matchFormat.type === 'fixed-games' ? 'text-blue-600' : ''}>
-              {t('formatFixedGames')}
-            </Typography>
-          </Pressable>
-          {matchFormat.type === 'fixed-games' && (
-            <VStack className="gap-3 pl-2" space="sm">
-              <HStack className="justify-between items-center">
-                <Typography variant="label">{t('totalGames')}</Typography>
-                <Stepper
-                  value={matchFormat.totalGames}
-                  min={2}
-                  max={20}
-                  onChange={(n) => setMatchFormat({ ...matchFormat, totalGames: n })}
-                />
-              </HStack>
-              <HStack className="justify-between items-center gap-4">
-                <VStack className="flex-1 gap-1" space="xs" style={{ flex: 1 }}>
-                  <Typography variant="label">{t('goldenGame')}</Typography>
-                  <Typography variant="body" color="muted" className="text-sm">
-                    {t('goldenGameDesc')}
-                  </Typography>
-                </VStack>
-                <Switch
-                  value={matchFormat.goldenGameOnTie}
-                  onValueChange={(v) => setMatchFormat({ ...matchFormat, goldenGameOnTie: v })}
-                />
-              </HStack>
-            </VStack>
-          )}
-
-          <Pressable
-            onPress={() => setMatchFormat({ type: 'race-to', raceTo: 4 })}
-            className={`py-3 px-4 rounded-xl border-2 ${
-              matchFormat.type === 'race-to'
-                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'
-            }`}
-          >
-            <Typography variant="label" className={matchFormat.type === 'race-to' ? 'text-blue-600' : ''}>
-              {t('formatRaceTo')}
-            </Typography>
-          </Pressable>
-          {matchFormat.type === 'race-to' && (
-            <VStack className="gap-3 pl-2" space="sm">
-              <HStack className="justify-between items-center">
-                <Typography variant="label">{t('targetGames')}</Typography>
-                <Stepper value={matchFormat.raceTo} min={1} max={20} onChange={(n) => setMatchFormat({ ...matchFormat, raceTo: n })} />
-              </HStack>
-            </VStack>
-          )}
-
-          <Pressable
-            onPress={() => setMatchFormat({ type: 'best-of-sets', setsToWin: 2, superTiebreak: false })}
-            className={`py-3 px-4 rounded-xl border-2 ${
-              matchFormat.type === 'best-of-sets'
-                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'
-            }`}
-          >
-            <Typography variant="label" className={matchFormat.type === 'best-of-sets' ? 'text-blue-600' : ''}>
-              {t('regularTab')}
-            </Typography>
-          </Pressable>
-          {matchFormat.type === 'best-of-sets' && (
-            <VStack className="gap-3 pl-2" space="sm">
-              <HStack className="justify-between items-center">
-                <Typography variant="label">{t('setsToWin')}</Typography>
-                <HStack space="sm">
-                  {([1, 2, 3] as const).map((n) => {
-                    const active = matchFormat.type === 'best-of-sets' && matchFormat.setsToWin === n;
-                    return (
-                      <Pressable
-                        key={n}
-                        onPress={() => setMatchFormat({ type: 'best-of-sets', setsToWin: n, superTiebreak: n === 1 ? false : matchFormat.superTiebreak })}
-                        className={`w-9 h-9 rounded-full items-center justify-center ${active ? 'bg-blue-600' : 'bg-slate-100 dark:bg-slate-700'}`}
-                      >
-                        <Typography variant="label" className={active ? 'text-white' : ''}>
-                          {n}
-                        </Typography>
-                      </Pressable>
-                    );
-                  })}
-                </HStack>
-              </HStack>
-              {matchFormat.setsToWin > 1 && (
-                <HStack className="justify-between items-center gap-4">
-                  <VStack className="flex-1 gap-1" space="xs" style={{ flex: 1 }}>
-                    <Typography variant="label">{t('superTiebreak')}</Typography>
-                    <Typography variant="body" color="muted" className="text-sm">
-                      {t('superTiebreakDesc')}
-                    </Typography>
-                  </VStack>
-                  <Switch
-                    value={matchFormat.superTiebreak}
-                    onValueChange={(v) => setMatchFormat({ ...matchFormat, superTiebreak: v })}
-                  />
-                </HStack>
-              )}
-            </VStack>
-          )}
-        </VStack>
-      </Card>
-
-      <Card padding="none">
-        <HStack className="px-5 py-4 justify-between items-center gap-4">
-          <VStack className="flex-1 gap-1" space="xs" style={{ flex: 1 }}>
-            <Typography variant="label">{t('singleDeuce')}</Typography>
-            <Typography variant="body" color="muted" className="text-sm">
-              {t('singleDeuceDesc')}
-            </Typography>
-          </VStack>
-          <Switch value={singleDeuceSuddenDeath} onValueChange={setSingleDeuceSuddenDeath} />
-        </HStack>
-      </Card>
-
       {error && (
         <Typography variant="body" color="destructive" className="text-sm">
           {error}
@@ -618,9 +504,30 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
       )}
 
       {tab === 'generateRound' && (
-        <Button size="xl" action="secondary" isDisabled={round.length === 0} loading={submitting} className="w-full" onPress={handleGenerateRound}>
-          <ButtonText action="secondary">{t('activityGenerateMatchesSubmit')}</ButtonText>
-        </Button>
+        <HStack className="gap-3" space="sm">
+          <Button
+            size="xl"
+            variant="outline"
+            action="secondary"
+            isDisabled={round.length === 0 || submitting}
+            className="flex-1"
+            onPress={() => setShuffleSeed((s) => s + 1)}
+          >
+            <ButtonText variant="outline" action="secondary">
+              {t('activityRegeneratePreview')}
+            </ButtonText>
+          </Button>
+          <Button
+            size="xl"
+            action="secondary"
+            isDisabled={round.length === 0}
+            loading={submitting}
+            className="flex-1"
+            onPress={handleGenerateRound}
+          >
+            <ButtonText action="secondary">{t('activityApproveMatches')}</ButtonText>
+          </Button>
+        </HStack>
       )}
       {tab === 'custom' && (
         <Button size="xl" action="secondary" isDisabled={!canCreateCustom} loading={submitting} className="w-full" onPress={handleSubmitCustom}>

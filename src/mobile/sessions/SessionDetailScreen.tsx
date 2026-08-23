@@ -14,9 +14,11 @@ import {
   addGuestParticipant,
   addRegisteredParticipant,
   approveParticipant,
+  cancelParticipation,
   cancelSession,
   checkIn,
   checkInParticipantById,
+  checkOut,
   confirmParticipantPayment,
   deleteParticipant,
   discardDraftSession,
@@ -25,15 +27,28 @@ import {
   publishSession,
   registerForSession,
 } from '../../core/sessions/api';
-import { listMembers } from '../../core/clubs/api';
+import { getClub, listMembers } from '../../core/clubs/api';
+import { getRecurringSchedule } from '../../core/recurringSchedules/api';
 import { createActivity, deleteActivity, listActivities } from '../../core/activities/api';
 import { listMySkillLevels, listSkillLevels } from '../../core/skillLevels/api';
 import { availableToPlay, generateFairRound } from '../../core/sessions/matchGenerator';
 import { buildGeneratedMatchPayload } from '../../core/activities/buildGeneratedMatchPayload';
 import { formatSessionDateTime, isWithinCheckInWindow } from '../../core/sessions/sessionSchedule';
+import { formatIDR } from '../../core/currency';
+import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
 import type { MatchFormat, MatchMode } from '../../sports/tennis/scoringEngine';
 import { minParticipants } from '../../sports/tennis/rules';
-import type { ActivityDetail, ClubMember, Session, SessionParticipant, SkillLevel, UserSkillLevel } from '../../core/api/types';
+import { weekdayLabel } from '../recurringSchedules/weekday';
+import type {
+  ActivityDetail,
+  Club,
+  ClubMember,
+  RecurringSchedule,
+  Session,
+  SessionParticipant,
+  SkillLevel,
+  UserSkillLevel,
+} from '../../core/api/types';
 
 type Props = {
   sessionId: string;
@@ -98,15 +113,26 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // myLevel is the caller's own level for the session's sport (if set).
   const [sportLevels, setSportLevels] = useState<SkillLevel[]>([]);
   const [myLevel, setMyLevel] = useState<UserSkillLevel | undefined>(undefined);
+  // Details/Participants/Matches/Chat — the session name and date stay
+  // pinned in the header outside the tab body, so switching tabs never
+  // loses which session you're looking at.
+  const [activeTab, setActiveTab] = useState<'details' | 'configuration' | 'participants' | 'matches' | 'chat'>('details');
+  const [club, setClub] = useState<Club | null>(null);
+  // Only set when this Session was generated from a Recurring Schedule
+  // (session.recurringScheduleId) — used for the Details tab's "Every
+  // <weekday>" line.
+  const [recurringSchedule, setRecurringSchedule] = useState<RecurringSchedule | null>(null);
 
-  // Tracks the checked-in pool as of the last successful load, as a
+  // Tracks the match-generation-eligible pool (registered or checked_in —
+  // matches can be planned before anyone's physically checked in, see
+  // core/sessions/matchGenerator.ts) as of the last successful load, as a
   // stable sorted key (userId for members, participant row id for
   // guests) — null until the first load completes, so a fresh page open
   // never triggers a regeneration just because the queue happened to
   // already be stale (only an observed *change* does). Ref rather than
   // state since it's read/written from inside load() itself, not
   // rendered.
-  const lastCheckedInKeyRef = useRef<string | null>(null);
+  const lastSchedulableKeyRef = useRef<string | null>(null);
 
   // Returns the freshly fetched session/participants/activities (or
   // undefined on failure) — most callers just want the state update, but
@@ -115,52 +141,56 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   const load = useCallback(async () => {
     try {
       const sess = await getSession(sessionId);
-      const [parts, members, acts] = await Promise.all([
+      const [parts, members, acts, clubResult, schedule] = await Promise.all([
         listParticipants(sessionId),
         listMembers(sess.clubId),
         listActivities(sessionId),
+        getClub(sess.clubId),
+        sess.recurringScheduleId ? getRecurringSchedule(sess.clubId, sess.recurringScheduleId) : Promise.resolve(null),
       ]);
       const myRole = members.find((m) => m.userId === profile?.id)?.role;
       const amOwnerOrAdmin = myRole === 'owner' || myRole === 'admin';
 
-      // Matches are generated from a snapshot of the checked-in pool —
-      // if that pool changes afterward for ANY reason (someone checks
-      // in, checks out, cancels, is removed, marked no-show...) while
-      // matches are still queued (unplayed), the queue no longer
-      // reflects who's actually available. Auto-regenerate rather than
-      // leaving it for the organizer to notice and fix manually via
-      // Regenerate. Compared as a full set, not just a count, so a
-      // same-size swap (one player out, a different one in) still
-      // triggers this. Owner/admin only — matches Regenerate's own
-      // permission requirement, and avoids every viewer's device racing
-      // to regenerate the same queue.
+      // Matches are generated from a snapshot of the eligible pool
+      // (registered or checked_in) — if that pool changes afterward for
+      // ANY reason (someone registers, checks in, checks out, cancels, is
+      // removed, marked no-show...) while matches are still queued
+      // (unplayed), the queue no longer reflects who's actually
+      // available. Auto-regenerate rather than leaving it for the
+      // organizer to notice and fix manually via Regenerate. Compared as
+      // a full set, not just a count, so a same-size swap (one player
+      // out, a different one in) still triggers this. Owner/admin only —
+      // matches Regenerate's own permission requirement, and avoids every
+      // viewer's device racing to regenerate the same queue.
       let finalActs = acts;
-      const freshCheckedIn = parts.filter((p) => p.status === 'checked_in');
-      const checkedInKey = freshCheckedIn
+      const freshSchedulable = parts.filter((p) => p.status === 'registered' || p.status === 'checked_in');
+      const schedulableKey = freshSchedulable
         .map((p) => p.userId ?? p.id)
         .sort()
         .join(',');
       const generationEligibleNow = sess.activityType === 'single' || sess.activityType === 'double';
       if (
-        lastCheckedInKeyRef.current !== null &&
-        lastCheckedInKeyRef.current !== checkedInKey &&
+        lastSchedulableKeyRef.current !== null &&
+        lastSchedulableKeyRef.current !== schedulableKey &&
         amOwnerOrAdmin &&
         generationEligibleNow
       ) {
         const freshQueued = acts.filter((a) => a.status === 'queued');
         if (freshQueued.length > 0) {
           const freshLive = acts.filter((a) => a.status === 'live');
-          await regenerateQueuedMatches(sess, freshCheckedIn, freshQueued, freshLive, acts);
+          await regenerateQueuedMatches(sess, freshSchedulable, freshQueued, freshLive, acts);
           finalActs = await listActivities(sessionId);
         }
       }
-      lastCheckedInKeyRef.current = checkedInKey;
+      lastSchedulableKeyRef.current = schedulableKey;
 
       setSession(sess);
       setParticipants(parts);
       setActivities(finalActs);
       setMembers(members);
       setIsOwnerOrAdmin(amOwnerOrAdmin);
+      setClub(clubResult);
+      setRecurringSchedule(schedule);
       if (sess.skillLevelMinId && sess.skillLevelMaxId) {
         const [levels, mine] = await Promise.all([listSkillLevels(sess.sport), listMySkillLevels()]);
         setSportLevels(levels);
@@ -223,11 +253,17 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // guest once the Session is already live, same as before.
   const canAddParticipant = isOwnerOrAdmin && isSessionActive && isPublished;
 
-  // Regenerate matches: only for single/double Sessions (a "match" concept
-  // doesn't apply to a 'class' Session), only once there's something queued
-  // to replace, and only when at least one checked-in player isn't covered
-  // by any currently queued match — otherwise there's nothing to fix.
+  // Checked-in specifically — for the "Checked In" sub-section display
+  // and canStart/canWatch below, which are genuinely about physical
+  // presence, not generation eligibility.
   const checkedInParticipants = participants.filter((p) => p.status === 'checked_in');
+  // Generation-eligible pool (registered or checked_in — see
+  // core/sessions/matchGenerator.ts's module comment): used for Regenerate
+  // only, only for single/double Sessions (a "match" concept doesn't apply
+  // to a 'class' Session), only once there's something queued to replace,
+  // and only when at least one eligible player isn't covered by any
+  // currently queued match — otherwise there's nothing to fix.
+  const schedulableParticipants = participants.filter((p) => p.status === 'registered' || p.status === 'checked_in');
   const queuedActivities = activities.filter((a) => a.status === 'queued');
   const liveActivities = activities.filter((a) => a.status === 'live');
   const generationEligible = session?.activityType === 'single' || session?.activityType === 'double';
@@ -235,18 +271,17 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     isSessionActive &&
     generationEligible &&
     queuedActivities.length > 0 &&
-    availableToPlay(checkedInParticipants, queuedActivities.concat(liveActivities)).length > 0;
+    availableToPlay(schedulableParticipants, queuedActivities.concat(liveActivities)).length > 0;
 
   // Shared by the manual Regenerate button and the automatic
-  // regeneration that follows removing a checked-in player who was part
-  // of the queue (see doDeleteParticipant) — deletes every currently
-  // queued match and generates a fresh fair round of the same size from
-  // the given (caller-supplied, so it can be freshly-loaded rather than
-  // possibly-stale component state) checked-in pool. Live/completed
-  // matches are untouched either way.
+  // regeneration that follows the eligible pool changing (see load()) —
+  // deletes every currently queued match and generates a fresh fair round
+  // of the same size from the given (caller-supplied, so it can be
+  // freshly-loaded rather than possibly-stale component state) eligible
+  // pool. Live/completed matches are untouched either way.
   async function regenerateQueuedMatches(
     sess: Session,
-    freshCheckedIn: SessionParticipant[],
+    freshSchedulable: SessionParticipant[],
     freshQueued: ActivityDetail[],
     freshLive: ActivityDetail[],
     freshActivities: ActivityDetail[]
@@ -260,14 +295,14 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     // predictable, and the organizer can always Generate Matches again
     // for more.
     const round = generateFairRound(
-      freshCheckedIn,
+      freshSchedulable,
       freshLive,
       freshActivities,
       minParticipants(sessionMode),
       freshQueued.length
     );
     for (const m of round) {
-      const { config, participants: parts } = buildGeneratedMatchPayload(m, sessionMode, matchFormat, true, freshCheckedIn);
+      const { config, participants: parts } = buildGeneratedMatchPayload(m, sessionMode, matchFormat, true, freshSchedulable);
       await createActivity(sessionId, config, parts);
     }
   }
@@ -276,7 +311,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     if (!session) return;
     setBusy(true);
     try {
-      await regenerateQueuedMatches(session, checkedInParticipants, queuedActivities, liveActivities, activities);
+      await regenerateQueuedMatches(session, schedulableParticipants, queuedActivities, liveActivities, activities);
       await load();
     } finally {
       setBusy(false);
@@ -331,6 +366,57 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     } finally {
       setBusy(false);
     }
+  }
+
+  // DP-002: self-service — "I can't make it," reachable while requested,
+  // waitlisted, or registered (before actually checking in). Not offered
+  // once checked_in — physically present already, Check Out (below) is
+  // the equivalent action from there. Confirmed since it gives up the
+  // participant's place in line.
+  async function doCancelMyParticipation() {
+    setBusy(true);
+    setError(null);
+    try {
+      await cancelParticipation(sessionId);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('authGenericError'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handleCancelMyParticipation() {
+    if (busy) return;
+    Alert.alert(t('sessionCancelMyParticipationConfirmTitle'), t('sessionCancelMyParticipationConfirmDesc'), [
+      { text: t('clubCancel'), style: 'cancel' },
+      { text: t('sessionCancelMyParticipation'), style: 'destructive', onPress: doCancelMyParticipation },
+    ]);
+  }
+
+  // DP-002: self-service — "I'm leaving," the checked_in counterpart to
+  // Cancel above. load() afterward picks up the checked-in pool change
+  // and auto-regenerates any still-queued match this participant was
+  // part of, same as an organizer-initiated removal.
+  async function doCheckOut() {
+    setBusy(true);
+    setError(null);
+    try {
+      await checkOut(sessionId);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('authGenericError'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handleCheckOut() {
+    if (busy) return;
+    Alert.alert(t('sessionCheckOutConfirmTitle'), t('sessionCheckOutConfirmDesc'), [
+      { text: t('clubCancel'), style: 'cancel' },
+      { text: t('sessionCheckOut'), style: 'destructive', onPress: doCheckOut },
+    ]);
   }
 
   // Milestone 2 (revised): club members with no participant row at all yet
@@ -632,368 +718,563 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   const organizerMember = members.find((m) => m.userId === session.createdBy);
   const organizerName = organizerMember?.displayName || organizerMember?.username || t('sessionHostLabel');
 
+  const tabs: Array<{ key: typeof activeTab; label: string }> = [
+    { key: 'details', label: t('sessionTabDetails') },
+    { key: 'configuration', label: t('sessionTabConfiguration') },
+    { key: 'participants', label: t('sessionTabParticipants') },
+    { key: 'matches', label: t('sessionTabMatches') },
+    { key: 'chat', label: t('sessionTabChat') },
+  ];
+
+  // Match Setup — same editable window as the rest of the Edit Session
+  // form (draft, or published-not-yet-started): matches "Editing, Draft or
+  // published-not-started" in docs/current/lifecycle-session.md.
+  const canEditConfiguration = isOwnerOrAdmin && (session.lifecycleStatus === 'draft' || session.status === 'open');
+  const configMatchFormat: MatchFormat = (session.defaultMatchFormat as MatchFormat) ?? { type: 'open' };
+  const configSingleDeuce = session.defaultSingleDeuce ?? true;
+
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
-      <ScrollView
-        contentContainerClassName="px-5 pt-4 pb-6 gap-5"
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-      >
+      {/* Persistent header — name/date stay pinned above the tab body
+          (outside the ScrollView) so switching tabs never loses which
+          session you're looking at. */}
+      <VStack className="px-5 pt-4 pb-4 gap-3">
         <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
           <Icon name="arrow-back" size="lg" />
         </Pressable>
-
-        <VStack className="gap-1">
-          {session.lifecycleStatus === 'draft' && (
-            <VStack className="gap-1.5 mb-1">
-              <Box className="bg-blue-100 dark:bg-blue-900/30 rounded-full px-2.5 py-1 self-start">
-                <Text className="text-xs font-extrabold text-blue-700 dark:text-blue-300 tracking-wide">
-                  {t('sessionStatusDraft').toUpperCase()}
-                </Text>
-              </Box>
-              <Text className="text-sm text-blue-800 dark:text-blue-300">{t('sessionDraftNotice')}</Text>
-            </VStack>
-          )}
-          <Heading size="2xl">{session.name || session.sport}</Heading>
-          {session.location && (
-            <HStack className="items-center gap-1">
-              <Icon name="location-outline" size="xs" color="muted" />
-              <Text className="text-slate-500 dark:text-slate-400">{session.location}</Text>
-            </HStack>
-          )}
-          {hasLevelRequirement && (
-            <Text className="text-sm font-bold text-blue-600">
-              {(minLevel?.name ?? '?') + '–' + (maxLevel?.name ?? '?')} ·{' '}
-              {session.skillLevelEnforcement === 'strict' ? t('skillLevelEnforcementStrict') : t('skillLevelEnforcementGuidance')}
-            </Text>
+        <VStack className="gap-0.5">
+          <Heading size="2xl" numberOfLines={1}>{session.name || session.sport}</Heading>
+          {session.startsAt && (
+            <Text className="text-sm text-slate-500 dark:text-slate-400">{formatSessionDateTime(session.startsAt)}</Text>
           )}
         </VStack>
-
-        <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
-          <VStack className="gap-2">
-            <HStack className="justify-between">
-              <Text className="text-slate-500 dark:text-slate-400">{t('sessionSportLabel')}</Text>
-              <Text className="font-bold text-slate-900 dark:text-white">
-                {session.sport === 'tennis' ? t('sportTennis') : session.sport}
+        <HStack className="gap-1.5">
+          {tabs.map((tab) => (
+            <Pressable
+              key={tab.key}
+              className={`flex-1 items-center py-3.5 rounded-xl ${activeTab === tab.key ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+              onPress={() => setActiveTab(tab.key)}
+              hitSlop={4}
+            >
+              <Text className={`text-xs font-bold ${activeTab === tab.key ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+                {tab.label}
               </Text>
-            </HStack>
-            {session.activityType && (
-              <HStack className="justify-between">
-                <Text className="text-slate-500 dark:text-slate-400">{t('sessionActivityTypeLabel')}</Text>
-                <Text className="font-bold text-slate-900 dark:text-white">{activityTypeLabel(session.activityType, t)}</Text>
-              </HStack>
-            )}
-            {session.startsAt && (
-              <HStack className="justify-between">
-                <Text className="text-slate-500 dark:text-slate-400">{t('sessionDateLabel')}</Text>
-                <Text className="font-bold text-slate-900 dark:text-white">{formatSessionDateTime(session.startsAt)}</Text>
-              </HStack>
-            )}
-            {session.durationMinutes != null && (
-              <HStack className="justify-between">
-                <Text className="text-slate-500 dark:text-slate-400">{t('sessionDurationLabel')}</Text>
-                <Text className="font-bold text-slate-900 dark:text-white">
-                  {t('sessionDurationHours', Math.round(session.durationMinutes / 60))}
-                </Text>
-              </HStack>
-            )}
-          </VStack>
-        </Box>
+            </Pressable>
+          ))}
+        </HStack>
+      </VStack>
 
-        {session.description && (
-          <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-1">
-            <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
-              {t('sessionDescriptionSectionTitle')}
-            </Text>
-            <Text className="text-slate-700 dark:text-slate-300">{session.description}</Text>
-          </Box>
-        )}
-
-        {/* Lifecycle framing (Milestone 2) — session.lifecycleStatus is
-            resolved server-side (DP-001/DP-ARCH-003), covers every stage:
-            Draft -> Recruiting/Ready/Full -> Live -> Completed, Cancelled
-            from any non-terminal state. Answers UX-015's three questions
-            (Where am I? What needs my attention? What should I do next?)
-            for every stage, not just draft/cancelled as before. Notice
-            text is visible to everyone; the action button is owner/admin
-            only. */}
-        {(session.lifecycleStatus === 'recruiting' ||
-          session.lifecycleStatus === 'ready' ||
-          session.lifecycleStatus === 'full') && (
-          <Box className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4">
-            <Text className="text-sm text-blue-800 dark:text-blue-300">
-              {session.lifecycleStatus === 'recruiting'
-                ? t('sessionRecruitingNotice', session.joinedCount, minParticipants('single'))
-                : session.lifecycleStatus === 'ready'
-                  ? t('sessionReadyNotice')
-                  : t('sessionFullNotice')}
-            </Text>
-          </Box>
-        )}
-
-        {/* No manual "Complete Session" action — DP-009's auto-transition
-            (starts_at + duration_minutes elapses) is the only path to
-            Completed, by explicit product decision. */}
-        {session.lifecycleStatus === 'in_progress' && (
-          <Box className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4">
-            <HStack className="items-center gap-1.5">
-              <Box className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              <Text className="text-xs font-extrabold text-red-500 tracking-wide">{t('sessionLiveNotice').toUpperCase()}</Text>
-            </HStack>
-          </Box>
-        )}
-
-        {session.lifecycleStatus === 'completed' && (
-          <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4">
-            <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionCompletedNotice')}</Text>
-          </Box>
-        )}
-
-        {session.lifecycleStatus === 'cancelled' && (
-          <Box className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4">
-            <Text className="text-sm text-red-800 dark:text-red-300">{t('sessionCancelledNotice')}</Text>
-          </Box>
-        )}
-
-        {/* DP-002 Join Approval: requested -> waitlist (needs payment) ->
-            registered (approved) -> checked_in. Only 'registered', within
-            the Check-In Window, can self check-in. Nothing here renders
-            while still Draft — check-in status/actions only make sense
-            once the Session is published. Once checked in, nothing renders
-            here either — that status is already visible on the caller's
-            own avatar in the Participants list below, a standalone "Checked
-            In" banner above it was redundant. */}
-        {isPublished &&
-          (myParticipant?.status === 'checked_in' ? null : myParticipant?.status === 'requested' ? (
-            <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
-              <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionRequestedNotice')}</Text>
-            </Box>
-          ) : myParticipant?.status === 'waitlist' ? (
-            <Box className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 items-center">
-              <Text className="text-sm text-amber-800 dark:text-amber-300">{t('sessionWaitlistedNotice')}</Text>
-            </Box>
-          ) : myParticipant?.status === 'registered' ? (
-            isSessionActive &&
-            (checkInWindowOpen ? (
-              <Button action="secondary" size="xl" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handleCheckIn}>
-                <ButtonText className="text-white text-lg">{t('sessionCheckIn')}</ButtonText>
-              </Button>
-            ) : (
-              <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
-                <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionCheckInWindowClosed')}</Text>
-              </Box>
-            ))
-          ) : (
-            !myParticipant &&
-            isSessionActive && (
-              <VStack className="gap-2">
-                <Button
-                  action="secondary"
-                  size="xl"
-                  className="w-full rounded-2xl bg-blue-600"
-                  isDisabled={busy || strictLevelBlocked}
-                  onPress={handleRequestToJoin}
-                >
-                  <ButtonText className="text-white text-lg">{t('sessionRequestToJoin')}</ButtonText>
-                </Button>
-                {strictLevelBlocked && (
-                  <Text className="text-sm text-red-500">
-                    {myLevel
-                      ? t('skillLevelStrictBlockedOutOfRange', minLevel?.name ?? '', maxLevel?.name ?? '')
-                      : t('skillLevelStrictBlockedNotSet', session.sport)}
+      <ScrollView
+        contentContainerClassName="px-5 pt-6 pb-6 gap-5"
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+      >
+        {activeTab === 'details' && (
+          <VStack className="gap-5">
+            <VStack className="gap-1">
+              {club && (
+                <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">{club.name}</Text>
+              )}
+              {recurringSchedule && (
+                <HStack className="items-center gap-1">
+                  <Icon name="repeat-outline" size="xs" color="muted" />
+                  <Text className="text-slate-500 dark:text-slate-400">
+                    {t('sessionRecurringEvery', weekdayLabel(recurringSchedule.recurrenceRule.weekday, t))}
                   </Text>
+                </HStack>
+              )}
+              {session.lifecycleStatus === 'draft' && (
+                <VStack className="gap-1.5 mb-1">
+                  <Box className="bg-blue-100 dark:bg-blue-900/30 rounded-full px-2.5 py-1 self-start">
+                    <Text className="text-xs font-extrabold text-blue-700 dark:text-blue-300 tracking-wide">
+                      {t('sessionStatusDraft').toUpperCase()}
+                    </Text>
+                  </Box>
+                  <Text className="text-sm text-blue-800 dark:text-blue-300">{t('sessionDraftNotice')}</Text>
+                </VStack>
+              )}
+              {session.location && (
+                <HStack className="items-center gap-1">
+                  <Icon name="location-outline" size="xs" color="muted" />
+                  <Text className="text-slate-500 dark:text-slate-400">{session.location}</Text>
+                </HStack>
+              )}
+              {hasLevelRequirement && (
+                <Text className="text-sm font-bold text-blue-600">
+                  {(minLevel?.name ?? '?') + '–' + (maxLevel?.name ?? '?')} ·{' '}
+                  {session.skillLevelEnforcement === 'strict' ? t('skillLevelEnforcementStrict') : t('skillLevelEnforcementGuidance')}
+                </Text>
+              )}
+            </VStack>
+
+            <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
+              <VStack className="gap-2">
+                <HStack className="justify-between">
+                  <Text className="text-slate-500 dark:text-slate-400">{t('sessionSportLabel')}</Text>
+                  <Text className="font-bold text-slate-900 dark:text-white">
+                    {session.sport === 'tennis' ? t('sportTennis') : session.sport}
+                  </Text>
+                </HStack>
+                {session.activityType && (
+                  <HStack className="justify-between">
+                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionActivityTypeLabel')}</Text>
+                    <Text className="font-bold text-slate-900 dark:text-white">{activityTypeLabel(session.activityType, t)}</Text>
+                  </HStack>
+                )}
+                {session.startsAt && (
+                  <HStack className="justify-between">
+                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionDateLabel')}</Text>
+                    <Text className="font-bold text-slate-900 dark:text-white">{formatSessionDateTime(session.startsAt)}</Text>
+                  </HStack>
+                )}
+                {session.durationMinutes != null && (
+                  <HStack className="justify-between">
+                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionDurationLabel')}</Text>
+                    <Text className="font-bold text-slate-900 dark:text-white">
+                      {t('sessionDurationHours', Math.round(session.durationMinutes / 60))}
+                    </Text>
+                  </HStack>
+                )}
+                {session.priceModel === 'free' ? (
+                  <HStack className="justify-between">
+                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionPriceLabel')}</Text>
+                    <Text className="font-bold text-slate-900 dark:text-white">{t('sessionPriceFreeDisplay')}</Text>
+                  </HStack>
+                ) : session.priceModel === 'per_person' ? (
+                  <HStack className="justify-between">
+                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionPriceLabel')}</Text>
+                    <Text className="font-bold text-slate-900 dark:text-white">
+                      {session.pricePerPerson != null ? t('sessionPricePerPersonDisplay', formatIDR(session.pricePerPerson)) : '—'}
+                    </Text>
+                  </HStack>
+                ) : (
+                  session.totalPrice != null && (
+                    <>
+                      <HStack className="justify-between">
+                        <Text className="text-slate-500 dark:text-slate-400">{t('sessionSplitBillTotalLabel')}</Text>
+                        <Text className="font-bold text-slate-900 dark:text-white">{formatIDR(session.totalPrice)}</Text>
+                      </HStack>
+                      <HStack className="justify-between">
+                        <Text className="text-slate-500 dark:text-slate-400">
+                          {t('sessionSplitBillPerPersonLabel', session.joinedCount)}
+                        </Text>
+                        <Text className="font-bold text-slate-900 dark:text-white">
+                          {session.joinedCount > 0 ? formatIDR(Math.round(session.totalPrice / session.joinedCount)) : '—'}
+                        </Text>
+                      </HStack>
+                    </>
+                  )
                 )}
               </VStack>
-            )
-          ))}
+            </Box>
 
-        <VStack className="gap-2">
-          <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">{t('sessionOrganizerTitle')}</Text>
-          <HStack className="flex-wrap items-start" style={{ rowGap: 16, columnGap: 12 }}>
-            <VStack className="items-center" style={{ width: 76 }}>
-              <Box className="w-16 h-16 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700 border-2 border-blue-500">
-                <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">
-                  {initialsFromName(organizerName)}
+            <Pressable
+              onPress={() => setActiveTab('participants')}
+              className="bg-white dark:bg-slate-800 rounded-2xl p-4 active:opacity-70"
+            >
+              <HStack className="justify-between items-center">
+                <Text className="font-bold text-slate-900 dark:text-white">
+                  {session.maxParticipants != null
+                    ? t('sessionJoinedCountLineMax', session.joinedCount, session.maxParticipants)
+                    : t('sessionJoinedCountLine', session.joinedCount)}
+                </Text>
+                <Icon name="chevron-forward" size="sm" color="muted" />
+              </HStack>
+            </Pressable>
+
+            {session.description && (
+              <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-1">
+                <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
+                  {t('sessionDescriptionSectionTitle')}
+                </Text>
+                <Text className="text-slate-700 dark:text-slate-300">{session.description}</Text>
+              </Box>
+            )}
+
+            {/* Lifecycle framing (Milestone 2) — session.lifecycleStatus is
+                resolved server-side (DP-001/DP-ARCH-003), covers every stage:
+                Draft -> Recruiting/Ready/Full -> Live -> Completed, Cancelled
+                from any non-terminal state. Answers UX-015's three questions
+                (Where am I? What needs my attention? What should I do next?)
+                for every stage, not just draft/cancelled as before. */}
+            {(session.lifecycleStatus === 'recruiting' ||
+              session.lifecycleStatus === 'ready' ||
+              session.lifecycleStatus === 'full') && (
+              <Box className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4">
+                <Text className="text-sm text-blue-800 dark:text-blue-300">
+                  {session.lifecycleStatus === 'recruiting'
+                    ? t('sessionRecruitingNotice', session.joinedCount, minParticipants('single'))
+                    : session.lifecycleStatus === 'ready'
+                      ? t('sessionReadyNotice')
+                      : t('sessionFullNotice')}
                 </Text>
               </Box>
-              <Text className="text-xs font-bold text-slate-900 dark:text-white text-center mt-1" numberOfLines={2}>
-                {organizerName}
-                {session.createdBy === profile?.id ? ` (${t('sessionYou')})` : ''}
-              </Text>
-            </VStack>
-          </HStack>
-        </VStack>
-
-        <VStack className="gap-4">
-          <HStack className="justify-between items-center">
-            <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
-              {t('sessionParticipantsTitle')}
-            </Text>
-            <Text className="text-sm font-extrabold text-slate-400">
-              {session.maxParticipants != null ? `${session.joinedCount}/${session.maxParticipants}` : session.joinedCount}
-            </Text>
-          </HStack>
-
-          {renderParticipantSection(t('sessionSectionCheckedIn'), checkedInParticipants)}
-          {renderParticipantSection(
-            t('sessionSectionConfirmed'),
-            confirmedParticipants,
-            checkInWindowOpen ? (p) => ({ icon: 'checkmark', onPress: () => handleCheckInParticipant(p.id) }) : undefined
-          )}
-          {renderParticipantSection(t('sessionSectionWaitlist'), waitlistParticipants, (p) => ({
-            icon: 'checkmark',
-            onPress: () => handleConfirmPayment(p.userId!),
-          }))}
-          {renderParticipantSection(t('sessionSectionRequested'), requestedParticipants, (p) => ({
-            icon: 'checkmark',
-            onPress: () => handleApprove(p.userId!),
-          }))}
-          {renderParticipantSection(t('sessionSectionCancelled'), cancelledParticipants)}
-          {renderParticipantSection(t('sessionSectionOther'), otherParticipants)}
-
-          {placeholderCount > 0 && (
-            <HStack className="flex-wrap items-start" style={{ rowGap: 16, columnGap: 12 }}>
-              {Array.from({ length: placeholderCount }).map((_, i) => (
-                <VStack key={`placeholder-${i}`} className="items-center" style={{ width: 76 }}>
-                  <Pressable
-                    disabled={!canAddParticipant}
-                    onPress={openAddParticipant}
-                    className="w-16 h-16 rounded-full items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 active:opacity-70"
-                  >
-                    <Icon name="add" size="md" color="muted" />
-                  </Pressable>
-                </VStack>
-              ))}
-            </HStack>
-          )}
-        </VStack>
-
-        {/* Matches don't exist as a concept yet while still Draft — the
-            whole section (not just the Add/Regenerate actions) is hidden
-            until the Session is published. */}
-        {isPublished && (
-        <VStack className="gap-2">
-          <HStack className="justify-between items-center">
-            <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
-              {t('activityQueueTitle')}
-            </Text>
-            {isOwnerOrAdmin && isSessionActive && isPublished && (
-              <HStack className="gap-3">
-                {canRegenerate && (
-                  <Pressable onPress={handleRegenerate} className="active:opacity-60" disabled={busy}>
-                    <Text className="text-sm font-bold text-amber-600">{t('activityRegenerateMatches')}</Text>
-                  </Pressable>
-                )}
-                <Pressable onPress={() => onAddMatch(sessionId)} className="active:opacity-60">
-                  <Text className="text-sm font-bold text-blue-600">{t('activityAdd')}</Text>
-                </Pressable>
-              </HStack>
             )}
-          </HStack>
-          {activities.length === 0 ? (
-            <Text className="text-slate-500 dark:text-slate-400">{t('activityEmptyQueue')}</Text>
-          ) : (
-            activities.map((a) => {
-              // A match's own checked-in players can start it themselves;
-              // owner/admin can start any queued match administratively,
-              // regardless of whether they're checked in (or even playing
-              // at all — an organizer with Host Playing off has no
-              // myParticipant row, and shouldn't be blocked from managing
-              // the queue because of that). Either way, a match can only
-              // be started once the Session itself is actually live — not
-              // while still Recruiting/Ready/Full, even if matches were
-              // already generated ahead of the start time.
-              const canStart =
-                session?.status === 'in_progress' &&
-                a.status === 'queued' &&
-                (isOwnerOrAdmin ||
-                  (myParticipant?.status === 'checked_in' && a.participants.some((p) => p.userId === profile?.id)));
-              // Any checked-in participant of the session (not just this
-              // match's own players) can watch — matches domain.md's Member
-              // permission to "watch live score."
-              const canWatch = isSessionActive && a.status === 'live' && myParticipant?.status === 'checked_in';
-              const isLiveScorer = a.status === 'live' && a.scorerUserId === profile?.id;
-              return (
-                <Box key={a.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4">
-                  <HStack className="justify-between items-center gap-3">
-                    <VStack className="flex-1 gap-1">
-                      <Text className="font-bold text-slate-900 dark:text-white">{activityParticipantNames(a)}</Text>
-                      {a.status === 'live' ? (
-                        <HStack className="items-center gap-1.5">
-                          <Box className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                          <Text className="text-xs font-extrabold text-red-500 tracking-wide">
-                            {t('activityStatusLive').toUpperCase()}
-                          </Text>
-                        </HStack>
-                      ) : (
-                        <Text className="text-xs text-slate-400">
-                          {a.status === 'queued' ? t('activityStatusQueued') : t('activityStatusCompleted')}
-                        </Text>
-                      )}
-                    </VStack>
-                    {canStart && (
-                      <Button size="sm" className="rounded-xl bg-amber-600" onPress={() => onOpenMatch(a.id)}>
-                        <ButtonText className="text-white">{t('activityStart')}</ButtonText>
-                      </Button>
-                    )}
-                    {canWatch && (
-                      <Button size="sm" className="rounded-xl bg-red-600" onPress={() => onOpenMatch(a.id)}>
-                        <ButtonText className="text-white">{isLiveScorer ? t('activityResume') : t('activityWatch')}</ButtonText>
-                      </Button>
-                    )}
-                  </HStack>
-                </Box>
-              );
-            })
-          )}
-        </VStack>
-        )}
 
-        {/* Milestone 2: "Check in a member" row and the Add Guest form both
-            retired — tapping an empty slot placeholder in the Participants
-            grid above opens the same two actions (see the Add Participant
-            modal below) from the slot itself instead. */}
+            {/* No manual "Complete Session" action — DP-009's auto-transition
+                (starts_at + duration_minutes elapses) is the only path to
+                Completed, by explicit product decision. */}
+            {session.lifecycleStatus === 'in_progress' && (
+              <Box className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4">
+                <HStack className="items-center gap-1.5">
+                  <Box className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  <Text className="text-xs font-extrabold text-red-500 tracking-wide">{t('sessionLiveNotice').toUpperCase()}</Text>
+                </HStack>
+              </Box>
+            )}
 
-        {/* DP-001: a draft session is invisible to members until published.
-            Both actions live at the bottom of the screen — Publish is the
-            final action once the organizer is done reviewing/editing
-            everything above; Edit sits right next to it as the explicit
-            alternative, not a small link buried near the title. */}
-        {isOwnerOrAdmin && session.lifecycleStatus === 'draft' && (
-          <VStack className="gap-3">
-            <Button action="secondary" size="lg" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handlePublish}>
-              <ButtonText className="text-white">{t('sessionPublish')}</ButtonText>
-            </Button>
-            <Text className="text-center text-xs font-bold text-slate-400">{t('commonOr')}</Text>
-            <Button
-              variant="outline"
-              action="secondary"
-              size="lg"
-              className="w-full rounded-2xl"
-              isDisabled={busy}
-              onPress={() => onEdit(sessionId)}
-            >
-              <ButtonText variant="outline" action="secondary">
-                {t('sessionEdit')}
-              </ButtonText>
-            </Button>
+            {session.lifecycleStatus === 'completed' && (
+              <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4">
+                <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionCompletedNotice')}</Text>
+              </Box>
+            )}
 
-            <Box className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
+            {session.lifecycleStatus === 'cancelled' && (
+              <Box className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4">
+                <Text className="text-sm text-red-800 dark:text-red-300">{t('sessionCancelledNotice')}</Text>
+              </Box>
+            )}
 
-            <Pressable className="items-center py-2 active:opacity-60" onPress={handleDiscard} disabled={busy}>
-              <Text className="text-red-500 font-bold">{t('sessionDiscard')}</Text>
-            </Pressable>
+            <VStack className="gap-2">
+              <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">{t('sessionOrganizerTitle')}</Text>
+              <HStack className="flex-wrap items-start" style={{ rowGap: 16, columnGap: 12 }}>
+                <VStack className="items-center" style={{ width: 76 }}>
+                  <Box className="w-16 h-16 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700 border-2 border-blue-500">
+                    <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">
+                      {initialsFromName(organizerName)}
+                    </Text>
+                  </Box>
+                  <Text className="text-xs font-bold text-slate-900 dark:text-white text-center mt-1" numberOfLines={2}>
+                    {organizerName}
+                    {session.createdBy === profile?.id ? ` (${t('sessionYou')})` : ''}
+                  </Text>
+                </VStack>
+              </HStack>
+            </VStack>
+
+            {/* DP-001: a draft session is invisible to members until published.
+                Both actions live at the bottom of the tab — Publish is the
+                final action once the organizer is done reviewing/editing
+                everything above; Edit sits right next to it as the explicit
+                alternative, not a small link buried near the title. */}
+            {isOwnerOrAdmin && session.lifecycleStatus === 'draft' && (
+              <VStack className="gap-3">
+                <Button action="secondary" size="lg" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handlePublish}>
+                  <ButtonText className="text-white">{t('sessionPublish')}</ButtonText>
+                </Button>
+                <Text className="text-center text-xs font-bold text-slate-400">{t('commonOr')}</Text>
+                <Button
+                  variant="outline"
+                  action="secondary"
+                  size="lg"
+                  className="w-full rounded-2xl"
+                  isDisabled={busy}
+                  onPress={() => onEdit(sessionId)}
+                >
+                  <ButtonText variant="outline" action="secondary">
+                    {t('sessionEdit')}
+                  </ButtonText>
+                </Button>
+
+                <Box className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
+
+                <Pressable className="items-center py-2 active:opacity-60" onPress={handleDiscard} disabled={busy}>
+                  <Text className="text-red-500 font-bold">{t('sessionDiscard')}</Text>
+                </Pressable>
+              </VStack>
+            )}
+
+            {/* Published, not yet started (raw status 'open', not the
+                draft-only block above) — Edit stays available here too,
+                e.g. to fix a typo or set/change Price after publishing;
+                the same CreateSessionScreen edit form, unchanged. Not
+                offered once in_progress: by then startsAt is necessarily
+                already in the past, which would trip the form's own
+                past-date validation, and the running Session's plan is
+                effectively locked — Cancel below is the only terminal
+                action left for it. */}
+            {isOwnerOrAdmin && session.status === 'open' && (
+              <Button
+                variant="outline"
+                action="secondary"
+                size="lg"
+                className="w-full rounded-2xl"
+                isDisabled={busy}
+                onPress={() => onEdit(sessionId)}
+              >
+                <ButtonText variant="outline" action="secondary">
+                  {t('sessionEdit')}
+                </ButtonText>
+              </Button>
+            )}
+
+            {/* Published-only — a Draft Session has Discard instead (above),
+                not Cancel: nobody but the organizer has seen it yet, so there's
+                no audience a "this was cancelled" record is for. */}
+            {isOwnerOrAdmin && isSessionActive && isPublished && (
+              <Button variant="outline" action="negative" className="w-full rounded-2xl" isDisabled={busy} onPress={handleCancel}>
+                <ButtonText variant="outline" action="negative">
+                  {t('sessionCancel')}
+                </ButtonText>
+              </Button>
+            )}
           </VStack>
         )}
 
-        {/* Published-only — a Draft Session has Discard instead (above),
-            not Cancel: nobody but the organizer has seen it yet, so there's
-            no audience a "this was cancelled" record is for. */}
-        {isOwnerOrAdmin && isSessionActive && isPublished && (
-          <Button variant="outline" action="negative" className="w-full rounded-2xl" isDisabled={busy} onPress={handleCancel}>
-            <ButtonText variant="outline" action="negative">
-              {t('sessionCancel')}
-            </ButtonText>
-          </Button>
+        {/* Match Setup (Configuration tab) — defined once here, reused by
+            every Generate Matches / Custom Match action from now on
+            instead of being reconfigured each time (AddMatchScreen just
+            reads session.defaultMatchFormat/defaultSingleDeuce). Editable
+            through the same Edit Session form as everything else on this
+            screen, same editable window as Details' own Edit button. */}
+        {activeTab === 'configuration' && (
+          <VStack className="gap-5">
+            <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
+              <VStack className="gap-2">
+                <HStack className="justify-between">
+                  <Text className="text-slate-500 dark:text-slate-400">{t('matchFormat')}</Text>
+                  <Text className="font-bold text-slate-900 dark:text-white">{matchFormatSummary(configMatchFormat, t)}</Text>
+                </HStack>
+                <HStack className="justify-between">
+                  <Text className="text-slate-500 dark:text-slate-400">{t('singleDeuce')}</Text>
+                  <Text className="font-bold text-slate-900 dark:text-white">
+                    {configSingleDeuce ? t('sessionConfigOn') : t('sessionConfigOff')}
+                  </Text>
+                </HStack>
+              </VStack>
+            </Box>
+
+            <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionConfigEditHint')}</Text>
+
+            {canEditConfiguration && (
+              <Button variant="outline" action="secondary" size="lg" className="w-full rounded-2xl" isDisabled={busy} onPress={() => onEdit(sessionId)}>
+                <ButtonText variant="outline" action="secondary">
+                  {t('sessionEdit')}
+                </ButtonText>
+              </Button>
+            )}
+          </VStack>
+        )}
+
+        {activeTab === 'participants' && (
+          <VStack className="gap-5">
+            {/* DP-002 Join Approval: requested -> waitlist (needs payment) ->
+                registered (approved) -> checked_in. Only 'registered', within
+                the Check-In Window, can self check-in. Nothing here renders
+                while still Draft — check-in status/actions only make sense
+                once the Session is published. Every non-terminal status below
+                'Checked In' status itself is already visible on the caller's
+                own avatar in the Participants list, so this area stays a
+                small Check Out link rather than repeating a "Checked In"
+                banner. Cancel/Check Out are self-service (DP-002) — give up
+                the queue spot voluntarily, the participant's own counterpart
+                to the organizer's Remove action. */}
+            {isPublished &&
+              (myParticipant?.status === 'checked_in' ? (
+                isSessionActive && (
+                  <Pressable className="items-center py-1 self-center active:opacity-60" onPress={handleCheckOut} disabled={busy}>
+                    <Text className="text-slate-400 font-bold text-sm">{t('sessionCheckOut')}</Text>
+                  </Pressable>
+                )
+              ) : myParticipant?.status === 'requested' ? (
+                <VStack className="gap-2">
+                  <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
+                    <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionRequestedNotice')}</Text>
+                  </Box>
+                  <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
+                    <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
+                  </Pressable>
+                </VStack>
+              ) : myParticipant?.status === 'waitlist' ? (
+                <VStack className="gap-2">
+                  <Box className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 items-center">
+                    <Text className="text-sm text-amber-800 dark:text-amber-300">{t('sessionWaitlistedNotice')}</Text>
+                  </Box>
+                  <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
+                    <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
+                  </Pressable>
+                </VStack>
+              ) : myParticipant?.status === 'registered' ? (
+                isSessionActive && (
+                  <VStack className="gap-2">
+                    {checkInWindowOpen ? (
+                      <Button action="secondary" size="xl" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handleCheckIn}>
+                        <ButtonText className="text-white text-lg">{t('sessionCheckIn')}</ButtonText>
+                      </Button>
+                    ) : (
+                      <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
+                        <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionCheckInWindowClosed')}</Text>
+                      </Box>
+                    )}
+                    <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
+                      <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
+                    </Pressable>
+                  </VStack>
+                )
+              ) : (
+                !myParticipant &&
+                isSessionActive && (
+                  <VStack className="gap-2">
+                    <Button
+                      action="secondary"
+                      size="xl"
+                      className="w-full rounded-2xl bg-blue-600"
+                      isDisabled={busy || strictLevelBlocked}
+                      onPress={handleRequestToJoin}
+                    >
+                      <ButtonText className="text-white text-lg">{t('sessionRequestToJoin')}</ButtonText>
+                    </Button>
+                    {strictLevelBlocked && (
+                      <Text className="text-sm text-red-500">
+                        {myLevel
+                          ? t('skillLevelStrictBlockedOutOfRange', minLevel?.name ?? '', maxLevel?.name ?? '')
+                          : t('skillLevelStrictBlockedNotSet', session.sport)}
+                      </Text>
+                    )}
+                  </VStack>
+                )
+              ))}
+
+            <VStack className="gap-4">
+              <HStack className="justify-between items-center">
+                <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
+                  {t('sessionParticipantsTitle')}
+                </Text>
+                <Text className="text-sm font-extrabold text-slate-400">
+                  {session.maxParticipants != null ? `${session.joinedCount}/${session.maxParticipants}` : session.joinedCount}
+                </Text>
+              </HStack>
+
+              {renderParticipantSection(t('sessionSectionCheckedIn'), checkedInParticipants)}
+              {renderParticipantSection(
+                t('sessionSectionConfirmed'),
+                confirmedParticipants,
+                checkInWindowOpen ? (p) => ({ icon: 'checkmark', onPress: () => handleCheckInParticipant(p.id) }) : undefined
+              )}
+              {renderParticipantSection(t('sessionSectionWaitlist'), waitlistParticipants, (p) => ({
+                icon: 'checkmark',
+                onPress: () => handleConfirmPayment(p.userId!),
+              }))}
+              {renderParticipantSection(t('sessionSectionRequested'), requestedParticipants, (p) => ({
+                icon: 'checkmark',
+                onPress: () => handleApprove(p.userId!),
+              }))}
+              {renderParticipantSection(t('sessionSectionCancelled'), cancelledParticipants)}
+              {renderParticipantSection(t('sessionSectionOther'), otherParticipants)}
+
+              {placeholderCount > 0 && (
+                <HStack className="flex-wrap items-start" style={{ rowGap: 16, columnGap: 12 }}>
+                  {Array.from({ length: placeholderCount }).map((_, i) => (
+                    <VStack key={`placeholder-${i}`} className="items-center" style={{ width: 76 }}>
+                      <Pressable
+                        disabled={!canAddParticipant}
+                        onPress={openAddParticipant}
+                        className="w-16 h-16 rounded-full items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 active:opacity-70"
+                      >
+                        <Icon name="add" size="md" color="muted" />
+                      </Pressable>
+                    </VStack>
+                  ))}
+                </HStack>
+              )}
+            </VStack>
+          </VStack>
+        )}
+
+        {activeTab === 'matches' && (
+          <VStack className="gap-2">
+            {!isPublished ? (
+              <Text className="text-slate-500 dark:text-slate-400">{t('sessionMatchesUnavailableDraft')}</Text>
+            ) : (
+              <>
+                <HStack className="justify-between items-center mb-1">
+                  <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
+                    {t('activityQueueTitle')}
+                  </Text>
+                  {isOwnerOrAdmin && isSessionActive && (
+                    <HStack className="gap-1">
+                      {canRegenerate && (
+                        <Pressable onPress={handleRegenerate} className="px-3 py-2 active:opacity-60" disabled={busy} hitSlop={4}>
+                          <Text className="text-sm font-bold text-amber-600">{t('activityRegenerateMatches')}</Text>
+                        </Pressable>
+                      )}
+                      <Pressable onPress={() => onAddMatch(sessionId)} className="px-3 py-2 active:opacity-60" hitSlop={4}>
+                        <Text className="text-sm font-bold text-blue-600">{t('activityAdd')}</Text>
+                      </Pressable>
+                    </HStack>
+                  )}
+                </HStack>
+                {activities.length === 0 ? (
+                  <Text className="text-slate-500 dark:text-slate-400">{t('activityEmptyQueue')}</Text>
+                ) : (
+                  activities.map((a) => {
+                    // A match's own checked-in players can start it themselves;
+                    // owner/admin can start any queued match administratively,
+                    // regardless of whether they're checked in (or even playing
+                    // at all — an organizer with Host Playing off has no
+                    // myParticipant row, and shouldn't be blocked from managing
+                    // the queue because of that). Either way, a match can only
+                    // be started once the Session itself is actually live — not
+                    // while still Recruiting/Ready/Full, even if matches were
+                    // already generated ahead of the start time.
+                    const canStart =
+                      session?.status === 'in_progress' &&
+                      a.status === 'queued' &&
+                      (isOwnerOrAdmin ||
+                        (myParticipant?.status === 'checked_in' && a.participants.some((p) => p.userId === profile?.id)));
+                    // Any checked-in participant of the session (not just this
+                    // match's own players) can watch — matches domain.md's Member
+                    // permission to "watch live score."
+                    const canWatch = isSessionActive && a.status === 'live' && myParticipant?.status === 'checked_in';
+                    const isLiveScorer = a.status === 'live' && a.scorerUserId === profile?.id;
+                    return (
+                      <Box key={a.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4">
+                        <HStack className="justify-between items-center gap-3">
+                          <VStack className="flex-1 gap-1">
+                            <Text className="font-bold text-slate-900 dark:text-white">{activityParticipantNames(a)}</Text>
+                            {a.status === 'live' ? (
+                              <HStack className="items-center gap-1.5">
+                                <Box className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                <Text className="text-xs font-extrabold text-red-500 tracking-wide">
+                                  {t('activityStatusLive').toUpperCase()}
+                                </Text>
+                              </HStack>
+                            ) : (
+                              <Text className="text-xs text-slate-400">
+                                {a.status === 'queued' ? t('activityStatusQueued') : t('activityStatusCompleted')}
+                              </Text>
+                            )}
+                          </VStack>
+                          {canStart && (
+                            <Button size="sm" className="rounded-xl bg-amber-600" onPress={() => onOpenMatch(a.id)}>
+                              <ButtonText className="text-white">{t('activityStart')}</ButtonText>
+                            </Button>
+                          )}
+                          {canWatch && (
+                            <Button size="sm" className="rounded-xl bg-red-600" onPress={() => onOpenMatch(a.id)}>
+                              <ButtonText className="text-white">{isLiveScorer ? t('activityResume') : t('activityWatch')}</ButtonText>
+                            </Button>
+                          )}
+                        </HStack>
+                      </Box>
+                    );
+                  })
+                )}
+              </>
+            )}
+          </VStack>
+        )}
+
+        {/* Chat: placeholder shell only — real in-session messaging is a
+            new domain (persistence, who can see what, moderation) that
+            docs/current/ARCHITECTURE_GAP_ANALYSIS.md's roadmap scopes to
+            its own later milestone ("Communication Foundation") behind a
+            dedicated product decision, not something to improvise here.
+            The tab exists now so the navigation shape is in place. */}
+        {activeTab === 'chat' && (
+          <VStack className="items-center py-16 gap-3">
+            <Icon name="chatbubbles-outline" size="xl" color="muted" />
+            <Text className="text-slate-500 dark:text-slate-400 text-center">{t('sessionChatComingSoon')}</Text>
+          </VStack>
         )}
       </ScrollView>
 

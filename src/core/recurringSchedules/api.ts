@@ -1,5 +1,5 @@
 import { apiFetch } from '../api/client';
-import type { OccurrencePreview, RecurrenceRule, RecurringSchedule, Session, SkillLevelEnforcement } from '../api/types';
+import type { OccurrencePreview, PriceModel, RecurrenceRule, RecurringSchedule, Session, SkillLevelEnforcement } from '../api/types';
 
 export function createRecurringSchedule(
   clubId: string,
@@ -13,6 +13,7 @@ export function createRecurringSchedule(
     courtCount?: number;
     maxParticipants?: number;
     defaultMatchFormat?: unknown;
+    defaultSingleDeuce?: boolean;
     activityType?: string;
     generationTime?: string;
     endDate?: string;
@@ -20,6 +21,9 @@ export function createRecurringSchedule(
     skillLevelMaxId?: string;
     skillLevelEnforcement?: SkillLevelEnforcement;
     hostPlaying?: boolean;
+    priceModel?: PriceModel;
+    pricePerPerson?: number;
+    totalPrice?: number;
   }
 ): Promise<RecurringSchedule> {
   return apiFetch(`/v1/clubs/${clubId}/recurring-schedules`, {
@@ -46,6 +50,7 @@ export function updateRecurringSchedule(
     courtCount?: number;
     maxParticipants?: number;
     defaultMatchFormat?: unknown;
+    defaultSingleDeuce?: boolean;
     activityType?: string;
     recurrenceRule?: RecurrenceRule;
     generationLeadDays?: number;
