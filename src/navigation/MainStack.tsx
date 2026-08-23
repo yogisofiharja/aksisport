@@ -69,6 +69,7 @@ export function MainStack() {
             onBack={() => navigation.goBack()}
             onOpenMembers={(clubId) => navigation.navigate('ClubMembers', { clubId })}
             onOpenSessions={(clubId) => navigation.navigate('SessionList', { clubId })}
+            onOpenSession={(sessionId) => navigation.navigate('SessionDetail', { sessionId })}
             onOpenRecurringSchedules={(clubId) => navigation.navigate('RecurringScheduleList', { clubId })}
             onDeleted={() => navigation.navigate('Personal')}
           />

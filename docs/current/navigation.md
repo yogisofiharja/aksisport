@@ -47,6 +47,8 @@ Personal (initial) — see PersonalTabs below
   ├─→ Settings            → goBack() (opened from the Me tab)
   └─→ ClubDetail { clubId }
         ├─→ ClubMembers { clubId }
+        ├─→ SessionDetail { sessionId }   (direct — tapping a "Current Focus" card, Milestone 3;
+        │                                  same route as SessionList's own onOpenSession below)
         └─→ SessionList { clubId }
               ├─→ CreateSession { clubId }   → replaces with SessionDetail on success
               └─→ SessionDetail { sessionId }
@@ -66,6 +68,23 @@ flows, so the form screen isn't left in the back stack). "Back" is
 always `navigation.goBack()`. Deleting a Club (`ClubDetail`'s
 `onDeleted`) navigates back to `Personal` rather than `goBack()`, since
 there's no longer a `ClubList` route to land on.
+
+**ClubDetail — "Current Focus"** (Milestone 3): above the Sessions/
+Members/Recurring Schedules buttons, `ClubDetailScreen` now shows a
+ranked list of this Club's own Sessions needing attention — mirrors
+Home's cross-club "Attention" section (same `statusLabel`/
+`sessionStatusColor` from `SessionListScreen.tsx`, same `SessionCard`),
+scoped to one Club instead of aggregated across all of them, and richer
+than Home's simple "live or today" filter. Priority order, each
+category capped except Next: any `in_progress` Session; any other
+Session whose date is today (`sessionDateBucket`); the single soonest
+upcoming Session (deliberately just one, not every future Session —
+that's what the Sessions button/list is for); every Draft (owner/admin
+only — `listSessions` already excludes Drafts for a plain member
+server-side, DP-001, so nothing extra is needed here to keep one from
+leaking). Tapping a card pushes `SessionDetail` directly. Empty state
+text differs for an owner/admin ("create a session to get started") vs.
+a member (no such nudge, since they can't create one).
 
 ## PersonalTabs (`src/navigation/PersonalTabs.tsx`, bottom-tabs, `headerShown: false`)
 
@@ -105,9 +124,19 @@ those routes don't exist on the tab navigator itself.
 
 ## Not present
 
-- No tabs inside Community Context yet — `ClubDetail` is still a
-  single static screen, not its own Home/Sessions/Communication tab
-  bar (Milestone 3).
+- No tabs inside Community Context — `ClubDetail` (Milestone 3) is a
+  single screen enriched with a ranked "Current Focus" list, not a
+  Home/Sessions/Communication tab bar; the roadmap explicitly left the
+  navigation shape (tabs vs. single screen) as an implementation
+  choice, and a single screen was simpler for what Current Focus needs
+  today. Session/Members/Recurring Schedules access is still plain
+  buttons below it, same as before. See "ClubDetail" below for what
+  Current Focus ranks and how.
+- No Communication of any kind at the Community level (or anywhere) —
+  Category C in `ARCHITECTURE_GAP_ANALYSIS.md` §2.6, no DP exists yet.
+  `ClubDetail` deliberately has no Communication entry point, even a
+  placeholder — unlike `SessionDetail`'s Chat tab (Milestone 2), there
+  was no existing screen shell to slot a placeholder into here.
 - No real Explore discovery or Inbox content — both are placeholders.
 - No cross-club data beyond Home's attention section — no history,
   no aggregated feed.
