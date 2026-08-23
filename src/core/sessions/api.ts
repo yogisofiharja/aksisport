@@ -1,5 +1,5 @@
-import { apiFetch } from '../api/client';
-import type { Session, SessionParticipant, SessionStatus, SkillLevelEnforcement } from '../api/types';
+import { apiFetch, apiUrl } from '../api/client';
+import type { Session, SessionMessage, SessionParticipant, SessionStatus, SkillLevelEnforcement } from '../api/types';
 
 export function createSession(
   clubId: string,
@@ -160,4 +160,33 @@ export function addGuestParticipant(sessionId: string, guestName: string): Promi
     method: 'POST',
     body: JSON.stringify({ guestName }),
   });
+}
+
+// DP-011 Session Chat.
+export function listSessionMessages(sessionId: string): Promise<SessionMessage[]> {
+  return apiFetch(`/v1/sessions/${sessionId}/messages`);
+}
+
+// image, if provided, is the raw base64 payload (no "data:...;base64,"
+// prefix) plus its content type — the server whitelists jpeg/png/webp
+// and caps it at 5MB decoded. At least one of body/image must be set;
+// the server rejects an entirely empty message.
+export function sendSessionMessage(
+  sessionId: string,
+  options: { body?: string; image?: { base64: string; contentType: string } }
+): Promise<SessionMessage> {
+  return apiFetch(`/v1/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      body: options.body,
+      imageBase64: options.image?.base64,
+      imageContentType: options.image?.contentType,
+    }),
+  });
+}
+
+// Not fetched via apiFetch — this is a URL for an `<Image>` source (with
+// authHeader() as its request headers), not a JSON response to parse.
+export function sessionMessageImageUrl(sessionId: string, messageId: string): string {
+  return apiUrl(`/v1/sessions/${sessionId}/messages/${messageId}/image`);
 }

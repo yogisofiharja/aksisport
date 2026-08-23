@@ -953,6 +953,64 @@ refunds — remains unapproved and unbuilt.
 
 ---
 
+## DP-011 — Session Chat
+
+Status
+
+Approved
+
+### Decision
+
+Every Session has one chat — plain text messages, visible to and
+postable by anyone who can already see that Session (the same access
+`GET /v1/sessions/:id` already requires: any member of the parent Club
+once the Session is published, owner/admin only while still Draft).
+Deliberately **not** narrowed to "participants only" — a member asking
+"is there still room?" or "can I still join?" needs to be able to post
+before they've joined, not after.
+
+Messages are plain text, optionally with a single attached image, shown
+oldest-first. There is no editing or deleting a sent message, no
+attachments other than one image (files, location), and no read
+receipts or typing indicators. Delivery is a short client-side poll
+while the Chat tab is open, not a push/websocket channel — consistent
+with the rest of the app, which has no live sync anywhere yet.
+
+**Images**: stored directly in Postgres (`bytea`), not an object store
+— this app has no cloud storage/CDN provisioned, and the one
+half-configured option (Firebase Storage) requires the paid Blaze plan
+and would need its own versioned security rules this repo has no way
+to deploy yet. Capped at 5MB decoded, JPEG/PNG/WebP only, one per
+message, served through its own authenticated endpoint rather than
+embedded in the message list — so the 5-second poll never re-transfers
+image bytes for messages already on screen.
+
+**Posting window**: new messages can only be sent until 1 week after
+the Session ends (`startsAt + durationMinutes`) — after that, the chat
+becomes permanently read-only. History is never deleted or hidden; the
+window only closes the ability to add to it. A Session missing
+`startsAt`/`durationMinutes` (legacy, pre-DP-009) has no defined
+window and is never restricted.
+
+### Scope
+
+This is the first of the four Communication contexts named in
+`AKSI_INFORMATION_ARCHITECTURE.md` (User↔User DMs, Community,
+Session, Contact Organizer) to get a product decision — the other
+three remain undefined, Category C per
+`docs/current/ARCHITECTURE_GAP_ANALYSIS.md` §2.6, and are **not**
+approved by this decision. Moderation (an organizer removing a
+message, reporting) is explicitly out of scope for this first pass —
+a known, deliberate gap, not an oversight.
+
+### Relationship to "Communication" (Planning, below)
+
+This promotes Session-scoped chat specifically out of Planning. Direct
+Messages, Community-level chat, and Contact Organizer remain
+unapproved and unbuilt.
+
+---
+
 # Planning
 
 ## Domain Evolution
@@ -1012,6 +1070,24 @@ Potential future capabilities:
 - Suggested next activity
 - Waiting queue
 - Session health
+
+---
+
+## Communication
+
+`AKSI_INFORMATION_ARCHITECTURE.md` names four Communication contexts.
+Potential future capabilities:
+
+- Direct Messages (User↔User)
+- Community-level chat (all members of a Club)
+- Contact Organizer (a lightweight "message the organizer" affordance,
+  distinct from full chat)
+
+**Session Chat — promoted to DP-011, Ready to Develop.** A Session has
+one chat, visible to and postable by anyone who can already see that
+Session — plain text with an optional single image. No editing/
+deleting, no moderation tooling yet. The rest of this list remains
+unapproved Planning.
 
 ---
 

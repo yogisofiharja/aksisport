@@ -191,6 +191,23 @@ export type ActivityDetail = Activity & {
   participants: ActivityParticipant[];
 };
 
+// DP-011 Session Chat — plain text, optional single image, no editing/
+// deleting. username/displayName are denormalized from a join server-
+// side, not stored on the row itself. hasImage is a bool, never the raw
+// bytes — the image itself is only ever fetched one at a time via
+// sessionMessageImageUrl(), so polling the message list never
+// re-transfers image data.
+export type SessionMessage = {
+  id: string;
+  sessionId: string;
+  userId: string;
+  username: string;
+  displayName?: string;
+  body: string;
+  hasImage: boolean;
+  createdAt: string;
+};
+
 // DP-007: MVP recurrence shape is weekly-only (an engineering default, not
 // product-specified) — one weekday + time + duration per Schedule. Multiple
 // weekly slots require multiple Schedules.

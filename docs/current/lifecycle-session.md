@@ -514,13 +514,41 @@ every section top to bottom. Section-to-tab mapping:
   still Draft, rather than silently omitting the tab's content with no
   explanation — matches don't exist as a concept yet, but the tab itself
   stays reachable.
-- **Chat**: a placeholder shell only (`sessionChatComingSoon`) — real
-  in-session messaging is a new domain (persistence, who can see what,
-  moderation) that `ARCHITECTURE_GAP_ANALYSIS.md`'s roadmap already
-  scopes to its own later milestone ("Communication Foundation") behind
-  a dedicated product decision, not something improvised as a side
-  effect of this tab split. The tab exists now so the navigation shape
-  is in place ahead of that milestone.
+- **Chat** (DP-011, was a placeholder): a real, persisted chat, one per
+  Session — `SessionChat.tsx`, rendered as a sibling of the tab body's
+  shared `ScrollView` rather than nested inside it (it needs its own
+  scroll region plus a compose bar pinned at the bottom, which a
+  `ScrollView`-of-tab-bodies can't give it). Access is the same as
+  viewing the Session at all (`requireSessionAccess` — any Club member
+  once published, owner/admin only while Draft), deliberately not
+  narrowed to participants only. Plain text with an optional single
+  image, oldest-first, no editing/deleting, no moderation tooling —
+  all explicit v1 gaps, see DP-011. Delivery is a 5-second poll while the tab is
+  mounted (`listSessionMessages`), not a push/websocket channel — this
+  app has no live sync anywhere yet, so a short poll is the pragmatic
+  stand-in. Sending calls `sendSessionMessage` and appends the
+  response optimistically rather than waiting for the next poll tick.
+  **Posting window**: only open until 1 week after the Session ends
+  (`startsAt + durationMinutes`) — `sessionChatWindowOpen` server-side
+  is the actual enforcement (403 past the window), mirrored client-side
+  by `isWithinChatWindow` (`core/sessions/sessionSchedule.ts`, same
+  no-startsAt/durationMinutes-means-unrestricted convention as
+  `isWithinCheckInWindow`) purely to drive the compose bar's own UI —
+  once closed, `SessionChat` swaps the input for a read-only notice;
+  history from `GET` stays visible and unaffected either way.
+  **Images**: one optional attachment per message, picked via the
+  existing `pickImageAsDataUrl` helper (`src/imagePicker.ts`, already
+  used for share-card backgrounds — Camera or Library, `expo-image-
+  picker`), previewed above the compose bar before sending, removable
+  before send. Stored as `bytea` in Postgres (JPEG/PNG/WebP, 5MB
+  decoded cap) — this app has no object storage/CDN, and the only
+  half-configured alternative (Firebase Storage) needs the paid Blaze
+  plan plus its own security rules this repo can't deploy. The message
+  list never carries image bytes, only a `hasImage` bool — each image
+  is fetched once, lazily, via `sessionMessageImageUrl` +
+  `authHeader()` (`<Image source={{uri, headers}}>`, the same bearer
+  token every other request uses), so the 5-second poll never
+  re-transfers images already rendered on screen.
 
 `SessionDetailScreen.tsx`'s self-service action area (v0.10.0, revised
 Milestone 2; now living in the Participants tab) branches on

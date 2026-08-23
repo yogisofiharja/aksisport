@@ -14,17 +14,34 @@ export class ApiRequestError extends Error {
   }
 }
 
-export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  if (!BASE_URL) throw new Error('EXPO_PUBLIC_API_BASE_URL is not configured');
-
+// Shared by apiFetch and anything that needs to hit the API outside of
+// apiFetch's own JSON request/response shape — currently just Session
+// Chat's image `<Image>` tags, which need the same bearer token as a
+// plain `source.headers` object (React Native's Image supports request
+// headers on network sources) since GET .../messages/:id/image is behind
+// the same auth as every other route.
+export async function authHeader(): Promise<Record<string, string>> {
   const token = await auth?.currentUser?.getIdToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Resolves a path to a full API URL — for callers that need the URL
+// itself rather than a fetched/parsed response, e.g. an `<Image>` source.
+export function apiUrl(path: string): string {
+  if (!BASE_URL) throw new Error('EXPO_PUBLIC_API_BASE_URL is not configured');
+  return `${BASE_URL}${path}`;
+}
+
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options?.headers as Record<string, string> | undefined),
+    // Applied last, same as before this was factored out — always wins
+    // over any Authorization a caller's own options.headers might set.
+    ...(await authHeader()),
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const response = await fetch(apiUrl(path), { ...options, headers });
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {

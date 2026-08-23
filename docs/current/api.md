@@ -65,6 +65,14 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 
 `session_participants.status` now also accepts `checked_out`/`cancelled`/`no_show` alongside the original `registered`/`checked_in`, plus `requested`/`waitlist` (v0.10.0, DP-002 Join Approval) — see `lifecycle-session.md`. `participated` was dropped (never set by any code path).
 
+### Session Chat (DP-011)
+
+| Method | Path | Auth | Extra check | Notes |
+|---|---|---|---|---|
+| GET | `/v1/sessions/:id/messages` | profile | `requireSessionAccess` | Oldest-first, no pagination. Same access as viewing the Session itself — any Club member once published, owner/admin only while Draft. Each message includes the sender's `username`/`displayName` (joined server-side) and a `hasImage` bool — never the image bytes themselves, so this response stays small regardless of how many messages have images attached. |
+| POST | `/v1/sessions/:id/messages` | profile | `requireSessionAccess` + `sessionChatWindowOpen` | Body `{body?, imageBase64?, imageContentType?}`. `body` trimmed, 400 if over 2000 characters; 400 if both `body` and `imageBase64` end up empty (at least one required). `imageContentType` must be `image/jpeg`, `image/png`, or `image/webp` (400 otherwise); `imageBase64` decoded and capped at 5MB (400 if empty or over). The whole request body is capped at 8MB via `http.MaxBytesReader` before parsing, independent of the 5MB decoded-image check. 403 once `now` is 1 week or more past `startsAt + durationMinutes` (no-op/unrestricted for Sessions missing either field) — chat becomes permanently read-only past that point, history stays visible via GET. No editing/deleting — this is the only mutation while the window is open. |
+| GET | `/v1/sessions/:id/messages/:messageId/image` | profile | `requireSessionAccess` | Serves the raw image bytes for one message with its stored `Content-Type`, 404 if the message has no image or doesn't belong to `:id`. `Cache-Control: private, max-age=31536000, immutable` — safe since a message's image can never change once posted. Fetched one at a time by the client (`<Image source={{uri, headers}}>`, bearer token same as every other route), never bundled into the list response above. |
+
 **DP-009 auto-start / auto-transition** (no endpoint — background processes, `internal/scheduling.AutoStartDueSessions` and `AutoTransitionElapsedSessions`, both riding the same ticker as DP-007 generation): once an `open` Session's `starts_at` arrives, it's auto-started to `in_progress` (Milestone 2, revised — no manual "Start Session" action). Once `starts_at + duration_minutes` has passed, a Session still `in_progress` is set to `completed`; any other non-terminal Session (a Draft that was never published/started) is set to `cancelled`. Both write directly via `db.SetSessionStatus`, bypassing `sessionStatusTransitions` — that guard is for organizer-initiated PATCH calls only.
 
 ## Activities

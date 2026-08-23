@@ -1,9 +1,11 @@
 package httpapi
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -77,6 +79,40 @@ func checkInWindowOpen(startsAt *time.Time, durationMinutes *int, now time.Time)
 	windowStart := startsAt.Add(-1 * time.Hour)
 	windowEnd := startsAt.Add(time.Duration(*durationMinutes) * time.Minute)
 	return !now.Before(windowStart) && now.Before(windowEnd)
+}
+
+// sessionChatWindowOpen: DP-011 — posting a new Chat message is only
+// allowed until 1 week after the Session ends (startsAt + durationMinutes);
+// past that, the chat becomes read-only history. No lower bound (unlike
+// checkInWindowOpen) — chat is open for the entire Session too, including
+// before it starts. Sessions missing either field (legacy, pre-DP-009)
+// have no defined window, so posting is never restricted for them.
+func sessionChatWindowOpen(startsAt *time.Time, durationMinutes *int, now time.Time) bool {
+	if startsAt == nil || durationMinutes == nil {
+		return true
+	}
+	windowEnd := startsAt.Add(time.Duration(*durationMinutes) * time.Minute).Add(7 * 24 * time.Hour)
+	return now.Before(windowEnd)
+}
+
+// DP-011 Session Chat image attachments — decoded/raw byte cap, and the
+// generous request-body cap that wraps it (base64 expansion ~4/3 plus
+// JSON overhead).
+const (
+	maxSessionMessageImageBytes = 5 * 1024 * 1024
+	maxSessionMessagePostBytes  = 8 * 1024 * 1024
+)
+
+// isAllowedImageContentType is a fixed whitelist — this value is echoed
+// back verbatim as the Content-Type header when the image is served, so
+// it's validated strictly rather than trusted from the client.
+func isAllowedImageContentType(ct string) bool {
+	switch ct {
+	case "image/jpeg", "image/png", "image/webp":
+		return true
+	default:
+		return false
+	}
 }
 
 func isOwnerOrAdmin(role string) bool {
@@ -745,5 +781,109 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		c.JSON(http.StatusCreated, p)
+	})
+
+	// DP-011 Session Chat: same access as viewing the Session itself
+	// (requireSessionAccess) — deliberately not narrowed to "participants
+	// only," since a member asking "can I still join?" needs to post
+	// before they've joined.
+	authed.GET("/sessions/:id/messages", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+			return
+		}
+		messages, err := dbpkg.ListSessionMessages(c.Request.Context(), pool, sessionID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, messages)
+	})
+
+	authed.POST("/sessions/:id/messages", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		sess, _, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		if !sessionChatWindowOpen(sess.StartsAt, sess.DurationMinutes, time.Now()) {
+			respondError(c, http.StatusForbidden, "chat is read-only more than a week after the session")
+			return
+		}
+		// Caps the whole request body, not just the decoded image — a
+		// generous margin over maxSessionMessageImageBytes' own base64
+		// expansion (~4/3) plus JSON overhead, so a malicious/broken
+		// client can't force the server to buffer an unbounded body
+		// before ShouldBindJSON even gets to look at it.
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSessionMessagePostBytes)
+		var body struct {
+			Body             string  `json:"body"`
+			ImageBase64      string  `json:"imageBase64"`
+			ImageContentType *string `json:"imageContentType"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			respondError(c, http.StatusBadRequest, "invalid body, or image too large")
+			return
+		}
+		trimmed := strings.TrimSpace(body.Body)
+		if len(trimmed) > 2000 {
+			respondError(c, http.StatusBadRequest, "body must be 2000 characters or fewer")
+			return
+		}
+		var imageData []byte
+		var imageContentType *string
+		if body.ImageBase64 != "" {
+			if body.ImageContentType == nil || !isAllowedImageContentType(*body.ImageContentType) {
+				respondError(c, http.StatusBadRequest, "imageContentType must be image/jpeg, image/png, or image/webp")
+				return
+			}
+			decoded, err := base64.StdEncoding.DecodeString(body.ImageBase64)
+			if err != nil {
+				respondError(c, http.StatusBadRequest, "imageBase64 is not valid base64")
+				return
+			}
+			if len(decoded) == 0 || len(decoded) > maxSessionMessageImageBytes {
+				respondError(c, http.StatusBadRequest, "image must be non-empty and 5MB or smaller")
+				return
+			}
+			imageData = decoded
+			imageContentType = body.ImageContentType
+		}
+		if trimmed == "" && imageData == nil {
+			respondError(c, http.StatusBadRequest, "body or image is required")
+			return
+		}
+		user := authjwt.CurrentUser(c)
+		message, err := dbpkg.CreateSessionMessage(c.Request.Context(), pool, dbpkg.CreateSessionMessageParams{
+			SessionID: sessionID, UserID: user.ID, Body: trimmed,
+			ImageData: imageData, ImageContentType: imageContentType,
+		})
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusCreated, message)
+	})
+
+	// Served one at a time, never listed alongside the message itself —
+	// see SessionMessage.HasImage's doc comment for why. Cache-Control is
+	// safe to set aggressively: a message's image never changes once
+	// posted (no editing), so there's nothing to invalidate.
+	authed.GET("/sessions/:id/messages/:messageId/image", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+			return
+		}
+		img, err := dbpkg.GetSessionMessageImage(c.Request.Context(), pool, sessionID, c.Param("messageId"))
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "image not found")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.Header("Cache-Control", "private, max-age=31536000, immutable")
+		c.Data(http.StatusOK, img.ContentType, img.Data)
 	})
 }

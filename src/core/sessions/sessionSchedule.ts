@@ -47,3 +47,15 @@ export function isWithinCheckInWindow(session: Session, now: Date = new Date()):
   const windowEnd = new Date(start.getTime() + session.durationMinutes * 60 * 1000);
   return now >= windowStart && now < windowEnd;
 }
+
+// DP-011 — mirrors the server's sessionChatWindowOpen (sessions_handler.go),
+// which is the actual gate on POST /sessions/:id/messages; this is only for
+// the compose bar's enabled/disabled state, not enforcement. No lower
+// bound — chat is open for the Session's entire life, including before it
+// starts — only a week after it ends does it close to new messages.
+export function isWithinChatWindow(session: Session, now: Date = new Date()): boolean {
+  if (!session.startsAt || session.durationMinutes == null) return true;
+  const start = new Date(session.startsAt);
+  const windowEnd = new Date(start.getTime() + session.durationMinutes * 60 * 1000 + 7 * 24 * 60 * 60 * 1000);
+  return now < windowEnd;
+}

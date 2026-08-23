@@ -36,6 +36,7 @@ import { buildGeneratedMatchPayload } from '../../core/activities/buildGenerated
 import { formatSessionDateTime, isWithinCheckInWindow } from '../../core/sessions/sessionSchedule';
 import { formatIDR } from '../../core/currency';
 import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
+import { SessionChat } from './SessionChat';
 import type { MatchFormat, MatchMode } from '../../sports/tennis/scoringEngine';
 import { minParticipants } from '../../sports/tennis/rules';
 import { weekdayLabel } from '../recurringSchedules/weekday';
@@ -764,6 +765,9 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         </HStack>
       </VStack>
 
+      {activeTab === 'chat' ? (
+        <SessionChat sessionId={sessionId} session={session} />
+      ) : (
       <ScrollView
         contentContainerClassName="px-5 pt-6 pb-6 gap-5"
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
@@ -1264,19 +1268,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           </VStack>
         )}
 
-        {/* Chat: placeholder shell only — real in-session messaging is a
-            new domain (persistence, who can see what, moderation) that
-            docs/current/ARCHITECTURE_GAP_ANALYSIS.md's roadmap scopes to
-            its own later milestone ("Communication Foundation") behind a
-            dedicated product decision, not something to improvise here.
-            The tab exists now so the navigation shape is in place. */}
-        {activeTab === 'chat' && (
-          <VStack className="items-center py-16 gap-3">
-            <Icon name="chatbubbles-outline" size="xl" color="muted" />
-            <Text className="text-slate-500 dark:text-slate-400 text-center">{t('sessionChatComingSoon')}</Text>
-          </VStack>
-        )}
       </ScrollView>
+      )}
 
       <Modal visible={addParticipantStep !== 'closed'} transparent animationType="slide" onRequestClose={closeAddParticipant}>
         <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
