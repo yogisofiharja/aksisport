@@ -10,6 +10,7 @@ function participant(id: string, checkedInAt: string, userId = id): SessionParti
     status: 'checked_in',
     checkedInAt,
     joinedAt: checkedInAt,
+    hasReceipt: false,
   };
 }
 

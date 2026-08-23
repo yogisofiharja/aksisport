@@ -24,6 +24,18 @@ export type Club = {
   updatedAt: string;
 };
 
+// Milestone 5 (Session Finance) — a Club can list more than one of these
+// (e.g. a BCA and a Mandiri account). Plain display fields, no payment
+// processor integration.
+export type ClubBankAccount = {
+  id: string;
+  clubId: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  createdAt: string;
+};
+
 export type ClubRole = 'owner' | 'admin' | 'member';
 
 export type ClubWithRole = Club & {
@@ -153,6 +165,10 @@ export type SessionParticipant = {
   checkedInAt?: string;
   checkedOutAt?: string;
   joinedAt: string;
+  // Milestone 5 — a bool, never the image bytes (only ever fetched one
+  // at a time via participantReceiptUrl, and only by the uploader
+  // themselves or an owner/admin).
+  hasReceipt: boolean;
 };
 
 export type ActivityStatus = 'queued' | 'live' | 'completed';

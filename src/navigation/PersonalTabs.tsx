@@ -55,7 +55,6 @@ export function PersonalTabs() {
           <HomeScreen
             onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })}
             onCreateClub={() => rootNavigation.navigate('CreateClub')}
-            onJoinClub={() => rootNavigation.navigate('JoinClub')}
             onOpenSession={(sessionId) => rootNavigation.navigate('SessionDetail', { sessionId })}
           />
         )}

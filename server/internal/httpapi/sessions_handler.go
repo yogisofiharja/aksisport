@@ -95,12 +95,13 @@ func sessionChatWindowOpen(startsAt *time.Time, durationMinutes *int, now time.T
 	return now.Before(windowEnd)
 }
 
-// DP-011 Session Chat image attachments — decoded/raw byte cap, and the
-// generous request-body cap that wraps it (base64 expansion ~4/3 plus
-// JSON overhead).
+// Shared by every Session-scoped image upload (DP-011 Chat attachments,
+// Milestone 5 payment receipts) — decoded/raw byte cap, and the generous
+// request-body cap that wraps it (base64 expansion ~4/3 plus JSON
+// overhead).
 const (
-	maxSessionMessageImageBytes = 5 * 1024 * 1024
-	maxSessionMessagePostBytes  = 8 * 1024 * 1024
+	maxSessionImageBytes     = 5 * 1024 * 1024
+	maxSessionImagePostBytes = 8 * 1024 * 1024
 )
 
 // isAllowedImageContentType is a fixed whitelist — this value is echoed
@@ -571,6 +572,79 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		c.JSON(http.StatusOK, p)
 	})
 
+	// Milestone 5 (Session Finance) — self-service only: the caller
+	// attaches a receipt to their own participant row, never someone
+	// else's. Same size/content-type validation as DP-011 Chat images.
+	authed.POST("/sessions/:id/receipt", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSessionImagePostBytes)
+		var body struct {
+			ImageBase64      string `json:"imageBase64"`
+			ImageContentType string `json:"imageContentType"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			respondError(c, http.StatusBadRequest, "invalid body, or image too large")
+			return
+		}
+		if !isAllowedImageContentType(body.ImageContentType) {
+			respondError(c, http.StatusBadRequest, "imageContentType must be image/jpeg, image/png, or image/webp")
+			return
+		}
+		decoded, err := base64.StdEncoding.DecodeString(body.ImageBase64)
+		if err != nil {
+			respondError(c, http.StatusBadRequest, "imageBase64 is not valid base64")
+			return
+		}
+		if len(decoded) == 0 || len(decoded) > maxSessionImageBytes {
+			respondError(c, http.StatusBadRequest, "image must be non-empty and 5MB or smaller")
+			return
+		}
+		user := authjwt.CurrentUser(c)
+		p, err := dbpkg.UploadParticipantReceipt(c.Request.Context(), pool, sessionID, user.ID, decoded, body.ImageContentType)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "you must have joined or requested to join this session first")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, p)
+	})
+
+	// Deliberately narrower than every other read in this domain — only
+	// the uploading participant themselves, or an owner/admin, may ever
+	// fetch these bytes. Every other participant only ever sees the
+	// existing session_participants.status via the normal participant
+	// list (paid vs. awaiting), never this image.
+	authed.GET("/sessions/:id/participants/:participantId/receipt", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		img, ownerUserID, err := dbpkg.GetParticipantReceiptImage(c.Request.Context(), pool, sessionID, c.Param("participantId"))
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "receipt not found")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		user := authjwt.CurrentUser(c)
+		isSelf := ownerUserID != nil && *ownerUserID == user.ID
+		if !isOwnerOrAdmin(role) && !isSelf {
+			respondError(c, http.StatusForbidden, "you can only view your own payment receipt")
+			return
+		}
+		c.Header("Cache-Control", "private, max-age=31536000, immutable")
+		c.Data(http.StatusOK, img.ContentType, img.Data)
+	})
+
 	// Owner/admin removes a participant entirely (e.g. declining a join
 	// request, or removing someone outright) — a hard delete, unlike
 	// Cancel/NoShow which record what happened. The path param accepts
@@ -811,11 +885,11 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		// Caps the whole request body, not just the decoded image — a
-		// generous margin over maxSessionMessageImageBytes' own base64
+		// generous margin over maxSessionImageBytes' own base64
 		// expansion (~4/3) plus JSON overhead, so a malicious/broken
 		// client can't force the server to buffer an unbounded body
 		// before ShouldBindJSON even gets to look at it.
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSessionMessagePostBytes)
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSessionImagePostBytes)
 		var body struct {
 			Body             string  `json:"body"`
 			ImageBase64      string  `json:"imageBase64"`
@@ -842,7 +916,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 				respondError(c, http.StatusBadRequest, "imageBase64 is not valid base64")
 				return
 			}
-			if len(decoded) == 0 || len(decoded) > maxSessionMessageImageBytes {
+			if len(decoded) == 0 || len(decoded) > maxSessionImageBytes {
 				respondError(c, http.StatusBadRequest, "image must be non-empty and 5MB or smaller")
 				return
 			}

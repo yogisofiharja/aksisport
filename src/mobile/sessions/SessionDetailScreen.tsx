@@ -37,6 +37,7 @@ import { formatSessionDateTime, isWithinCheckInWindow } from '../../core/session
 import { formatIDR } from '../../core/currency';
 import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
 import { SessionChat } from './SessionChat';
+import { SessionPayment } from './SessionPayment';
 import type { MatchFormat, MatchMode } from '../../sports/tennis/scoringEngine';
 import { minParticipants } from '../../sports/tennis/rules';
 import { weekdayLabel } from '../recurringSchedules/weekday';
@@ -117,7 +118,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // Details/Participants/Matches/Chat — the session name and date stay
   // pinned in the header outside the tab body, so switching tabs never
   // loses which session you're looking at.
-  const [activeTab, setActiveTab] = useState<'details' | 'configuration' | 'participants' | 'matches' | 'chat'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'payment' | 'configuration' | 'participants' | 'matches' | 'chat'>('details');
   const [club, setClub] = useState<Club | null>(null);
   // Only set when this Session was generated from a Recurring Schedule
   // (session.recurringScheduleId) — used for the Details tab's "Every
@@ -571,6 +572,23 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     ]);
   }
 
+  // Edit/Cancel deliberately live behind a top-right "⋮" menu, not as
+  // always-visible buttons on the Details tab — both are easy to
+  // misclick when sitting in the same scroll flow as everything else,
+  // Cancel especially. Publish/Discard stay inline (Draft-only, and
+  // Publish is the primary action while reviewing a Draft, not
+  // something to bury). handleCancel above still shows its own confirm
+  // dialog once selected here — this menu is a first tap, not the
+  // final confirmation.
+  function handleSessionMenu() {
+    if (busy) return;
+    const options: Array<{ text: string; style?: 'default' | 'cancel' | 'destructive'; onPress?: () => void }> = [];
+    if (canEditConfiguration) options.push({ text: t('sessionEdit'), onPress: () => onEdit(sessionId) });
+    if (isOwnerOrAdmin && isSessionActive && isPublished) options.push({ text: t('sessionCancel'), style: 'destructive', onPress: handleCancel });
+    options.push({ text: t('clubCancel'), style: 'cancel' });
+    Alert.alert(t('sessionMenuTitle'), undefined, options);
+  }
+
   async function handleAddGuest(): Promise<boolean> {
     const name = guestName.trim();
     if (!name || busy) return false;
@@ -721,6 +739,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   const tabs: Array<{ key: typeof activeTab; label: string }> = [
     { key: 'details', label: t('sessionTabDetails') },
+    { key: 'payment', label: t('sessionTabPayment') },
     { key: 'configuration', label: t('sessionTabConfiguration') },
     { key: 'participants', label: t('sessionTabParticipants') },
     { key: 'matches', label: t('sessionTabMatches') },
@@ -740,29 +759,36 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           (outside the ScrollView) so switching tabs never loses which
           session you're looking at. */}
       <VStack className="px-5 pt-4 pb-4 gap-3">
-        <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-          <Icon name="arrow-back" size="lg" />
-        </Pressable>
+        <HStack className="justify-between items-center">
+          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
+            <Icon name="arrow-back" size="lg" />
+          </Pressable>
+          {(canEditConfiguration || (isOwnerOrAdmin && isSessionActive && isPublished)) && (
+            <Pressable className="p-2 -mr-2 active:opacity-60" onPress={handleSessionMenu} hitSlop={4}>
+              <Icon name="ellipsis-vertical" size="lg" />
+            </Pressable>
+          )}
+        </HStack>
         <VStack className="gap-0.5">
           <Heading size="2xl" numberOfLines={1}>{session.name || session.sport}</Heading>
           {session.startsAt && (
             <Text className="text-sm text-slate-500 dark:text-slate-400">{formatSessionDateTime(session.startsAt)}</Text>
           )}
         </VStack>
-        <HStack className="gap-1.5">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {tabs.map((tab) => (
             <Pressable
               key={tab.key}
-              className={`flex-1 items-center py-3.5 rounded-xl ${activeTab === tab.key ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+              className={`items-center px-4 py-3.5 rounded-xl ${activeTab === tab.key ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
               onPress={() => setActiveTab(tab.key)}
               hitSlop={4}
             >
-              <Text className={`text-xs font-bold ${activeTab === tab.key ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+              <Text className={`text-sm font-bold ${activeTab === tab.key ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>
                 {tab.label}
               </Text>
             </Pressable>
           ))}
-        </HStack>
+        </ScrollView>
       </VStack>
 
       {activeTab === 'chat' ? (
@@ -955,28 +981,19 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
               </HStack>
             </VStack>
 
-            {/* DP-001: a draft session is invisible to members until published.
-                Both actions live at the bottom of the tab — Publish is the
-                final action once the organizer is done reviewing/editing
-                everything above; Edit sits right next to it as the explicit
-                alternative, not a small link buried near the title. */}
+            {/* DP-001: a draft session is invisible to members until
+                published. Edit and Cancel deliberately do NOT live here
+                anymore — both moved behind the header's "⋮" menu
+                (handleSessionMenu) so they're not sitting in easy reach
+                on the tab an organizer scrolls through by default.
+                Publish stays inline: it's the primary action while
+                reviewing a Draft, not something to bury. Discard also
+                stays inline — Draft-only, already a low-prominence text
+                link rather than a full-width button. */}
             {isOwnerOrAdmin && session.lifecycleStatus === 'draft' && (
               <VStack className="gap-3">
                 <Button action="secondary" size="lg" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handlePublish}>
                   <ButtonText className="text-white">{t('sessionPublish')}</ButtonText>
-                </Button>
-                <Text className="text-center text-xs font-bold text-slate-400">{t('commonOr')}</Text>
-                <Button
-                  variant="outline"
-                  action="secondary"
-                  size="lg"
-                  className="w-full rounded-2xl"
-                  isDisabled={busy}
-                  onPress={() => onEdit(sessionId)}
-                >
-                  <ButtonText variant="outline" action="secondary">
-                    {t('sessionEdit')}
-                  </ButtonText>
                 </Button>
 
                 <Box className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
@@ -986,42 +1003,22 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                 </Pressable>
               </VStack>
             )}
-
-            {/* Published, not yet started (raw status 'open', not the
-                draft-only block above) — Edit stays available here too,
-                e.g. to fix a typo or set/change Price after publishing;
-                the same CreateSessionScreen edit form, unchanged. Not
-                offered once in_progress: by then startsAt is necessarily
-                already in the past, which would trip the form's own
-                past-date validation, and the running Session's plan is
-                effectively locked — Cancel below is the only terminal
-                action left for it. */}
-            {isOwnerOrAdmin && session.status === 'open' && (
-              <Button
-                variant="outline"
-                action="secondary"
-                size="lg"
-                className="w-full rounded-2xl"
-                isDisabled={busy}
-                onPress={() => onEdit(sessionId)}
-              >
-                <ButtonText variant="outline" action="secondary">
-                  {t('sessionEdit')}
-                </ButtonText>
-              </Button>
-            )}
-
-            {/* Published-only — a Draft Session has Discard instead (above),
-                not Cancel: nobody but the organizer has seen it yet, so there's
-                no audience a "this was cancelled" record is for. */}
-            {isOwnerOrAdmin && isSessionActive && isPublished && (
-              <Button variant="outline" action="negative" className="w-full rounded-2xl" isDisabled={busy} onPress={handleCancel}>
-                <ButtonText variant="outline" action="negative">
-                  {t('sessionCancel')}
-                </ButtonText>
-              </Button>
-            )}
           </VStack>
+        )}
+
+        {/* Payment (Milestone 5) — bank accounts + receipt upload/status.
+            Confirm Payment lives here now, not as a badge on the
+            Participants tab's Waitlist section. */}
+        {activeTab === 'payment' && (
+          <SessionPayment
+            sessionId={sessionId}
+            session={session}
+            participants={participants}
+            myParticipant={myParticipant}
+            isOwnerOrAdmin={isOwnerOrAdmin}
+            onConfirmPayment={handleConfirmPayment}
+            onParticipantsChanged={load}
+          />
         )}
 
         {/* Match Setup (Configuration tab) — defined once here, reused by
@@ -1154,10 +1151,10 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                 confirmedParticipants,
                 checkInWindowOpen ? (p) => ({ icon: 'checkmark', onPress: () => handleCheckInParticipant(p.id) }) : undefined
               )}
-              {renderParticipantSection(t('sessionSectionWaitlist'), waitlistParticipants, (p) => ({
-                icon: 'checkmark',
-                onPress: () => handleConfirmPayment(p.userId!),
-              }))}
+              {/* No confirm-payment action here (Milestone 5) — moved to
+                  its own Payment tab, alongside the receipt an organizer
+                  actually needs to look at before confirming. */}
+              {renderParticipantSection(t('sessionSectionWaitlist'), waitlistParticipants)}
               {renderParticipantSection(t('sessionSectionRequested'), requestedParticipants, (p) => ({
                 icon: 'checkmark',
                 onPress: () => handleApprove(p.userId!),

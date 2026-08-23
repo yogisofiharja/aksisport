@@ -108,6 +108,23 @@ export function confirmParticipantPayment(sessionId: string, userId: string): Pr
   return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}/confirm-payment`, { method: 'POST' });
 }
 
+// Milestone 5 — self-service only, attaches to the caller's own
+// participant row. Same base64 content/size convention as DP-011 Chat
+// images. Overwrites any previous receipt.
+export function uploadPaymentReceipt(sessionId: string, image: { base64: string; contentType: string }): Promise<SessionParticipant> {
+  return apiFetch(`/v1/sessions/${sessionId}/receipt`, {
+    method: 'POST',
+    body: JSON.stringify({ imageBase64: image.base64, imageContentType: image.contentType }),
+  });
+}
+
+// Not fetched via apiFetch — a URL for an `<Image>` source (with
+// authHeader() as its request headers). The server only serves these
+// bytes to the uploading participant themselves or an owner/admin.
+export function participantReceiptUrl(sessionId: string, participantId: string): string {
+  return apiUrl(`/v1/sessions/${sessionId}/participants/${participantId}/receipt`);
+}
+
 // Owner/admin removes a participant entirely (e.g. declining a join
 // request) — a hard delete, unlike Cancel/NoShow. Accepts either a
 // member's userId or a guest's own participant id — the server matches

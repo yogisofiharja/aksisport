@@ -35,7 +35,7 @@ filtered client-side afterward, not by the search endpoint itself.
 
 | Action | Required role |
 |---|---|
-| Update club, delete club, regenerate invite code, add/remove members, change member roles | `owner` only — `isOwnerOrAdmin` is **not** used here, `requireMember`'s `isOwner` bool is checked directly |
+| Update club, delete club, add/remove members, change member roles | `owner` only — `isOwnerOrAdmin` is **not** used here, `requireMember`'s `isOwner` bool is checked directly |
 | Remove self from a club | any role (member can always remove themselves) |
 | Create session, update session, add guest participant | `owner` or `admin` (`isOwnerOrAdmin`) |
 | View session, list sessions, register, check in, view participants | any member |
@@ -43,6 +43,11 @@ filtered client-side afterward, not by the search endpoint itself.
 | View activity/activities | any member of the parent club |
 | Start an activity | **partly role-based** — see below |
 | Complete an activity | **not role-based** — see below |
+| Manage Club bank accounts (create/update/delete) | `owner` only |
+| List Club bank accounts | any member |
+| Confirm payment (Milestone 5, moved from the badge to the Payment tab) | `owner` or `admin` |
+| Upload a payment receipt | self only — no organizer-uploads-for-someone-else path |
+| View a payment receipt image | **not role-based alone** — see below |
 
 `docs/archive/prd.md`'s Club Roles section lists Admin as able to "Assign scorer" —
 there is no assign-scorer endpoint; the closest actual behavior is
@@ -50,6 +55,23 @@ that starting an activity makes the starter the scorer (see
 `lifecycle-activity.md`). Owner/admin can trigger this administratively
 on any queued match (see below); a regular member can only trigger it
 for a match they're actually playing in.
+
+## Payment receipt visibility (Milestone 5, DP-012)
+
+`GET /v1/sessions/:id/participants/:participantId/receipt` passes
+`requireSessionAccess` (layer 3 — any Club member can reach the route at
+all) but then applies an **additional identity check** that has no
+equivalent anywhere else in this domain: the caller must be either
+`owner`/`admin` of the parent Club, **or** the participant who uploaded
+that specific receipt (`session_participants.user_id` matches the
+caller's own id). Every other Club member who passes layer 3 gets 403.
+This is deliberately stricter than every other participant-scoped read
+in the app (e.g. the participant list itself, or DP-011 Chat messages),
+where "any Club member" is sufficient — payment receipts are the one
+piece of Session data that isn't shared with the whole roster, only
+with the two parties who need it (the payer, and whoever confirms
+payment). Everyone else still sees that participant's `status`
+(paid/awaiting) via the normal participant list — just never the image.
 
 ## Activity-specific rules
 

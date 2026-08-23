@@ -106,7 +106,8 @@ members. This is intentionally minimal — not the fuller Draft-editing
 experience (courts, pricing, duplicate) described alongside the approved
 decision, which remains unbuilt.
 
-**Cancel UI** (v0.6.2, revised Milestone 2): `SessionDetailScreen` shows
+**Cancel UI** (v0.6.2, revised Milestone 2; relocated again in a later
+pass — see "Session Options menu" below): `SessionDetailScreen` offers
 a "Cancel Session" action (owner/admin) behind a confirm dialog, calling
 `cancelSession()` in `core/sessions/api.ts` — a thin named wrapper over
 the guarded `PATCH /v1/sessions/:id {status: 'cancelled'}` transition.
@@ -125,10 +126,9 @@ has never been visible to anyone but the organizer (`requireSessionAccess`
 cancelled" record is for — deleting it outright loses nothing a
 published Session's Cancel needs to preserve. Confirmed via dialog
 (`core/sessions/api.ts`'s `discardDraftSession`), irreversible.
-`SessionDetailScreen`'s bottom-of-screen Draft block is now Publish,
-"or", Edit, a divider, then Discard — in that order, all three actions
-grouped together as the organizer's options once they're done
-reviewing/editing everything above.
+`SessionDetailScreen`'s bottom-of-Details-tab Draft block is Publish, a
+divider, then Discard — Edit is no longer inline here, see "Session
+Options menu" below.
 
 **Terminal Session Actions** (v0.8.1): `SessionDetailScreen` computes
 `isSessionActive = status !== 'cancelled' && status !== 'completed'` and
@@ -180,11 +180,11 @@ description, activity type, capacity, host playing, date/time,
 duration, skill level requirement, Price/DP-010, Match Setup/DP-005) is editable via the
 same guarded `PATCH /v1/sessions/:id` every other update already uses,
 which was never actually Draft-restricted server-side — only
-`SessionDetailScreen`'s Edit button visibility was. That button now also
-shows for `session.status === 'open'` (published, not yet started; the
-Details tab, alongside Cancel), not just `'draft'` — the direct reason
-was DP-010 Price otherwise having no way to be set or changed once a
-Session is published. Deliberately **not** offered once `in_progress`:
+`SessionDetailScreen`'s Edit affordance's visibility was. Available for
+`session.status === 'open'` (published, not yet started) too, not just
+`'draft'` — the direct reason was DP-010 Price otherwise having no way
+to be set or changed once a Session is published. Deliberately **not**
+offered once `in_progress`:
 by then `startsAt` is necessarily already in the past, which would trip
 the form's own past-date validation, and a running Session's plan is
 effectively locked — Cancel remains the only terminal action left for
@@ -199,6 +199,27 @@ this field," so the skill level range can be changed but not removed
 (same limitation Price's amount fields have, see DP-010's own note in
 `api.md`). Not solved here; would need an explicit "clear" signal added
 to the PATCH contract.
+
+**Session Options menu** (later pass, this same milestone track): Edit
+and Cancel are no longer always-visible buttons on the Details tab —
+both moved behind a "⋮" (`ellipsis-vertical`) icon at the top-right of
+the header, next to the back button, mirroring `ClubDetailScreen`'s own
+gear-icon settings entry point. `handleSessionMenu` builds the option
+list conditionally (`Alert.alert`, same pattern as the image-attach
+choosers elsewhere in this app) — Edit when `canEditConfiguration`
+(draft or published-not-started, the same window as above), Cancel
+when `isOwnerOrAdmin && isSessionActive && isPublished` (unchanged
+condition, just relocated) — and is itself only shown at all when at
+least one of those is true. Selecting Cancel still opens its own
+existing confirm dialog (`handleCancel`); this menu is a first tap, not
+the final confirmation. Publish and Discard are deliberately **not**
+in this menu — both stay inline on the Draft block, Publish because
+it's the primary action while reviewing a Draft (not something to
+bury), Discard because it was already a low-prominence text link
+rather than a full-width button. The rationale for moving Edit/Cancel
+specifically: both previously sat as full-width buttons in the same
+scroll flow as everything else on the Details tab, making Cancel in
+particular an easy accidental tap for something destructive.
 
 **No participant picker while Draft** (Milestone 2, revised): an
 earlier pass of this milestone added a "Participants" section to
@@ -481,15 +502,21 @@ well before the window.
 
 ## Mobile UI reflection
 
-**Tabs** (Milestone 2, revised; Configuration added DP-005): `SessionDetailScreen.tsx` is split into
-five tabs — **Details**, **Configuration**, **Participants**, **Matches**, **Chat** — with
+**Tabs** (Milestone 2, revised; Configuration added DP-005, Payment
+added DP-012/Milestone 5): `SessionDetailScreen.tsx` is split into
+six tabs — **Details**, **Payment**, **Configuration**, **Participants**, **Matches**, **Chat** — with
 the Session's name and start date/time pinned in a header above the tab
 bar, outside the scrolling tab body, so switching tabs never loses which
 Session you're looking at. `activeTab` is plain local state
-(`'details' | 'configuration' | 'participants' | 'matches' | 'chat'`); nothing about it is
+(`'details' | 'payment' | 'configuration' | 'participants' | 'matches' | 'chat'`); nothing about it is
 persisted or deep-linkable yet (opening a Session always lands on
 Details). This replaced the previous single long `ScrollView` containing
-every section top to bottom. Section-to-tab mapping:
+every section top to bottom. At six tabs, the tab bar itself became a
+horizontally-scrolling `ScrollView` instead of evenly-dividing the
+screen width per tab (`flex-1` per Pressable) — the earlier fixed-width
+approach was already at its practical limit for tap-target size at five
+tabs; scrolling lets every tab keep a comfortable `text-sm` label
+instead of shrinking further. Section-to-tab mapping:
 
 - **Details**: the Club name (fetched via `getClub(session.clubId)`,
   new — this screen previously never loaded the parent Club at all) and,
@@ -512,6 +539,30 @@ every section top to bottom. Section-to-tab mapping:
   identity, not participation, hence Details rather than Participants),
   and the session-management actions (Publish/Edit/Discard while Draft,
   Cancel once published).
+- **Payment** (DP-012, Milestone 5, new — `SessionPayment.tsx`, always
+  present even on a Free Session, since Waitlist→Registered approval
+  happens regardless of price): the caller's own amount due (mirrors
+  Details' Price computation) and the Club's bank accounts (`GET
+  .../bank-accounts`, one Club can list more than one), hidden entirely
+  when `priceModel === 'free'`; a "Your Payment" card for the caller's
+  own row (status text, an inline receipt thumbnail if one's already
+  uploaded, an Upload/Replace Receipt button — Camera or Library via
+  the same `pickImageAsDataUrl` helper DP-011 Chat images and the
+  legacy share-card flow both already use); a "Payment Status" list of
+  every `waitlist`/`registered`/`checked_in`/`checked_out` participant
+  (i.e. everyone past organizer approval) showing Paid/Awaiting —
+  visible to **every** Club member, not just the organizer, per an
+  explicit product decision that payment status is shared roster
+  information even though the receipt image itself isn't (see
+  `permissions.md`'s "Payment receipt visibility" section). Confirm
+  Payment (`confirmParticipantPayment`, DP-002, unchanged mechanically)
+  moved here from a small badge on the Participants tab's Waitlist
+  section — `handleConfirmPayment` still lives in
+  `SessionDetailScreen.tsx`, just passed down as a prop instead of
+  wired to a badge `onPress` inline. A "View Receipt" toggle next to a
+  participant's status is shown only when the viewer is owner/admin or
+  the receipt's own uploader — matching the server's own access rule,
+  not just hiding a button (the endpoint 403s anyone else regardless).
 - **Configuration** (DP-005, new — own tab, not nested in Details): a
   read-only summary of Match Setup — `session.defaultMatchFormat`'s type
   and relevant sub-fields (via the shared `matchFormatSummary` helper,
@@ -609,10 +660,13 @@ caption, and inline "Approve"/"Confirm Payment" text links) are gone,
 since the sub-section itself and the avatar's border color already
 convey status, and organizer identity now lives in its own section
 above. Owner/admin still get a small red "×" corner badge (top-right,
-`isSessionActive`) for Remove on every card, and — Requested/Waitlist
-cards only — a small blue checkmark corner badge (top-left) that
-triggers Approve/Confirm Payment directly from the card, replacing the
-old text links. The section header shows `joinedCount`/`maxParticipants`
+`isSessionActive`) for Remove on every card, and — Requested cards
+only — a small blue checkmark corner badge (top-left) that triggers
+Approve directly from the card, replacing the old text link. Waitlist
+cards no longer carry an action badge at all (Milestone 5, DP-012) —
+Confirm Payment moved to its own Payment tab, alongside the receipt an
+organizer actually needs to look at first; Waitlist here is purely
+informational now, matching Cancelled/Other. The section header shows `joinedCount`/`maxParticipants`
 next to the "Participants" title, same as before (moved off the
 Details card in an earlier pass of this milestone).
 
@@ -656,7 +710,7 @@ keyboard on its own.
 **Confirmed section's check-in action** (Milestone 2, revised): since
 adding a participant no longer checks them in, the **Confirmed**
 sub-section (below) gets its own action button — the same blue
-checkmark badge Waitlist/Requested already use — visible only when
+checkmark badge Requested already uses — visible only when
 `checkInWindowOpen`, calling `checkInParticipantById`/
 `CheckInParticipantByID` (by the participant's own row id, not
 `user_id`, so it works for organizer-added guests too). This is now the

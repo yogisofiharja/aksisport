@@ -10,12 +10,15 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
-const participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.checked_out_at, sp.joined_at
+const participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.checked_out_at, sp.joined_at, (sp.receipt_image_data IS NOT NULL)
 	 FROM session_participants sp LEFT JOIN users u ON u.id = sp.user_id`
 
 func scanParticipant(row pgx.CollectableRow) (models.SessionParticipant, error) {
 	var p models.SessionParticipant
-	err := row.(pgx.Rows).Scan(&p.ID, &p.SessionID, &p.UserID, &p.GuestName, &p.Username, &p.DisplayName, &p.Status, &p.CheckedInAt, &p.CheckedOutAt, &p.JoinedAt)
+	err := row.(pgx.Rows).Scan(
+		&p.ID, &p.SessionID, &p.UserID, &p.GuestName, &p.Username, &p.DisplayName, &p.Status,
+		&p.CheckedInAt, &p.CheckedOutAt, &p.JoinedAt, &p.HasReceipt,
+	)
 	return p, err
 }
 
@@ -143,6 +146,56 @@ func ConfirmPayment(ctx context.Context, pool *pgxpool.Pool, sessionID, userID s
 		return models.SessionParticipant{}, ErrConflict
 	}
 	return getParticipantByUser(ctx, pool, sessionID, userID)
+}
+
+// UploadParticipantReceipt (Milestone 5) attaches/replaces a payment
+// receipt image on the caller's own participant row — self-service only,
+// there is no organizer-uploads-for-someone-else path. Overwrites any
+// previous receipt (no history kept, no editing UI, just re-upload).
+// ErrNotFound if the caller has no participant row in this Session at
+// all (never joined/requested), regardless of its current status.
+func UploadParticipantReceipt(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string, imageData []byte, contentType string) (models.SessionParticipant, error) {
+	tag, err := pool.Exec(ctx,
+		`UPDATE session_participants
+		 SET receipt_image_data = $3, receipt_image_content_type = $4, receipt_uploaded_at = now()
+		 WHERE session_id = $1 AND user_id = $2`,
+		sessionID, userID, imageData, contentType,
+	)
+	if err != nil {
+		return models.SessionParticipant{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return models.SessionParticipant{}, ErrNotFound
+	}
+	return getParticipantByUser(ctx, pool, sessionID, userID)
+}
+
+// GetParticipantReceiptImage fetches one participant's receipt bytes,
+// scoped to sessionID (defense in depth beyond the URL's own participant
+// id), alongside the row's own UserID — the caller (handler) needs that
+// to decide access: only the uploading participant themselves, or an
+// owner/admin, may ever see these bytes (narrower than every other read
+// in this domain). ErrNotFound covers "no such participant in this
+// Session" and "participant exists but has no receipt" alike.
+func GetParticipantReceiptImage(ctx context.Context, pool *pgxpool.Pool, sessionID, participantID string) (models.ParticipantReceiptImage, *string, error) {
+	var img models.ParticipantReceiptImage
+	var contentType *string
+	var ownerUserID *string
+	err := pool.QueryRow(ctx,
+		`SELECT receipt_image_data, receipt_image_content_type, user_id FROM session_participants
+		 WHERE id = $1 AND session_id = $2 AND receipt_image_data IS NOT NULL`,
+		participantID, sessionID,
+	).Scan(&img.Data, &contentType, &ownerUserID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.ParticipantReceiptImage{}, nil, ErrNotFound
+	}
+	if err != nil {
+		return models.ParticipantReceiptImage{}, nil, err
+	}
+	if contentType != nil {
+		img.ContentType = *contentType
+	}
+	return img, ownerUserID, nil
 }
 
 // DeleteParticipant removes a session_participants row entirely —

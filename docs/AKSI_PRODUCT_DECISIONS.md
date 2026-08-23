@@ -1011,6 +1011,57 @@ unapproved and unbuilt.
 
 ---
 
+## DP-012 — Session Finance
+
+Status
+
+Approved
+
+### Decision
+
+Surfaces DP-002's existing manual payment-confirm step (Waitlist →
+Registered) as its own Session-owned Payment tab, instead of a small
+inline action buried in the Participants tab. Two new pieces on top of
+what DP-002/DP-010 already defined:
+
+- **Club bank accounts** — a Club owner can list one or more bank
+  accounts (bank name, account number, account holder name), shown to
+  every member on a priced Session's Payment tab so they know where to
+  send money. Plain display fields, no payment processor integration.
+- **Payment receipts** — a participant can attach one receipt image
+  (photo/screenshot of a transfer) to their own row on a priced
+  Session, as proof for the organizer to review before confirming.
+  Self-service only — there is no organizer-uploads-for-someone-else
+  path. Re-uploading replaces the previous receipt; no history is
+  kept.
+
+**Visibility, explicitly**: every participant can see everyone else's
+paid/awaiting status (the existing `registered`/`waitlist` distinction,
+just framed plainly as "Paid"/"Awaiting" on this tab) — but a receipt
+**image** is visible only to the uploading participant themselves and
+the Club's owner/admin. No other participant can ever view someone
+else's receipt, even though they can see that person's payment status.
+This is enforced server-side (the receipt-serving endpoint checks
+identity, not just "can view this Session"), not just hidden in the
+UI.
+
+The Payment tab itself is always present, even on a Free Session —
+Waitlist → Registered is a step in DP-002's approval chain regardless
+of price, so the "Confirm" action needs to live somewhere for free
+Sessions too. Bank accounts and receipt upload are the only pieces
+that hide when `priceModel === 'free'`.
+
+### Scope
+
+Still no payment gateway, no automated charge, no tracking of *how
+much* has been paid vs. owed beyond the existing Price computation
+(DP-010). This remains an organizer trusting a receipt and manually
+confirming, exactly as DP-002 already worked — just given its own
+place to happen, with a receipt to look at instead of no evidence at
+all.
+
+---
+
 # Planning
 
 ## Domain Evolution

@@ -61,27 +61,6 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		c.JSON(http.StatusOK, clubs)
 	})
 
-	authed.POST("/clubs/join", func(c *gin.Context) {
-		var body struct {
-			InviteCode string `json:"inviteCode"`
-		}
-		if err := c.ShouldBindJSON(&body); err != nil || body.InviteCode == "" {
-			respondError(c, http.StatusBadRequest, "inviteCode is required")
-			return
-		}
-		user := authjwt.CurrentUser(c)
-		club, err := dbpkg.JoinClubByCode(c.Request.Context(), pool, body.InviteCode, user.ID)
-		if errors.Is(err, dbpkg.ErrNotFound) {
-			respondError(c, http.StatusNotFound, "invalid invite code")
-			return
-		}
-		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
-			return
-		}
-		c.JSON(http.StatusOK, club)
-	})
-
 	authed.GET("/clubs/:clubId", func(c *gin.Context) {
 		clubID := c.Param("clubId")
 		if _, _, ok := requireMember(c, pool, clubID); !ok {
@@ -140,24 +119,6 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		c.Status(http.StatusNoContent)
-	})
-
-	authed.POST("/clubs/:clubId/invite-code/regenerate", func(c *gin.Context) {
-		clubID := c.Param("clubId")
-		_, isOwner, ok := requireMember(c, pool, clubID)
-		if !ok {
-			return
-		}
-		if !isOwner {
-			respondError(c, http.StatusForbidden, "only the owner can regenerate the invite code")
-			return
-		}
-		club, err := dbpkg.RegenerateInviteCode(c.Request.Context(), pool, clubID)
-		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
-			return
-		}
-		c.JSON(http.StatusOK, club)
 	})
 
 	authed.GET("/clubs/:clubId/members", func(c *gin.Context) {
@@ -272,6 +233,102 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 
 		if err := dbpkg.RemoveMember(c.Request.Context(), pool, clubID, targetUserID); err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	// Milestone 5 (Session Finance) — bank accounts an owner lists for
+	// members to send payment to. Listed by any member (shown on every
+	// priced Session's Payment tab); managed by the owner only, same
+	// permission level as every other Club-level setting.
+	authed.GET("/clubs/:clubId/bank-accounts", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		if _, _, ok := requireMember(c, pool, clubID); !ok {
+			return
+		}
+		accounts, err := dbpkg.ListClubBankAccounts(c.Request.Context(), pool, clubID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, accounts)
+	})
+
+	authed.POST("/clubs/:clubId/bank-accounts", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		_, isOwner, ok := requireMember(c, pool, clubID)
+		if !ok {
+			return
+		}
+		if !isOwner {
+			respondError(c, http.StatusForbidden, "only the owner can manage bank accounts")
+			return
+		}
+		var body struct {
+			BankName      string `json:"bankName"`
+			AccountNumber string `json:"accountNumber"`
+			AccountName   string `json:"accountName"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil || body.BankName == "" || body.AccountNumber == "" || body.AccountName == "" {
+			respondError(c, http.StatusBadRequest, "bankName, accountNumber, and accountName are required")
+			return
+		}
+		account, err := dbpkg.CreateClubBankAccount(c.Request.Context(), pool, clubID, body.BankName, body.AccountNumber, body.AccountName)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusCreated, account)
+	})
+
+	authed.PATCH("/clubs/:clubId/bank-accounts/:accountId", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		_, isOwner, ok := requireMember(c, pool, clubID)
+		if !ok {
+			return
+		}
+		if !isOwner {
+			respondError(c, http.StatusForbidden, "only the owner can manage bank accounts")
+			return
+		}
+		var body struct {
+			BankName      *string `json:"bankName"`
+			AccountNumber *string `json:"accountNumber"`
+			AccountName   *string `json:"accountName"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			respondError(c, http.StatusBadRequest, "invalid body")
+			return
+		}
+		account, err := dbpkg.UpdateClubBankAccount(c.Request.Context(), pool, clubID, c.Param("accountId"), body.BankName, body.AccountNumber, body.AccountName)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "bank account not found")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, account)
+	})
+
+	authed.DELETE("/clubs/:clubId/bank-accounts/:accountId", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		_, isOwner, ok := requireMember(c, pool, clubID)
+		if !ok {
+			return
+		}
+		if !isOwner {
+			respondError(c, http.StatusForbidden, "only the owner can manage bank accounts")
+			return
+		}
+		if err := dbpkg.DeleteClubBankAccount(c.Request.Context(), pool, clubID, c.Param("accountId")); err != nil {
+			if errors.Is(err, dbpkg.ErrNotFound) {
+				respondError(c, http.StatusNotFound, "bank account not found")
+				return
+			}
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}

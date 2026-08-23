@@ -43,10 +43,11 @@ without any extra code.
 ```
 Personal (initial) — see PersonalTabs below
   ├─→ CreateClub          → replaces with ClubDetail on success
-  ├─→ JoinClub            → replaces with ClubDetail on success
   ├─→ Settings            → goBack() (opened from the Me tab)
   └─→ ClubDetail { clubId }
         ├─→ ClubMembers { clubId }
+        ├─→ ClubSettings { clubId }       (Milestone 5 — gear icon, owner-only; Bank
+        │                                  Accounts + Danger Zone/Delete Community)
         ├─→ SessionDetail { sessionId }   (direct — tapping a "Current Focus" card, Milestone 3;
         │                                  same route as SessionList's own onOpenSession below)
         └─→ SessionList { clubId }
@@ -65,9 +66,10 @@ hidden (both immutable after creation), submits via `updateSession()` instead of
 Every screen that isn't the initial route is reached via
 `navigation.navigate` (pushes) or `navigation.replace` (create/join
 flows, so the form screen isn't left in the back stack). "Back" is
-always `navigation.goBack()`. Deleting a Club (`ClubDetail`'s
-`onDeleted`) navigates back to `Personal` rather than `goBack()`, since
-there's no longer a `ClubList` route to land on.
+always `navigation.goBack()`. Deleting a Club (`ClubSettings`'s
+`onDeleted` — moved off `ClubDetail` in a later pass, see below)
+navigates back to `Personal` rather than `goBack()`, since there's no
+longer a `ClubList` route to land on.
 
 **ClubDetail — "Current Focus"** (Milestone 3): above the Sessions/
 Members/Recurring Schedules buttons, `ClubDetailScreen` now shows a
@@ -86,13 +88,32 @@ leaking). Tapping a card pushes `SessionDetail` directly. Empty state
 text differs for an owner/admin ("create a session to get started") vs.
 a member (no such nudge, since they can't create one).
 
+**ClubSettings** (Milestone 5, DP-012; renamed from an earlier
+`ClubBankAccounts`-only pass once Delete Community moved here too):
+reached via a gear icon at the top-right of `ClubDetailScreen`'s
+header, next to the back button — shown only when the caller is the
+Club's owner (`isOwner`, not `isOwnerOrAdmin`; matches every other
+Club-level setting's permission). `ClubSettingsScreen.tsx` holds two
+sections: **Bank Accounts** (a plain list-plus-modal-form, mirrors
+`ClubMembersScreen`'s Add Member modal shape — a Club can list more
+than one; every priced Session's Payment tab reads this same list),
+and a **Danger Zone** at the bottom with Delete Community — moved off
+`ClubDetailScreen`'s own home page deliberately, so it's no longer a
+low-friction text link sitting at the bottom of the screen an owner
+sees by default every time they open their Club. `ClubDetailScreen`
+itself no longer has an `onDeleted` prop at all; that callback now
+belongs to `ClubSettingsScreen`.
+
 ## PersonalTabs (`src/navigation/PersonalTabs.tsx`, bottom-tabs, `headerShown: false`)
 
 The app's Personal Context — always the post-auth entry point
 (`MainStack`'s `Personal` route). Four tabs:
 
 - **Home** (`HomeScreen`) — "My Communities" (the former `ClubList`
-  content: list of the user's clubs, Create/Join buttons) plus an
+  content: list of the user's clubs, a single "Create Community" button
+  — "Join with Code" and its whole `JoinClubScreen` flow were removed;
+  self-service joining is planned to come back as Club search from the
+  Explore tab instead, still a placeholder today) plus an
   "Attention" section surfacing any Live or today's-date Session
   across every Community the user belongs to (client-side aggregation
   over `listClubs()` + per-club `listSessions()`; no dedicated
@@ -101,6 +122,9 @@ The app's Personal Context — always the post-auth entry point
   `SessionDetail` directly.
 - **Explore** (`ExploreScreen`) — placeholder empty state. Real
   discovery behavior is Planning-only in `AKSI_PRODUCT_DECISIONS.md`.
+  Intended to eventually include Club search/join, replacing the
+  removed "Join with Code" flow (see Home above) — not built yet, this
+  is a stated direction, not a scoped feature.
 - **Inbox** (`InboxScreen`) — placeholder empty state. No Communication
   data model exists yet.
 - **Me** (`MeScreen`) — identity header (username/display name) with a
@@ -138,6 +162,11 @@ those routes don't exist on the tab navigator itself.
   placeholder — unlike `SessionDetail`'s Chat tab (Milestone 2), there
   was no existing screen shell to slot a placeholder into here.
 - No real Explore discovery or Inbox content — both are placeholders.
+- **No self-service way to join a Club at all.** "Join with Code" (and
+  its backend route) was deliberately removed ahead of Club search
+  landing in Explore — a real, known gap in the interim, not an
+  oversight. The only way to join today is an owner/admin adding a
+  member by username (`ClubMembersScreen`'s Add Member dialog).
 - No cross-club data beyond Home's attention section — no history,
   no aggregated feed.
 - The legacy `SettingsModal` (theme, language, TTS voice) still exists

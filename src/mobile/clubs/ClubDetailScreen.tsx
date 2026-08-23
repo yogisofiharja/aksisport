@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Page } from '../../design-system/layout/Page';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
@@ -8,13 +8,12 @@ import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
-import { Card } from '../../design-system/ui/Card';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
-import { deleteClub, getClub, listMembers, regenerateInviteCode } from '../../core/clubs/api';
+import { getClub, listMembers } from '../../core/clubs/api';
 import { listSessions } from '../../core/sessions/api';
 import { sessionDateBucket, formatSessionDateTime } from '../../core/sessions/sessionSchedule';
 import { statusLabel, sessionStatusColor } from '../sessions/SessionListScreen';
@@ -27,7 +26,7 @@ type Props = {
   onOpenSessions: (clubId: string) => void;
   onOpenSession: (sessionId: string) => void;
   onOpenRecurringSchedules: (clubId: string) => void;
-  onDeleted: () => void;
+  onOpenClubSettings: (clubId: string) => void;
 };
 
 function isLiveSession(s: Session) {
@@ -71,7 +70,7 @@ export function ClubDetailScreen({
   onOpenSessions,
   onOpenSession,
   onOpenRecurringSchedules,
-  onDeleted,
+  onOpenClubSettings,
 }: Props) {
   const { t } = useTranslation();
   const { profile } = useAuth();
@@ -80,7 +79,6 @@ export function ClubDetailScreen({
   const [isOwner, setIsOwner] = useState(false);
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -108,36 +106,6 @@ export function ClubDetailScreen({
     }, [load])
   );
 
-  async function handleRegenerate() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const updated = await regenerateInviteCode(clubId);
-      setClub(updated);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function handleDelete() {
-    Alert.alert(t('clubDeleteConfirmTitle'), t('clubDeleteConfirmDesc'), [
-      { text: t('clubCancel'), style: 'cancel' },
-      {
-        text: t('clubConfirm'),
-        style: 'destructive',
-        onPress: async () => {
-          setBusy(true);
-          try {
-            await deleteClub(clubId);
-            onDeleted();
-          } finally {
-            setBusy(false);
-          }
-        },
-      },
-    ]);
-  }
-
   if (loading || !club) {
     return (
       <Page>
@@ -150,9 +118,16 @@ export function ClubDetailScreen({
 
   return (
     <ScrollPage>
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
+      <HStack className="justify-between items-center">
+        <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
+          <Icon name="arrow-back" size="lg" />
+        </Pressable>
+        {isOwner && (
+          <Pressable className="p-2 -mr-2 active:opacity-60" onPress={() => onOpenClubSettings(clubId)}>
+            <Icon name="settings-outline" size="lg" />
+          </Pressable>
+        )}
+      </HStack>
 
       <VStack space="xs">
         <Typography variant="display">{club.name}</Typography>
@@ -205,31 +180,6 @@ export function ClubDetailScreen({
         </Button>
       )}
 
-      <Card>
-        <HStack className="justify-between">
-          <VStack space="xs">
-            <Typography variant="caption" color="muted">
-              {t('clubInviteCodeLabel')}
-            </Typography>
-            <Typography variant="title" color="default" className="tracking-[4px]">
-              {club.inviteCode}
-            </Typography>
-          </VStack>
-          {isOwner && (
-            <Pressable className="p-2 active:opacity-60" onPress={handleRegenerate} disabled={busy}>
-              <Icon name="refresh" size="lg" />
-            </Pressable>
-          )}
-        </HStack>
-      </Card>
-
-      {isOwner && (
-        <Pressable className="items-center py-3" onPress={handleDelete} disabled={busy}>
-          <Typography variant="body" color="destructive" className="font-bold">
-            {t('clubDeleteClub')}
-          </Typography>
-        </Pressable>
-      )}
     </ScrollPage>
   );
 }

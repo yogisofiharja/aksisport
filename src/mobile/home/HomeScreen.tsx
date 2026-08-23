@@ -20,7 +20,6 @@ import { spacing } from '../../design-system/foundation/spacing';
 type Props = {
   onOpenClub: (clubId: string) => void;
   onCreateClub: () => void;
-  onJoinClub: () => void;
   onOpenSession: (sessionId: string) => void;
 };
 
@@ -60,7 +59,7 @@ function roleLabel(role: ClubWithRole['role'], t: (key: string) => string) {
   return role === 'owner' ? t('clubRoleOwner') : role === 'admin' ? t('clubRoleAdmin') : t('clubRoleMember');
 }
 
-export function HomeScreen({ onOpenClub, onCreateClub, onJoinClub, onOpenSession }: Props) {
+export function HomeScreen({ onOpenClub, onCreateClub, onOpenSession }: Props) {
   const { t } = useTranslation();
   const [clubs, setClubs] = useState<ClubWithRole[]>([]);
   const [attention, setAttention] = useState<AttentionItem[]>([]);
@@ -133,11 +132,6 @@ export function HomeScreen({ onOpenClub, onCreateClub, onJoinClub, onOpenSession
       <VStack space="md" style={{ paddingTop: spacing.lg }}>
         <Button action="secondary" size="lg" className="w-full" onPress={onCreateClub}>
           <ButtonText>{t('homeCreateCommunity')}</ButtonText>
-        </Button>
-        <Button action="secondary" variant="outline" size="lg" className="w-full" onPress={onJoinClub}>
-          <ButtonText action="secondary" variant="outline">
-            {t('homeJoinCommunity')}
-          </ButtonText>
         </Button>
       </VStack>
     </ScrollPage>

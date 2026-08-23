@@ -65,30 +65,6 @@ func ListMembers(ctx context.Context, pool *pgxpool.Pool, clubID string) ([]mode
 	return result, rows.Err()
 }
 
-// JoinClubByCode adds userID as a member of the club identified by
-// inviteCode. Idempotent: if already a member, returns the existing
-// membership without error.
-func JoinClubByCode(ctx context.Context, pool *pgxpool.Pool, inviteCode, userID string) (models.Club, error) {
-	club, err := GetClubByInviteCode(ctx, pool, inviteCode)
-	if err != nil {
-		return models.Club{}, err
-	}
-
-	if _, err := GetMembership(ctx, pool, club.ID, userID); err == nil {
-		return club, nil // already a member
-	} else if !errors.Is(err, ErrNotFound) {
-		return models.Club{}, err
-	}
-
-	if _, err := pool.Exec(ctx,
-		"INSERT INTO club_members (club_id, user_id, role, invited_by) VALUES ($1, $2, 'member', NULL)",
-		club.ID, userID,
-	); err != nil {
-		return models.Club{}, err
-	}
-	return club, nil
-}
-
 // AddMemberByUsername directly adds a user to a club by username (owner action).
 func AddMemberByUsername(ctx context.Context, pool *pgxpool.Pool, clubID, username, invitedBy string) (models.ClubMember, error) {
 	user, err := GetUserByUsername(ctx, pool, username)

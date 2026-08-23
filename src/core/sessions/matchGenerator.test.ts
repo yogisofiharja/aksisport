@@ -9,6 +9,7 @@ function participant(id: string): SessionParticipant {
     userId: id,
     status: 'checked_in',
     joinedAt: '2026-01-01T00:00:00Z',
+    hasReceipt: false,
   };
 }
 

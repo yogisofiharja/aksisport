@@ -31,15 +31,28 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 |---|---|---|---|---|
 | POST | `/v1/clubs` | profile | — | Body `{name, description?}`. Caller becomes `owner`. |
 | GET | `/v1/clubs` | profile | — | Lists clubs the caller is a member of, with role, ordered by `created_at DESC`. |
-| POST | `/v1/clubs/join` | profile | — | Body `{inviteCode}`. Idempotent — already-a-member returns the club without error. |
 | GET | `/v1/clubs/:clubId` | profile | member | |
 | PATCH | `/v1/clubs/:clubId` | profile | owner | Body `{name?, description?}`. |
 | DELETE | `/v1/clubs/:clubId` | profile | owner | Cascades `club_members`, `sessions`, etc. via FK. |
-| POST | `/v1/clubs/:clubId/invite-code/regenerate` | profile | owner | |
 | GET | `/v1/clubs/:clubId/members` | profile | member | |
 | POST | `/v1/clubs/:clubId/members` | profile | owner | Body `{username}`. Direct-add, no invite flow. 404 if username not found, 409 if already a member. |
 | PATCH | `/v1/clubs/:clubId/members/:userId` | profile | owner | Body `{role}` — `"member"` or `"admin"` only; cannot set/unset `"owner"` here. |
 | DELETE | `/v1/clubs/:clubId/members/:userId` | profile | owner, or self | Removing the sole remaining owner returns 409. |
+| GET | `/v1/clubs/:clubId/bank-accounts` | profile | member | Milestone 5. Oldest-first. A Club can list more than one. |
+| POST | `/v1/clubs/:clubId/bank-accounts` | profile | owner | Milestone 5. Body `{bankName, accountNumber, accountName}`, all required (400 if any is empty). |
+| PATCH | `/v1/clubs/:clubId/bank-accounts/:accountId` | profile | owner | Milestone 5. Body `{bankName?, accountNumber?, accountName?}`, `COALESCE`-based partial update. 404 if the account doesn't belong to `:clubId`. |
+| DELETE | `/v1/clubs/:clubId/bank-accounts/:accountId` | profile | owner | Milestone 5. 404 if the account doesn't belong to `:clubId`. |
+
+Joining a Club by invite code — `POST /v1/clubs/join`, plus the owner-
+facing `POST /v1/clubs/:clubId/invite-code/regenerate` — was removed
+(both the routes and every UI entry point). Self-service joining is
+planned to come back as Club search from the Explore tab instead
+(currently a placeholder, see `docs/current/navigation.md`); until that
+ships, a member can only be added by a Club owner/admin
+(`POST /v1/clubs/:clubId/members`, by username). `clubs.invite_code`
+itself is still a real, generated, `NOT NULL UNIQUE` column — nothing
+touched the schema, only the application layer — it's simply unused by
+any route now.
 
 ## Sessions
 
@@ -53,7 +66,9 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 | GET | `/v1/sessions/:id/participants` | profile | member | |
 | POST | `/v1/sessions/:id/register` | profile | member | As of v0.10.0 (DP-002 Join Approval): this is the **"request to join" action** — creates a `requested` row, idempotent (no-op if a row already exists in any status). Has a real screen now (`SessionDetailScreen`'s "Request to Join"). Strict Skill Level (`enforceStrictSkillLevel`) is enforced here — an ineligible member can't even request. |
 | POST | `/v1/sessions/:id/participants/:userId/approve` | profile | owner/admin | As of v0.10.0. Moves a `requested` row to `waitlist` (approved, not yet claimed). 409 if not currently `requested`, 404 if no row. |
-| POST | `/v1/sessions/:id/participants/:userId/confirm-payment` | profile | owner/admin | As of v0.10.0. Moves a `waitlist` row to `registered` (slot claimed). No payment gateway — this just records that the organizer received payment outside the app. 409 if not currently `waitlist`, 404 if no row. |
+| POST | `/v1/sessions/:id/participants/:userId/confirm-payment` | profile | owner/admin | As of v0.10.0. Moves a `waitlist` row to `registered` (slot claimed). No payment gateway — this just records that the organizer received payment outside the app. 409 if not currently `waitlist`, 404 if no row. As of Milestone 5, exposed on the Payment tab (`SessionPayment.tsx`), not the Participants tab. |
+| POST | `/v1/sessions/:id/receipt` | profile | `requireSessionAccess` | Milestone 5. Self-service only — attaches to the caller's own participant row. Body `{imageBase64, imageContentType}`, same validation as DP-011 Chat images (`image/jpeg`/`image/png`/`image/webp`, 5MB decoded cap, 8MB request-body cap). 404 if the caller has no participant row in this Session at all. Overwrites any previous receipt — no history, no separate edit/delete route. |
+| GET | `/v1/sessions/:id/participants/:participantId/receipt` | profile | `requireSessionAccess` **+ self or owner/admin** | Milestone 5. Serves the raw image bytes with its stored `Content-Type`, 404 if no receipt. Deliberately narrower than every other read in this domain: even a fellow Club member who can see the Session gets 403 unless they're the uploader themselves or owner/admin — everyone else only ever sees the participant's `status` (paid vs. awaiting) via the normal list, never this image. |
 | DELETE | `/v1/sessions/:id/participants/:userId` | profile | owner/admin | As of v0.10.0. Hard-removes a participant row entirely (e.g. declining a request, or removing someone outright) — distinct from Cancel/NoShow, which record what happened. 404 if no row. Despite the path segment's name, `db.DeleteParticipant` matches on either `user_id` or the row's own `id` (Milestone 2, revised) — the same route removes a guest too, passing the guest's participant id. |
 | POST | `/v1/sessions/:id/checkin` | profile | member | As of v0.10.0: no longer upserts/auto-registers — requires the caller already be `registered` (`db.SelfCheckIn`, a guarded transition; 409 if not `registered`, 404 if no row at all). Strict Skill Level is **not** re-checked here anymore — it's enforced at `/register` instead. Still gated by the Check-In Window (v0.9.0): 403 unless `now` is within `[startsAt - 1h, startsAt + durationMinutes)` — `checkInWindowOpen` in `sessions_handler.go`; no-op (unrestricted) for Sessions missing `startsAt`/`durationMinutes`. |
 | POST | `/v1/sessions/:id/participants/:userId/add` | profile | owner/admin | Milestone 2 (revised). Adds an existing club member directly as `registered` — `db.AddRegisteredParticipant`, idempotent (a pre-existing row in any status is left unchanged, mirrors `RegisterParticipant`'s contract). No Check-In Window gate (roster-building, not a check-in action) and Strict Skill Level is **not** enforced (same bypass Host Playing gets). Called by `SessionDetailScreen`'s participant-placeholder "Member" option. |
@@ -64,6 +79,8 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 | POST | `/v1/sessions/:id/participants` | profile | owner/admin | Body `{guestName}`. Adds a guest directly as `registered` (via `db.AddGuestParticipant`, bypasses Requested/Waitlist) — Milestone 2 (revised): previously landed at `checked_in` directly; no longer Check-In Window gated, same reasoning as the member-add route above. Called by `SessionDetailScreen`'s participant-placeholder "Guest" option. |
 
 `session_participants.status` now also accepts `checked_out`/`cancelled`/`no_show` alongside the original `registered`/`checked_in`, plus `requested`/`waitlist` (v0.10.0, DP-002 Join Approval) — see `lifecycle-session.md`. `participated` was dropped (never set by any code path).
+
+Every participant read (list and single) now also includes `hasReceipt` (Milestone 5, DP-012) — a bool computed from `receipt_image_data IS NOT NULL`, never the image bytes themselves. See the receipt endpoints above for how the bytes are actually fetched, and their narrower access rule.
 
 ### Session Chat (DP-011)
 

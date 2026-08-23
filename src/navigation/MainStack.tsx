@@ -1,9 +1,9 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { PersonalTabs } from './PersonalTabs';
 import { CreateClubScreen } from '../mobile/clubs/CreateClubScreen';
-import { JoinClubScreen } from '../mobile/clubs/JoinClubScreen';
 import { ClubDetailScreen } from '../mobile/clubs/ClubDetailScreen';
 import { ClubMembersScreen } from '../mobile/clubs/ClubMembersScreen';
+import { ClubSettingsScreen } from '../mobile/clubs/ClubSettingsScreen';
 import { SessionListScreen } from '../mobile/sessions/SessionListScreen';
 import { SessionHistoryScreen } from '../mobile/sessions/SessionHistoryScreen';
 import { CreateSessionScreen } from '../mobile/sessions/CreateSessionScreen';
@@ -18,9 +18,9 @@ export type MainStackParamList = {
   Personal: undefined;
   Settings: undefined;
   CreateClub: undefined;
-  JoinClub: undefined;
   ClubDetail: { clubId: string };
   ClubMembers: { clubId: string };
+  ClubSettings: { clubId: string };
   SessionList: { clubId: string };
   SessionHistory: { clubId: string };
   CreateSession: { clubId: string };
@@ -53,15 +53,6 @@ export function MainStack() {
         )}
       </Stack.Screen>
 
-      <Stack.Screen name="JoinClub">
-        {({ navigation }) => (
-          <JoinClubScreen
-            onBack={() => navigation.goBack()}
-            onJoined={(club) => navigation.replace('ClubDetail', { clubId: club.id })}
-          />
-        )}
-      </Stack.Screen>
-
       <Stack.Screen name="ClubDetail">
         {({ navigation, route }) => (
           <ClubDetailScreen
@@ -71,6 +62,16 @@ export function MainStack() {
             onOpenSessions={(clubId) => navigation.navigate('SessionList', { clubId })}
             onOpenSession={(sessionId) => navigation.navigate('SessionDetail', { sessionId })}
             onOpenRecurringSchedules={(clubId) => navigation.navigate('RecurringScheduleList', { clubId })}
+            onOpenClubSettings={(clubId) => navigation.navigate('ClubSettings', { clubId })}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="ClubSettings">
+        {({ navigation, route }) => (
+          <ClubSettingsScreen
+            clubId={route.params.clubId}
+            onBack={() => navigation.goBack()}
             onDeleted={() => navigation.navigate('Personal')}
           />
         )}

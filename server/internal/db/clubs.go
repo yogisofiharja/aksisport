@@ -91,19 +91,6 @@ func GetClub(ctx context.Context, pool *pgxpool.Pool, clubID string) (models.Clu
 	return c, err
 }
 
-func GetClubByInviteCode(ctx context.Context, pool *pgxpool.Pool, inviteCode string) (models.Club, error) {
-	rows, err := pool.Query(ctx, "SELECT "+clubColumns+" FROM clubs WHERE invite_code = $1", inviteCode)
-	if err != nil {
-		return models.Club{}, err
-	}
-	defer rows.Close()
-	c, err := pgx.CollectOneRow(rows, scanClub)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return models.Club{}, ErrNotFound
-	}
-	return c, err
-}
-
 func ListClubsForUser(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.ClubWithRole, error) {
 	rows, err := pool.Query(ctx,
 		`SELECT c.`+clubColumns+`, cm.role
@@ -161,29 +148,3 @@ func DeleteClub(ctx context.Context, pool *pgxpool.Pool, clubID string) error {
 	return nil
 }
 
-func RegenerateInviteCode(ctx context.Context, pool *pgxpool.Pool, clubID string) (models.Club, error) {
-	var club models.Club
-	var err error
-	for attempt := 0; attempt < 5; attempt++ {
-		code := generateInviteCode()
-		var rows pgx.Rows
-		rows, err = pool.Query(ctx,
-			"UPDATE clubs SET invite_code = $2, updated_at = now() WHERE id = $1 RETURNING "+clubColumns,
-			clubID, code,
-		)
-		if err == nil {
-			club, err = pgx.CollectOneRow(rows, scanClub)
-			rows.Close()
-		}
-		if err == nil {
-			return club, nil
-		}
-		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Club{}, ErrNotFound
-		}
-		if !isUniqueViolation(err) {
-			return models.Club{}, err
-		}
-	}
-	return models.Club{}, err
-}
