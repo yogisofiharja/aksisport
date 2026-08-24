@@ -153,8 +153,8 @@ Profile editing (display name, avatar, etc.) is not required for
 Milestone 1 — the API to support it already exists (`PATCH /v1/me`),
 but no screen needs to expose it yet. The Me tab itself now exists
 (`docs/AKSI_INFORMATION_ARCHITECTURE.md`, built by the separately
-numbered "Milestone 1 — Personal Context Shell" from the IA roadmap in
-`docs/current/ARCHITECTURE_GAP_ANALYSIS.md` — not this document); a
+numbered "Milestone 1 — Personal Context Shell" tracked in
+`docs/IMPLEMENTATION_ROADMAP.md` — not this document); a
 dedicated profile-editing view within it can land later without
 requiring rework now.
 
@@ -183,8 +183,8 @@ it already exists as a component elsewhere (e.g. the legacy
 - A tab-bar shell for Personal navigation was, at the time this
   document was written, a future target and explicitly out of scope
   here. It has since been built — but by a **different, separately
-  numbered** "Milestone 1 — Personal Context Shell" (the IA roadmap in
-  `docs/current/ARCHITECTURE_GAP_ANALYSIS.md`, implementing
+  numbered** "Milestone 1 — Personal Context Shell" (tracked in
+  `docs/IMPLEMENTATION_ROADMAP.md`, implementing
   `docs/AKSI_INFORMATION_ARCHITECTURE.md`'s Home/Explore/Inbox/Me tabs
   — not the old Today/Play/Me design this bullet originally cited,
   which is itself retired). This document's own Milestone 1 (MVP

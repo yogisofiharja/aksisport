@@ -304,7 +304,7 @@ Full
 
 ↓
 
-Organizer starts session
+Session's scheduled start time arrives
 
 ↓
 
@@ -312,13 +312,20 @@ In Progress
 
 ↓
 
-Organizer finishes session
+Session's Duration elapses
 
 ↓
 
 Completed
 
 Cancelled may occur from any non-terminal state.
+
+Neither the In Progress nor the Completed transition above is an
+organizer action — both are backend-driven, matching DP-ARCH-003 and
+DP-009's Auto-Start / Auto-Transition. Recruiting/Ready/Full describe
+the Session's condition, not a gate the organizer must clear before it
+can start; an under-subscribed Session still starts automatically once
+its scheduled time arrives.
 
 ---
 
@@ -889,6 +896,16 @@ a maximum of 24 hours. There is no support for tournament-length Sessions
 a technical limit, and will be revisited when tournament support is
 planned.
 
+### Auto-Start
+
+There is no manual "Start Session" organizer action. Once a published
+(Open) Session's scheduled start time (`startsAt`) arrives, it
+automatically transitions to In Progress. A Draft Session is
+unaffected (never published, nobody could have joined) — if a Draft's
+scheduled time passes while it's still a Draft, it's caught by
+Auto-Transition below instead, which cancels it the same as any other
+Session that never started.
+
 ### Auto-Transition
 
 When a Session's Duration elapses:
@@ -1012,11 +1029,10 @@ window and is never restricted.
 This is the first of the four Communication contexts named in
 `AKSI_INFORMATION_ARCHITECTURE.md` (User↔User DMs, Community,
 Session, Contact Organizer) to get a product decision — the other
-three remain undefined, Category C per
-`docs/current/ARCHITECTURE_GAP_ANALYSIS.md` §2.6, and are **not**
-approved by this decision. Moderation (an organizer removing a
-message, reporting) is explicitly out of scope for this first pass —
-a known, deliberate gap, not an oversight.
+three remain undefined (see `docs/IMPLEMENTATION_ROADMAP.md`'s Milestone
+6), and are **not** approved by this decision. Moderation (an
+organizer removing a message, reporting) is explicitly out of scope
+for this first pass — a known, deliberate gap, not an oversight.
 
 ### Relationship to "Communication" (Planning, below)
 
