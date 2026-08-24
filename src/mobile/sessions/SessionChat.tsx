@@ -10,7 +10,7 @@ import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';
 import { listSessionMessages, sendSessionMessage, sessionMessageImageUrl } from '../../core/sessions/api';
 import { isWithinChatWindow } from '../../core/sessions/sessionSchedule';
-import { pickImageAsDataUrl } from '../../imagePicker';
+import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
 import type { Session, SessionMessage } from '../../core/api/types';
 
 type Props = {
@@ -35,14 +35,6 @@ function formatMessageTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// pickImageAsDataUrl always returns "data:<contentType>;base64,<payload>" —
-// split back into the two pieces the API actually wants (it stores/serves
-// the content type separately, never re-derives it from the payload).
-function parseDataUrl(dataUrl: string): { base64: string; contentType: string } | null {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match) return null;
-  return { contentType: match[1], base64: match[2] };
-}
 
 export function SessionChat({ sessionId, session }: Props) {
   const { t } = useTranslation();

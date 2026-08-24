@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Icon } from '../../design-system/ui/Icon';
@@ -11,7 +11,8 @@ import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { addMemberByUsername, changeMemberRole, listMembers, removeMember } from '../../core/clubs/api';
-import { searchUsers } from '../../core/api/client';
+import { searchUsers, userAvatarUrl, authHeader } from '../../core/api/client';
+import { initialsFromName } from '../../core/initials';
 import type { ClubMember, UserSummary } from '../../core/api/types';
 import { ApiRequestError } from '../../core/api/client';
 
@@ -24,16 +25,6 @@ function roleLabel(role: ClubMember['role'], t: (key: string) => string) {
   if (role === 'owner') return t('clubRoleOwner');
   if (role === 'admin') return t('clubRoleAdmin');
   return t('clubRoleMember');
-}
-
-// Same avatar-circle convention as Session's participant/organizer cards
-// (initials only — no avatarUrl on ClubMember/UserSummary yet, same
-// reasoning noted there).
-function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const second = parts.length > 1 ? parts[parts.length - 1][0] : '';
-  return (first + second).toUpperCase();
 }
 
 export function ClubMembersScreen({ clubId, onBack }: Props) {
@@ -59,6 +50,13 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [addMemberError, setAddMemberError] = useState<string | null>(null);
   const [addingUserId, setAddingUserId] = useState<string | null>(null);
+  // GET .../avatar is behind the same auth as every other route — fetched
+  // once per mount, same convention as Session Chat/Payment's image headers.
+  const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    authHeader().then(setImageHeaders);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -205,13 +203,20 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
             onPress={() => openMemberDetail(member)}
           >
             <Box
-              className={`w-16 h-16 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700 border-2 ${
+              className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 ${
                 member.role === 'owner' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-600'
               }`}
             >
-              <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">
-                {initialsFromName(member.displayName || member.username)}
-              </Text>
+              {member.hasAvatar ? (
+                <Image
+                  source={{ uri: userAvatarUrl(member.userId), headers: imageHeaders }}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              ) : (
+                <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">
+                  {initialsFromName(member.displayName || member.username)}
+                </Text>
+              )}
             </Box>
             <Text className="text-xs font-bold text-slate-900 dark:text-white text-center mt-1" numberOfLines={2}>
               {member.displayName || member.username}
@@ -290,13 +295,20 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
               return (
                 <VStack className="gap-4 items-center">
                   <Box
-                    className={`w-16 h-16 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700 border-2 ${
+                    className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 ${
                       selectedMember.role === 'owner' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-600'
                     }`}
                   >
-                    <Text className="text-lg font-extrabold text-slate-600 dark:text-slate-300">
-                      {initialsFromName(selectedMember.displayName || selectedMember.username)}
-                    </Text>
+                    {selectedMember.hasAvatar ? (
+                      <Image
+                        source={{ uri: userAvatarUrl(selectedMember.userId), headers: imageHeaders }}
+                        style={{ width: '100%', height: '100%' }}
+                      />
+                    ) : (
+                      <Text className="text-lg font-extrabold text-slate-600 dark:text-slate-300">
+                        {initialsFromName(selectedMember.displayName || selectedMember.username)}
+                      </Text>
+                    )}
                   </Box>
                   <VStack className="items-center gap-1">
                     <Text className="text-lg font-black text-slate-900 dark:text-white">
@@ -393,10 +405,14 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                         disabled={addingUserId === u.id}
                         className="flex-row items-center gap-3 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 active:opacity-60"
                       >
-                        <Box className="w-10 h-10 rounded-full items-center justify-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600">
-                          <Text className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                            {initialsFromName(u.displayName || u.username)}
-                          </Text>
+                        <Box className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600">
+                          {u.hasAvatar ? (
+                            <Image source={{ uri: userAvatarUrl(u.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
+                          ) : (
+                            <Text className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
+                              {initialsFromName(u.displayName || u.username)}
+                            </Text>
+                          )}
                         </Box>
                         <Text className="font-bold text-slate-900 dark:text-white flex-1">
                           {u.displayName || u.username}

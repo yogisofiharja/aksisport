@@ -71,18 +71,25 @@ always `navigation.goBack()`. Deleting a Club (`ClubSettings`'s
 navigates back to `Personal` rather than `goBack()`, since there's no
 longer a `ClubList` route to land on.
 
+**ClubDetail — header**: a large avatar circle (Club picture if set,
+else initials) next to the Club's name — tappable to change only for
+the owner (`POST /v1/clubs/:clubId/avatar`), read-only for everyone
+else. Same self-service-only-for-the-owner rule the rest of Club-level
+settings already follow.
+
 **ClubDetail — "Current Focus"** (Milestone 3): above the Sessions/
 Members/Recurring Schedules buttons, `ClubDetailScreen` now shows a
-ranked list of this Club's own Sessions needing attention — mirrors
-Home's cross-club "Attention" section (same `statusLabel`/
-`sessionStatusColor` from `SessionListScreen.tsx`, same `SessionCard`),
-scoped to one Club instead of aggregated across all of them, and richer
-than Home's simple "live or today" filter. Priority order, each
-category capped except Next: any `in_progress` Session; any other
-Session whose date is today (`sessionDateBucket`); the single soonest
-upcoming Session (deliberately just one, not every future Session —
-that's what the Sessions button/list is for); every Draft (owner/admin
-only — `listSessions` already excludes Drafts for a plain member
+ranked list of this Club's own Sessions needing attention — the same
+ranking Home's cross-club "Attention" section uses
+(`currentFocusBuckets`, `src/core/sessions/currentFocus.ts`; same
+`statusLabel`/`sessionStatusColor` from `SessionListScreen.tsx`, same
+`SessionCard`), scoped to one Club instead of merged across all of
+them. Priority order, each category capped except Next: any
+`in_progress` Session; any other Session whose date is today
+(`sessionDateBucket`); the single soonest upcoming Session
+(deliberately just one, not every future Session — that's what the
+Sessions button/list is for); every Draft (owner/admin only —
+`listSessions` already excludes Drafts for a plain member
 server-side, DP-001, so nothing extra is needed here to keep one from
 leaking). Tapping a card pushes `SessionDetail` directly. Empty state
 text differs for an owner/admin ("create a session to get started") vs.
@@ -109,17 +116,26 @@ belongs to `ClubSettingsScreen`.
 The app's Personal Context — always the post-auth entry point
 (`MainStack`'s `Personal` route). Four tabs:
 
-- **Home** (`HomeScreen`) — "My Communities" (the former `ClubList`
-  content: list of the user's clubs, a single "Create Community" button
-  — "Join with Code" and its whole `JoinClubScreen` flow were removed;
-  self-service joining is planned to come back as Club search from the
-  Explore tab instead, still a placeholder today) plus an
-  "Attention" section surfacing any Live or today's-date Session
-  across every Community the user belongs to (client-side aggregation
-  over `listClubs()` + per-club `listSessions()`; no dedicated
-  cross-club backend endpoint yet). Tapping a club pushes `ClubDetail`
-  on the parent `MainStack`; tapping an attention item pushes
-  `SessionDetail` directly.
+- **Home** (`HomeScreen`) — leads with "My Communities": a circle-avatar
+  grid (club picture if set, else initials, name below — same 4-per-row
+  convention as `ClubMembersScreen`'s member grid, UX-015 consistency),
+  no "Create Community" entry point here (moved to the Me tab — see
+  below; UX-013 Navigation Follows Frequency treats it as a rare,
+  deliberate action that doesn't belong among Home's everyday browsing
+  content). "Join with Code" and its whole `JoinClubScreen` flow were
+  removed; self-service joining is planned to come back as Club search
+  from the Explore tab instead, still a placeholder today. Below that,
+  an "Attention" section surfacing what needs attention across every
+  Community the user belongs to. Ranked with the same Live → Today →
+  Next (single soonest upcoming, per Club) → Draft priority as
+  Community Home's own Current Focus (`currentFocusBuckets`,
+  `src/core/sessions/currentFocus.ts` — shared by both screens per
+  UX-015's Consistent Mental Model, rather than each screen inventing
+  its own ranking), just merged across every Club instead of scoped to
+  one. Client-side aggregation over `listClubs()` + per-club
+  `listSessions()`; no dedicated cross-club backend endpoint yet.
+  Tapping a club circle pushes `ClubDetail` on the parent `MainStack`;
+  tapping an attention item pushes `SessionDetail` directly.
 - **Explore** (`ExploreScreen`) — placeholder empty state. Real
   discovery behavior is Planning-only in `AKSI_PRODUCT_DECISIONS.md`.
   Intended to eventually include Club search/join, replacing the
@@ -127,10 +143,15 @@ The app's Personal Context — always the post-auth entry point
   is a stated direction, not a scoped feature.
 - **Inbox** (`InboxScreen`) — placeholder empty state. No Communication
   data model exists yet.
-- **Me** (`MeScreen`) — identity header (username/display name) with a
-  gear icon at top-right pushing `Settings` (Theme, Language, Logout;
-  supersedes the legacy `SettingsModal` for the authenticated flow).
-  Below it, a "Sports" section: one non-interactive card per sport
+- **Me** (`MeScreen`) — identity header: the user's own profile picture
+  (tap to change — camera/gallery, self-service only, `POST
+  /v1/me/avatar`) next to username/display name, then two icons at
+  top-right — "Create Community" (`add-circle-outline`, pushes
+  `CreateClub` on the parent `MainStack`; this is the entry point Home
+  no longer has, see above) and the existing gear icon pushing
+  `Settings` (Theme, Language, Logout; supersedes the legacy
+  `SettingsModal` for the authenticated flow). Below it, a "Sports"
+  section: one non-interactive card per sport
   (sport name + current level, or "Not set") with a small edit icon
   that expands the card in place to a level-picker (chips), the same
   interaction the now-retired standalone `SkillLevelsScreen` used to
@@ -156,9 +177,10 @@ those routes don't exist on the tab navigator itself.
   today. Session/Members/Recurring Schedules access is still plain
   buttons below it, same as before. See "ClubDetail" below for what
   Current Focus ranks and how.
-- No Communication of any kind at the Community level (or anywhere) —
-  Category C in `ARCHITECTURE_GAP_ANALYSIS.md` §2.6, no DP exists yet.
-  `ClubDetail` deliberately has no Communication entry point, even a
+- No Communication of any kind at the Community level — still
+  `# Planning` in `AKSI_PRODUCT_DECISIONS.md` (see
+  `docs/IMPLEMENTATION_ROADMAP.md`'s Milestone 6), no DP exists yet. `ClubDetail` deliberately has no
+  Communication entry point, even a
   placeholder — unlike `SessionDetail`'s Chat tab (Milestone 2), there
   was no existing screen shell to slot a placeholder into here.
 - No real Explore discovery or Inbox content — both are placeholders.

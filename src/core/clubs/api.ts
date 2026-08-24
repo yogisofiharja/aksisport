@@ -1,4 +1,4 @@
-import { apiFetch } from '../api/client';
+import { apiFetch, apiUrl } from '../api/client';
 import type { Club, ClubBankAccount, ClubMember, ClubRole, ClubWithRole } from '../api/types';
 
 export function createClub(name: string, description?: string): Promise<Club> {
@@ -25,6 +25,21 @@ export function updateClub(clubId: string, updates: { name?: string; description
 
 export function deleteClub(clubId: string): Promise<void> {
   return apiFetch(`/v1/clubs/${clubId}`, { method: 'DELETE' });
+}
+
+// Owner-only to set — see clubs_handler.go's POST /clubs/:clubId/avatar.
+export function uploadClubAvatar(clubId: string, image: { base64: string; contentType: string }): Promise<Club> {
+  return apiFetch(`/v1/clubs/${clubId}/avatar`, {
+    method: 'POST',
+    body: JSON.stringify({ imageBase64: image.base64, imageContentType: image.contentType }),
+  });
+}
+
+// Not fetched via apiFetch — a URL for an `<Image>` source (with
+// authHeader() as its request headers), same convention as
+// participantReceiptUrl/sessionMessageImageUrl.
+export function clubAvatarUrl(clubId: string): string {
+  return apiUrl(`/v1/clubs/${clubId}/avatar`);
 }
 
 export function listMembers(clubId: string): Promise<ClubMember[]> {

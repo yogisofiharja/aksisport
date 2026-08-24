@@ -20,7 +20,7 @@ func scanMembership(row pgx.CollectableRow) (models.ClubMember, error) {
 
 func scanMembershipWithUser(row pgx.CollectableRow) (models.ClubMember, error) {
 	var m models.ClubMember
-	err := row.(pgx.Rows).Scan(&m.ClubID, &m.UserID, &m.Role, &m.JoinedAt, &m.Username, &m.DisplayName, &m.AvatarURL)
+	err := row.(pgx.Rows).Scan(&m.ClubID, &m.UserID, &m.Role, &m.JoinedAt, &m.Username, &m.DisplayName, &m.AvatarURL, &m.HasAvatar)
 	return m, err
 }
 
@@ -42,7 +42,8 @@ func GetMembership(ctx context.Context, pool *pgxpool.Pool, clubID, userID strin
 
 func ListMembers(ctx context.Context, pool *pgxpool.Pool, clubID string) ([]models.ClubMember, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT cm.club_id, cm.user_id, u.username, u.display_name, u.avatar_url, cm.role, cm.joined_at
+		`SELECT cm.club_id, cm.user_id, u.username, u.display_name, u.avatar_url,
+		        (u.avatar_image_data IS NOT NULL) AS has_avatar, cm.role, cm.joined_at
 		 FROM club_members cm
 		 JOIN users u ON u.id = cm.user_id
 		 WHERE cm.club_id = $1
@@ -57,7 +58,7 @@ func ListMembers(ctx context.Context, pool *pgxpool.Pool, clubID string) ([]mode
 	result := []models.ClubMember{}
 	for rows.Next() {
 		var m models.ClubMember
-		if err := rows.Scan(&m.ClubID, &m.UserID, &m.Username, &m.DisplayName, &m.AvatarURL, &m.Role, &m.JoinedAt); err != nil {
+		if err := rows.Scan(&m.ClubID, &m.UserID, &m.Username, &m.DisplayName, &m.AvatarURL, &m.HasAvatar, &m.Role, &m.JoinedAt); err != nil {
 			return nil, err
 		}
 		result = append(result, m)
@@ -94,6 +95,7 @@ func AddMemberByUsername(ctx context.Context, pool *pgxpool.Pool, clubID, userna
 	m.Username = user.Username
 	m.DisplayName = user.DisplayName
 	m.AvatarURL = user.AvatarURL
+	m.HasAvatar = user.HasAvatar
 	return m, nil
 }
 
@@ -106,7 +108,8 @@ func ChangeMemberRole(ctx context.Context, pool *pgxpool.Pool, clubID, userID, r
 			WHERE club_id = $1 AND user_id = $2 AND role != 'owner'
 			RETURNING club_id, user_id, role, joined_at
 		 )
-		 SELECT updated.club_id, updated.user_id, updated.role, updated.joined_at, u.username, u.display_name, u.avatar_url
+		 SELECT updated.club_id, updated.user_id, updated.role, updated.joined_at, u.username, u.display_name, u.avatar_url,
+		        (u.avatar_image_data IS NOT NULL) AS has_avatar
 		 FROM updated JOIN users u ON u.id = updated.user_id`,
 		clubID, userID, role,
 	)

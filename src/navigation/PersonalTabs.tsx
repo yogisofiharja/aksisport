@@ -25,11 +25,11 @@ export function PersonalTabs() {
   const { colorScheme } = useColorScheme();
   const mode = colorScheme === 'dark' ? 'dark' : 'light';
   const palette = theme[mode];
-  // Home/Me push onto the parent stack (Community entry, CreateClub/
-  // JoinClub, SkillLevels, Settings) — those routes don't exist on this
-  // tab navigator, so use the parent stack's navigation directly rather
-  // than each tab screen's own scoped `navigation` prop (react-navigation's
-  // runtime `navigate` bubbles to ancestors either way; this keeps it typed).
+  // Home/Me push onto the parent stack (Community entry, CreateClub,
+  // Settings) — those routes don't exist on this tab navigator, so use the
+  // parent stack's navigation directly rather than each tab screen's own
+  // scoped `navigation` prop (react-navigation's runtime `navigate` bubbles
+  // to ancestors either way; this keeps it typed).
   const rootNavigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
   return (
@@ -54,7 +54,6 @@ export function PersonalTabs() {
         {() => (
           <HomeScreen
             onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })}
-            onCreateClub={() => rootNavigation.navigate('CreateClub')}
             onOpenSession={(sessionId) => rootNavigation.navigate('SessionDetail', { sessionId })}
           />
         )}
@@ -87,7 +86,12 @@ export function PersonalTabs() {
           ),
         }}
       >
-        {() => <MeScreen onOpenSettings={() => rootNavigation.navigate('Settings')} />}
+        {() => (
+          <MeScreen
+            onOpenSettings={() => rootNavigation.navigate('Settings')}
+            onCreateClub={() => rootNavigation.navigate('CreateClub')}
+          />
+        )}
       </Tab.Screen>
     </Tab.Navigator>
   );

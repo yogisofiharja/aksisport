@@ -8,6 +8,7 @@ type ClubMember struct {
 	Username    string    `json:"username"`
 	DisplayName *string   `json:"displayName,omitempty"`
 	AvatarURL   *string   `json:"avatarUrl,omitempty"`
+	HasAvatar   bool      `json:"hasAvatar"`
 	Role        string    `json:"role"`
 	JoinedAt    time.Time `json:"joinedAt"`
 }

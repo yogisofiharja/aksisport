@@ -36,6 +36,7 @@ import { buildGeneratedMatchPayload } from '../../core/activities/buildGenerated
 import { formatSessionDateTime, isWithinCheckInWindow } from '../../core/sessions/sessionSchedule';
 import { formatIDR } from '../../core/currency';
 import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
+import { initialsFromName } from '../../core/initials';
 import { SessionChat } from './SessionChat';
 import { SessionPayment } from './SessionPayment';
 import type { MatchFormat, MatchMode } from '../../sports/tennis/scoringEngine';
@@ -72,16 +73,6 @@ function activityTypeLabel(id: string, t: (key: string) => string): string {
   if (id === 'double') return t('activityTypeDouble');
   if (id === 'class') return t('activityTypeClass');
   return id;
-}
-
-// Milestone 2: participant avatar circle — initials only for now (no
-// avatarUrl on SessionParticipant yet; swap in a real image there once
-// one exists, same circle/border shape).
-function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const second = parts.length > 1 ? parts[parts.length - 1][0] : '';
-  return (first + second).toUpperCase();
 }
 
 function participantInitials(p: SessionParticipant): string {

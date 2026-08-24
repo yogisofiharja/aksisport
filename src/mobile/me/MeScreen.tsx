@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { Pressable } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Image, Pressable, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
@@ -9,12 +9,16 @@ import { Icon } from '../../design-system/ui/Icon';
 import { Card } from '../../design-system/ui/Card';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
+import { authHeader, uploadMyAvatar, userAvatarUrl } from '../../core/api/client';
 import { listMySkillLevels, listSkillLevels, setMySkillLevel } from '../../core/skillLevels/api';
 import { listSportIds } from '../../sports/registry';
+import { initialsFromName } from '../../core/initials';
+import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
 import type { SkillLevel, UserSkillLevel } from '../../core/api/types';
 
 type Props = {
   onOpenSettings: () => void;
+  onCreateClub: () => void;
 };
 
 // DP-008: only the sport name is translated — level names are data-driven
@@ -23,14 +27,23 @@ function sportLabel(sport: string, t: (key: string) => string) {
   return sport === 'tennis' ? t('sportTennis') : sport;
 }
 
-export function MeScreen({ onOpenSettings }: Props) {
+export function MeScreen({ onOpenSettings, onCreateClub }: Props) {
   const { t } = useTranslation();
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const sports = listSportIds();
   const [myLevels, setMyLevels] = useState<UserSkillLevel[]>([]);
   const [expandedSport, setExpandedSport] = useState<string | null>(null);
   const [levelsBySport, setLevelsBySport] = useState<Record<string, SkillLevel[]>>({});
   const [busy, setBusy] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  // GET /me/avatar is behind the same auth as every other route — fetched
+  // once per mount, same convention as ClubMembersScreen/SessionChat's own
+  // image headers.
+  const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    authHeader().then(setImageHeaders);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -41,6 +54,32 @@ export function MeScreen({ onOpenSettings }: Props) {
         });
     }, [])
   );
+
+  // Self-service only — this is the user's own profile picture, never
+  // reachable for anyone else's.
+  function handleChangeAvatar() {
+    Alert.alert(t('sessionChatAttachImageTitle'), undefined, [
+      { text: t('sessionChatAttachCamera'), onPress: () => pickAndUploadAvatar('camera') },
+      { text: t('sessionChatAttachGallery'), onPress: () => pickAndUploadAvatar('gallery') },
+      { text: t('clubCancel'), style: 'cancel' },
+    ]);
+  }
+
+  async function pickAndUploadAvatar(source: 'camera' | 'gallery') {
+    const dataUrl = await pickImageAsDataUrl(source);
+    if (!dataUrl) return;
+    const parsed = parseDataUrl(dataUrl);
+    if (!parsed) return;
+    setUploadingAvatar(true);
+    try {
+      await uploadMyAvatar(parsed);
+      await refreshProfile();
+    } catch {
+      // stays on the previous picture; user can retry
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
 
   async function handleToggleEdit(sport: string) {
     if (expandedSport === sport) {
@@ -69,17 +108,44 @@ export function MeScreen({ onOpenSettings }: Props) {
   return (
     <ScrollPage gap="lg">
       <HStack className="justify-between items-center">
-        <VStack space="xs">
-          <Typography variant="display">{profile?.displayName || profile?.username}</Typography>
-          {profile?.displayName && (
-            <Typography variant="body" color="muted">
-              @{profile.username}
-            </Typography>
-          )}
-        </VStack>
-        <Pressable className="p-2 -mr-2 active:opacity-60" onPress={onOpenSettings}>
-          <Icon name="settings-outline" size="lg" />
-        </Pressable>
+        <HStack space="md" className="items-center">
+          {/* Tap to change — self-service only, this is always the caller's
+              own profile picture. */}
+          <Pressable onPress={handleChangeAvatar} disabled={uploadingAvatar} className="active:opacity-70">
+            <View className="w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-blue-500">
+              {profile?.hasAvatar ? (
+                <Image
+                  source={{ uri: userAvatarUrl(profile.id), headers: imageHeaders }}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              ) : (
+                <Typography variant="body" className="text-lg font-extrabold text-slate-600 dark:text-slate-300">
+                  {initialsFromName(profile?.displayName || profile?.username || '?')}
+                </Typography>
+              )}
+            </View>
+          </Pressable>
+          <VStack space="xs">
+            <Typography variant="display">{profile?.displayName || profile?.username}</Typography>
+            {profile?.displayName && (
+              <Typography variant="body" color="muted">
+                @{profile.username}
+              </Typography>
+            )}
+          </VStack>
+        </HStack>
+        <HStack space="sm" className="items-center">
+          {/* Create Community lives here, not on Home — UX-013 (Navigation
+              Follows Frequency): a deliberate, infrequent action belongs in
+              secondary navigation, not sitting among Home's everyday
+              browsing content. */}
+          <Pressable className="p-2 active:opacity-60" onPress={onCreateClub} hitSlop={8}>
+            <Icon name="add-circle-outline" size="lg" />
+          </Pressable>
+          <Pressable className="p-2 -mr-2 active:opacity-60" onPress={onOpenSettings}>
+            <Icon name="settings-outline" size="lg" />
+          </Pressable>
+        </HStack>
       </HStack>
 
       <VStack space="sm">

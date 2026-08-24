@@ -13,11 +13,11 @@ import (
 var ErrNotFound = errors.New("not found")
 var ErrConflict = errors.New("conflict")
 
-const userColumns = "id, firebase_uid, username, display_name, email, phone_number, avatar_url, created_at, updated_at"
+const userColumns = "id, firebase_uid, username, display_name, email, phone_number, avatar_url, (avatar_image_data IS NOT NULL) AS has_avatar, created_at, updated_at"
 
 func scanUser(row pgx.CollectableRow) (models.User, error) {
 	var u models.User
-	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PhoneNumber, &u.AvatarURL, &u.CreatedAt, &u.UpdatedAt)
+	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PhoneNumber, &u.AvatarURL, &u.HasAvatar, &u.CreatedAt, &u.UpdatedAt)
 	return u, err
 }
 
@@ -61,7 +61,7 @@ func UsernameTaken(ctx context.Context, pool *pgxpool.Pool, username string) (bo
 // never exposes email/phone to the searching caller.
 func SearchUsers(ctx context.Context, pool *pgxpool.Pool, q, excludeUserID string) ([]models.UserSummary, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT id, username, display_name FROM users
+		`SELECT id, username, display_name, (avatar_image_data IS NOT NULL) AS has_avatar FROM users
 		 WHERE id != $1 AND (username ILIKE '%' || $2 || '%' OR display_name ILIKE '%' || $2 || '%')
 		 ORDER BY username ASC
 		 LIMIT 20`,
@@ -74,7 +74,7 @@ func SearchUsers(ctx context.Context, pool *pgxpool.Pool, q, excludeUserID strin
 	result := []models.UserSummary{}
 	for rows.Next() {
 		var u models.UserSummary
-		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.HasAvatar); err != nil {
 			return nil, err
 		}
 		result = append(result, u)
@@ -94,6 +94,54 @@ func CreateUser(ctx context.Context, pool *pgxpool.Pool, firebaseUID, username s
 	}
 	defer rows.Close()
 	return pgx.CollectOneRow(rows, scanUser)
+}
+
+// UploadUserAvatar sets a User's own profile picture — self-service only,
+// enforced by the caller (users_handler.go) via the authenticated caller's
+// own id, never a userId path param.
+func UploadUserAvatar(ctx context.Context, pool *pgxpool.Pool, userID string, imageData []byte, contentType string) (models.User, error) {
+	rows, err := pool.Query(ctx,
+		`UPDATE users SET
+			avatar_image_data = $2,
+			avatar_image_content_type = $3,
+			updated_at = now()
+		WHERE id = $1
+		RETURNING `+userColumns,
+		userID, imageData, contentType,
+	)
+	if err != nil {
+		return models.User{}, err
+	}
+	defer rows.Close()
+	u, err := pgx.CollectOneRow(rows, scanUser)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.User{}, ErrNotFound
+	}
+	return u, err
+}
+
+// GetUserAvatarImage fetches a User's profile picture bytes. Visible to any
+// authenticated user with a profile — same broad visibility as the
+// username/displayName it's paired with everywhere (search results,
+// member lists, organizer names), not restricted to shared-club members.
+func GetUserAvatarImage(ctx context.Context, pool *pgxpool.Pool, userID string) (models.AvatarImage, error) {
+	var img models.AvatarImage
+	var data []byte
+	var contentType *string
+	err := pool.QueryRow(ctx, "SELECT avatar_image_data, avatar_image_content_type FROM users WHERE id = $1", userID).
+		Scan(&data, &contentType)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.AvatarImage{}, ErrNotFound
+	}
+	if err != nil {
+		return models.AvatarImage{}, err
+	}
+	if data == nil || contentType == nil {
+		return models.AvatarImage{}, ErrNotFound
+	}
+	img.Data = data
+	img.ContentType = *contentType
+	return img, nil
 }
 
 type UserUpdate struct {

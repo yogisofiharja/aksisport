@@ -95,27 +95,6 @@ func sessionChatWindowOpen(startsAt *time.Time, durationMinutes *int, now time.T
 	return now.Before(windowEnd)
 }
 
-// Shared by every Session-scoped image upload (DP-011 Chat attachments,
-// Milestone 5 payment receipts) — decoded/raw byte cap, and the generous
-// request-body cap that wraps it (base64 expansion ~4/3 plus JSON
-// overhead).
-const (
-	maxSessionImageBytes     = 5 * 1024 * 1024
-	maxSessionImagePostBytes = 8 * 1024 * 1024
-)
-
-// isAllowedImageContentType is a fixed whitelist — this value is echoed
-// back verbatim as the Content-Type header when the image is served, so
-// it's validated strictly rather than trusted from the client.
-func isAllowedImageContentType(ct string) bool {
-	switch ct {
-	case "image/jpeg", "image/png", "image/webp":
-		return true
-	default:
-		return false
-	}
-}
-
 func isOwnerOrAdmin(role string) bool {
 	return role == "owner" || role == "admin"
 }
@@ -580,7 +559,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
 			return
 		}
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSessionImagePostBytes)
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxImagePostBytes)
 		var body struct {
 			ImageBase64      string `json:"imageBase64"`
 			ImageContentType string `json:"imageContentType"`
@@ -598,7 +577,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusBadRequest, "imageBase64 is not valid base64")
 			return
 		}
-		if len(decoded) == 0 || len(decoded) > maxSessionImageBytes {
+		if len(decoded) == 0 || len(decoded) > maxImageBytes {
 			respondError(c, http.StatusBadRequest, "image must be non-empty and 5MB or smaller")
 			return
 		}
@@ -885,11 +864,11 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		// Caps the whole request body, not just the decoded image — a
-		// generous margin over maxSessionImageBytes' own base64
+		// generous margin over maxImageBytes' own base64
 		// expansion (~4/3) plus JSON overhead, so a malicious/broken
 		// client can't force the server to buffer an unbounded body
 		// before ShouldBindJSON even gets to look at it.
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSessionImagePostBytes)
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxImagePostBytes)
 		var body struct {
 			Body             string  `json:"body"`
 			ImageBase64      string  `json:"imageBase64"`
@@ -916,7 +895,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 				respondError(c, http.StatusBadRequest, "imageBase64 is not valid base64")
 				return
 			}
-			if len(decoded) == 0 || len(decoded) > maxSessionImageBytes {
+			if len(decoded) == 0 || len(decoded) > maxImageBytes {
 				respondError(c, http.StatusBadRequest, "image must be non-empty and 5MB or smaller")
 				return
 			}

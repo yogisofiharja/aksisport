@@ -78,3 +78,20 @@ export function updateMe(updates: Partial<Pick<UserProfile, 'displayName' | 'ema
     body: JSON.stringify(updates),
   });
 }
+
+// Self-service only — the caller sets their own profile picture, never
+// someone else's. See users_handler.go's POST /me/avatar.
+export function uploadMyAvatar(image: { base64: string; contentType: string }): Promise<UserProfile> {
+  return apiFetch('/v1/me/avatar', {
+    method: 'POST',
+    body: JSON.stringify({ imageBase64: image.base64, imageContentType: image.contentType }),
+  });
+}
+
+// Not fetched via apiFetch — a URL for an `<Image>` source (with
+// authHeader() as its request headers), same convention as
+// clubAvatarUrl/participantReceiptUrl. Visible to any authenticated user
+// with a profile, not scoped to a shared Club.
+export function userAvatarUrl(userId: string): string {
+  return apiUrl(`/v1/users/${userId}/avatar`);
+}

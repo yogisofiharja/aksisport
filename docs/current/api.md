@@ -22,8 +22,26 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 | GET | `/v1/users/check-username?username=` | none | `{available, reason?}`. Invalid format (not `^[a-z0-9_]{3,20}$`) returns `available:false, reason:"invalid_format"` rather than 400. |
 | POST | `/v1/users` | auth | Body `{username, displayName?}`. Creates the Postgres profile. 409 if a profile already exists for this Firebase UID, 409 if username taken (only error mapping — `CreateUser`'s error isn't distinguished further). |
 | GET | `/v1/me` | auth | 404 `{"error":"profile not found","code":"PROFILE_NOT_FOUND"}` if no profile yet. |
-| PATCH | `/v1/me` | profile | Body `{displayName?, email?, phoneNumber?, avatarUrl?}`. `username` is immutable — not accepted here. |
-| GET | `/v1/users/search?q=` | profile | Case-insensitive substring match on `username` or `display_name`, excludes the caller, capped at 20 results ordered by `username`. Returns `[]` for `q` under 2 characters rather than erroring (avoids a near-full-table scan on a 0-1 char query). Response is the lean `UserSummary` shape (`id`/`username`/`displayName` only) — unlike every other `/users`/`/me` route here, this never includes `email`/`phoneNumber`, since the caller is looking up *someone else*. Not club-scoped — `ClubMembersScreen`'s Add Member dialog filters out existing members client-side, since it already has that list loaded. |
+| PATCH | `/v1/me` | profile | Body `{displayName?, email?, phoneNumber?, avatarUrl?}`. `username` is immutable — not accepted here. `avatarUrl` is a stale, never-wired string-URL stub — see the note under "Profile pictures" below; the real path is `POST /v1/me/avatar`. |
+| POST | `/v1/me/avatar` | profile | Body `{imageBase64, imageContentType}`. Self-service only — always the caller's own picture. Same size/content-type validation as every other image upload (5MB decoded cap, JPEG/PNG/WebP only). |
+| GET | `/v1/users/:userId/avatar` | profile | Serves the raw image bytes. Visible to any authenticated user with a profile — same broad visibility as the username/displayName it's paired with everywhere (search, member grids, organizer names), not scoped to a shared Club. 404 if the user has no picture. |
+| GET | `/v1/users/search?q=` | profile | Case-insensitive substring match on `username` or `display_name`, excludes the caller, capped at 20 results ordered by `username`. Returns `[]` for `q` under 2 characters rather than erroring (avoids a near-full-table scan on a 0-1 char query). Response is the lean `UserSummary` shape (`id`/`username`/`displayName`/`hasAvatar`) — unlike every other `/users`/`/me` route here, this never includes `email`/`phoneNumber`, since the caller is looking up *someone else*. Not club-scoped — `ClubMembersScreen`'s Add Member dialog filters out existing members client-side, since it already has that list loaded. |
+
+### Profile pictures
+
+Club and User both carry a real, working profile picture now — stored
+directly in Postgres (`bytea`), same pattern as DP-011 Chat images and
+Milestone 5 receipts (no object storage/CDN provisioned anywhere in
+this app). A list/get response never embeds the bytes, only a computed
+`hasAvatar` boolean; the actual image is fetched separately through its
+own authenticated endpoint (`GET .../avatar`), same reasoning as
+`hasReceipt`/receipt images — a polled or frequently-refetched list
+response should never re-transfer image bytes for a picture already on
+screen. `User.avatarUrl` / `ClubMember.avatarUrl` / `Club` having no
+`avatarUrl` at all are leftovers from an earlier, never-wired
+string-URL stub (nothing ever set or read it through a real upload
+path) — left in place, unused, rather than ripped out as part of this
+change.
 
 ## Clubs
 
@@ -34,6 +52,8 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 | GET | `/v1/clubs/:clubId` | profile | member | |
 | PATCH | `/v1/clubs/:clubId` | profile | owner | Body `{name?, description?}`. |
 | DELETE | `/v1/clubs/:clubId` | profile | owner | Cascades `club_members`, `sessions`, etc. via FK. |
+| POST | `/v1/clubs/:clubId/avatar` | profile | owner | Body `{imageBase64, imageContentType}`. Same size/content-type validation as every other image upload. See "Profile pictures" below. |
+| GET | `/v1/clubs/:clubId/avatar` | profile | member | Serves the raw image bytes. 404 if the Club has no picture. |
 | GET | `/v1/clubs/:clubId/members` | profile | member | |
 | POST | `/v1/clubs/:clubId/members` | profile | owner | Body `{username}`. Direct-add, no invite flow. 404 if username not found, 409 if already a member. |
 | PATCH | `/v1/clubs/:clubId/members/:userId` | profile | owner | Body `{role}` — `"member"` or `"admin"` only; cannot set/unset `"owner"` here. |

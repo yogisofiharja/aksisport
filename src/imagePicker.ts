@@ -17,3 +17,12 @@ export async function pickImageAsDataUrl(source: 'gallery' | 'camera' = 'gallery
   if (asset.base64) return `data:image/jpeg;base64,${asset.base64}`;
   return asset.uri;
 }
+
+// Shared by every image-upload flow (Session Chat, Payment receipts, Club/
+// User avatars) — pickImageAsDataUrl's own output format, decoded back into
+// the {base64, contentType} shape every upload endpoint expects.
+export function parseDataUrl(dataUrl: string): { base64: string; contentType: string } | null {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return null;
+  return { contentType: match[1], base64: match[2] };
+}

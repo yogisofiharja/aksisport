@@ -5,6 +5,7 @@ export type UserProfile = {
   email?: string;
   phoneNumber?: string;
   avatarUrl?: string;
+  hasAvatar: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -19,6 +20,7 @@ export type Club = {
   name: string;
   description?: string;
   inviteCode: string;
+  hasAvatar: boolean;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +50,7 @@ export type ClubMember = {
   username: string;
   displayName?: string;
   avatarUrl?: string;
+  hasAvatar: boolean;
   role: ClubRole;
   joinedAt: string;
 };
@@ -58,6 +61,7 @@ export type UserSummary = {
   id: string;
   username: string;
   displayName?: string;
+  hasAvatar: boolean;
 };
 
 // DP-001: 'draft' (explicit, pre-publish) and 'cancelled' (explicit,

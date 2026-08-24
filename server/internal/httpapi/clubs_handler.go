@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/base64"
 	"errors"
 	"net/http"
 
@@ -119,6 +120,67 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		c.Status(http.StatusNoContent)
+	})
+
+	// Club profile picture — owner only to set (same permission as PATCH
+	// /clubs/:clubId), any member can view. Same size/content-type
+	// validation as every other image upload in the app.
+	authed.POST("/clubs/:clubId/avatar", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		_, isOwner, ok := requireMember(c, pool, clubID)
+		if !ok {
+			return
+		}
+		if !isOwner {
+			respondError(c, http.StatusForbidden, "only the owner can change this club's picture")
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxImagePostBytes)
+		var body struct {
+			ImageBase64      string `json:"imageBase64"`
+			ImageContentType string `json:"imageContentType"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			respondError(c, http.StatusBadRequest, "invalid body, or image too large")
+			return
+		}
+		if !isAllowedImageContentType(body.ImageContentType) {
+			respondError(c, http.StatusBadRequest, "imageContentType must be image/jpeg, image/png, or image/webp")
+			return
+		}
+		decoded, err := base64.StdEncoding.DecodeString(body.ImageBase64)
+		if err != nil {
+			respondError(c, http.StatusBadRequest, "imageBase64 is not valid base64")
+			return
+		}
+		if len(decoded) == 0 || len(decoded) > maxImageBytes {
+			respondError(c, http.StatusBadRequest, "image must be non-empty and 5MB or smaller")
+			return
+		}
+		club, err := dbpkg.UploadClubAvatar(c.Request.Context(), pool, clubID, decoded, body.ImageContentType)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, club)
+	})
+
+	authed.GET("/clubs/:clubId/avatar", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		if _, _, ok := requireMember(c, pool, clubID); !ok {
+			return
+		}
+		img, err := dbpkg.GetClubAvatarImage(c.Request.Context(), pool, clubID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "this club has no profile picture")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.Header("Cache-Control", "private, max-age=31536000, immutable")
+		c.Data(http.StatusOK, img.ContentType, img.Data)
 	})
 
 	authed.GET("/clubs/:clubId/members", func(c *gin.Context) {

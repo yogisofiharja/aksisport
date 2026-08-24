@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { Pressable } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Image, Pressable, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Page } from '../../design-system/layout/Page';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
@@ -13,9 +13,13 @@ import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
-import { getClub, listMembers } from '../../core/clubs/api';
+import { authHeader } from '../../core/api/client';
+import { getClub, listMembers, clubAvatarUrl, uploadClubAvatar } from '../../core/clubs/api';
 import { listSessions } from '../../core/sessions/api';
-import { sessionDateBucket, formatSessionDateTime } from '../../core/sessions/sessionSchedule';
+import { formatSessionDateTime } from '../../core/sessions/sessionSchedule';
+import { currentFocusSessions } from '../../core/sessions/currentFocus';
+import { initialsFromName } from '../../core/initials';
+import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
 import { statusLabel, sessionStatusColor } from '../sessions/SessionListScreen';
 import type { Club, Session } from '../../core/api/types';
 
@@ -28,40 +32,6 @@ type Props = {
   onOpenRecurringSchedules: (clubId: string) => void;
   onOpenClubSettings: (clubId: string) => void;
 };
-
-function isLiveSession(s: Session) {
-  return s.status === 'in_progress';
-}
-
-function isDraftSession(s: Session) {
-  return s.status === 'draft';
-}
-
-function byStartsAtAsc(a: Session, b: Session) {
-  return (a.startsAt ?? '').localeCompare(b.startsAt ?? '');
-}
-
-// Milestone 3 — Community Home: replaces the club's static info layout
-// with a ranked "Current Focus" list — Live, Today, Next (the single
-// soonest upcoming Session, not every upcoming one), Draft — using the
-// same lifecycle language/derived status Milestone 2 established
-// (statusLabel/sessionStatusColor, already shared with HomeScreen's own
-// cross-club attention list). Draft Sessions are only ever present here
-// for an owner/admin caller — listSessions already excludes them
-// server-side for a plain member (DP-001), so no extra client-side
-// gating is needed to keep a member from seeing someone else's draft.
-function currentFocusSessions(sessions: Session[]): Session[] {
-  const live = sessions.filter(isLiveSession);
-  const today = sessions
-    .filter((s) => !isLiveSession(s) && !isDraftSession(s) && sessionDateBucket(s) === 'today')
-    .sort(byStartsAtAsc);
-  const next = sessions
-    .filter((s) => !isLiveSession(s) && !isDraftSession(s) && sessionDateBucket(s) === 'upcoming')
-    .sort(byStartsAtAsc)
-    .slice(0, 1);
-  const drafts = sessions.filter(isDraftSession).sort(byStartsAtAsc);
-  return [...live, ...today, ...next, ...drafts];
-}
 
 export function ClubDetailScreen({
   clubId,
@@ -79,6 +49,15 @@ export function ClubDetailScreen({
   const [isOwner, setIsOwner] = useState(false);
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  // GET .../avatar is behind the same auth as every other route — fetched
+  // once per mount, same convention as ClubMembersScreen/SessionChat's own
+  // image headers.
+  const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    authHeader().then(setImageHeaders);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -106,6 +85,32 @@ export function ClubDetailScreen({
     }, [load])
   );
 
+  // Owner only — enforced server-side too (clubs_handler.go), this is just
+  // what keeps the tap target from ever appearing for anyone else.
+  function handleChangeAvatar() {
+    Alert.alert(t('sessionChatAttachImageTitle'), undefined, [
+      { text: t('sessionChatAttachCamera'), onPress: () => pickAndUploadAvatar('camera') },
+      { text: t('sessionChatAttachGallery'), onPress: () => pickAndUploadAvatar('gallery') },
+      { text: t('clubCancel'), style: 'cancel' },
+    ]);
+  }
+
+  async function pickAndUploadAvatar(source: 'camera' | 'gallery') {
+    const dataUrl = await pickImageAsDataUrl(source);
+    if (!dataUrl) return;
+    const parsed = parseDataUrl(dataUrl);
+    if (!parsed) return;
+    setUploadingAvatar(true);
+    try {
+      const updated = await uploadClubAvatar(clubId, parsed);
+      setClub(updated);
+    } catch {
+      // stays on the previous picture; user can retry
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   if (loading || !club) {
     return (
       <Page>
@@ -129,14 +134,27 @@ export function ClubDetailScreen({
         )}
       </HStack>
 
-      <VStack space="xs">
-        <Typography variant="display">{club.name}</Typography>
-        {club.description && (
-          <Typography variant="body" color="muted">
-            {club.description}
-          </Typography>
-        )}
-      </VStack>
+      <HStack space="md" className="items-center">
+        <Pressable onPress={isOwner ? handleChangeAvatar : undefined} disabled={!isOwner || uploadingAvatar} className="active:opacity-70">
+          <View className="w-20 h-20 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-blue-500">
+            {club.hasAvatar ? (
+              <Image source={{ uri: clubAvatarUrl(clubId), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
+            ) : (
+              <Typography variant="body" className="text-xl font-extrabold text-slate-600 dark:text-slate-300">
+                {initialsFromName(club.name)}
+              </Typography>
+            )}
+          </View>
+        </Pressable>
+        <VStack space="xs" style={{ flex: 1 }}>
+          <Typography variant="display">{club.name}</Typography>
+          {club.description && (
+            <Typography variant="body" color="muted">
+              {club.description}
+            </Typography>
+          )}
+        </VStack>
+      </HStack>
 
       <VStack space="sm">
         <Typography variant="caption" color="muted">

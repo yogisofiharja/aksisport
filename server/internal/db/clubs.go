@@ -22,11 +22,11 @@ func generateInviteCode() string {
 	return string(b)
 }
 
-const clubColumns = "id, name, description, invite_code, created_by, created_at, updated_at"
+const clubColumns = "id, name, description, invite_code, (avatar_image_data IS NOT NULL) AS has_avatar, created_by, created_at, updated_at"
 
 func scanClub(row pgx.CollectableRow) (models.Club, error) {
 	var c models.Club
-	err := row.(pgx.Rows).Scan(&c.ID, &c.Name, &c.Description, &c.InviteCode, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt)
+	err := row.(pgx.Rows).Scan(&c.ID, &c.Name, &c.Description, &c.InviteCode, &c.HasAvatar, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt)
 	return c, err
 }
 
@@ -108,7 +108,7 @@ func ListClubsForUser(ctx context.Context, pool *pgxpool.Pool, userID string) ([
 	result := []models.ClubWithRole{}
 	for rows.Next() {
 		var c models.ClubWithRole
-		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &c.InviteCode, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt, &c.Role); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &c.InviteCode, &c.HasAvatar, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt, &c.Role); err != nil {
 			return nil, err
 		}
 		result = append(result, c)
@@ -135,6 +135,52 @@ func UpdateClub(ctx context.Context, pool *pgxpool.Pool, clubID string, name, de
 		return models.Club{}, ErrNotFound
 	}
 	return c, err
+}
+
+// UploadClubAvatar sets a Club's profile picture — owner-only, enforced by
+// the caller (clubs_handler.go) before this is reached.
+func UploadClubAvatar(ctx context.Context, pool *pgxpool.Pool, clubID string, imageData []byte, contentType string) (models.Club, error) {
+	rows, err := pool.Query(ctx,
+		`UPDATE clubs SET
+			avatar_image_data = $2,
+			avatar_image_content_type = $3,
+			updated_at = now()
+		WHERE id = $1
+		RETURNING `+clubColumns,
+		clubID, imageData, contentType,
+	)
+	if err != nil {
+		return models.Club{}, err
+	}
+	defer rows.Close()
+	c, err := pgx.CollectOneRow(rows, scanClub)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Club{}, ErrNotFound
+	}
+	return c, err
+}
+
+// GetClubAvatarImage fetches a Club's profile picture bytes. Visibility is
+// enforced by the caller (requireMember) — same access as the rest of the
+// Club's data.
+func GetClubAvatarImage(ctx context.Context, pool *pgxpool.Pool, clubID string) (models.AvatarImage, error) {
+	var img models.AvatarImage
+	var data []byte
+	var contentType *string
+	err := pool.QueryRow(ctx, "SELECT avatar_image_data, avatar_image_content_type FROM clubs WHERE id = $1", clubID).
+		Scan(&data, &contentType)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.AvatarImage{}, ErrNotFound
+	}
+	if err != nil {
+		return models.AvatarImage{}, err
+	}
+	if data == nil || contentType == nil {
+		return models.AvatarImage{}, ErrNotFound
+	}
+	img.Data = data
+	img.ContentType = *contentType
+	return img, nil
 }
 
 func DeleteClub(ctx context.Context, pool *pgxpool.Pool, clubID string) error {

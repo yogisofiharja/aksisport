@@ -10,7 +10,7 @@ import { authHeader } from '../../core/api/client';
 import { listClubBankAccounts } from '../../core/clubs/api';
 import { participantReceiptUrl, uploadPaymentReceipt } from '../../core/sessions/api';
 import { formatIDR } from '../../core/currency';
-import { pickImageAsDataUrl } from '../../imagePicker';
+import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
 import type { ClubBankAccount, Session, SessionParticipant } from '../../core/api/types';
 
 type Props = {
@@ -22,12 +22,6 @@ type Props = {
   onConfirmPayment: (userId: string) => void;
   onParticipantsChanged: () => void;
 };
-
-function parseDataUrl(dataUrl: string): { base64: string; contentType: string } | null {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match) return null;
-  return { contentType: match[1], base64: match[2] };
-}
 
 function participantName(p: SessionParticipant) {
   return p.displayName || p.username || p.guestName || '';

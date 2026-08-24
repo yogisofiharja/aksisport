@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"regexp"
@@ -108,6 +109,59 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		c.JSON(http.StatusOK, user)
+	})
+
+	// Self-service only — the caller sets their own profile picture, never
+	// someone else's. Same size/content-type validation as every other
+	// image upload in the app.
+	profiled.POST("/me/avatar", func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxImagePostBytes)
+		var body struct {
+			ImageBase64      string `json:"imageBase64"`
+			ImageContentType string `json:"imageContentType"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			respondError(c, http.StatusBadRequest, "invalid body, or image too large")
+			return
+		}
+		if !isAllowedImageContentType(body.ImageContentType) {
+			respondError(c, http.StatusBadRequest, "imageContentType must be image/jpeg, image/png, or image/webp")
+			return
+		}
+		decoded, err := base64.StdEncoding.DecodeString(body.ImageBase64)
+		if err != nil {
+			respondError(c, http.StatusBadRequest, "imageBase64 is not valid base64")
+			return
+		}
+		if len(decoded) == 0 || len(decoded) > maxImageBytes {
+			respondError(c, http.StatusBadRequest, "image must be non-empty and 5MB or smaller")
+			return
+		}
+		current := authjwt.CurrentUser(c)
+		user, err := dbpkg.UploadUserAvatar(c.Request.Context(), pool, current.ID, decoded, body.ImageContentType)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, user)
+	})
+
+	// Visible to any authenticated user with a profile — same broad
+	// visibility as the username/displayName it's paired with everywhere
+	// (search results, member grids, organizer names), not scoped to a
+	// shared Club.
+	profiled.GET("/users/:userId/avatar", func(c *gin.Context) {
+		img, err := dbpkg.GetUserAvatarImage(c.Request.Context(), pool, c.Param("userId"))
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "this user has no profile picture")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.Header("Cache-Control", "private, max-age=31536000, immutable")
+		c.Data(http.StatusOK, img.ContentType, img.Data)
 	})
 
 	// Backs the "add member" dialog's search — any user with a profile can

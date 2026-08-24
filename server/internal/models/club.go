@@ -3,13 +3,17 @@ package models
 import "time"
 
 type Club struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description *string   `json:"description,omitempty"`
-	InviteCode  string    `json:"inviteCode"`
-	CreatedBy   string    `json:"createdBy"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	InviteCode  string  `json:"inviteCode"`
+	// HasAvatar is computed (avatar_image_data IS NOT NULL) — same pattern
+	// as SessionParticipant.HasReceipt. Owner-only to set, visible to any
+	// member.
+	HasAvatar bool      `json:"hasAvatar"`
+	CreatedBy string    `json:"createdBy"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // ClubBankAccount (Milestone 5, Session Finance) — a Club can list more
