@@ -37,7 +37,7 @@ export function uploadClubAvatar(clubId: string, image: { base64: string; conten
 
 // Not fetched via apiFetch — a URL for an `<Image>` source (with
 // authHeader() as its request headers), same convention as
-// participantReceiptUrl/sessionMessageImageUrl.
+// participantReceiptUrl/conversationMessageImageUrl.
 export function clubAvatarUrl(clubId: string): string {
   return apiUrl(`/v1/clubs/${clubId}/avatar`);
 }

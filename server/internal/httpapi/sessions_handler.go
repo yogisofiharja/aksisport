@@ -13,6 +13,7 @@ import (
 
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	dbpkg "github.com/yogisofiharja/aksi-server/internal/db"
+	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
 // requireSessionAccess loads the session and the caller's role in its
@@ -840,12 +841,18 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 	// (requireSessionAccess) — deliberately not narrowed to "participants
 	// only," since a member asking "can I still join?" needs to post
 	// before they've joined.
+	// Session Chat (DP-011) and Contact Organizer (DP-013) share one
+	// engine (conversations/conversation_messages) — per product
+	// direction, the only real differences are participants (everyone who
+	// can see the Session, vs. one member + owner/admins) and whether a
+	// posting window applies (Chat closes 1 week after the Session ends;
+	// Contact Organizer never does).
 	authed.GET("/sessions/:id/messages", func(c *gin.Context) {
 		sessionID := c.Param("id")
 		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
 			return
 		}
-		messages, err := dbpkg.ListSessionMessages(c.Request.Context(), pool, sessionID)
+		messages, err := listConversation(c, pool, models.ConversationKindSessionChat, sessionID, nil)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
@@ -863,54 +870,12 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusForbidden, "chat is read-only more than a week after the session")
 			return
 		}
-		// Caps the whole request body, not just the decoded image — a
-		// generous margin over maxImageBytes' own base64
-		// expansion (~4/3) plus JSON overhead, so a malicious/broken
-		// client can't force the server to buffer an unbounded body
-		// before ShouldBindJSON even gets to look at it.
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxImagePostBytes)
-		var body struct {
-			Body             string  `json:"body"`
-			ImageBase64      string  `json:"imageBase64"`
-			ImageContentType *string `json:"imageContentType"`
-		}
-		if err := c.ShouldBindJSON(&body); err != nil {
-			respondError(c, http.StatusBadRequest, "invalid body, or image too large")
-			return
-		}
-		trimmed := strings.TrimSpace(body.Body)
-		if len(trimmed) > 2000 {
-			respondError(c, http.StatusBadRequest, "body must be 2000 characters or fewer")
-			return
-		}
-		var imageData []byte
-		var imageContentType *string
-		if body.ImageBase64 != "" {
-			if body.ImageContentType == nil || !isAllowedImageContentType(*body.ImageContentType) {
-				respondError(c, http.StatusBadRequest, "imageContentType must be image/jpeg, image/png, or image/webp")
-				return
-			}
-			decoded, err := base64.StdEncoding.DecodeString(body.ImageBase64)
-			if err != nil {
-				respondError(c, http.StatusBadRequest, "imageBase64 is not valid base64")
-				return
-			}
-			if len(decoded) == 0 || len(decoded) > maxImageBytes {
-				respondError(c, http.StatusBadRequest, "image must be non-empty and 5MB or smaller")
-				return
-			}
-			imageData = decoded
-			imageContentType = body.ImageContentType
-		}
-		if trimmed == "" && imageData == nil {
-			respondError(c, http.StatusBadRequest, "body or image is required")
+		trimmed, imageData, imageContentType, ok := parseConversationMessageBody(c)
+		if !ok {
 			return
 		}
 		user := authjwt.CurrentUser(c)
-		message, err := dbpkg.CreateSessionMessage(c.Request.Context(), pool, dbpkg.CreateSessionMessageParams{
-			SessionID: sessionID, UserID: user.ID, Body: trimmed,
-			ImageData: imageData, ImageContentType: imageContentType,
-		})
+		message, err := postConversationMessage(c, pool, models.ConversationKindSessionChat, sessionID, nil, user.ID, trimmed, imageData, imageContentType)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
@@ -918,16 +883,90 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		c.JSON(http.StatusCreated, message)
 	})
 
-	// Served one at a time, never listed alongside the message itself —
-	// see SessionMessage.HasImage's doc comment for why. Cache-Control is
-	// safe to set aggressively: a message's image never changes once
-	// posted (no editing), so there's nothing to invalidate.
-	authed.GET("/sessions/:id/messages/:messageId/image", func(c *gin.Context) {
+	// Contact Organizer (DP-013) — a private, two-way thread scoped to
+	// (session, member), distinct from the group Session Chat above. The
+	// member (memberUserID == caller) always starts/continues their own
+	// thread; only an owner/admin may reply into someone else's. No
+	// posting-window restriction — unlike Chat, a Contact Organizer
+	// thread never closes.
+	authed.GET("/sessions/:id/contact/:userId", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+		memberUserID := c.Param("userId")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
 			return
 		}
-		img, err := dbpkg.GetSessionMessageImage(c.Request.Context(), pool, sessionID, c.Param("messageId"))
+		user := authjwt.CurrentUser(c)
+		if user.ID != memberUserID && !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "you can only view your own thread with the organizer")
+			return
+		}
+		messages, err := listConversation(c, pool, models.ConversationKindSessionContact, sessionID, &memberUserID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, messages)
+	})
+
+	authed.POST("/sessions/:id/contact/:userId", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		memberUserID := c.Param("userId")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		user := authjwt.CurrentUser(c)
+		if user.ID != memberUserID && !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "you can only message your own thread with the organizer")
+			return
+		}
+		trimmed, imageData, imageContentType, ok := parseConversationMessageBody(c)
+		if !ok {
+			return
+		}
+		message, err := postConversationMessage(c, pool, models.ConversationKindSessionContact, sessionID, &memberUserID, user.ID, trimmed, imageData, imageContentType)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusCreated, message)
+	})
+
+	// Owner/admin only — the organizer's per-Session list of who has
+	// messaged them, most-recently-active first.
+	authed.GET("/sessions/:id/contact", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		if !isOwnerOrAdmin(role) {
+			respondError(c, http.StatusForbidden, "only owner/admin can view this session's contact threads")
+			return
+		}
+		threads, err := dbpkg.ListSessionContactThreads(c.Request.Context(), pool, sessionID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, threads)
+	})
+
+	// Shared by both Chat and Contact Organizer images — served one at a
+	// time, never listed alongside a message itself (see
+	// ConversationMessage.HasImage's doc comment for why). Cache-Control
+	// is safe to set aggressively: a message's image never changes once
+	// posted (no editing). A session_contact image gets the same narrower
+	// access check the thread's own messages get; a session_chat image
+	// only needs requireSessionAccess, already checked above.
+	authed.GET("/sessions/:id/conversation-messages/:messageId/image", func(c *gin.Context) {
+		sessionID := c.Param("id")
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
+			return
+		}
+		img, conv, err := dbpkg.GetConversationMessageImage(c.Request.Context(), pool, sessionID, c.Param("messageId"))
 		if errors.Is(err, dbpkg.ErrNotFound) {
 			respondError(c, http.StatusNotFound, "image not found")
 			return
@@ -936,7 +975,92 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
+		if conv.Kind == models.ConversationKindSessionContact {
+			user := authjwt.CurrentUser(c)
+			if conv.MemberUserID == nil || (*conv.MemberUserID != user.ID && !isOwnerOrAdmin(role)) {
+				respondError(c, http.StatusForbidden, "you can only view images from your own thread with the organizer")
+				return
+			}
+		}
 		c.Header("Cache-Control", "private, max-age=31536000, immutable")
 		c.Data(http.StatusOK, img.ContentType, img.Data)
 	})
+}
+
+// listConversation resolves a conversation for (kind, sessionID,
+// memberUserID) and lists its messages — an empty slice, not an error, if
+// no conversation exists yet (nobody has posted).
+func listConversation(c *gin.Context, pool *pgxpool.Pool, kind, sessionID string, memberUserID *string) ([]models.ConversationMessage, error) {
+	conv, err := dbpkg.GetConversation(c.Request.Context(), pool, kind, sessionID, memberUserID)
+	if errors.Is(err, dbpkg.ErrNotFound) {
+		return []models.ConversationMessage{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return dbpkg.ListConversationMessages(c.Request.Context(), pool, conv.ID)
+}
+
+// postConversationMessage lazily creates the conversation on first use,
+// then inserts the message.
+func postConversationMessage(
+	c *gin.Context, pool *pgxpool.Pool, kind, sessionID string, memberUserID *string,
+	senderID, body string, imageData []byte, imageContentType *string,
+) (models.ConversationMessage, error) {
+	conv, err := dbpkg.GetOrCreateConversation(c.Request.Context(), pool, kind, sessionID, memberUserID)
+	if err != nil {
+		return models.ConversationMessage{}, err
+	}
+	return dbpkg.CreateConversationMessage(c.Request.Context(), pool, dbpkg.CreateConversationMessageParams{
+		ConversationID: conv.ID, SenderID: senderID, Body: body, ImageData: imageData, ImageContentType: imageContentType,
+	})
+}
+
+// parseConversationMessageBody validates a Chat/Contact-message POST
+// body — shared by both since they're the same engine now. Returns the
+// trimmed text and decoded image (each individually optional, but at
+// least one is required).
+func parseConversationMessageBody(c *gin.Context) (body string, imageData []byte, imageContentType *string, ok bool) {
+	// Caps the whole request body, not just the decoded image — a
+	// generous margin over maxImageBytes' own base64 expansion (~4/3)
+	// plus JSON overhead, so a malicious/broken client can't force the
+	// server to buffer an unbounded body before ShouldBindJSON even gets
+	// to look at it.
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxImagePostBytes)
+	var req struct {
+		Body             string  `json:"body"`
+		ImageBase64      string  `json:"imageBase64"`
+		ImageContentType *string `json:"imageContentType"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "invalid body, or image too large")
+		return "", nil, nil, false
+	}
+	trimmed := strings.TrimSpace(req.Body)
+	if len(trimmed) > 2000 {
+		respondError(c, http.StatusBadRequest, "body must be 2000 characters or fewer")
+		return "", nil, nil, false
+	}
+	if req.ImageBase64 != "" {
+		if req.ImageContentType == nil || !isAllowedImageContentType(*req.ImageContentType) {
+			respondError(c, http.StatusBadRequest, "imageContentType must be image/jpeg, image/png, or image/webp")
+			return "", nil, nil, false
+		}
+		decoded, err := base64.StdEncoding.DecodeString(req.ImageBase64)
+		if err != nil {
+			respondError(c, http.StatusBadRequest, "imageBase64 is not valid base64")
+			return "", nil, nil, false
+		}
+		if len(decoded) == 0 || len(decoded) > maxImageBytes {
+			respondError(c, http.StatusBadRequest, "image must be non-empty and 5MB or smaller")
+			return "", nil, nil, false
+		}
+		imageData = decoded
+		imageContentType = req.ImageContentType
+	}
+	if trimmed == "" && imageData == nil {
+		respondError(c, http.StatusBadRequest, "body or image is required")
+		return "", nil, nil, false
+	}
+	return trimmed, imageData, imageContentType, true
 }

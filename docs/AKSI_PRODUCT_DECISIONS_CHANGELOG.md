@@ -6,6 +6,46 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.12.0
+
+DP-013 revised to share Session Chat's messaging engine; Online
+Indicator introduced.
+
+Major updates:
+
+- DP-013 Contact Organizer revised: no longer a deliberately
+  "lightweight" plain-text-only variant — per explicit product
+  direction, it now shares one messaging engine with DP-011 Session
+  Chat (images included), differing only in participants and the
+  posting-window rule (Contact Organizer has none; Session Chat still
+  closes 1 week after the Session ends). Server-side, both now ride
+  the same `conversations`/`conversation_messages` schema instead of
+  two near-duplicate tables.
+- New DP-014: Online Indicator — a User attribute, shown as a green
+  outline ring around a member's circle avatar (Club Members grid,
+  its detail sheet, Add Member search). Derived from recent request
+  activity, no push/websocket presence infrastructure involved.
+
+---
+
+## v0.11.0
+
+Contact Organizer promoted out of Planning.
+
+Major updates:
+
+- New DP-013: a private, two-way, Session-scoped thread between one
+  member and that Session's owner/admins collectively — distinct from
+  DP-011 Session Chat's group thread. Plain text only, no images. Same
+  posting-window and no-edit/no-delete rules as Session Chat.
+- Removed Contact Organizer from Planning's Communication list; Direct
+  Messages and Community-level chat remain unapproved.
+- Inbox (placeholder since Milestone 1) got its first real content:
+  every Contact Organizer thread the caller is a party to, either as
+  the member or as an organizer replying, most-recently-active first.
+
+---
+
 ## v0.10.0
 
 Join Approval: joining a Session now always requires organizer approval

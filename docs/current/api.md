@@ -25,7 +25,8 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 | PATCH | `/v1/me` | profile | Body `{displayName?, email?, phoneNumber?, avatarUrl?}`. `username` is immutable — not accepted here. `avatarUrl` is a stale, never-wired string-URL stub — see the note under "Profile pictures" below; the real path is `POST /v1/me/avatar`. |
 | POST | `/v1/me/avatar` | profile | Body `{imageBase64, imageContentType}`. Self-service only — always the caller's own picture. Same size/content-type validation as every other image upload (5MB decoded cap, JPEG/PNG/WebP only). |
 | GET | `/v1/users/:userId/avatar` | profile | Serves the raw image bytes. Visible to any authenticated user with a profile — same broad visibility as the username/displayName it's paired with everywhere (search, member grids, organizer names), not scoped to a shared Club. 404 if the user has no picture. |
-| GET | `/v1/users/search?q=` | profile | Case-insensitive substring match on `username` or `display_name`, excludes the caller, capped at 20 results ordered by `username`. Returns `[]` for `q` under 2 characters rather than erroring (avoids a near-full-table scan on a 0-1 char query). Response is the lean `UserSummary` shape (`id`/`username`/`displayName`/`hasAvatar`) — unlike every other `/users`/`/me` route here, this never includes `email`/`phoneNumber`, since the caller is looking up *someone else*. Not club-scoped — `ClubMembersScreen`'s Add Member dialog filters out existing members client-side, since it already has that list loaded. |
+| GET | `/v1/me/contact-threads` | profile | DP-013 Contact Organizer's Inbox listing. See the "Conversations" subsection under Sessions below for the full shape. |
+| GET | `/v1/users/search?q=` | profile | Case-insensitive substring match on `username` or `display_name`, excludes the caller, capped at 20 results ordered by `username`. Returns `[]` for `q` under 2 characters rather than erroring (avoids a near-full-table scan on a 0-1 char query). Response is the lean `UserSummary` shape (`id`/`username`/`displayName`/`hasAvatar`/`isOnline`) — unlike every other `/users`/`/me` route here, this never includes `email`/`phoneNumber`, since the caller is looking up *someone else*. Not club-scoped — `ClubMembersScreen`'s Add Member dialog filters out existing members client-side, since it already has that list loaded. |
 
 ### Profile pictures
 
@@ -42,6 +43,18 @@ screen. `User.avatarUrl` / `ClubMember.avatarUrl` / `Club` having no
 string-URL stub (nothing ever set or read it through a real upload
 path) — left in place, unused, rather than ripped out as part of this
 change.
+
+### Online indicator (DP-014)
+
+`User`/`UserSummary`/`ClubMember` all carry a computed `isOnline` bool
+— `(last_active_at IS NOT NULL AND last_active_at > now() - interval
+'2 minutes')`, `isOnlineExpr` in `internal/db/users.go`. No push/
+websocket presence exists anywhere in this app: `last_active_at` is
+stamped by `authjwt.RequireProfile` on every authenticated request,
+fire-and-forget in a goroutine so it never adds latency to the request
+it's riding on. 2 minutes is an engineering choice, not a persisted
+online/offline state — there's no explicit "went offline" event, it
+just ages out.
 
 ## Clubs
 
@@ -102,13 +115,35 @@ any route now.
 
 Every participant read (list and single) now also includes `hasReceipt` (Milestone 5, DP-012) — a bool computed from `receipt_image_data IS NOT NULL`, never the image bytes themselves. See the receipt endpoints above for how the bytes are actually fetched, and their narrower access rule.
 
-### Session Chat (DP-011)
+### Conversations — Session Chat (DP-011) & Contact Organizer (DP-013)
+
+Both share one messaging engine server-side (`conversations` +
+`conversation_messages`, `internal/db/conversations.go`) — per explicit
+product direction, the only real differences are **participants** and
+**whether a posting window applies**; the message mechanics (compose,
+list, optional image) are identical. A `conversations` row's
+`kind` is `session_chat` (shared, `member_user_id` NULL — everyone who
+can already see the Session) or `session_contact` (private,
+`member_user_id` set — that member, plus any owner/admin of the
+Session's Club). Both are created lazily on first message, never
+pre-created. Every response below is the same `ConversationMessage`
+shape: `{id, sessionId, senderId, senderUsername, senderDisplayName?,
+body, hasImage, createdAt}`.
 
 | Method | Path | Auth | Extra check | Notes |
 |---|---|---|---|---|
-| GET | `/v1/sessions/:id/messages` | profile | `requireSessionAccess` | Oldest-first, no pagination. Same access as viewing the Session itself — any Club member once published, owner/admin only while Draft. Each message includes the sender's `username`/`displayName` (joined server-side) and a `hasImage` bool — never the image bytes themselves, so this response stays small regardless of how many messages have images attached. |
-| POST | `/v1/sessions/:id/messages` | profile | `requireSessionAccess` + `sessionChatWindowOpen` | Body `{body?, imageBase64?, imageContentType?}`. `body` trimmed, 400 if over 2000 characters; 400 if both `body` and `imageBase64` end up empty (at least one required). `imageContentType` must be `image/jpeg`, `image/png`, or `image/webp` (400 otherwise); `imageBase64` decoded and capped at 5MB (400 if empty or over). The whole request body is capped at 8MB via `http.MaxBytesReader` before parsing, independent of the 5MB decoded-image check. 403 once `now` is 1 week or more past `startsAt + durationMinutes` (no-op/unrestricted for Sessions missing either field) — chat becomes permanently read-only past that point, history stays visible via GET. No editing/deleting — this is the only mutation while the window is open. |
-| GET | `/v1/sessions/:id/messages/:messageId/image` | profile | `requireSessionAccess` | Serves the raw image bytes for one message with its stored `Content-Type`, 404 if the message has no image or doesn't belong to `:id`. `Cache-Control: private, max-age=31536000, immutable` — safe since a message's image can never change once posted. Fetched one at a time by the client (`<Image source={{uri, headers}}>`, bearer token same as every other route), never bundled into the list response above. |
+| GET | `/v1/sessions/:id/messages` | profile | `requireSessionAccess` | The `session_chat` conversation, oldest-first, no pagination. Empty list (not an error) if nobody has posted yet. |
+| POST | `/v1/sessions/:id/messages` | profile | `requireSessionAccess` + `sessionChatWindowOpen` | Body `{body?, imageBase64?, imageContentType?}` — at least one of `body`/image required, same validation as every other image upload (5MB decoded cap, 8MB request-body cap, jpeg/png/webp only). 403 once `now` is 1 week or more past `startsAt + durationMinutes` — Chat becomes permanently read-only past that point, history stays visible via GET. No editing/deleting. |
+| GET | `/v1/sessions/:id/contact/:userId` | profile | `requireSessionAccess` + (self or owner/admin) | The `session_contact` conversation for that member, oldest-first. 403 if the caller is neither `:userId` themselves nor owner/admin. |
+| POST | `/v1/sessions/:id/contact/:userId` | profile | `requireSessionAccess` + (self or owner/admin) | Same body shape and validation as Chat's POST above. **No posting-window check** — unlike Chat, a Contact Organizer thread never closes. A plain member can only post as themselves (`:userId` must equal their own id); an owner/admin can post into any member's thread for this Session. |
+| GET | `/v1/sessions/:id/contact` | profile | `requireSessionAccess` + owner/admin | One row per member who has messaged this Session's organizers, most-recently-active first, each with a `needsReply` bool (the member's last message hasn't been answered by any organizer yet). Owner/admin only — a plain member never sees other members' threads. |
+| GET | `/v1/sessions/:id/conversation-messages/:messageId/image` | profile | `requireSessionAccess` (+ self-or-owner/admin if the message belongs to a `session_contact` conversation) | Shared image-serving route for both Chat and Contact Organizer messages — access is resolved per-message from its owning conversation's `kind`. Serves raw bytes with the stored `Content-Type`, 404 if the message has no image or doesn't belong to `:id`. `Cache-Control: private, max-age=31536000, immutable`. Fetched one at a time (`<Image source={{uri, headers}}>`), never bundled into a list response. |
+
+`GET /v1/me/contact-threads` (Users section above) is the cross-Session
+Inbox listing — every `session_contact` conversation the caller is a
+party to, either as the member or as an organizer, with `needsReply`
+computed relative to the caller specifically (`contactThreadNeedsReply`
+in `internal/db/conversations.go`).
 
 **DP-009 auto-start / auto-transition** (no endpoint — background processes, `internal/scheduling.AutoStartDueSessions` and `AutoTransitionElapsedSessions`, both riding the same ticker as DP-007 generation): once an `open` Session's `starts_at` arrives, it's auto-started to `in_progress` (Milestone 2, revised — no manual "Start Session" action). Once `starts_at + duration_minutes` has passed, a Session still `in_progress` is set to `completed`; any other non-terminal Session (a Draft that was never published/started) is set to `cancelled`. Both write directly via `db.SetSessionStatus`, bypassing `sessionStatusTransitions` — that guard is for organizer-initiated PATCH calls only.
 

@@ -74,8 +74,15 @@ export function PersonalTabs() {
           tabBarLabel: t('tabInbox'),
           tabBarIcon: ({ focused }) => <Icon name={focused ? 'mail' : 'mail-outline'} color={focused ? 'secondary' : 'muted'} />,
         }}
-        component={InboxScreen}
-      />
+      >
+        {() => (
+          <InboxScreen
+            onOpenSession={(sessionId, memberUserId) =>
+              rootNavigation.navigate('SessionDetail', { sessionId, openContactWith: memberUserId })
+            }
+          />
+        )}
+      </Tab.Screen>
 
       <Tab.Screen
         name="Me"

@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.10.0
+Version: 0.12.0
 
 Status: Living Document
 
@@ -1028,17 +1028,19 @@ window and is never restricted.
 
 This is the first of the four Communication contexts named in
 `AKSI_INFORMATION_ARCHITECTURE.md` (User↔User DMs, Community,
-Session, Contact Organizer) to get a product decision — the other
-three remain undefined (see `docs/IMPLEMENTATION_ROADMAP.md`'s Milestone
-6), and are **not** approved by this decision. Moderation (an
-organizer removing a message, reporting) is explicitly out of scope
-for this first pass — a known, deliberate gap, not an oversight.
+Session, Contact Organizer) to get a product decision — Contact
+Organizer followed as DP-013; Direct Messages and Community-level
+chat remain undefined (see `docs/IMPLEMENTATION_ROADMAP.md`'s
+Milestone 6), and are **not** approved by this decision. Moderation
+(an organizer removing a message, reporting) is explicitly out of
+scope for this first pass — a known, deliberate gap, not an
+oversight.
 
 ### Relationship to "Communication" (Planning, below)
 
-This promotes Session-scoped chat specifically out of Planning. Direct
-Messages, Community-level chat, and Contact Organizer remain
-unapproved and unbuilt.
+This promotes Session-scoped Chat specifically out of Planning.
+Contact Organizer followed as DP-013, below. Direct Messages and
+Community-level chat remain unapproved and unbuilt.
 
 ---
 
@@ -1090,6 +1092,87 @@ much* has been paid vs. owed beyond the existing Price computation
 confirming, exactly as DP-002 already worked — just given its own
 place to happen, with a receipt to look at instead of no evidence at
 all.
+
+---
+
+## DP-013 — Contact Organizer
+
+Status
+
+Approved
+
+### Decision
+
+The second of the four Communication contexts named in
+`AKSI_INFORMATION_ARCHITECTURE.md` to get a product decision (DP-011
+Session Chat was the first). Explicitly **session-scoped only** — not a
+Club-wide affordance. Community-level chat and Direct Messages (either
+member↔member or member↔admin, generalized beyond one Session) remain
+separate, unapproved Planning items; Contact Organizer does not
+substitute for either.
+
+A private, two-way thread scoped to one Session and one member —
+distinct from DP-011 Session Chat's group thread, which is visible to
+everyone who can see the Session. Either side may reply: the member,
+or any owner/admin of the Session's Club, collectively representing
+"the organizer" (a reply from any one of them answers the thread; it
+isn't attributed to "the organizer" as an anonymous role — the
+member sees which admin replied). A member reaches their own thread
+from the Session itself; an organizer reaches every member's thread
+for that Session the same way, plus sees every thread they're a party
+to (across every Session in every Club they run) surfaced in the
+Inbox tab — the first real content Inbox has ever had.
+
+Shares one messaging engine with DP-011 Session Chat (revised — per
+explicit product direction, the only real differences between the two
+are participants and the posting-window rule, so the mechanics
+themselves are identical rather than a deliberately narrower
+"lightweight" variant): plain text, optionally one image per message,
+same "no editing or deleting a sent message" rule. Unlike Session
+Chat, there is **no posting-window restriction** — a Contact Organizer
+thread never closes, since it's a private line to the organizer
+rather than a Session-lifetime group discussion.
+
+### Scope
+
+No moderation tooling (blocking, reporting) — a known, deliberate gap,
+same reasoning as DP-011's first pass. No read receipts or typing
+indicators. "Needs a reply" in the Inbox is a simple heuristic (the
+last message came from the other side of the thread), not a persisted
+read/unread state.
+
+### Relationship to "Communication" (Planning, below)
+
+This promotes Contact Organizer specifically out of Planning. Direct
+Messages and Community-level chat remain unapproved and unbuilt.
+
+---
+
+## DP-014 — Online Indicator
+
+Status
+
+Approved
+
+### Decision
+
+A User carries a new attribute: whether they're currently online.
+Shown as a green outline ring around a member's circle avatar
+wherever one appears (currently: the Club Members grid, its detail
+sheet, and the Add Member search results).
+
+There is no push/websocket presence infrastructure anywhere in this
+app (DP-ARCH-004 Engineering Autonomy) — "online" is derived from
+recent request activity rather than a stored boolean requiring
+explicit online/offline transitions. This is an implementation detail
+below the product-decision level, not a separate approval.
+
+### Scope
+
+Not yet surfaced on Session participant/organizer avatars (those
+don't have profile pictures wired up at all yet) or on the caller's
+own avatar (Me tab) — scoped to where it was asked for. Extending it
+elsewhere is a small follow-up, not a new decision.
 
 ---
 
@@ -1163,13 +1246,16 @@ Potential future capabilities:
 
 - Direct Messages (User↔User)
 - Community-level chat (all members of a Club)
-- Contact Organizer (a lightweight "message the organizer" affordance,
-  distinct from full chat)
 
 **Session Chat — promoted to DP-011, Ready to Develop.** A Session has
 one chat, visible to and postable by anyone who can already see that
 Session — plain text with an optional single image. No editing/
-deleting, no moderation tooling yet. The rest of this list remains
+deleting, no moderation tooling yet.
+
+**Contact Organizer — promoted to DP-013, Ready to Develop.** A private,
+two-way, Session-scoped thread between one member and that Session's
+organizer(s) — plain text, distinct from Session Chat's group thread.
+The rest of this list (Direct Messages, Community-level chat) remains
 unapproved Planning.
 
 ---

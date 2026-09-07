@@ -141,8 +141,16 @@ The app's Personal Context — always the post-auth entry point
   Intended to eventually include Club search/join, replacing the
   removed "Join with Code" flow (see Home above) — not built yet, this
   is a stated direction, not a scoped feature.
-- **Inbox** (`InboxScreen`) — placeholder empty state. No Communication
-  data model exists yet.
+- **Inbox** (`InboxScreen`) — its first real content (DP-013 Contact
+  Organizer, was a placeholder through Milestone 5): every Contact
+  Organizer thread the caller is a party to, either as the member (their
+  own thread) or as an owner/admin (any member's thread on a Session in
+  a Club they run), most-recently-active first, `listMyContactThreads()`
+  (`GET /v1/me/contact-threads`). A blue dot marks a thread awaiting the
+  caller's reply. Tapping a row pushes `SessionDetail` with
+  `openContactWith: memberUserId` set, which auto-opens
+  `SessionContactOrganizer`'s modal straight into that thread instead of
+  the session's own Details tab.
 - **Me** (`MeScreen`) — identity header: the user's own profile picture
   (tap to change — camera/gallery, self-service only, `POST
   /v1/me/avatar`) next to username/display name, then two icons at

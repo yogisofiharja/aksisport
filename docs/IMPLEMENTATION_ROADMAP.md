@@ -118,12 +118,23 @@ shippable, "phased by risk."
   owner, not an oversight. Plain text + one optional image per
   message, posting closes 1 week after the Session ends, history stays
   readable forever.
-- **Contact Organizer** — ⏳ not started. Still `# Planning`.
+- **Contact Organizer** — ✅ done, DP-013. A private, two-way,
+  Session-scoped thread between one member and that Session's
+  owner/admins — revised to share Session Chat's messaging engine (text
+  + optional image, identical mechanics); the only real differences are
+  participants and that Contact Organizer has **no posting-window
+  restriction** (a thread never closes, unlike Chat's 1-week-after
+  cutoff). Gave the Inbox tab its first real content (a placeholder
+  since Milestone 1): every thread the caller is a party to, member or
+  organizer side, most-recently-active first.
 - **Community Communication** (Club-level chat) — ⏳ not started. Still
-  `# Planning`.
+  `# Planning`. Explicitly distinct from Contact Organizer, which stays
+  Session-scoped only — confirmed when scoping this milestone.
 - **Direct Messages** (User↔User) — ⏳ not started. Still `# Planning`,
   and the largest remaining scope (moderation, blocking/reporting,
-  discoverability).
+  discoverability). Also covers member↔member and member↔admin
+  messaging generalized beyond one Session — Contact Organizer doesn't
+  substitute for it.
 
 ---
 
@@ -146,6 +157,19 @@ Real, live work that fell outside the six-milestone roadmap above:
   moved into a new Club Settings screen's Danger Zone (off
   `ClubDetailScreen`'s home page); Edit/Cancel Session moved behind a
   "⋮" menu on `SessionDetailScreen` (off the Details tab).
+- **Club/User profile pictures** — `ff75d90`. Stored in Postgres
+  `bytea`, same pattern as Chat/Receipt images; Club avatar upload is
+  owner-only, User avatar upload is self-only. Paired with a Home
+  redesign: "My Communities" now leads (circle-avatar grid, picture or
+  initials), "Create Community" moved off Home entirely onto the Me
+  tab (UX-013). Home's Attention section and Community Home's Current
+  Focus now share one ranking implementation
+  (`core/sessions/currentFocus.ts`) instead of two ad hoc copies
+  (UX-015).
+- **Online Indicator (DP-014)** — a User attribute derived from recent
+  request activity (no push/websocket presence infra exists), shown as
+  a green outline ring on member circle avatars (Club Members grid,
+  detail sheet, Add Member search).
 
 ---
 

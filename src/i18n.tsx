@@ -184,6 +184,7 @@ const en: Dict = {
   clubMembersEmpty: 'No members found.',
   clubMembersSectionOrganizers: 'Owner & Admins',
   clubMembersSectionMembers: 'Members',
+  memberOnline: 'Online',
   clubAddMember: 'Add Member',
   clubAddMemberSearchPlaceholder: 'Search by name or username',
   clubAddMemberSearchHint: 'Type at least 2 characters to search.',
@@ -299,6 +300,11 @@ const en: Dict = {
   sessionChatAttachImageTitle: 'Add a photo',
   sessionChatAttachCamera: 'Take Photo',
   sessionChatAttachGallery: 'Choose from Library',
+  sessionContactEntry: 'Contact Organizer',
+  sessionContactTitle: 'Contact Organizer',
+  sessionContactEmpty: "No messages yet — ask the organizer anything about this session.",
+  sessionContactPlaceholder: 'Message the organizer…',
+  sessionContactThreadsEmpty: 'No one has messaged you about this session yet.',
   sessionSectionCheckedIn: 'Checked In',
   sessionSectionConfirmed: 'Confirmed',
   sessionSectionWaitlist: 'Waitlist',
@@ -481,6 +487,7 @@ const en: Dict = {
   // Inbox (Milestone 1 — placeholder, no backing data model yet)
   inboxTitle: 'Inbox',
   inboxEmptyState: "You're all caught up — nothing here yet.",
+  inboxContactOrganizerParty: (clubName: string) => `You & ${clubName}'s organizer`,
 
   // Me (Milestone 1)
   meSportsTitle: 'Sports',
@@ -665,6 +672,7 @@ const id: Dict = {
   clubMembersEmpty: 'Tidak ada anggota yang ditemukan.',
   clubMembersSectionOrganizers: 'Pemilik & Admin',
   clubMembersSectionMembers: 'Anggota',
+  memberOnline: 'Online',
   clubAddMember: 'Tambah Anggota',
   clubAddMemberSearchPlaceholder: 'Cari berdasarkan nama atau username',
   clubAddMemberSearchHint: 'Ketik minimal 2 karakter untuk mencari.',
@@ -780,6 +788,11 @@ const id: Dict = {
   sessionChatAttachImageTitle: 'Tambah foto',
   sessionChatAttachCamera: 'Ambil Foto',
   sessionChatAttachGallery: 'Pilih dari Galeri',
+  sessionContactEntry: 'Hubungi Penyelenggara',
+  sessionContactTitle: 'Hubungi Penyelenggara',
+  sessionContactEmpty: 'Belum ada pesan — tanyakan apa saja soal sesi ini ke penyelenggara.',
+  sessionContactPlaceholder: 'Kirim pesan ke penyelenggara…',
+  sessionContactThreadsEmpty: 'Belum ada yang mengirim pesan soal sesi ini.',
   sessionSectionCheckedIn: 'Sudah Check-in',
   sessionSectionConfirmed: 'Terkonfirmasi',
   sessionSectionWaitlist: 'Daftar Tunggu',
@@ -958,6 +971,7 @@ const id: Dict = {
   // Inbox (Milestone 1 — placeholder, belum ada model data pendukung)
   inboxTitle: 'Kotak Masuk',
   inboxEmptyState: 'Belum ada yang perlu dilihat di sini.',
+  inboxContactOrganizerParty: (clubName: string) => `Kamu & penyelenggara ${clubName}`,
 
   // Me (Milestone 1)
   meSportsTitle: 'Olahraga',

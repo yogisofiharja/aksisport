@@ -13,7 +13,12 @@ type User struct {
 	// HasAvatar is computed (avatar_image_data IS NOT NULL), same pattern
 	// as SessionParticipant.HasReceipt — the actual bytes are never
 	// embedded here, only served through their own endpoint.
-	HasAvatar bool      `json:"hasAvatar"`
+	HasAvatar bool `json:"hasAvatar"`
+	// IsOnline is computed from last_active_at (see isOnlineExpr in
+	// internal/db/users.go) — this app has no push/websocket presence, so
+	// it's derived from recent request activity rather than a stored
+	// boolean.
+	IsOnline  bool      `json:"isOnline"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -26,4 +31,5 @@ type UserSummary struct {
 	Username    string  `json:"username"`
 	DisplayName *string `json:"displayName,omitempty"`
 	HasAvatar   bool    `json:"hasAvatar"`
+	IsOnline    bool    `json:"isOnline"`
 }

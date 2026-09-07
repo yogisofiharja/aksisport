@@ -202,21 +202,27 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
             className="w-1/4 items-center px-1 active:opacity-70"
             onPress={() => openMemberDetail(member)}
           >
-            <Box
-              className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 ${
-                member.role === 'owner' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-600'
-              }`}
-            >
-              {member.hasAvatar ? (
-                <Image
-                  source={{ uri: userAvatarUrl(member.userId), headers: imageHeaders }}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              ) : (
-                <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">
-                  {initialsFromName(member.displayName || member.username)}
-                </Text>
-              )}
+            {/* Online indicator: a green outline ring around the circle,
+                separate from the role-color border inside it — a small
+                gap (p-0.5) keeps both visually distinct rather than one
+                overriding the other. */}
+            <Box className={`rounded-full ${member.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
+              <Box
+                className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 ${
+                  member.role === 'owner' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-600'
+                }`}
+              >
+                {member.hasAvatar ? (
+                  <Image
+                    source={{ uri: userAvatarUrl(member.userId), headers: imageHeaders }}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                ) : (
+                  <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">
+                    {initialsFromName(member.displayName || member.username)}
+                  </Text>
+                )}
+              </Box>
             </Box>
             <Text className="text-xs font-bold text-slate-900 dark:text-white text-center mt-1" numberOfLines={2}>
               {member.displayName || member.username}
@@ -294,27 +300,32 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
               const canLeave = isSelf && selectedMember.role !== 'owner';
               return (
                 <VStack className="gap-4 items-center">
-                  <Box
-                    className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 ${
-                      selectedMember.role === 'owner' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-600'
-                    }`}
-                  >
-                    {selectedMember.hasAvatar ? (
-                      <Image
-                        source={{ uri: userAvatarUrl(selectedMember.userId), headers: imageHeaders }}
-                        style={{ width: '100%', height: '100%' }}
-                      />
-                    ) : (
-                      <Text className="text-lg font-extrabold text-slate-600 dark:text-slate-300">
-                        {initialsFromName(selectedMember.displayName || selectedMember.username)}
-                      </Text>
-                    )}
+                  <Box className={`rounded-full ${selectedMember.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
+                    <Box
+                      className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 ${
+                        selectedMember.role === 'owner' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-600'
+                      }`}
+                    >
+                      {selectedMember.hasAvatar ? (
+                        <Image
+                          source={{ uri: userAvatarUrl(selectedMember.userId), headers: imageHeaders }}
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      ) : (
+                        <Text className="text-lg font-extrabold text-slate-600 dark:text-slate-300">
+                          {initialsFromName(selectedMember.displayName || selectedMember.username)}
+                        </Text>
+                      )}
+                    </Box>
                   </Box>
                   <VStack className="items-center gap-1">
                     <Text className="text-lg font-black text-slate-900 dark:text-white">
                       {selectedMember.displayName || selectedMember.username}
                     </Text>
                     <Text className="text-sm text-slate-400">{roleLabel(selectedMember.role, t)}</Text>
+                    {selectedMember.isOnline && (
+                      <Text className="text-xs font-bold text-green-600 dark:text-green-400">{t('memberOnline')}</Text>
+                    )}
                   </VStack>
 
                   {modalError && <Text className="text-sm text-red-500">{modalError}</Text>}
@@ -405,14 +416,16 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                         disabled={addingUserId === u.id}
                         className="flex-row items-center gap-3 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 active:opacity-60"
                       >
-                        <Box className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600">
-                          {u.hasAvatar ? (
-                            <Image source={{ uri: userAvatarUrl(u.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
-                          ) : (
-                            <Text className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                              {initialsFromName(u.displayName || u.username)}
-                            </Text>
-                          )}
+                        <Box className={`rounded-full ${u.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
+                          <Box className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600">
+                            {u.hasAvatar ? (
+                              <Image source={{ uri: userAvatarUrl(u.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
+                            ) : (
+                              <Text className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
+                                {initialsFromName(u.displayName || u.username)}
+                              </Text>
+                            )}
+                          </Box>
                         </Box>
                         <Text className="font-bold text-slate-900 dark:text-white flex-1">
                           {u.displayName || u.username}

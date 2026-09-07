@@ -1,5 +1,12 @@
 import { apiFetch, apiUrl } from '../api/client';
-import type { Session, SessionMessage, SessionParticipant, SessionStatus, SkillLevelEnforcement } from '../api/types';
+import type {
+  ConversationMessage,
+  Session,
+  SessionContactThread,
+  SessionParticipant,
+  SessionStatus,
+  SkillLevelEnforcement,
+} from '../api/types';
 
 export function createSession(
   clubId: string,
@@ -179,8 +186,12 @@ export function addGuestParticipant(sessionId: string, guestName: string): Promi
   });
 }
 
-// DP-011 Session Chat.
-export function listSessionMessages(sessionId: string): Promise<SessionMessage[]> {
+// DP-011 Session Chat and DP-013 Contact Organizer share one messaging
+// engine (see ConversationMessage) — participants and the posting-window
+// rule are the only real differences, both handled server-side.
+
+// The group thread — everyone who can already see the Session.
+export function listSessionMessages(sessionId: string): Promise<ConversationMessage[]> {
   return apiFetch(`/v1/sessions/${sessionId}/messages`);
 }
 
@@ -191,7 +202,7 @@ export function listSessionMessages(sessionId: string): Promise<SessionMessage[]
 export function sendSessionMessage(
   sessionId: string,
   options: { body?: string; image?: { base64: string; contentType: string } }
-): Promise<SessionMessage> {
+): Promise<ConversationMessage> {
   return apiFetch(`/v1/sessions/${sessionId}/messages`, {
     method: 'POST',
     body: JSON.stringify({
@@ -202,8 +213,40 @@ export function sendSessionMessage(
   });
 }
 
-// Not fetched via apiFetch — this is a URL for an `<Image>` source (with
+// A private thread scoped to (sessionId, memberUserId). memberUserId is a
+// plain member's own id when they're viewing/starting their own thread,
+// or the member being replied to when an owner/admin is answering. The
+// server enforces this same rule. No posting-window restriction, unlike
+// the group Chat above — a Contact Organizer thread never closes.
+export function listContactMessages(sessionId: string, memberUserId: string): Promise<ConversationMessage[]> {
+  return apiFetch(`/v1/sessions/${sessionId}/contact/${memberUserId}`);
+}
+
+export function sendContactMessage(
+  sessionId: string,
+  memberUserId: string,
+  options: { body?: string; image?: { base64: string; contentType: string } }
+): Promise<ConversationMessage> {
+  return apiFetch(`/v1/sessions/${sessionId}/contact/${memberUserId}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      body: options.body,
+      imageBase64: options.image?.base64,
+      imageContentType: options.image?.contentType,
+    }),
+  });
+}
+
+// Not fetched via apiFetch — a URL for an `<Image>` source (with
 // authHeader() as its request headers), not a JSON response to parse.
-export function sessionMessageImageUrl(sessionId: string, messageId: string): string {
-  return apiUrl(`/v1/sessions/${sessionId}/messages/${messageId}/image`);
+// Shared by both Chat and Contact Organizer images — the server resolves
+// access per-message from its owning conversation.
+export function conversationMessageImageUrl(sessionId: string, messageId: string): string {
+  return apiUrl(`/v1/sessions/${sessionId}/conversation-messages/${messageId}/image`);
+}
+
+// Owner/admin only — every member who has messaged this Session's
+// organizers, most-recently-active first.
+export function listSessionContactThreads(sessionId: string): Promise<SessionContactThread[]> {
+  return apiFetch(`/v1/sessions/${sessionId}/contact`);
 }

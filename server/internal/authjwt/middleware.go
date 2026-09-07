@@ -56,6 +56,14 @@ func RequireProfile(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 		c.Set(ctxUser, user)
+		// Online indicator: no push/websocket presence exists anywhere in
+		// this app, so "online" is derived from recent activity instead of
+		// a stored boolean requiring explicit transitions. Fire-and-forget
+		// on its own background context — never blocks the request it's
+		// riding on, and outlives it if the client disconnects early.
+		go func(userID string) {
+			_ = dbpkg.TouchUserActivity(context.Background(), pool, userID)
+		}(user.ID)
 		c.Next()
 	}
 }

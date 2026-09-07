@@ -25,7 +25,7 @@ export type MainStackParamList = {
   SessionHistory: { clubId: string };
   CreateSession: { clubId: string };
   EditSession: { sessionId: string };
-  SessionDetail: { sessionId: string };
+  SessionDetail: { sessionId: string; openContactWith?: string };
   AddMatch: { sessionId: string };
   ActivityMatch: { activityId: string };
   RecurringScheduleList: { clubId: string };
@@ -173,6 +173,7 @@ export function MainStack() {
         {({ navigation, route }) => (
           <SessionDetailScreen
             sessionId={route.params.sessionId}
+            openContactWith={route.params.openContactWith}
             onBack={() => navigation.goBack()}
             onAddMatch={(sessionId) => navigation.navigate('AddMatch', { sessionId })}
             onOpenMatch={(activityId) => navigation.navigate('ActivityMatch', { activityId })}

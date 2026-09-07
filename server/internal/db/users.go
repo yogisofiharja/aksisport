@@ -13,12 +13,27 @@ import (
 var ErrNotFound = errors.New("not found")
 var ErrConflict = errors.New("conflict")
 
-const userColumns = "id, firebase_uid, username, display_name, email, phone_number, avatar_url, (avatar_image_data IS NOT NULL) AS has_avatar, created_at, updated_at"
+// isOnlineExpr: no push/websocket presence exists anywhere in this app —
+// "online" is derived from last_active_at (stamped by
+// authjwt.RequireProfile on every authenticated request) rather than a
+// stored boolean requiring explicit online/offline transitions. 2 minutes
+// is an engineering choice (DP-ARCH-004), not a product requirement.
+const isOnlineExpr = "(last_active_at IS NOT NULL AND last_active_at > now() - interval '2 minutes')"
+
+const userColumns = "id, firebase_uid, username, display_name, email, phone_number, avatar_url, (avatar_image_data IS NOT NULL) AS has_avatar, " + isOnlineExpr + " AS is_online, created_at, updated_at"
 
 func scanUser(row pgx.CollectableRow) (models.User, error) {
 	var u models.User
-	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PhoneNumber, &u.AvatarURL, &u.HasAvatar, &u.CreatedAt, &u.UpdatedAt)
+	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PhoneNumber, &u.AvatarURL, &u.HasAvatar, &u.IsOnline, &u.CreatedAt, &u.UpdatedAt)
 	return u, err
+}
+
+// TouchUserActivity stamps last_active_at — called fire-and-forget from
+// authjwt.RequireProfile on every authenticated request, not awaited by
+// the handler it's protecting.
+func TouchUserActivity(ctx context.Context, pool *pgxpool.Pool, userID string) error {
+	_, err := pool.Exec(ctx, "UPDATE users SET last_active_at = now() WHERE id = $1", userID)
+	return err
 }
 
 func GetUserByFirebaseUID(ctx context.Context, pool *pgxpool.Pool, firebaseUID string) (models.User, error) {
@@ -61,7 +76,7 @@ func UsernameTaken(ctx context.Context, pool *pgxpool.Pool, username string) (bo
 // never exposes email/phone to the searching caller.
 func SearchUsers(ctx context.Context, pool *pgxpool.Pool, q, excludeUserID string) ([]models.UserSummary, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT id, username, display_name, (avatar_image_data IS NOT NULL) AS has_avatar FROM users
+		`SELECT id, username, display_name, (avatar_image_data IS NOT NULL) AS has_avatar, `+isOnlineExpr+` AS is_online FROM users
 		 WHERE id != $1 AND (username ILIKE '%' || $2 || '%' OR display_name ILIKE '%' || $2 || '%')
 		 ORDER BY username ASC
 		 LIMIT 20`,
@@ -74,7 +89,7 @@ func SearchUsers(ctx context.Context, pool *pgxpool.Pool, q, excludeUserID strin
 	result := []models.UserSummary{}
 	for rows.Next() {
 		var u models.UserSummary
-		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.HasAvatar); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.HasAvatar, &u.IsOnline); err != nil {
 			return nil, err
 		}
 		result = append(result, u)

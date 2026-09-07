@@ -584,14 +584,17 @@ instead of shrinking further. Section-to-tab mapping:
   Session — `SessionChat.tsx`, rendered as a sibling of the tab body's
   shared `ScrollView` rather than nested inside it (it needs its own
   scroll region plus a compose bar pinned at the bottom, which a
-  `ScrollView`-of-tab-bodies can't give it). Access is the same as
-  viewing the Session at all (`requireSessionAccess` — any Club member
-  once published, owner/admin only while Draft), deliberately not
-  narrowed to participants only. Plain text with an optional single
-  image, oldest-first, no editing/deleting, no moderation tooling —
-  all explicit v1 gaps, see DP-011. Delivery is a 5-second poll while the tab is
-  mounted (`listSessionMessages`), not a push/websocket channel — this
-  app has no live sync anywhere yet, so a short poll is the pragmatic
+  `ScrollView`-of-tab-bodies can't give it). Above it sits a "Contact
+  Organizer" entry row (DP-013) opening `SessionContactOrganizer`'s
+  modal — a private thread, distinct from the group chat below it.
+  Access to Chat itself is the same as viewing the Session at all
+  (`requireSessionAccess` — any Club member once published, owner/admin
+  only while Draft), deliberately not narrowed to participants only.
+  Plain text with an optional single image, oldest-first, no editing/
+  deleting, no moderation tooling — all explicit v1 gaps, see DP-011.
+  Delivery is a 5-second poll while the tab is mounted
+  (`listSessionMessages`), not a push/websocket channel — this app has
+  no live sync anywhere yet, so a short poll is the pragmatic
   stand-in. Sending calls `sendSessionMessage` and appends the
   response optimistically rather than waiting for the next poll tick.
   **Posting window**: only open until 1 week after the Session ends
@@ -600,8 +603,9 @@ instead of shrinking further. Section-to-tab mapping:
   by `isWithinChatWindow` (`core/sessions/sessionSchedule.ts`, same
   no-startsAt/durationMinutes-means-unrestricted convention as
   `isWithinCheckInWindow`) purely to drive the compose bar's own UI —
-  once closed, `SessionChat` swaps the input for a read-only notice;
-  history from `GET` stays visible and unaffected either way.
+  once closed, the compose bar swaps for a read-only notice; history
+  from `GET` stays visible and unaffected either way. **This window is
+  Chat-specific** — Contact Organizer (below) never closes.
   **Images**: one optional attachment per message, picked via the
   existing `pickImageAsDataUrl` helper (`src/imagePicker.ts`, already
   used for share-card backgrounds — Camera or Library, `expo-image-
@@ -611,10 +615,19 @@ instead of shrinking further. Section-to-tab mapping:
   half-configured alternative (Firebase Storage) needs the paid Blaze
   plan plus its own security rules this repo can't deploy. The message
   list never carries image bytes, only a `hasImage` bool — each image
-  is fetched once, lazily, via `sessionMessageImageUrl` +
+  is fetched once, lazily, via `conversationMessageImageUrl` +
   `authHeader()` (`<Image source={{uri, headers}}>`, the same bearer
   token every other request uses), so the 5-second poll never
   re-transfers images already rendered on screen.
+  **Engine**: as of DP-013's revision, Chat and Contact Organizer share
+  one server-side engine (`conversations`/`conversation_messages`,
+  `internal/db/conversations.go`) and one client-side presentational
+  component (`ConversationThread.tsx`) — `SessionChat.tsx` and
+  `SessionContactOrganizer.tsx` are now thin wrappers around it,
+  differing only in which messages they load/poll, whether the posting
+  window applies, and (for Contact Organizer) an owner/admin's extra
+  thread-list mode. See `docs/current/api.md`'s "Conversations"
+  subsection for the full endpoint shape.
 
 `SessionDetailScreen.tsx`'s self-service action area (v0.10.0, revised
 Milestone 2; now living in the Participants tab) branches on

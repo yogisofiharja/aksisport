@@ -38,6 +38,7 @@ import { formatIDR } from '../../core/currency';
 import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
 import { initialsFromName } from '../../core/initials';
 import { SessionChat } from './SessionChat';
+import { SessionContactOrganizer } from './SessionContactOrganizer';
 import { SessionPayment } from './SessionPayment';
 import type { MatchFormat, MatchMode } from '../../sports/tennis/scoringEngine';
 import { minParticipants } from '../../sports/tennis/rules';
@@ -60,6 +61,9 @@ type Props = {
   onOpenMatch: (activityId: string) => void;
   onEdit: (sessionId: string) => void;
   onDiscarded: () => void;
+  // Set when arriving from the Inbox tab (DP-013 Contact Organizer) — the
+  // memberUserId of the specific thread to jump straight into.
+  openContactWith?: string;
 };
 
 function activityParticipantNames(activity: ActivityDetail): string {
@@ -89,7 +93,7 @@ function participantAvatarBorderClass(status: SessionParticipant['status']): str
   return 'border-slate-300 dark:border-slate-600';
 }
 
-export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch, onEdit, onDiscarded }: Props) {
+export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch, onEdit, onDiscarded, openContactWith }: Props) {
   const { t } = useTranslation();
   const { profile } = useAuth();
   const [session, setSession] = useState<Session | null>(null);
@@ -110,6 +114,11 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // pinned in the header outside the tab body, so switching tabs never
   // loses which session you're looking at.
   const [activeTab, setActiveTab] = useState<'details' | 'payment' | 'configuration' | 'participants' | 'matches' | 'chat'>('details');
+  // DP-013 Contact Organizer — a private thread, separate from the Chat
+  // tab's group SessionChat. contactVisible opens the modal; when arriving
+  // from the Inbox (openContactWith set), it opens straight into that
+  // member's thread instead of the organizer's thread list.
+  const [contactVisible, setContactVisible] = useState(Boolean(openContactWith));
   const [club, setClub] = useState<Club | null>(null);
   // Only set when this Session was generated from a Recurring Schedule
   // (session.recurringScheduleId) — used for the Details tab's "Every
@@ -783,7 +792,23 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
       </VStack>
 
       {activeTab === 'chat' ? (
-        <SessionChat sessionId={sessionId} session={session} />
+        <VStack className="flex-1">
+          {/* DP-013 Contact Organizer — private, distinct from the group
+              chat below. Everyone gets the same entry point; the modal
+              itself decides member (own thread) vs. organizer (thread
+              list) view. */}
+          <Pressable
+            className="flex-row items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700 active:opacity-70"
+            onPress={() => setContactVisible(true)}
+          >
+            <HStack className="items-center gap-2">
+              <Icon name="mail-outline" size="sm" color="secondary" />
+              <Text className="font-bold text-slate-700 dark:text-slate-200">{t('sessionContactEntry')}</Text>
+            </HStack>
+            <Icon name="chevron-forward" size="sm" color="muted" />
+          </Pressable>
+          <SessionChat sessionId={sessionId} session={session} />
+        </VStack>
       ) : (
       <ScrollView
         contentContainerClassName="px-5 pt-6 pb-6 gap-5"
@@ -1366,6 +1391,16 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         </Pressable>
         </KeyboardAvoidingView>
       </Modal>
+
+      <SessionContactOrganizer
+        visible={contactVisible}
+        onClose={() => setContactVisible(false)}
+        sessionId={sessionId}
+        session={session}
+        isOwnerOrAdmin={isOwnerOrAdmin}
+        myUserId={profile?.id ?? ''}
+        initialMemberUserId={openContactWith}
+      />
     </SafeAreaView>
   );
 }

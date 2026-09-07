@@ -164,6 +164,20 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		c.Data(http.StatusOK, img.ContentType, img.Data)
 	})
 
+	// Contact Organizer (DP-013) Inbox — every thread the caller is a party
+	// to, either as the member (their own thread) or as an owner/admin
+	// (any member's thread on a Session in a Club they run), most-
+	// recently-active first. Backs the Inbox tab.
+	profiled.GET("/me/contact-threads", func(c *gin.Context) {
+		current := authjwt.CurrentUser(c)
+		threads, err := dbpkg.ListMyContactThreads(c.Request.Context(), pool, current.ID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, threads)
+	})
+
 	// Backs the "add member" dialog's search — any user with a profile can
 	// search (not scoped to a specific club; the caller filters out
 	// existing members client-side, since it already has that list

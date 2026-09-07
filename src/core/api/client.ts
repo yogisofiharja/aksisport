@@ -1,5 +1,5 @@
 import { auth } from '../../firebase';
-import type { ApiError, UserProfile, UserSummary } from './types';
+import type { ApiError, SessionContactThread, UserProfile, UserSummary } from './types';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -94,4 +94,11 @@ export function uploadMyAvatar(image: { base64: string; contentType: string }): 
 // with a profile, not scoped to a shared Club.
 export function userAvatarUrl(userId: string): string {
   return apiUrl(`/v1/users/${userId}/avatar`);
+}
+
+// DP-013 Contact Organizer's Inbox listing — every thread the caller is a
+// party to, either as the member or as an owner/admin of the Session's
+// Club, most-recently-active first. Backs the Inbox tab.
+export function listMyContactThreads(): Promise<SessionContactThread[]> {
+  return apiFetch('/v1/me/contact-threads');
 }

@@ -6,6 +6,9 @@ export type UserProfile = {
   phoneNumber?: string;
   avatarUrl?: string;
   hasAvatar: boolean;
+  // Derived from recent activity (no push/websocket presence exists in
+  // this app) — see isOnlineExpr in server's internal/db/users.go.
+  isOnline: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -51,6 +54,7 @@ export type ClubMember = {
   displayName?: string;
   avatarUrl?: string;
   hasAvatar: boolean;
+  isOnline: boolean;
   role: ClubRole;
   joinedAt: string;
 };
@@ -62,6 +66,7 @@ export type UserSummary = {
   username: string;
   displayName?: string;
   hasAvatar: boolean;
+  isOnline: boolean;
 };
 
 // DP-001: 'draft' (explicit, pre-publish) and 'cancelled' (explicit,
@@ -211,21 +216,42 @@ export type ActivityDetail = Activity & {
   participants: ActivityParticipant[];
 };
 
-// DP-011 Session Chat — plain text, optional single image, no editing/
-// deleting. username/displayName are denormalized from a join server-
-// side, not stored on the row itself. hasImage is a bool, never the raw
-// bytes — the image itself is only ever fetched one at a time via
-// sessionMessageImageUrl(), so polling the message list never
-// re-transfers image data.
-export type SessionMessage = {
+// DP-011 Session Chat and DP-013 Contact Organizer share one messaging
+// engine server-side (conversations/conversation_messages) — the only
+// real differences are participants and whether a posting window
+// applies, so both return this same shape. senderUsername/
+// senderDisplayName are denormalized from a join server-side, not stored
+// on the row itself. hasImage is a bool, never the raw bytes — the image
+// itself is only ever fetched one at a time via
+// conversationMessageImageUrl(), so polling a conversation never
+// re-transfers image data already on screen.
+export type ConversationMessage = {
   id: string;
   sessionId: string;
-  userId: string;
-  username: string;
-  displayName?: string;
+  senderId: string;
+  senderUsername: string;
+  senderDisplayName?: string;
   body: string;
   hasImage: boolean;
   createdAt: string;
+};
+
+// One row in a Contact Organizer thread listing — the organizer's
+// per-Session view, or the cross-Session Inbox. needsReply is relative to
+// the caller: true when the last message came from the other side of
+// this specific thread.
+export type SessionContactThread = {
+  sessionId: string;
+  sessionName?: string;
+  clubId: string;
+  clubName: string;
+  memberUserId: string;
+  memberUsername: string;
+  memberDisplayName?: string;
+  lastMessageBody: string;
+  lastMessageSenderId: string;
+  lastMessageAt: string;
+  needsReply: boolean;
 };
 
 // DP-007: MVP recurrence shape is weekly-only (an engineering default, not
