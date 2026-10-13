@@ -4,7 +4,7 @@ import { useAuth } from '../core/auth/AuthContext';
 import { AuthStack } from './AuthStack';
 import { MainStack } from './MainStack';
 import { CompleteProfileScreen } from '../mobile/auth/CompleteProfileScreen';
-import { linkingFor } from './linking';
+import { linking, restoreIntendedUrl } from './linking';
 
 export function RootNavigator() {
   const { firebaseUser, initializing, needsProfile } = useAuth();
@@ -18,15 +18,17 @@ export function RootNavigator() {
   }
 
   // Keyed on which stack is showing, so the container remounts when the
-  // user signs in or out and re-reads its starting URL — that is what
-  // lets linkingFor() send a just-signed-in visitor to the link they
-  // originally opened.
+  // user signs in or out and re-reads the address bar — which is what
+  // lets restoreIntendedUrl() send a just-signed-in visitor to the link
+  // they originally opened. It must run before that remount, hence here
+  // in render rather than in an effect.
   const signedIn = Boolean(firebaseUser) && !needsProfile;
+  if (signedIn) restoreIntendedUrl();
 
   return (
     <NavigationContainer
       key={signedIn ? 'main' : 'auth'}
-      linking={linkingFor(signedIn)}
+      linking={linking}
       documentTitle={{ formatter: () => 'Aksi' }}
     >
       {!firebaseUser ? <AuthStack /> : needsProfile ? <CompleteProfileScreen /> : <MainStack />}

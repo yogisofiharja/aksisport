@@ -215,7 +215,7 @@ screens. `src/navigation/linking.ts` maps every screen to a URL (`/`,
 refresh, the browser back button and pasted links work. A page opened
 directly gets Home placed underneath it, so in-app back arrows have
 somewhere to go. A signed-out visitor opening a deep URL lands on Login
-and is taken to that URL after signing in (`linkingFor()`).
+and is taken to that URL after signing in (`restoreIntendedUrl()`).
 
 The legacy `ScoringFlow` (its own `useState<AppScreen>` machine — see
 `docs/current/state-machines.md`) is no longer what web renders; it is

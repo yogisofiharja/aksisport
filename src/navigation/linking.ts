@@ -13,7 +13,7 @@ type LinkableParamList = AuthStackParamList &
 // shared by AuthStack and MainStack — only one is mounted at a time, and
 // a path that doesn't match the mounted one falls back to its first
 // screen (so a signed-out visitor opening /sessions/… gets Login).
-const linking: LinkingOptions<LinkableParamList> = {
+export const linking: LinkingOptions<LinkableParamList> = {
   prefixes: [],
   config: {
     // A page opened straight from a URL (refresh, pasted link) would
@@ -56,22 +56,17 @@ const linking: LinkingOptions<LinkableParamList> = {
 // The address the browser was opened at, read once before any navigator
 // mounts (the signed-out stack immediately rewrites the URL to /login).
 // A visitor who had to sign in first is taken there afterwards instead of
-// being dropped on Home. Consumed by the first signed-in mount, so a later
-// sign-out/sign-in in the same tab starts from Home as usual.
+// being dropped on Home.
 let intendedUrl: string | null = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.href : null;
 
-function takeIntendedUrl(): string | null {
+// Call right before the signed-in navigator mounts. On web the navigator
+// takes its starting screen from the address bar (it ignores
+// `getInitialURL`, which is native-only), so the way to send it somewhere
+// is to put that address back first. Consumed on first use, so a later
+// sign-out/sign-in in the same tab starts from Home as usual.
+export function restoreIntendedUrl() {
+  if (!intendedUrl) return;
   const url = intendedUrl;
   intendedUrl = null;
-  return url;
-}
-
-// Built once: NavigationContainer expects a stable `linking` object.
-const signedInLinking: LinkingOptions<LinkableParamList> = {
-  ...linking,
-  getInitialURL: () => takeIntendedUrl() ?? window.location.href,
-};
-
-export function linkingFor(signedIn: boolean): LinkingOptions<LinkableParamList> {
-  return Platform.OS === 'web' && signedIn ? signedInLinking : linking;
+  if (url !== window.location.href) window.history.replaceState(null, '', url);
 }
