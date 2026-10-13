@@ -1,0 +1,456 @@
+<title>AKSI Docs</title>
+<style>
+  /* Layout: three columns — doc library (left), reading column (centre), on-this-page outline (right).
+     Palette and type follow AKSI's own design tokens: slate neutrals, amber brand accent. */
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-2: #f1f5f9;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+    --accent: #b45309;
+    --accent-soft: #fffbeb;
+    --accent-soft-border: #fde8c7;
+    --secondary: #2563eb;
+    --secondary-soft: rgba(37, 99, 235, 0.07);
+    --success: #0f766e;
+    --success-soft: #f0fdfa;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --mark: #fde68a;
+    --radius: 14px;
+    --radius-sm: 9px;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", "SF Pro Text", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f172a; --surface: #1e293b; --surface-2: #17233a; --border: #334155;
+      --text: #f1f5f9; --text-muted: #94a3b8; --text-faint: #64748b;
+      --accent: #f59e0b; --accent-soft: rgba(217, 119, 6, 0.16); --accent-soft-border: rgba(217, 119, 6, 0.35);
+      --secondary: #60a5fa; --secondary-soft: rgba(96, 165, 250, 0.1);
+      --success: #2dd4bf; --success-soft: rgba(13, 148, 136, 0.14);
+      --danger: #f87171; --danger-soft: rgba(220, 38, 38, 0.14);
+      --mark: rgba(245, 158, 11, 0.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f172a; --surface: #1e293b; --surface-2: #17233a; --border: #334155;
+    --text: #f1f5f9; --text-muted: #94a3b8; --text-faint: #64748b;
+    --accent: #f59e0b; --accent-soft: rgba(217, 119, 6, 0.16); --accent-soft-border: rgba(217, 119, 6, 0.35);
+    --secondary: #60a5fa; --secondary-soft: rgba(96, 165, 250, 0.1);
+    --success: #2dd4bf; --success-soft: rgba(13, 148, 136, 0.14);
+    --danger: #f87171; --danger-soft: rgba(220, 38, 38, 0.14);
+    --mark: rgba(245, 158, 11, 0.35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--secondary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code, pre, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  code {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 0.08em 0.38em;
+    border-radius: 6px;
+    font-size: 0.85em;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- Shell ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr) 230px;
+    max-width: 1480px;
+    margin: 0 auto;
+  }
+  .sidebar, .outline {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+  }
+  .sidebar { padding: 24px 16px 40px 20px; border-right: 1px solid var(--border); }
+  .outline { padding: 34px 20px 40px 8px; }
+  main { padding-block: 30px 120px; padding-inline: clamp(16px, 4vw, 52px); min-width: 0; }
+
+  .brand { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+  .brand .mark-word { font-weight: 900; font-size: 20px; letter-spacing: -0.02em; }
+  .brand .tag { font-size: 11px; color: var(--text-faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+  .sidebar-sub { font-size: 12.5px; color: var(--text-muted); margin: 0 0 14px; }
+
+  .nav-details > summary {
+    display: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 0;
+    list-style: none;
+  }
+  .nav-details > summary::-webkit-details-marker { display: none; }
+  .nav-details > summary::after { content: " ▾"; color: var(--text-faint); }
+
+  #search {
+    width: 100%;
+    font: inherit;
+    font-size: 14px;
+    padding: 8px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .search-note { font-size: 12px; color: var(--text-faint); min-height: 18px; margin: 0 0 10px; }
+
+  .toc { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+  .toc-group-label {
+    font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em;
+    color: var(--text-faint); margin: 0 0 4px;
+  }
+  .toc a {
+    display: block;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    line-height: 1.35;
+    padding: 5px 8px 5px 11px;
+    border-left: 2px solid transparent;
+    border-radius: 0 6px 6px 0;
+  }
+  .toc a:hover { color: var(--text); border-left-color: var(--border); text-decoration: none; }
+  .toc a[aria-current="page"] {
+    color: var(--text); font-weight: 700;
+    border-left-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .toc a .hit { display: block; font-size: 11.5px; font-weight: 400; color: var(--text-faint); margin-top: 2px; overflow-wrap: anywhere; }
+  .toc a .hit mark { background: var(--mark); color: inherit; border-radius: 2px; }
+
+  .outline-label { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint); margin: 0 0 8px; }
+  .outline ul { list-style: none; margin: 0; padding: 0; }
+  .outline button {
+    display: block; width: 100%; text-align: left;
+    background: none; border: none; cursor: pointer;
+    font: inherit; font-size: 12.5px; line-height: 1.35;
+    color: var(--text-muted);
+    padding: 4px 6px;
+  }
+  .outline button:hover { color: var(--text); }
+  .outline button.lvl-3 { padding-left: 18px; font-size: 12px; color: var(--text-faint); }
+
+  @media (max-width: 1180px) {
+    .shell { grid-template-columns: 270px minmax(0, 1fr); }
+    .outline { display: none; }
+  }
+  @media (max-width: 860px) {
+    .shell { display: block; }
+    .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 16px 16px 8px; }
+    .nav-details > summary { display: block; }
+    .sidebar-sub { margin-bottom: 4px; }
+  }
+
+  /* ---------- Reading column ---------- */
+  .doc-head { padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 26px; }
+  .kicker { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--accent); margin: 0 0 6px; }
+  .doc-head h1 { font-size: clamp(25px, 3.4vw, 33px); font-weight: 900; letter-spacing: -0.025em; line-height: 1.15; margin: 0 0 8px; text-wrap: balance; }
+  .doc-head .lede { color: var(--text-muted); max-width: 66ch; margin: 0; }
+  .doc-path { font-family: var(--mono); font-size: 12.5px; color: var(--text-faint); margin: 0; overflow-wrap: anywhere; }
+
+  .prose h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.2; margin: 44px 0 10px; text-wrap: balance; }
+  .prose h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; margin: 38px 0 8px; padding-top: 14px; border-top: 1px solid var(--border); text-wrap: balance; }
+  .prose h3 { font-size: 16.5px; font-weight: 800; margin: 28px 0 6px; }
+  .prose h4, .prose h5 { font-size: 14.5px; font-weight: 800; margin: 22px 0 4px; }
+  .prose > :first-child { margin-top: 0; border-top: none; padding-top: 0; }
+  .prose p, .prose ul, .prose ol, .prose blockquote { max-width: 72ch; margin: 10px 0; }
+  .prose ul, .prose ol { padding-left: 22px; }
+  .prose li { margin: 3px 0; }
+  .prose hr { border: none; border-top: 1px solid var(--border); margin: 30px 0; }
+  .prose blockquote { border-left: 3px solid var(--border); padding-left: 14px; color: var(--text-muted); }
+  .prose pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px 15px;
+    overflow-x: auto;
+    font-size: 12.8px;
+    line-height: 1.5;
+    margin: 14px 0;
+  }
+  .prose pre code { background: none; border: none; padding: 0; font-size: inherit; overflow-wrap: normal; }
+  .prose img { max-width: 100%; }
+
+  .table-wrap { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 800; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ---------- Overview ---------- */
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 2px 10px; border-radius: 999px; line-height: 1.6; white-space: nowrap; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill-done { background: var(--success-soft); color: var(--success); }
+  .pill-partial { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-soft-border); }
+  .pill-none { background: var(--surface-2); color: var(--text-muted); }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin: 0 0 8px; overflow: hidden; }
+  .fact { padding: 14px 18px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; }
+  .fact dt { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); }
+  .fact dd { margin: 3px 0 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .fact dd small { display: block; font-size: 12.5px; font-weight: 400; color: var(--text-muted); letter-spacing: 0; }
+
+  .callout { border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 11px 16px; font-size: 14px; margin: 16px 0; max-width: 72ch; }
+  .callout.blue { border-color: var(--secondary); background: var(--secondary-soft); }
+  .callout b.cap { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+
+  footer.page-foot { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 16px; font-size: 12.5px; color: var(--text-faint); max-width: 72ch; }
+</style>
+
+<div class="shell">
+  <nav class="sidebar" aria-label="Documents">
+    <div class="brand"><span class="mark-word">AKSI</span><span class="tag">Docs</span></div>
+    <p class="sidebar-sub">A copy of the repository's <code>docs/</code> folder. Synced __SYNCED__.</p>
+    <details class="nav-details" id="nav-details" open>
+      <summary>Browse documents</summary>
+      <input id="search" type="search" placeholder="Search all documents" autocomplete="off" aria-label="Search all documents">
+      <p class="search-note" id="search-note"></p>
+      <ul class="toc" id="toc"></ul>
+    </details>
+  </nav>
+
+  <main id="main">
+    <!-- Overview: static so the page is complete before any script runs -->
+    <article id="view-overview">
+      <header class="doc-head">
+        <p class="kicker">Status · __SYNCED__</p>
+        <h1>Where AKSI stands</h1>
+        <p class="lede">Every approved product decision (DP-001 to DP-014) is now built. Four of six milestones are done; the other two are waiting on product decisions, not on engineering. Open a document on the left to read the source.</p>
+      </header>
+
+      <dl class="facts">
+        <div class="fact"><dt>Milestones</dt><dd>4 of 6 done<small>the other two are partial</small></dd></div>
+        <div class="fact"><dt>Product decisions</dt><dd>14 approved<small>all built</small></dd></div>
+        <div class="fact"><dt>Last commit</dt><dd class="mono">__COMMIT__<small>branch <span class="mono">dev</span>, 45 commits ahead of <span class="mono">master</span></small></dd></div>
+        <div class="fact"><dt>Library</dt><dd>__COUNT__ documents<small>archive and the combined export left out</small></dd></div>
+      </dl>
+
+      <div class="prose">
+        <h2>Milestones</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Milestone</th><th>Status</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Personal Context Shell</td><td><span class="pill pill-done">Done</span></td><td>Home, Explore, Inbox and Me tabs. Explore is still a placeholder.</td></tr>
+            <tr><td>2</td><td>Session Experience</td><td><span class="pill pill-done">Done</span></td><td>Lifecycle, participants, match generation, pricing, self-service editing.</td></tr>
+            <tr><td>3</td><td>Community Home</td><td><span class="pill pill-done">Done</span></td><td>Ranked Current Focus list on Club Detail.</td></tr>
+            <tr><td>4</td><td>Organizer Experience</td><td><span class="pill pill-partial">Partial</span></td><td>Draft Recovery shipped. Only the "Prepare" checklist is missing, and it was skipped on purpose.</td></tr>
+            <tr><td>5</td><td>Session Finance</td><td><span class="pill pill-done">Done</span></td><td>Payment tab, Club bank accounts, receipt upload.</td></tr>
+            <tr><td>6</td><td>Communication Foundation</td><td><span class="pill pill-partial">Partial</span></td><td>Session Chat and Contact Organizer shipped. Club chat and Direct Messages not started.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Source: <a href="#implementation-roadmap">Implementation Roadmap</a>.</p>
+
+        <h2>Just built, not yet committed</h2>
+        <ul>
+          <li><strong>Recurring Schedule editing and sync (DP-007).</strong> A Schedule can be edited from its detail page. After saving, the organizer chooses whether to push the Template to Sessions already generated. Sessions edited by hand are skipped, and dates and times never move. See <a href="#current-lifecycle-recurring-schedule">Recurring Schedule Lifecycle</a>.</li>
+          <li><strong>Cross-Club Session history (DP-009).</strong> "Session History" on the Me tab lists every past Session a player joined, across all Clubs.</li>
+        </ul>
+        <p>Both need a run on a device before they count as verified; the new database queries have not been exercised against a real database yet.</p>
+
+        <h2>Known gaps in the shipped app</h2>
+        <ul>
+          <li><strong>No self-service Club join.</strong> Since "Join with Code" was removed, an owner or admin has to add each member by username. Club search in Explore is the planned fix and is not scheduled.</li>
+          <li><strong>No forgot-password flow.</strong> Deferred on 2026-08-05. Accounts use a synthetic email, so the standard Firebase reset does not work.</li>
+          <li><strong>No push notification on check-in.</strong> Deferred when match generation (DP-005) shipped.</li>
+        </ul>
+
+        <h2>New feature requests</h2>
+        <p>From <a href="#request-features">request-features.md</a>. None of these is approved yet.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Request</th><th>Where it stands</th></tr></thead>
+          <tbody>
+            <tr><td>Change display name</td><td>New and small.</td></tr>
+            <tr><td>Add email with confirmation, later usable for login and register</td><td>New. Would also unblock forgot-password.</td></tr>
+            <tr><td>Google Maps API</td><td>Matches the Planning item "Map-Based Venue Selection". Needs an API key.</td></tr>
+            <tr><td>Push notifications via Firebase</td><td>Matches the deferred check-in notification.</td></tr>
+            <tr><td>Payment gateway integration</td><td>Matches Planning "Payments".</td></tr>
+          </tbody>
+        </table></div>
+
+        <h2>Still in Planning</h2>
+        <p>Not approved, so not built. Details are in the Planning section of <a href="#aksi-product-decisions">Product Decisions</a>.</p>
+        <ul>
+          <li>Community chat and Direct Messages</li>
+          <li>Payment gateway, membership and guest fees, refunds</li>
+          <li>Scheduler evolution: partner and opponent diversity, skill balancing, court optimisation</li>
+          <li>Organizer Dashboard</li>
+          <li>Player Preferences</li>
+          <li>Attendance and no-show tracking</li>
+          <li>Court Management</li>
+          <li>Map-based venue selection</li>
+        </ul>
+
+      </div>
+
+      <footer class="page-foot">This overview was written by hand on __SYNCED__. The documents in the library are verbatim copies of the Markdown files, so the files in the repository stay the source of truth.</footer>
+    </article>
+
+    <article id="view-doc" hidden>
+      <header class="doc-head">
+        <p class="kicker" id="doc-group"></p>
+        <p class="doc-path" id="doc-path"></p>
+      </header>
+      <div class="prose" id="doc-body"></div>
+    </article>
+  </main>
+
+  <aside class="outline" aria-label="On this page">
+    <p class="outline-label">On this page</p>
+    <ul id="outline"></ul>
+  </aside>
+</div>
+
+<script type="application/json" id="docs-data">__DOCS_JSON__</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script>
+(function () {
+  var DOCS = JSON.parse(document.getElementById('docs-data').textContent);
+  var byId = {}, byPath = {};
+  DOCS.forEach(function (d) { byId[d.id] = d; byPath[d.path] = d; });
+
+  var toc = document.getElementById('toc');
+  var viewOverview = document.getElementById('view-overview');
+  var viewDoc = document.getElementById('view-doc');
+  var body = document.getElementById('doc-body');
+  var outline = document.getElementById('outline');
+  var search = document.getElementById('search');
+  var note = document.getElementById('search-note');
+  var navDetails = document.getElementById('nav-details');
+  var narrow = window.matchMedia('(max-width: 860px)');
+  var current = '';
+
+  function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function buildToc(query) {
+    var q = (query || '').trim().toLowerCase();
+    var groups = [], seen = {}, shown = 0;
+    var items = [{ id: '', group: 'Status', title: 'Overview', path: '', md: '' }].concat(DOCS);
+    items.forEach(function (d) {
+      var hit = '';
+      if (q) {
+        var inTitle = (d.title + ' ' + d.path).toLowerCase().indexOf(q) !== -1;
+        var at = d.md.toLowerCase().indexOf(q);
+        if (!inTitle && at === -1) return;
+        if (at !== -1) {
+          var from = Math.max(0, at - 28);
+          hit = (from ? '…' : '') + esc(d.md.slice(from, at)) + '<mark>' + esc(d.md.slice(at, at + q.length)) + '</mark>' +
+            esc(d.md.slice(at + q.length, at + q.length + 44)).replace(/\s+/g, ' ') + '…';
+        }
+      }
+      shown++;
+      if (!seen[d.group]) { seen[d.group] = { label: d.group, items: [] }; groups.push(seen[d.group]); }
+      seen[d.group].items.push({ d: d, hit: hit });
+    });
+    toc.innerHTML = groups.map(function (g) {
+      return '<li><p class="toc-group-label">' + esc(g.label) + '</p>' + g.items.map(function (it) {
+        return '<a href="#' + it.d.id + '"' + (it.d.id === current ? ' aria-current="page"' : '') + '>' + esc(it.d.title) +
+          (it.hit ? '<span class="hit">' + it.hit + '</span>' : '') + '</a>';
+      }).join('') + '</li>';
+    }).join('');
+    note.textContent = q ? (shown ? shown + ' matching document' + (shown === 1 ? '' : 's') : 'No document mentions "' + query.trim() + '".') : '';
+  }
+
+  function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+
+  function buildOutline(root) {
+    var heads = root.querySelectorAll('h2, h3');
+    outline.innerHTML = '';
+    Array.prototype.forEach.call(heads, function (h) {
+      var li = document.createElement('li');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'lvl-' + h.tagName.charAt(1);
+      b.textContent = h.textContent;
+      b.addEventListener('click', function () { h.scrollIntoView({ block: 'start' }); });
+      li.appendChild(b);
+      outline.appendChild(li);
+    });
+    outline.parentNode.hidden = heads.length === 0;
+  }
+
+  function resolve(fromPath, href) {
+    var parts = fromPath.split('/'); parts.pop();
+    href.split('#')[0].split('/').forEach(function (seg) {
+      if (seg === '..') parts.pop(); else if (seg && seg !== '.') parts.push(seg);
+    });
+    return parts.join('/');
+  }
+
+  function show(id) {
+    var d = byId[id];
+    current = d ? id : '';
+    viewOverview.hidden = !!d;
+    viewDoc.hidden = !d;
+    if (d) {
+      document.getElementById('doc-group').textContent = d.group;
+      document.getElementById('doc-path').textContent = d.path;
+      if (window.marked) {
+        body.innerHTML = window.marked.parse(d.md, { gfm: true });
+      } else {
+        body.innerHTML = '<pre></pre>';
+        body.firstChild.textContent = d.md;
+      }
+      Array.prototype.forEach.call(body.querySelectorAll('table'), function (t) {
+        var w = document.createElement('div'); w.className = 'table-wrap';
+        t.parentNode.insertBefore(w, t); w.appendChild(t);
+      });
+      Array.prototype.forEach.call(body.querySelectorAll('a[href]'), function (a) {
+        var href = a.getAttribute('href');
+        if (/^[a-z]+:/i.test(href)) { a.target = '_blank'; a.rel = 'noopener'; return; }
+        if (href.charAt(0) === '#') {
+          a.addEventListener('click', function (e) {
+            e.preventDefault();
+            var want = href.slice(1);
+            var hs = body.querySelectorAll('h1, h2, h3, h4');
+            for (var i = 0; i < hs.length; i++) if (slug(hs[i].textContent) === want) { hs[i].scrollIntoView(); break; }
+          });
+          return;
+        }
+        var target = byPath[resolve(d.path, href)];
+        if (target) a.setAttribute('href', '#' + target.id);
+        else { a.removeAttribute('href'); a.title = 'Not in this library: ' + href; }
+      });
+      buildOutline(body);
+    } else {
+      buildOutline(viewOverview);
+    }
+    buildToc(search.value);
+    window.scrollTo(0, 0);
+    if (narrow.matches) navDetails.open = false;
+  }
+
+  window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
+  search.addEventListener('input', function () { buildToc(search.value); });
+  function syncNav() { navDetails.open = !narrow.matches; }
+  if (narrow.addEventListener) narrow.addEventListener('change', syncNav);
+  syncNav();
+  show(location.hash.slice(1));
+})();
+</script>

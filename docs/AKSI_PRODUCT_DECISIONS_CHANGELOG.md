@@ -6,6 +6,24 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.13.0
+
+DP-007 Session Synchronization resolved; DP-009 cross-Club Session
+History built.
+
+Major updates:
+
+- DP-007: the three open questions blocking Session Synchronization
+  were answered by the product owner. All Template fields synchronize;
+  start time and duration never do. Sessions edited by hand after
+  generation are excluded. "Upcoming" means not started and not
+  cancelled. Schedule Editing itself — approved since v0.3.2 but never
+  given a screen — is now reachable from the Schedule's detail page.
+- DP-009: the Player's own cross-Club Session History is implemented,
+  opened from the Me tab.
+
+---
+
 ## v0.12.0
 
 DP-013 revised to share Session Chat's messaging engine; Online

@@ -81,8 +81,8 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   ├── clubs/                    CreateClubScreen, JoinClubScreen,
 │   │   │                            ClubDetailScreen, ClubMembersScreen
 │   │   ├── sessions/                  SessionListScreen (Today/Upcoming, v0.6.3),
-│   │   │                            SessionHistoryScreen (Past, v0.6.3, Club-scoped
-│   │   │                            only), SessionDetailScreen,
+│   │   │                            SessionHistoryScreen (Past; Club-scoped, or
+│   │   │                            cross-Club from Me), SessionDetailScreen,
 │   │   │                            CreateSessionScreen — unified ad-hoc/recurring
 │   │   │                            creation behind a "make this recurring" toggle
 │   │   │                            (v0.5.1; CreateRecurringScheduleScreen retired,

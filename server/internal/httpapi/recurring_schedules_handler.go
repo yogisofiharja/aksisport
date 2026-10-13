@@ -254,6 +254,34 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 		c.JSON(http.StatusOK, sched)
 	})
 
+	// DP-007 Session Synchronization, in two calls so the organizer
+	// confirms with real numbers in hand: the preview counts what a sync
+	// would touch, the POST does it. Both push the Schedule's *current*
+	// Template — the client saves the edit (PATCH above) first.
+	authed.GET("/clubs/:clubId/recurring-schedules/:id/sync-sessions", func(c *gin.Context) {
+		if _, ok := requireRecurringScheduleAccess(c, pool, c.Param("clubId"), c.Param("id")); !ok {
+			return
+		}
+		counts, err := dbpkg.PreviewSessionSync(c.Request.Context(), pool, c.Param("id"))
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, counts)
+	})
+
+	authed.POST("/clubs/:clubId/recurring-schedules/:id/sync-sessions", func(c *gin.Context) {
+		if _, ok := requireRecurringScheduleAccess(c, pool, c.Param("clubId"), c.Param("id")); !ok {
+			return
+		}
+		counts, err := dbpkg.SyncGeneratedSessions(c.Request.Context(), pool, c.Param("id"))
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, counts)
+	})
+
 	authed.POST("/clubs/:clubId/recurring-schedules/:id/pause", func(c *gin.Context) {
 		if _, ok := requireRecurringScheduleAccess(c, pool, c.Param("clubId"), c.Param("id")); !ok {
 			return

@@ -1,5 +1,5 @@
 import { apiFetch } from '../api/client';
-import type { OccurrencePreview, PriceModel, RecurrenceRule, RecurringSchedule, Session, SkillLevelEnforcement } from '../api/types';
+import type { OccurrencePreview, PriceModel, RecurrenceRule, RecurringSchedule, Session, SessionSyncCounts, SkillLevelEnforcement } from '../api/types';
 
 export function createRecurringSchedule(
   clubId: string,
@@ -60,12 +60,26 @@ export function updateRecurringSchedule(
     skillLevelMaxId?: string;
     skillLevelEnforcement?: SkillLevelEnforcement;
     hostPlaying?: boolean;
+    priceModel?: PriceModel;
+    pricePerPerson?: number;
+    totalPrice?: number;
   }
 ): Promise<RecurringSchedule> {
   return apiFetch(`/v1/clubs/${clubId}/recurring-schedules/${scheduleId}`, {
     method: 'PATCH',
     body: JSON.stringify(updates),
   });
+}
+
+// DP-007 Session Synchronization: what pushing the Schedule's saved
+// Template to its already-generated upcoming Sessions would touch. Read
+// before asking the organizer to confirm.
+export function previewSessionSync(clubId: string, scheduleId: string): Promise<SessionSyncCounts> {
+  return apiFetch(`/v1/clubs/${clubId}/recurring-schedules/${scheduleId}/sync-sessions`);
+}
+
+export function syncGeneratedSessions(clubId: string, scheduleId: string): Promise<SessionSyncCounts> {
+  return apiFetch(`/v1/clubs/${clubId}/recurring-schedules/${scheduleId}/sync-sessions`, { method: 'POST' });
 }
 
 export function pauseRecurringSchedule(clubId: string, scheduleId: string): Promise<RecurringSchedule> {

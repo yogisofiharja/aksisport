@@ -19,6 +19,7 @@ import type { SkillLevel, UserSkillLevel } from '../../core/api/types';
 type Props = {
   onOpenSettings: () => void;
   onCreateClub: () => void;
+  onOpenHistory: () => void;
 };
 
 // DP-008: only the sport name is translated — level names are data-driven
@@ -27,7 +28,7 @@ function sportLabel(sport: string, t: (key: string) => string) {
   return sport === 'tennis' ? t('sportTennis') : sport;
 }
 
-export function MeScreen({ onOpenSettings, onCreateClub }: Props) {
+export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory }: Props) {
   const { t } = useTranslation();
   const { profile, refreshProfile } = useAuth();
   const sports = listSportIds();
@@ -193,6 +194,15 @@ export function MeScreen({ onOpenSettings, onCreateClub }: Props) {
           })}
         </VStack>
       </VStack>
+
+      {/* DP-009: the Player's own Session History — every Session joined,
+          across all Clubs. */}
+      <Card pressable onPress={onOpenHistory}>
+        <HStack className="justify-between items-center">
+          <Typography variant="title">{t('mySessionHistoryTitle')}</Typography>
+          <Icon name="chevron-forward" size="sm" color="muted" />
+        </HStack>
+      </Card>
     </ScrollPage>
   );
 }

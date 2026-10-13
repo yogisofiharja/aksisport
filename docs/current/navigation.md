@@ -169,6 +169,9 @@ The app's Personal Context — always the post-auth entry point
   per-sport detail/statistics screen instead, which doesn't exist yet
   (statistics are out of scope) — when that lands, this inline editor
   may move there or stay as a quick-edit affordance.
+  At the bottom, a "Session History" card pushes `MySessionHistory`
+  (`SessionHistoryScreen` with no `clubId`): every past Session the user
+  joined, across all Clubs (DP-009).
 
 Tab screens navigate onto the *parent* `MainStack` (e.g. `ClubDetail`,
 `Settings`) via `useNavigation<NativeStackNavigationProp<MainStackParamList>>()`
@@ -197,8 +200,8 @@ those routes don't exist on the tab navigator itself.
   landing in Explore — a real, known gap in the interim, not an
   oversight. The only way to join today is an owner/admin adding a
   member by username (`ClubMembersScreen`'s Add Member dialog).
-- No cross-club data beyond Home's attention section — no history,
-  no aggregated feed.
+- No cross-club data beyond Home's attention section and Me's Session
+  History — no aggregated feed.
 - The legacy `SettingsModal` (theme, language, TTS voice) still exists
   unchanged, but only for `MobileSetupScreen` or the legacy
   `ScoringFlow`, which remains unreachable from `MainStack`.

@@ -97,6 +97,7 @@ export function PersonalTabs() {
           <MeScreen
             onOpenSettings={() => rootNavigation.navigate('Settings')}
             onCreateClub={() => rootNavigation.navigate('CreateClub')}
+            onOpenHistory={() => rootNavigation.navigate('MySessionHistory')}
           />
         )}
       </Tab.Screen>

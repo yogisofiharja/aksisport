@@ -9,13 +9,14 @@ import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { useTranslation } from '../../i18n';
-import { listSessions } from '../../core/sessions/api';
+import { listMyJoinedSessions, listSessions } from '../../core/sessions/api';
 import { formatSessionDateTime, sessionDateBucket } from '../../core/sessions/sessionSchedule';
-import type { Session } from '../../core/api/types';
+import type { JoinedSession, Session } from '../../core/api/types';
 import { statusLabel, sessionStatusColor } from './SessionListScreen';
 
 type Props = {
-  clubId: string;
+  // Omitted for the Player's own cross-Club history (opened from Me).
+  clubId?: string;
   onBack: () => void;
   onOpenSession: (sessionId: string) => void;
 };
@@ -24,18 +25,19 @@ function byStartsAtDesc(a: Session, b: Session) {
   return (b.startsAt ?? '').localeCompare(a.startsAt ?? '');
 }
 
-// Club-scoped Session History (DP-009): every Session (any status) whose
-// date is before today, most recent first. The cross-Club "every Session
-// I've joined" view described alongside DP-009 is a separate, not-yet-
-// built entry point — this one only covers "inside a Club."
+// Session History (DP-009): every Session (any status) whose date is
+// before today, most recent first. History is contextual to where the
+// Player is looking — with a clubId, that Club's own past Sessions;
+// without one, every Session the Player has joined across all their
+// Clubs, each labelled with its Club.
 export function SessionHistoryScreen({ clubId, onBack, onOpenSession }: Props) {
   const { t } = useTranslation();
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<(Session | JoinedSession)[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      setSessions(await listSessions(clubId));
+      setSessions(clubId ? await listSessions(clubId) : await listMyJoinedSessions());
     } catch {
       // keep stale list; user can pull to refresh
     } finally {
@@ -57,19 +59,21 @@ export function SessionHistoryScreen({ clubId, onBack, onOpenSession }: Props) {
         <Icon name="arrow-back" size="lg" />
       </Pressable>
 
-      <Typography variant="display">{t('sessionHistoryTitle')}</Typography>
+      <Typography variant="display">{t(clubId ? 'sessionHistoryTitle' : 'mySessionHistoryTitle')}</Typography>
 
       {loading && sessions.length === 0 ? (
         <Loading />
       ) : pastSessions.length === 0 ? (
-        <EmptyState message={t('sessionHistoryEmptyState')} />
+        <EmptyState message={t(clubId ? 'sessionHistoryEmptyState' : 'mySessionHistoryEmptyState')} />
       ) : (
         <VStack space="md">
           {pastSessions.map((session) => (
             <SessionCard
               key={session.id}
               title={session.name || session.sport}
-              subtitle={session.location}
+              subtitle={
+                'clubName' in session ? [session.clubName, session.location].filter(Boolean).join(' · ') : session.location
+              }
               dateTime={formatSessionDateTime(session.startsAt)}
               status={statusLabel(session.lifecycleStatus, t)}
               statusAction={sessionStatusColor(session.lifecycleStatus)}

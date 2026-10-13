@@ -28,6 +28,7 @@ type Props = {
   clubId: string;
   scheduleId: string;
   onBack: () => void;
+  onEdit: () => void;
   onDeleted: () => void;
 };
 
@@ -37,7 +38,7 @@ function occurrenceStatusLabel(status: OccurrencePreview['status'], t: (key: str
   return t('recurringScheduleOccurrencePending');
 }
 
-export function RecurringScheduleDetailScreen({ clubId, scheduleId, onBack, onDeleted }: Props) {
+export function RecurringScheduleDetailScreen({ clubId, scheduleId, onBack, onEdit, onDeleted }: Props) {
   const { t } = useTranslation();
   const [schedule, setSchedule] = useState<RecurringSchedule | null>(null);
   const [occurrences, setOccurrences] = useState<OccurrencePreview[]>([]);
@@ -145,6 +146,12 @@ export function RecurringScheduleDetailScreen({ clubId, scheduleId, onBack, onDe
           text={schedule.status === 'paused' ? t('recurringScheduleStatusPaused') : t('recurringScheduleStatusActive')}
         />
       </VStack>
+
+      <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={onEdit} isDisabled={busy}>
+        <ButtonText action="secondary" variant="outline" className="text-lg">
+          {t('recurringScheduleEdit')}
+        </ButtonText>
+      </Button>
 
       <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={handleTogglePause} isDisabled={busy}>
         <ButtonText action="secondary" variant="outline" className="text-lg">

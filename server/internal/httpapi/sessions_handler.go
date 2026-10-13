@@ -324,6 +324,18 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		c.JSON(http.StatusOK, sessions)
 	})
 
+	// DP-009 Session History, the Player's own view: every Session the
+	// caller has joined, across all their Clubs.
+	authed.GET("/me/sessions", func(c *gin.Context) {
+		user := authjwt.CurrentUser(c)
+		sessions, err := dbpkg.ListJoinedSessionsForUser(c.Request.Context(), pool, user.ID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, sessions)
+	})
+
 	authed.GET("/sessions/:id", func(c *gin.Context) {
 		sessionID := c.Param("id")
 		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {

@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.12.0
+Version: 0.13.0
 
 Status: Living Document
 
@@ -743,11 +743,31 @@ Editing a Recurring Schedule:
 - optionally updates all already-generated upcoming Sessions after organizer confirmation
 - does not support selecting individual Sessions for synchronization
 
-Session Synchronization must not be implemented until the following are resolved:
+### Session Synchronization
 
-- Which Template fields are synchronized to already-generated upcoming Sessions, and which remain local to the Session.
-- Whether synchronization overwrites a Session that has already been manually edited, or excludes it.
-- The definition of "upcoming" for synchronization purposes, relative to Session Lifecycle (DP-001) states.
+Resolved in v0.13.0. After saving a Schedule edit, the organizer is asked
+whether to also update the Sessions that Schedule already generated. The
+prompt states how many Sessions will be updated and how many will be
+left alone. Declining keeps every existing Session as it is; future
+Sessions use the edited Template either way.
+
+- **Fields synchronized:** every Template field — name, location,
+  description, court count, max participants, match format and deuce
+  rule, activity type, Skill Level requirement, Host Playing, and
+  pricing. A synchronized Session ends up as if it had just been
+  generated from the current Template.
+- **Never synchronized:** a Session's start time and duration. They come
+  from the Recurrence Rule, not the Template, so changing a Schedule's
+  weekday, time, or duration only affects Sessions generated afterwards.
+  Synchronization never moves an existing Session in time.
+- **Manually edited Sessions are excluded.** A generated Session whose
+  Template fields the organizer has since edited by hand keeps its own
+  values. Rescheduling a Session, or publishing/cancelling it, does not
+  count as a manual edit.
+- **"Upcoming" means not started and not cancelled:** the Session's start
+  time is still in the future and it is Draft or Open (Recruiting /
+  Ready / Full). Live, Completed, and Cancelled Sessions are never
+  touched.
 
 ### Session Editing
 
@@ -934,7 +954,11 @@ History is contextual to where the Player is looking:
   **Implemented** (v0.6.3) — the active list splits into Today/Upcoming,
   with a "Past Sessions" entry point to a separate, read-only history view.
 - Outside a Club (a Player's own view), history shows every Session the
-  Player has joined, across all Clubs. **Not yet implemented.**
+  Player has joined, across all Clubs, each labelled with its Club.
+  **Implemented** (v0.13.0) — opened from the Me tab. "Joined" uses
+  DP-002's headcount definition (Registered, Checked In, Checked Out); a
+  join request still awaiting approval, a cancellation, or a no-show is
+  not a Session the Player joined.
 
 ---
 

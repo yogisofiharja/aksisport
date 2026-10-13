@@ -23,6 +23,7 @@ export type MainStackParamList = {
   ClubSettings: { clubId: string };
   SessionList: { clubId: string };
   SessionHistory: { clubId: string };
+  MySessionHistory: undefined;
   CreateSession: { clubId: string };
   EditSession: { sessionId: string };
   SessionDetail: { sessionId: string; openContactWith?: string };
@@ -31,6 +32,7 @@ export type MainStackParamList = {
   RecurringScheduleList: { clubId: string };
   CreateRecurringSchedule: { clubId: string };
   RecurringScheduleDetail: { clubId: string; scheduleId: string };
+  EditRecurringSchedule: { clubId: string; scheduleId: string };
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -108,7 +110,21 @@ export function MainStack() {
             clubId={route.params.clubId}
             scheduleId={route.params.scheduleId}
             onBack={() => navigation.goBack()}
+            onEdit={() => navigation.navigate('EditRecurringSchedule', route.params)}
             onDeleted={() => navigation.navigate('RecurringScheduleList', { clubId: route.params.clubId })}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="EditRecurringSchedule">
+        {({ navigation, route }) => (
+          <CreateSessionScreen
+            clubId={route.params.clubId}
+            editingScheduleId={route.params.scheduleId}
+            onBack={() => navigation.goBack()}
+            onSessionCreated={() => {}}
+            onScheduleCreated={() => {}}
+            onScheduleUpdated={() => navigation.goBack()}
           />
         )}
       </Stack.Screen>
@@ -135,6 +151,15 @@ export function MainStack() {
         {({ navigation, route }) => (
           <SessionHistoryScreen
             clubId={route.params.clubId}
+            onBack={() => navigation.goBack()}
+            onOpenSession={(sessionId) => navigation.navigate('SessionDetail', { sessionId })}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="MySessionHistory">
+        {({ navigation }) => (
+          <SessionHistoryScreen
             onBack={() => navigation.goBack()}
             onOpenSession={(sessionId) => navigation.navigate('SessionDetail', { sessionId })}
           />

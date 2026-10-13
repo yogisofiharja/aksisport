@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+// JoinedSession is a Session as it appears in a Player's own cross-Club
+// history (DP-009) — outside any one Club, so the Club's name has to
+// travel with it.
+type JoinedSession struct {
+	Session
+	ClubName string `json:"clubName"`
+}
+
 type Session struct {
 	ID                 string          `json:"id"`
 	ClubID             string          `json:"clubId"`

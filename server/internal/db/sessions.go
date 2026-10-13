@@ -33,9 +33,16 @@ func resolveLifecycleStatus(s models.Session) string {
 
 const sessionColumns = "id, club_id, sport, name, location, court_count, status, max_participants, default_match_format, created_by, created_at, updated_at, starts_at, recurring_schedule_id, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce"
 
+// sessionScanTargets lists Scan destinations in sessionColumns' order —
+// shared so a query selecting sessionColumns plus extra columns can append
+// its own targets instead of repeating this list.
+func sessionScanTargets(s *models.Session) []any {
+	return []any{&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.MaxParticipants, &s.DefaultMatchFormat, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt, &s.StartsAt, &s.RecurringScheduleID, &s.SkillLevelMinID, &s.SkillLevelMaxID, &s.SkillLevelEnforcement, &s.DurationMinutes, &s.ActivityType, &s.Description, &s.HostPlaying, &s.PriceModel, &s.PricePerPerson, &s.TotalPrice, &s.DefaultSingleDeuce}
+}
+
 func scanSession(row pgx.CollectableRow) (models.Session, error) {
 	var s models.Session
-	err := row.(pgx.Rows).Scan(&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.MaxParticipants, &s.DefaultMatchFormat, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt, &s.StartsAt, &s.RecurringScheduleID, &s.SkillLevelMinID, &s.SkillLevelMaxID, &s.SkillLevelEnforcement, &s.DurationMinutes, &s.ActivityType, &s.Description, &s.HostPlaying, &s.PriceModel, &s.PricePerPerson, &s.TotalPrice, &s.DefaultSingleDeuce)
+	err := row.(pgx.Rows).Scan(sessionScanTargets(&s)...)
 	return s, err
 }
 
@@ -176,6 +183,58 @@ func ListSessionsForClub(ctx context.Context, pool *pgxpool.Pool, clubID string,
 	return result, nil
 }
 
+// ListJoinedSessionsForUser backs a Player's own cross-Club Session
+// History (DP-009): every published Session the user has joined, in any
+// Club, newest first. "Joined" is DP-002's headcount definition, same as
+// CountJoinedParticipants — a request still awaiting approval, a
+// cancellation, or a no-show isn't a Session they joined. Limited to
+// Clubs the user still belongs to, since opening a Session requires
+// membership (requireSessionAccess). Not filtered to past dates here:
+// "past" is judged against the viewer's local calendar day, same as the
+// Club-scoped history, so the client applies it.
+func ListJoinedSessionsForUser(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.JoinedSession, error) {
+	rows, err := pool.Query(ctx,
+		`SELECT `+sessionColumns+`, (SELECT name FROM clubs WHERE clubs.id = sessions.club_id)
+		 FROM sessions
+		 WHERE status != 'draft'
+		   AND id IN (SELECT session_id FROM session_participants
+		              WHERE user_id = $1 AND status IN ('registered', 'checked_in', 'checked_out'))
+		   AND club_id IN (SELECT club_id FROM club_members WHERE user_id = $1)
+		 ORDER BY starts_at DESC NULLS LAST`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := []models.JoinedSession{}
+	for rows.Next() {
+		var js models.JoinedSession
+		if err := rows.Scan(append(sessionScanTargets(&js.Session), &js.ClubName)...); err != nil {
+			return nil, err
+		}
+		result = append(result, js)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, len(result))
+	for i, js := range result {
+		ids[i] = js.ID
+	}
+	counts, err := CountJoinedParticipants(ctx, pool, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range result {
+		result[i].JoinedCount = counts[result[i].ID]
+		result[i].LifecycleStatus = resolveLifecycleStatus(result[i].Session)
+	}
+	return result, nil
+}
+
 type SessionUpdate struct {
 	Name                  *string
 	Location              *string
@@ -204,6 +263,21 @@ type SessionUpdate struct {
 	DefaultSingleDeuce *bool
 }
 
+// TouchesTemplate reports whether this update changes any field a
+// Recurring Schedule's Template owns (DP-004 Organizer Preferences). A
+// status transition or a reschedule (StartsAt/DurationMinutes — core
+// Session properties, never synced) doesn't count. UpdateSession uses it
+// to mark a generated Session as edited by hand, which excludes it from
+// DP-007 Session Synchronization.
+func (u SessionUpdate) TouchesTemplate() bool {
+	return u.Name != nil || u.Location != nil || u.Description != nil ||
+		u.MaxParticipants != nil || len(u.DefaultMatchFormat) > 0 || u.DefaultSingleDeuce != nil ||
+		u.ActivityType != nil ||
+		u.SkillLevelMinID != nil || u.SkillLevelMaxID != nil || u.SkillLevelEnforcement != nil ||
+		u.HostPlaying != nil ||
+		u.PriceModel != nil || u.PricePerPerson != nil || u.TotalPrice != nil
+}
+
 func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u SessionUpdate) (models.Session, error) {
 	rows, err := pool.Query(ctx,
 		`UPDATE sessions SET
@@ -224,12 +298,13 @@ func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u 
 			price_per_person = COALESCE($16, price_per_person),
 			total_price = COALESCE($17, total_price),
 			default_single_deuce = COALESCE($18, default_single_deuce),
+			edited_after_generation = edited_after_generation OR ($19 AND recurring_schedule_id IS NOT NULL),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+sessionColumns,
 		sessionID, u.Name, u.Location, u.Status, u.MaxParticipants, u.DefaultMatchFormat, u.StartsAt,
 		u.SkillLevelMinID, u.SkillLevelMaxID, u.SkillLevelEnforcement, u.DurationMinutes, u.ActivityType, u.Description, u.HostPlaying,
-		u.PriceModel, u.PricePerPerson, u.TotalPrice, u.DefaultSingleDeuce,
+		u.PriceModel, u.PricePerPerson, u.TotalPrice, u.DefaultSingleDeuce, u.TouchesTemplate(),
 	)
 	if err != nil {
 		return models.Session{}, err

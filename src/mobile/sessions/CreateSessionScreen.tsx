@@ -12,7 +12,13 @@ import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
 import { createSession, getSession, publishSession, updateSession } from '../../core/sessions/api';
-import { createRecurringSchedule } from '../../core/recurringSchedules/api';
+import {
+  createRecurringSchedule,
+  getRecurringSchedule,
+  previewSessionSync,
+  syncGeneratedSessions,
+  updateRecurringSchedule,
+} from '../../core/recurringSchedules/api';
 import { listSkillLevels } from '../../core/skillLevels/api';
 import { formatSessionDateTime } from '../../core/sessions/sessionSchedule';
 import { formatIDR } from '../../core/currency';
@@ -40,6 +46,13 @@ type Props = {
   // instead of createSession()/onSessionCreated().
   editingSessionId?: string;
   onSessionUpdated?: (session: Session) => void;
+  // DP-007 Schedule Editing: when set, edits this existing Recurring
+  // Schedule (needs clubId, unlike editingSessionId). Same immutables as
+  // Session editing — sport and the recurring toggle are hidden. After
+  // saving, offers to push the Template to already-generated upcoming
+  // Sessions (Session Synchronization) before calling onScheduleUpdated().
+  editingScheduleId?: string;
+  onScheduleUpdated?: () => void;
 };
 
 const DEFAULT_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -114,11 +127,14 @@ export function CreateSessionScreen({
   initialRecurring,
   editingSessionId,
   onSessionUpdated,
+  editingScheduleId,
+  onScheduleUpdated,
 }: Props) {
   const { t } = useTranslation();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const isEditing = Boolean(editingSessionId);
+  const isEditingSchedule = Boolean(editingScheduleId);
 
   const sports = listSportIds();
   const [sport, setSport] = useState(sports[0] ?? 'tennis');
@@ -130,13 +146,16 @@ export function CreateSessionScreen({
   const [description, setDescription] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('');
   const [hostPlaying, setHostPlaying] = useState(true);
-  const [isRecurring, setIsRecurring] = useState(Boolean(initialRecurring));
+  const [isRecurring, setIsRecurring] = useState(Boolean(initialRecurring) || isEditingSchedule);
 
   // Ad-hoc: a specific date. Recurring: a weekday instead.
   const [date, setDate] = useState(defaultStartsAt);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [weekday, setWeekday] = useState(6); // Saturday default
   const [generationLeadDays, setGenerationLeadDays] = useState('3');
+  // Kept as loaded when editing a Schedule — re-saving from a phone in
+  // another timezone must not silently shift every future occurrence.
+  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
 
   // Both modes need a time-of-day.
   const [time, setTime] = useState(defaultStartsAt);
@@ -179,7 +198,7 @@ export function CreateSessionScreen({
   // nothing to delete yet.
   const [showPreview, setShowPreview] = useState(false);
 
-  const [loadingExisting, setLoadingExisting] = useState(isEditing);
+  const [loadingExisting, setLoadingExisting] = useState(isEditing || isEditingSchedule);
 
   useEffect(() => {
     if (!editingSessionId) return;
@@ -218,6 +237,46 @@ export function CreateSessionScreen({
       })
       .finally(() => setLoadingExisting(false));
   }, [editingSessionId]);
+
+  useEffect(() => {
+    if (!editingScheduleId) return;
+    setLoadingExisting(true);
+    getRecurringSchedule(clubId, editingScheduleId)
+      .then((sched) => {
+        setSport(sched.sport);
+        setActivityType(sched.activityType);
+        setName(sched.name ?? '');
+        setLocation(sched.location ?? '');
+        setDescription(sched.description ?? '');
+        setMaxParticipants(sched.maxParticipants != null ? String(sched.maxParticipants) : '');
+        setHostPlaying(sched.hostPlaying);
+        setPriceModel(sched.priceModel);
+        setPricePerPerson(sched.pricePerPerson != null ? String(sched.pricePerPerson) : '');
+        setTotalPrice(sched.totalPrice != null ? String(sched.totalPrice) : '');
+        if (sched.defaultMatchFormat) setMatchFormat(sched.defaultMatchFormat as MatchFormat);
+        if (sched.defaultSingleDeuce != null) setSingleDeuceSuddenDeath(sched.defaultSingleDeuce);
+        setWeekday(sched.recurrenceRule.weekday);
+        const [hours, minutes] = sched.recurrenceRule.time.split(':').map(Number);
+        const ruleTime = new Date();
+        ruleTime.setHours(hours, minutes, 0, 0);
+        setTime(ruleTime);
+        setDurationHours(sched.recurrenceRule.durationMinutes / 60);
+        setTimezone(sched.recurrenceRule.timezone);
+        setGenerationLeadDays(String(sched.generationLeadDays));
+        if (sched.skillLevelMinId && sched.skillLevelMaxId) {
+          setRequireSkillLevel(true);
+          setSkillLevelRange({
+            skillLevelMinId: sched.skillLevelMinId,
+            skillLevelMaxId: sched.skillLevelMaxId,
+            skillLevelEnforcement: sched.skillLevelEnforcement,
+          });
+        }
+      })
+      .catch(() => {
+        setError(t('authGenericError'));
+      })
+      .finally(() => setLoadingExisting(false));
+  }, [clubId, editingScheduleId]);
 
   // Preview-only lookup for skillLevelRange's ids — only needed once the
   // requirement is actually on.
@@ -341,26 +400,31 @@ export function CreateSessionScreen({
           setSubmitting(false);
           return;
         }
-        const schedule = await createRecurringSchedule(
-          clubId,
-          sport,
-          { weekday, time: formatHHMM(time), durationMinutes, timezone: DEFAULT_TIMEZONE },
-          leadDays,
-          {
-            name: v.trimmedName,
-            location: v.trimmedLocation,
-            description: description.trim() || undefined,
-            maxParticipants: v.parsedMaxParticipants,
-            activityType,
-            hostPlaying,
-            priceModel,
-            pricePerPerson: v.parsedPricePerPerson,
-            totalPrice: v.parsedTotalPrice,
-            defaultMatchFormat: matchFormat,
-            defaultSingleDeuce: singleDeuceSuddenDeath,
-            ...(requireSkillLevel ? skillLevelRange : {}),
-          }
-        );
+        const recurrenceRule = { weekday, time: formatHHMM(time), durationMinutes, timezone };
+        const template = {
+          name: v.trimmedName,
+          location: v.trimmedLocation,
+          description: description.trim() || undefined,
+          maxParticipants: v.parsedMaxParticipants,
+          activityType,
+          hostPlaying,
+          priceModel,
+          pricePerPerson: v.parsedPricePerPerson,
+          totalPrice: v.parsedTotalPrice,
+          defaultMatchFormat: matchFormat,
+          defaultSingleDeuce: singleDeuceSuddenDeath,
+          ...(requireSkillLevel ? skillLevelRange : {}),
+        };
+        if (editingScheduleId) {
+          await updateRecurringSchedule(clubId, editingScheduleId, {
+            ...template,
+            recurrenceRule,
+            generationLeadDays: leadDays,
+          });
+          await offerSessionSync(editingScheduleId);
+          return;
+        }
+        const schedule = await createRecurringSchedule(clubId, sport, recurrenceRule, leadDays, template);
         onScheduleCreated(schedule);
       }
     } catch (err) {
@@ -368,6 +432,40 @@ export function CreateSessionScreen({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // DP-007 Session Synchronization. The Schedule is already saved by the
+  // time this runs, so declining (or a failed preview) still leaves future
+  // occurrences on the new Template — only the already-generated upcoming
+  // Sessions are the organizer's call. Nothing to ask when there are none.
+  async function offerSessionSync(scheduleId: string) {
+    let counts = { updated: 0, skippedEdited: 0 };
+    try {
+      counts = await previewSessionSync(clubId, scheduleId);
+    } catch {
+      // Fall through with zero counts: the save itself succeeded.
+    }
+    if (counts.updated === 0) {
+      onScheduleUpdated?.();
+      return;
+    }
+    const desc =
+      t('recurringScheduleSyncDesc', counts.updated) +
+      (counts.skippedEdited > 0 ? ` ${t('recurringScheduleSyncSkippedDesc', counts.skippedEdited)}` : '');
+    Alert.alert(t('recurringScheduleSyncTitle'), desc, [
+      { text: t('recurringScheduleSyncDecline'), style: 'cancel', onPress: () => onScheduleUpdated?.() },
+      {
+        text: t('recurringScheduleSyncConfirm'),
+        onPress: async () => {
+          try {
+            await syncGeneratedSessions(clubId, scheduleId);
+            onScheduleUpdated?.();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : t('authGenericError'));
+          }
+        },
+      },
+    ]);
   }
 
   function handleContinue() {
@@ -541,7 +639,7 @@ export function CreateSessionScreen({
             <Icon name="arrow-back" size="lg" />
           </Pressable>
 
-          {!isEditing && (
+          {!isEditing && !isEditingSchedule && (
             <VStack className="gap-2">
               <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionSportLabel')}</Text>
               <HStack className="gap-2 flex-wrap">
@@ -641,7 +739,7 @@ export function CreateSessionScreen({
             <Switch value={hostPlaying} onValueChange={setHostPlaying} />
           </HStack>
 
-          {!isEditing && (
+          {!isEditing && !isEditingSchedule && (
             <HStack className="justify-between items-center">
               <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('recurringToggleLabel')}</Text>
               <Switch value={isRecurring} onValueChange={setIsRecurring} />
@@ -968,7 +1066,7 @@ export function CreateSessionScreen({
             onPress={isEditing || isRecurring ? handleSubmit : handleContinue}
           >
             <ButtonText className="text-white">
-              {isEditing ? t('sessionEditSubmit') : isRecurring ? t('recurringScheduleCreateSubmit') : t('sessionContinue')}
+              {isEditing || isEditingSchedule ? t('sessionEditSubmit') : isRecurring ? t('recurringScheduleCreateSubmit') : t('sessionContinue')}
             </ButtonText>
           </Button>
         </ScrollView>

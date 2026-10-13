@@ -302,6 +302,18 @@ export type RecurringSchedule = {
   totalPrice?: number;
 };
 
+// A Session in the Player's own cross-Club history (DP-009) — carries its
+// Club's name, since it's shown outside any one Club.
+export type JoinedSession = Session & { clubName: string };
+
+// DP-007 Session Synchronization: `updated` Sessions take the Template's
+// values; `skippedEdited` were edited by hand after generation and keep
+// their own.
+export type SessionSyncCounts = {
+  updated: number;
+  skippedEdited: number;
+};
+
 export type OccurrenceStatus = 'pending' | 'generated' | 'skipped';
 
 export type OccurrencePreview = {

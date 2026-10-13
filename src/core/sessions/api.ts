@@ -1,6 +1,7 @@
 import { apiFetch, apiUrl } from '../api/client';
 import type {
   ConversationMessage,
+  JoinedSession,
   Session,
   SessionContactThread,
   SessionParticipant,
@@ -36,6 +37,12 @@ export function createSession(
 
 export function listSessions(clubId: string): Promise<Session[]> {
   return apiFetch(`/v1/clubs/${clubId}/sessions`);
+}
+
+// DP-009: every Session the caller has joined, across all their Clubs —
+// backs the Player's own Session History.
+export function listMyJoinedSessions(): Promise<JoinedSession[]> {
+  return apiFetch('/v1/me/sessions');
 }
 
 export function getSession(sessionId: string): Promise<Session> {

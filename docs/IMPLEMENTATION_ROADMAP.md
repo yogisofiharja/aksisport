@@ -166,6 +166,14 @@ Real, live work that fell outside the six-milestone roadmap above:
   Focus now share one ranking implementation
   (`core/sessions/currentFocus.ts`) instead of two ad hoc copies
   (UX-015).
+- **Recurring Schedule editing + Session Synchronization (DP-007)** — a
+  Schedule can now be edited from its detail page (reuses
+  `CreateSessionScreen`, same as Session editing). After saving, the
+  organizer is offered a sync of the Template to that Schedule's
+  already-generated upcoming Sessions; ones edited by hand are skipped.
+  See `docs/current/lifecycle-recurring-schedule.md`.
+- **Cross-Club Session History (DP-009)** — "Session History" on the Me
+  tab lists every past Session the Player joined, across all Clubs.
 - **Online Indicator (DP-014)** — a User attribute derived from recent
   request activity (no push/websocket presence infra exists), shown as
   a green outline ring on member circle avatars (Club Members grid,
@@ -179,8 +187,8 @@ Everything below is real `# Planning` in `AKSI_PRODUCT_DECISIONS.md` —
 not approved, not built, don't build it without an explicit decision
 first:
 
-- **Communication**: Contact Organizer, Community-level chat, Direct
-  Messages (only Session Chat exists).
+- **Communication**: Community-level chat, Direct Messages (Session Chat
+  and Contact Organizer exist).
 - **Payments**: an actual payment gateway, Membership fees, Guest fees,
   Refunds (only manual payment-confirm + informational Pricing exist).
 - **Scheduler Evolution**: partner diversity, opponent diversity, skill
@@ -199,9 +207,3 @@ first:
   clearer product need.
 - **Self-service Club joining** — see "Join with Code removed" above;
   planned to return as Club search from Explore, not scheduled.
-- **Cross-Community Session history** — a Player's own "every Session
-  I've joined, across every Club" view (DP-009). Club-scoped history
-  exists; the cross-Club version doesn't.
-- **Recurring Schedule Session Synchronization** — editing a Schedule's
-  Template does not sync to already-generated upcoming Sessions.
-  Explicitly blocked in DP-007 pending unresolved product questions.

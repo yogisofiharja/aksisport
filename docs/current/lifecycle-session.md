@@ -43,7 +43,7 @@ Session automatically: `in_progress` → `completed`; any other non-terminal
 status → `cancelled` (it never started, so there's nothing to complete).
 See `internal/scheduling.AutoTransitionElapsedSessions`, riding the same
 ticker as DP-007 generation (and auto-start, above). Session History
-screens (Club-scoped and cross-Club) are part of DP-009 but not yet built.
+(Club-scoped and cross-Club) is described further down.
 
 ## Session status
 
@@ -281,9 +281,13 @@ upcoming Sessions, not a historical record; once a Session is
 Completed or Cancelled it moves to Past immediately, not just once its
 date has passed.) This same fix also keeps cancelled/completed
 Sessions out of `HomeScreen`'s attention section, which filters on
-`sessionDateBucket(s) === 'today'` among other conditions. The
-cross-Club "every Session I've joined" history view
-remains unbuilt.
+`sessionDateBucket(s) === 'today'` among other conditions.
+
+The cross-Club half is the same `SessionHistoryScreen` rendered without a
+`clubId` (route `MySessionHistory`, opened from `MeScreen`). It loads
+`GET /v1/me/sessions` — every Session the caller has joined across their
+Clubs — applies the same `'past'` bucket, and prefixes each card's
+subtitle with the Club's name.
 
 **Draft Recovery** (UX-005, Milestone 4): when the caller is owner/
 admin and this Club has at least one Draft Session, `SessionListScreen`
