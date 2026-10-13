@@ -6,6 +6,14 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.15.0
+
+- New DP-016: Display Name — a User can set, change and remove their own
+  display name from the Me tab (1–40 characters, not unique). Username
+  stays immutable.
+
+---
+
 ## v0.14.2
 
 - DP-015: security notices added — "password changed" to the account's

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -127,6 +128,15 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		if err := c.ShouldBindJSON(&body); err != nil {
 			respondError(c, http.StatusBadRequest, "invalid body")
 			return
+		}
+		// DP-016: trimmed, at most 40 characters; empty removes it.
+		if body.DisplayName != nil {
+			trimmed := strings.TrimSpace(*body.DisplayName)
+			if utf8.RuneCountInString(trimmed) > account.MaxDisplayNameLength {
+				respondError(c, http.StatusBadRequest, "display name can be at most 40 characters")
+				return
+			}
+			body.DisplayName = &trimmed
 		}
 		current := authjwt.CurrentUser(c)
 		user, err := dbpkg.UpdateUser(c.Request.Context(), pool, current.ID, dbpkg.UserUpdate{

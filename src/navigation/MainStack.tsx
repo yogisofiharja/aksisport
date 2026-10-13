@@ -14,11 +14,13 @@ import { RecurringScheduleListScreen } from '../mobile/recurringSchedules/Recurr
 import { RecurringScheduleDetailScreen } from '../mobile/recurringSchedules/RecurringScheduleDetailScreen';
 import { SettingsScreen } from '../mobile/me/SettingsScreen';
 import { AccountEmailScreen } from '../mobile/me/AccountEmailScreen';
+import { DisplayNameScreen } from '../mobile/me/DisplayNameScreen';
 
 export type MainStackParamList = {
   Personal: undefined;
   Settings: undefined;
   AccountEmail: undefined;
+  EditDisplayName: undefined;
   CreateClub: undefined;
   ClubDetail: { clubId: string };
   ClubMembers: { clubId: string };
@@ -50,6 +52,10 @@ export function MainStack() {
 
       <Stack.Screen name="AccountEmail">
         {({ navigation }) => <AccountEmailScreen onBack={() => navigation.goBack()} />}
+      </Stack.Screen>
+
+      <Stack.Screen name="EditDisplayName">
+        {({ navigation }) => <DisplayNameScreen onBack={() => navigation.goBack()} />}
       </Stack.Screen>
 
       <Stack.Screen name="CreateClub">

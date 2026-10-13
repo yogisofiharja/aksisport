@@ -23,6 +23,7 @@ type Props = {
   onCreateClub: () => void;
   onOpenHistory: () => void;
   onOpenEmail: () => void;
+  onOpenDisplayName: () => void;
 };
 
 // DP-008: only the sport name is translated — level names are data-driven
@@ -31,7 +32,7 @@ function sportLabel(sport: string, t: (key: string) => string) {
   return sport === 'tennis' ? t('sportTennis') : sport;
 }
 
-export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEmail }: Props) {
+export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEmail, onOpenDisplayName }: Props) {
   const { t } = useTranslation();
   const { profile, refreshProfile } = useAuth();
   const sports = listSportIds();
@@ -190,6 +191,21 @@ export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEm
             </HStack>
           </Card>
         )}
+        <Card pressable onPress={onOpenDisplayName}>
+          <HStack className="justify-between items-center" space="md">
+            <VStack space="xs" style={{ flex: 1 }}>
+              <Typography variant="body" className="font-bold">
+                {t('displayNameLabel')}
+              </Typography>
+              <Typography variant="body" color={profile?.displayName ? 'default' : 'muted'} numberOfLines={1}>
+                {profile?.displayName ?? t('meEmailNotSet')}
+              </Typography>
+            </VStack>
+            <Typography variant="body" className="font-bold text-blue-600 dark:text-blue-400">
+              {profile?.displayName ? t('meEmailChange') : t('meEmailAdd')}
+            </Typography>
+          </HStack>
+        </Card>
         <Card pressable onPress={onOpenEmail}>
           <HStack className="justify-between items-center" space="md">
             <VStack space="xs" style={{ flex: 1 }}>

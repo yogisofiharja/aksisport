@@ -35,6 +35,7 @@ export const linking: LinkingOptions<LinkableParamList> = {
       },
       Settings: 'settings',
       AccountEmail: 'me/email',
+      EditDisplayName: 'me/name',
       MySessionHistory: 'history',
       CreateClub: 'clubs/new',
       ClubDetail: 'clubs/:clubId',

@@ -162,6 +162,10 @@ func GetUserAvatarImage(ctx context.Context, pool *pgxpool.Pool, userID string) 
 	return img, nil
 }
 
+// UserUpdate: nil fields are left alone. DisplayName is the one field
+// that can also be cleared — an empty string removes it (DP-016: the User
+// is then shown by username again).
+//
 // UserUpdate has no Email: a User's email only changes through code
 // verification (SetVerifiedEmail), never a plain profile update.
 type UserUpdate struct {
@@ -173,7 +177,7 @@ type UserUpdate struct {
 func UpdateUser(ctx context.Context, pool *pgxpool.Pool, id string, u UserUpdate) (models.User, error) {
 	rows, err := pool.Query(ctx,
 		`UPDATE users SET
-			display_name = COALESCE($2, display_name),
+			display_name = CASE WHEN $2::text IS NULL THEN display_name ELSE NULLIF($2, '') END,
 			phone_number = COALESCE($3, phone_number),
 			avatar_url = COALESCE($4, avatar_url),
 			updated_at = now()

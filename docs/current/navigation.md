@@ -179,7 +179,9 @@ The app's Personal Context — always the post-auth entry point
   per-sport detail/statistics screen instead, which doesn't exist yet
   (statistics are out of scope) — when that lands, this inline editor
   may move there or stay as a quick-edit affordance.
-  Above Sports, an "Account" section: an Email row (the confirmed
+  Above Sports, an "Account" section: a Display name row pushing
+  `EditDisplayName` (`DisplayNameScreen`, DP-016 — set, change, or clear
+  it), and an Email row (the confirmed
   address or "Not set") pushing `AccountEmail` (`AccountEmailScreen`, the
   same two-step confirmation as the sign-up gate), preceded — for an
   account with no confirmed email — by a reminder card that can be

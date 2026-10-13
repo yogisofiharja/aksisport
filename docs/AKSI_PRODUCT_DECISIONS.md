@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.14.2
+Version: 0.15.0
 
 Status: Living Document
 
@@ -1262,6 +1262,34 @@ before this, a forgotten password could only be fixed by hand.
 - Email is used for account security only. Activity emails (join
   approvals, payment confirmations, Session reminders or changes) are not
   part of this decision; they belong with notifications as a whole.
+
+---
+
+## DP-016 — Display Name
+
+Status
+
+Approved
+
+### Decision
+
+A User can set and change their own **display name** — the name other
+people see for them everywhere a person is shown (member lists,
+participants, matches, chats, the organizer of a Session).
+
+- It is optional. A User who has not set one is shown by their username.
+- It can be changed at any time from the Me tab, and removed again,
+  which goes back to showing the username.
+- 1 to 40 characters. It does not have to be unique: two people can share
+  a display name, and the username is what tells them apart.
+- The **username does not change**. It remains the immutable identifier
+  used to log in and to add someone to a Club.
+
+### Scope
+
+- A change applies everywhere immediately, including on past Sessions and
+  messages — names are read live, never copied at the time of the event.
+- Sign-up does not ask for a display name.
 
 ---
 

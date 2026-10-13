@@ -29,6 +29,9 @@ const (
 
 	MinPasswordLength = 6
 
+	// MaxDisplayNameLength (DP-016), counted in characters, not bytes.
+	MaxDisplayNameLength = 40
+
 	// SyntheticEmailDomain mirrors src/core/auth/firebaseAuth.ts: every
 	// account's Firebase identity is "<username>@" + this, never the
 	// User's real email.

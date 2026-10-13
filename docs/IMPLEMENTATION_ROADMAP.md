@@ -189,6 +189,9 @@ Real, live work that fell outside the six-milestone roadmap above:
   setup before it works there:** `RESEND_API_KEY` and `MAIL_FROM` (sender
   on a Resend-verified domain), and a Firebase service account
   (`FIREBASE_SERVICE_ACCOUNT_FILE`) — see `docs/engineering/deployment.md`.
+- **Display name (DP-016)** — set, change or remove it from the Me tab's
+  Account section; shown everywhere a person appears, username as the
+  fallback.
 - **Online Indicator (DP-014)** — a User attribute derived from recent
   request activity (no push/websocket presence infra exists), shown as
   a green outline ring on member circle avatars (Club Members grid,

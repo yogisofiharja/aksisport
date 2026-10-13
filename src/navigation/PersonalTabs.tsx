@@ -99,6 +99,7 @@ export function PersonalTabs() {
             onCreateClub={() => rootNavigation.navigate('CreateClub')}
             onOpenHistory={() => rootNavigation.navigate('MySessionHistory')}
             onOpenEmail={() => rootNavigation.navigate('AccountEmail')}
+            onOpenDisplayName={() => rootNavigation.navigate('EditDisplayName')}
           />
         )}
       </Tab.Screen>
