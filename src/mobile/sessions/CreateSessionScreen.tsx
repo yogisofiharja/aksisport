@@ -22,7 +22,7 @@ import {
 } from '../../core/recurringSchedules/api';
 import { listSkillLevels } from '../../core/skillLevels/api';
 import { formatSessionDateTime } from '../../core/sessions/sessionSchedule';
-import { formatIDR } from '../../core/currency';
+import { digitsOnly, formatIDR, formatThousands } from '../../core/currency';
 import type { PriceModel, RecurringSchedule, Session, SkillLevel } from '../../core/api/types';
 import type { MatchFormat } from '../../sports/tennis/scoringEngine';
 import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
@@ -1043,22 +1043,22 @@ export function CreateSessionScreen({
             {priceModel === 'per_person' && (
               <Input>
                 <InputField
-                  value={pricePerPerson}
-                  onChangeText={setPricePerPerson}
+                  value={formatThousands(pricePerPerson)}
+                  onChangeText={(text) => setPricePerPerson(digitsOnly(text))}
                   placeholder={t('sessionPricePerPersonPlaceholder')}
                   keyboardType="number-pad"
-                  maxLength={12}
+                  maxLength={15}
                 />
               </Input>
             )}
             {priceModel === 'split_bill' && (
               <Input>
                 <InputField
-                  value={totalPrice}
-                  onChangeText={setTotalPrice}
+                  value={formatThousands(totalPrice)}
+                  onChangeText={(text) => setTotalPrice(digitsOnly(text))}
                   placeholder={t('sessionTotalPricePlaceholder')}
                   keyboardType="number-pad"
-                  maxLength={12}
+                  maxLength={15}
                 />
               </Input>
             )}

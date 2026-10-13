@@ -6,3 +6,16 @@
 export function formatIDR(amount: number): string {
   return `IDR${Math.round(amount).toLocaleString('id-ID')}`;
 }
+
+// Amount inputs keep their state as bare digits ("150000") and show it
+// with thousand separators ("150.000") while typing. digitsOnly() is the
+// way back: it strips the separators — and anything else that isn't a
+// digit — from what the field hands to onChangeText, and drops leading
+// zeros so "0150" can't be entered.
+export function digitsOnly(text: string): string {
+  return text.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+}
+
+export function formatThousands(digits: string): string {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
