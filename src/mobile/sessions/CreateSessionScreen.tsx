@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Switch, ActivityIndicator, Alert } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Switch, ActivityIndicator } from 'react-native';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '../../platform/DateTimePicker';
 import { Picker } from '@react-native-picker/picker';
 import { useColorScheme } from 'nativewind';
 import { Icon } from '../../design-system/ui/Icon';
@@ -452,7 +453,7 @@ export function CreateSessionScreen({
     const desc =
       t('recurringScheduleSyncDesc', counts.updated) +
       (counts.skippedEdited > 0 ? ` ${t('recurringScheduleSyncSkippedDesc', counts.skippedEdited)}` : '');
-    Alert.alert(t('recurringScheduleSyncTitle'), desc, [
+    appAlert(t('recurringScheduleSyncTitle'), desc, [
       { text: t('recurringScheduleSyncDecline'), style: 'cancel', onPress: () => onScheduleUpdated?.() },
       {
         text: t('recurringScheduleSyncConfirm'),
@@ -511,7 +512,7 @@ export function CreateSessionScreen({
   // no API call. Confirmed anyway so an accidental tap doesn't silently
   // lose everything just typed in.
   function handleDiscardPreview() {
-    Alert.alert(t('sessionPreviewDiscardConfirmTitle'), t('sessionPreviewDiscardConfirmDesc'), [
+    appAlert(t('sessionPreviewDiscardConfirmTitle'), t('sessionPreviewDiscardConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       { text: t('sessionDiscard'), style: 'destructive', onPress: onBack },
     ]);
@@ -784,7 +785,7 @@ export function CreateSessionScreen({
                       if (selected) setDate(selected);
                     }}
                   />
-                  {Platform.OS === 'ios' && (
+                  {Platform.OS !== 'android' && (
                     <Pressable className="self-end px-4 py-2" onPress={() => setShowDatePicker(false)}>
                       <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
                     </Pressable>
@@ -816,7 +817,7 @@ export function CreateSessionScreen({
                     if (selected) setTime(selected);
                   }}
                 />
-                {Platform.OS === 'ios' && (
+                {Platform.OS !== 'android' && (
                   <Pressable className="self-end px-4 py-2" onPress={() => setShowTimePicker(false)}>
                     <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
                   </Pressable>
@@ -868,7 +869,7 @@ export function CreateSessionScreen({
                     />
                   ))}
                 </Picker>
-                {Platform.OS === 'ios' && (
+                {Platform.OS !== 'android' && (
                   <Pressable className="self-end px-4 py-2" onPress={() => setShowDurationPicker(false)}>
                     <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
                   </Pressable>

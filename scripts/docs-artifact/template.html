@@ -267,12 +267,15 @@
         </table></div>
         <p>Source: <a href="#implementation-roadmap">Implementation Roadmap</a>.</p>
 
-        <h2>Just built, not yet committed</h2>
+        <h2>Just built</h2>
         <ul>
           <li><strong>Recurring Schedule editing and sync (DP-007).</strong> A Schedule can be edited from its detail page. After saving, the organizer chooses whether to push the Template to Sessions already generated. Sessions edited by hand are skipped, and dates and times never move. See <a href="#current-lifecycle-recurring-schedule">Recurring Schedule Lifecycle</a>.</li>
           <li><strong>Cross-Club Session history (DP-009).</strong> "Session History" on the Me tab lists every past Session a player joined, across all Clubs.</li>
         </ul>
-        <p>Both need a run on a device before they count as verified; the new database queries have not been exercised against a real database yet.</p>
+        <ul>
+          <li><strong>Aksi on web.</strong> The web build now shows the same app as iOS and Android, headed for <span class="mono">app.aksisport.com</span>. Navigation, dialogs, pickers and the schedule sync were checked in Chrome; uploads, chat and image loading were not. The old scorer stays on Vercel from the <span class="mono">scorer</span> branch.</li>
+        </ul>
+        <p>Schedule sync and Session History were exercised on web against the local database. None of this has been run on iOS or Android yet.</p>
 
         <h2>Known gaps in the shipped app</h2>
         <ul>

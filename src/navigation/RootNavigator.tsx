@@ -4,6 +4,7 @@ import { useAuth } from '../core/auth/AuthContext';
 import { AuthStack } from './AuthStack';
 import { MainStack } from './MainStack';
 import { CompleteProfileScreen } from '../mobile/auth/CompleteProfileScreen';
+import { linking } from './linking';
 
 export function RootNavigator() {
   const { firebaseUser, initializing, needsProfile } = useAuth();
@@ -17,7 +18,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking} documentTitle={{ formatter: () => 'Aksi' }}>
       {!firebaseUser ? <AuthStack /> : needsProfile ? <CompleteProfileScreen /> : <MainStack />}
     </NavigationContainer>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, ScrollView } from 'react-native';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Icon } from '../../design-system/ui/Icon';
@@ -123,7 +124,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
 
   function handleRemove(member: ClubMember) {
     const isSelf = member.userId === profile?.id;
-    Alert.alert(
+    appAlert(
       isSelf ? t('clubLeaveClub') : t('clubRemove'),
       member.username,
       [

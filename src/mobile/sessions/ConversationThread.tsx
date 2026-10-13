@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView } from 'react-native';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { Icon } from '../../design-system/ui/Icon';
 import { Box, HStack, VStack } from '../../../components/ui/box';
 import { Text } from '../../../components/ui/text';
@@ -72,7 +73,7 @@ export function ConversationThread({ sessionId, messages, loading, onRefresh, my
   }
 
   function handleAttach() {
-    Alert.alert(t('sessionChatAttachImageTitle'), undefined, [
+    appAlert(t('sessionChatAttachImageTitle'), undefined, [
       { text: t('sessionChatAttachCamera'), onPress: () => handlePickImage('camera') },
       { text: t('sessionChatAttachGallery'), onPress: () => handlePickImage('gallery') },
       { text: t('clubCancel'), style: 'cancel' },

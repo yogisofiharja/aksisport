@@ -208,7 +208,14 @@ those routes don't exist on the tab navigator itself.
 
 ## Web
 
-Web has no navigation library and no screens under `src/navigation/`
-or `src/mobile/{auth,clubs,sessions,activities}/`. `App.tsx` renders
-`src/mobile/ScoringFlow.tsx` directly, which is its own internal
-`useState<AppScreen>` machine — see `docs/current/state-machines.md`.
+Web renders the same `RootNavigator` as native — same stacks, tabs and
+screens. `src/navigation/linking.ts` maps every screen to a URL (`/`,
+`/explore`, `/inbox`, `/me`, `/clubs/:clubId`, `/clubs/:clubId/sessions`,
+`/sessions/:sessionId`, `/clubs/:clubId/schedules/:scheduleId`, …), so
+refresh, the browser back button and pasted links work. A signed-out
+visitor opening a deep URL lands on Login; the URL is not restored after
+sign-in.
+
+The legacy `ScoringFlow` (its own `useState<AppScreen>` machine — see
+`docs/current/state-machines.md`) is no longer what web renders; it is
+served from the `scorer` branch on Vercel only.

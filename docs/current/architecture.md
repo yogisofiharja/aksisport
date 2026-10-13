@@ -5,16 +5,28 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
 
 ## Components
 
-- **Mobile app** — React Native + Expo, TypeScript. Runs as a custom
-  Expo dev client (not Expo Go — native modules like `expo-audio`,
-  `expo-image-picker`, `expo-screen-orientation` are configured via
-  `app.json` plugins). Entry: `App.tsx` → `Platform.OS !== 'web'` →
-  `src/navigation/RootNavigator`.
-- **Web app** — same codebase, `react-native-web`. Entry: `App.tsx` →
-  `Platform.OS === 'web'` → `src/mobile/ScoringFlow.tsx` directly (no
-  navigation library, no auth gate, no club/session/activity model).
-  Deployed to Vercel. Untouched by the Aksi migration — still the
-  original local-only tennis scorer.
+- **Client app** — one React Native + Expo (TypeScript) codebase for
+  iOS, Android and web. Every platform enters through `App.tsx` →
+  `src/navigation/RootNavigator` and renders the same screens.
+  - **Native** runs as a custom Expo dev client (not Expo Go — native
+    modules like `expo-audio`, `expo-image-picker`,
+    `expo-screen-orientation` are configured via `app.json` plugins).
+  - **Web** is the same app through `react-native-web`, built with
+    `npm run build:web` and served at `app.aksisport.com` (see
+    `docs/engineering/deployment.md`). On a wide window it keeps the
+    phone layout, centred in a 520px column (`App.tsx`). Screens get
+    real URLs from `src/navigation/linking.ts`.
+  - Platform differences live behind shared wrappers, never in screens:
+    `src/platform/DateTimePicker(.web).tsx` (the native picker has no web
+    build), `design-system/feedback/appAlert.tsx` (`Alert.alert` is a
+    no-op on web, so prompts go through `appAlert`, which shows an in-app
+    modal there), and the `.web.ts` utilities next to `audio`, `tts`,
+    `storage`, `imagePicker`.
+- **Legacy scorer** — the original no-login tennis scorer
+  (`src/mobile/ScoringFlow.tsx`, `src/components/`). Web used to render
+  it instead of the Aksi app. It is now served only by Vercel, from the
+  frozen `scorer` branch; on this branch the code is still present but
+  no platform's entry point reaches it.
 - **Backend** — Go + Gin, module `github.com/yogisofiharja/aksi-server`,
   in `server/`, own `go.mod` (not part of the npm workspace). Talks to
   Postgres via `pgx/v5` (no ORM). Verifies Firebase ID tokens directly

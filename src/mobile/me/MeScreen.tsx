@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
@@ -59,7 +60,7 @@ export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory }: Props)
   // Self-service only — this is the user's own profile picture, never
   // reachable for anyone else's.
   function handleChangeAvatar() {
-    Alert.alert(t('sessionChatAttachImageTitle'), undefined, [
+    appAlert(t('sessionChatAttachImageTitle'), undefined, [
       { text: t('sessionChatAttachCamera'), onPress: () => pickAndUploadAvatar('camera') },
       { text: t('sessionChatAttachGallery'), onPress: () => pickAndUploadAvatar('gallery') },
       { text: t('clubCancel'), style: 'cancel' },

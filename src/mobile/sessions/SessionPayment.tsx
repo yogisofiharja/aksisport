@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image } from 'react-native';
+import { ActivityIndicator, Image } from 'react-native';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { Icon } from '../../design-system/ui/Icon';
 import { Box, HStack, VStack } from '../../../components/ui/box';
 import { Text } from '../../../components/ui/text';
@@ -84,7 +85,7 @@ export function SessionPayment({
         : undefined;
 
   async function handleUploadReceipt() {
-    Alert.alert(t('sessionChatAttachImageTitle'), undefined, [
+    appAlert(t('sessionChatAttachImageTitle'), undefined, [
       { text: t('sessionChatAttachCamera'), onPress: () => pickAndUpload('camera') },
       { text: t('sessionChatAttachGallery'), onPress: () => pickAndUpload('gallery') },
       { text: t('clubCancel'), style: 'cancel' },

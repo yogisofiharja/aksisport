@@ -174,6 +174,12 @@ Real, live work that fell outside the six-milestone roadmap above:
   See `docs/current/lifecycle-recurring-schedule.md`.
 - **Cross-Club Session History (DP-009)** — "Session History" on the Me
   tab lists every past Session the Player joined, across all Clubs.
+- **Aksi on web** — web now renders the same app as iOS/Android instead
+  of the legacy scorer: URL routing, a browser-safe replacement for
+  `Alert.alert`, a web date/time picker, phone layout centred on wide
+  screens. Checked in Chrome on 2026-10-14 (navigation, dialogs, pickers,
+  schedule sync); uploads, chat and image loading not yet checked. The
+  legacy scorer stays on Vercel from the `scorer` branch.
 - **Online Indicator (DP-014)** — a User attribute derived from recent
   request activity (no push/websocket presence infra exists), shown as
   a green outline ring on member circle avatars (Club Members grid,

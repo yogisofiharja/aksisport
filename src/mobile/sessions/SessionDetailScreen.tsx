@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView } from 'react-native';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Icon } from '../../design-system/ui/Icon';
@@ -322,7 +323,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   function handleRegenerate() {
     if (busy) return;
-    Alert.alert(t('activityRegenerateConfirmTitle'), t('activityRegenerateConfirmDesc'), [
+    appAlert(t('activityRegenerateConfirmTitle'), t('activityRegenerateConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       { text: t('activityRegenerateConfirm'), onPress: doRegenerate },
     ]);
@@ -344,7 +345,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   function handleRequestToJoin() {
     if (busy || strictLevelBlocked) return;
     if (hasLevelRequirement && session?.skillLevelEnforcement === 'guidance' && !withinLevelRange) {
-      Alert.alert(
+      appAlert(
         t('skillLevelGuidanceConfirmTitle'),
         t('skillLevelGuidanceConfirmDesc', minLevel?.name ?? '', maxLevel?.name ?? ''),
         [
@@ -390,7 +391,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   function handleCancelMyParticipation() {
     if (busy) return;
-    Alert.alert(t('sessionCancelMyParticipationConfirmTitle'), t('sessionCancelMyParticipationConfirmDesc'), [
+    appAlert(t('sessionCancelMyParticipationConfirmTitle'), t('sessionCancelMyParticipationConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       { text: t('sessionCancelMyParticipation'), style: 'destructive', onPress: doCancelMyParticipation },
     ]);
@@ -415,7 +416,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   function handleCheckOut() {
     if (busy) return;
-    Alert.alert(t('sessionCheckOutConfirmTitle'), t('sessionCheckOutConfirmDesc'), [
+    appAlert(t('sessionCheckOutConfirmTitle'), t('sessionCheckOutConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       { text: t('sessionCheckOut'), style: 'destructive', onPress: doCheckOut },
     ]);
@@ -511,7 +512,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   function handleDeleteParticipant(p: SessionParticipant) {
     if (busy) return;
-    Alert.alert(t('sessionRemoveParticipantConfirmTitle'), t('sessionRemoveParticipantConfirmDesc'), [
+    appAlert(t('sessionRemoveParticipantConfirmTitle'), t('sessionRemoveParticipantConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       { text: t('sessionRemoveParticipant'), style: 'destructive', onPress: () => doDeleteParticipant(p) },
     ]);
@@ -544,7 +545,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // dialog same as Cancel/Remove-participant.
   function handleDiscard() {
     if (busy) return;
-    Alert.alert(t('sessionDiscardConfirmTitle'), t('sessionDiscardConfirmDesc'), [
+    appAlert(t('sessionDiscardConfirmTitle'), t('sessionDiscardConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       { text: t('sessionDiscard'), style: 'destructive', onPress: doDiscard },
     ]);
@@ -566,7 +567,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // this, this screen just didn't expose a trigger for it before now.
   function handleCancel() {
     if (busy) return;
-    Alert.alert(t('sessionCancelConfirmTitle'), t('sessionCancelConfirmDesc'), [
+    appAlert(t('sessionCancelConfirmTitle'), t('sessionCancelConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       { text: t('sessionCancelConfirm'), style: 'destructive', onPress: doCancel },
     ]);
@@ -586,7 +587,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     if (canEditConfiguration) options.push({ text: t('sessionEdit'), onPress: () => onEdit(sessionId) });
     if (isOwnerOrAdmin && isSessionActive && isPublished) options.push({ text: t('sessionCancel'), style: 'destructive', onPress: handleCancel });
     options.push({ text: t('clubCancel'), style: 'cancel' });
-    Alert.alert(t('sessionMenuTitle'), undefined, options);
+    appAlert(t('sessionMenuTitle'), undefined, options);
   }
 
   async function handleAddGuest(): Promise<boolean> {

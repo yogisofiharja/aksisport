@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView } from 'react-native';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Icon } from '../../design-system/ui/Icon';
@@ -104,7 +105,7 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
   }
 
   function handleDeleteAccount(account: ClubBankAccount) {
-    Alert.alert(t('clubBankAccountDeleteConfirmTitle'), t('clubBankAccountDeleteConfirmDesc'), [
+    appAlert(t('clubBankAccountDeleteConfirmTitle'), t('clubBankAccountDeleteConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       {
         text: t('clubConfirm'),
@@ -122,7 +123,7 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
   }
 
   function handleDeleteClub() {
-    Alert.alert(t('clubDeleteConfirmTitle'), t('clubDeleteConfirmDesc'), [
+    appAlert(t('clubDeleteConfirmTitle'), t('clubDeleteConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       {
         text: t('clubConfirm'),

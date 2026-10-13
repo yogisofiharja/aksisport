@@ -6,7 +6,7 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 
 ```
 .
-├── App.tsx                  Entry point. Platform.OS branches web vs mobile.
+├── App.tsx                  Entry point. Same RootNavigator on every platform; web centred in a column.
 ├── app.json                 Expo config — name "Aksi", bundle id com.yogisofiharja.aksi
 ├── CLAUDE.md                 The only other root-level markdown file, by design — see
 │                              docs/archive/ below for everything that used to live here.

@@ -25,6 +25,11 @@ Origin CA certificate.
 Both workflows SSH into the VPS on push and run the matching `deploy/<env>/deploy.sh`. No one
 needs to SSH in manually for a routine deploy.
 
+- `scorer` → Vercel. The legacy no-login tennis scorer, frozen at the last commit where the
+  web build still rendered it. Vercel's production branch must point here, not at `master`:
+  from `master` onwards the web build is the Aksi app, which belongs on `app.aksisport.com`,
+  not on Vercel. Nothing is merged into `scorer`.
+
 ## One-time VPS provisioning
 
 Run once, in order, when setting up the VPS from scratch.

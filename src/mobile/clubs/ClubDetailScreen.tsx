@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { useFocusEffect } from '@react-navigation/native';
 import { Page } from '../../design-system/layout/Page';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
@@ -88,7 +89,7 @@ export function ClubDetailScreen({
   // Owner only — enforced server-side too (clubs_handler.go), this is just
   // what keeps the tap target from ever appearing for anyone else.
   function handleChangeAvatar() {
-    Alert.alert(t('sessionChatAttachImageTitle'), undefined, [
+    appAlert(t('sessionChatAttachImageTitle'), undefined, [
       { text: t('sessionChatAttachCamera'), onPress: () => pickAndUploadAvatar('camera') },
       { text: t('sessionChatAttachGallery'), onPress: () => pickAndUploadAvatar('gallery') },
       { text: t('clubCancel'), style: 'cancel' },

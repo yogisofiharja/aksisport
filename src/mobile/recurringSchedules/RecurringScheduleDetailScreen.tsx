@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Alert, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { useFocusEffect } from '@react-navigation/native';
 import { Page } from '../../design-system/layout/Page';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
@@ -103,7 +104,7 @@ export function RecurringScheduleDetailScreen({ clubId, scheduleId, onBack, onEd
   }
 
   function handleDelete() {
-    Alert.alert(t('recurringScheduleDeleteConfirmTitle'), t('recurringScheduleDeleteConfirmDesc'), [
+    appAlert(t('recurringScheduleDeleteConfirmTitle'), t('recurringScheduleDeleteConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       {
         text: t('clubConfirm'),
