@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.13.0
+Version: 0.14.2
 
 Status: Living Document
 
@@ -1197,6 +1197,71 @@ Not yet surfaced on Session participant/organizer avatars (those
 don't have profile pictures wired up at all yet) or on the caller's
 own avatar (Me tab) — scoped to where it was asked for. Extending it
 elsewhere is a small follow-up, not a new decision.
+
+---
+
+## DP-015 — Account Email & Password Recovery
+
+Status
+
+Approved
+
+### Decision
+
+A User has an **email address**, confirmed by a 6-digit code sent to that
+address. A confirmed email is what makes password recovery possible —
+before this, a forgotten password could only be fixed by hand.
+
+- **New accounts must confirm an email.** Sign-up asks for username,
+  email, and password. The account is created, a code is emailed, and the
+  app stays on a confirmation step until the code is entered. The User can
+  correct the address or request a new code from that step.
+- **Existing accounts are not blocked.** An account created before this
+  decision keeps working without an email. The Me tab shows a dismissible
+  reminder to add one, since without it the password cannot be recovered.
+- **Changing email** uses the same confirmation: the current email stays
+  in effect until the new one is confirmed.
+- **An email belongs to one account.** A confirmed email cannot be
+  confirmed again by a different User.
+- **Login accepts a username or a confirmed email**, with the same
+  password.
+- **Forgot password:** the User enters their username or email, receives a
+  code at their confirmed email, and sets a new password with that code.
+  The app never reveals whether a username or email exists: the request
+  step responds the same way either way.
+
+- **The owner is told about security changes.** When a password is reset,
+  a notice goes to the account's email. When an email is changed, a
+  notice goes to the address that was replaced. Neither asks for
+  anything; they exist so a change made by someone else doesn't go
+  unnoticed.
+
+### Rules
+
+- Codes are 6 digits, valid for 15 minutes, single use, and locked after 5
+  wrong attempts. Requesting a new code invalidates the previous one. A
+  new code can be requested once per minute.
+- Username stays the public identity and stays immutable. Email is
+  private: it is never shown to other Users.
+
+### Scope
+
+- Email is sent through **Resend**. Sending sits behind an interface, so
+  the provider can be replaced without touching the flows. An environment
+  with no Resend key (local development) writes codes to the server log
+  instead of emailing them.
+- Reaching real users requires a sender address on a domain verified
+  with Resend. Until that is set, only Resend's test sender is available,
+  which delivers to the Resend account owner's address alone.
+- Password reset needs the server to hold a Firebase service account.
+  Until one is configured, the reset step reports that recovery is
+  unavailable.
+- Accounts with no confirmed email still have no self-service recovery.
+- Sign-in with Google/Apple, and email as a replacement for username, are
+  not part of this decision.
+- Email is used for account security only. Activity emails (join
+  approvals, payment confirmations, Session reminders or changes) are not
+  part of this decision; they belong with notifications as a whole.
 
 ---
 

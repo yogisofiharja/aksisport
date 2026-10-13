@@ -51,7 +51,12 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
   so this is safe under any interval, missed ticks included.
 - **Firebase Auth** — username/password only, via a synthetic email
   (`<username>@accounts.aksi.app`, see `src/core/auth/firebaseAuth.ts`).
-  No Google/Apple sign-in, no phone/OTP.
+  No Google/Apple sign-in, no phone/OTP. A User's real email (DP-015)
+  lives in Postgres and never becomes the Firebase identity: logging in
+  with it first resolves it to the synthetic one, and password recovery
+  is the server's own emailed-code flow, not Firebase's reset email. That
+  recovery is the single place the server needs Firebase admin rights
+  (`internal/firebaseadmin`, optional service account).
 - **Firebase Realtime Database** — live match transport only
   (`src/sessionSync.ts`). Postgres is not written to per-point; a
   match's live score lives in RTDB while in progress and is persisted

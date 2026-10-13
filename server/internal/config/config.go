@@ -11,6 +11,18 @@ type Config struct {
 	DatabaseURL     string
 	FirebaseProject string
 	AllowedOrigins  string
+	// FirebaseServiceAccountFile: path to a Firebase service account key
+	// (JSON). Only password recovery (DP-015) needs it; unset, everything
+	// else works and recovery reports itself unavailable.
+	FirebaseServiceAccountFile string
+	// ResendAPIKey selects Resend as the mail provider (DP-015). Unset,
+	// mail is written to the server log instead of being sent.
+	ResendAPIKey string
+	// MailFrom is the sender, e.g. "Aksi <no-reply@aksisport.com>" — the
+	// domain must be verified with the provider. Unset, Resend's shared
+	// test sender is used, which only delivers to the Resend account
+	// owner's own address.
+	MailFrom string
 	// RecurringScheduleGenerationInterval: how often the background ticker
 	// runs — DP-007 due-occurrence generation and DP-009 elapsed-Session
 	// auto-transition both ride the same tick. Generation lead time is
@@ -25,6 +37,9 @@ func Load() Config {
 		DatabaseURL:                         os.Getenv("DATABASE_URL"),
 		FirebaseProject:                     os.Getenv("FIREBASE_PROJECT_ID"),
 		AllowedOrigins:                      getEnv("ALLOWED_ORIGINS", "*"),
+		FirebaseServiceAccountFile:          os.Getenv("FIREBASE_SERVICE_ACCOUNT_FILE"),
+		ResendAPIKey:                        os.Getenv("RESEND_API_KEY"),
+		MailFrom:                            os.Getenv("MAIL_FROM"),
 		RecurringScheduleGenerationInterval: getEnvMinutes("RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES", 15),
 	}
 }

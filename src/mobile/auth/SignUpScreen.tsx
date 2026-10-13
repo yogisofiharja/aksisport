@@ -16,12 +16,17 @@ type Props = {
   onNavigateToLogin: () => void;
 };
 
+// Loose on purpose — the emailed code is the real check. Mirrors the
+// server's own pattern (internal/account).
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 type Availability = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 export function SignUpScreen({ onNavigateToLogin }: Props) {
   const { t } = useTranslation();
   const { signUp } = useAuth();
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [availability, setAvailability] = useState<Availability>('idle');
@@ -57,6 +62,7 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
 
   const canSubmit =
     availability === 'available' &&
+    EMAIL_PATTERN.test(email.trim()) &&
     password.length >= 6 &&
     password === confirmPassword &&
     !submitting;
@@ -66,7 +72,7 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      await signUp(username, password);
+      await signUp(username, password, email.trim());
     } catch (err) {
       setError(err instanceof Error ? err.message : t('authGenericError'));
     } finally {
@@ -106,6 +112,21 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
             {availability === 'invalid' && (
               <Text className="text-xs text-red-500">{t('authUsernameInvalid')}</Text>
             )}
+          </VStack>
+
+          <VStack className="gap-2">
+            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authEmail')}</Text>
+            <Input>
+              <InputField
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                placeholder={t('authEmailPlaceholder')}
+                value={email}
+                onChangeText={setEmail}
+              />
+            </Input>
+            <Text className="text-xs text-slate-400">{t('authEmailHint')}</Text>
           </VStack>
 
           <VStack className="gap-2">

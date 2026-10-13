@@ -4,6 +4,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { auth } from '../../firebase';
+import { resolveLoginIdentity } from '../api/client';
 
 // Firebase Auth requires an email-shaped identifier for password auth.
 // Usernames never need to resolve as real mail — Firebase only checks syntax.
@@ -28,9 +29,14 @@ export async function signUp(username: string, password: string) {
   return createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
 }
 
-export async function signIn(username: string, password: string) {
+// `identifier` is a username or a confirmed email (DP-015). Firebase only
+// knows the synthetic identity, so an email is first resolved to it by
+// the server.
+export async function signIn(identifier: string, password: string) {
   if (!auth) throw new Error('Firebase auth is not configured');
-  return signInWithEmailAndPassword(auth, usernameToEmail(username), password);
+  const trimmed = identifier.trim();
+  const loginEmail = trimmed.includes('@') ? (await resolveLoginIdentity(trimmed)).loginEmail : usernameToEmail(trimmed);
+  return signInWithEmailAndPassword(auth, loginEmail, password);
 }
 
 export async function signOutUser() {

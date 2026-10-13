@@ -242,12 +242,12 @@
       <header class="doc-head">
         <p class="kicker">Status · __SYNCED__</p>
         <h1>Where AKSI stands</h1>
-        <p class="lede">Every approved product decision (DP-001 to DP-014) is now built. Four of six milestones are done; the other two are waiting on product decisions, not on engineering. Open a document on the left to read the source.</p>
+        <p class="lede">Every approved product decision (DP-001 to DP-015) is now built. Four of six milestones are done; the other two are waiting on product decisions, not on engineering. Open a document on the left to read the source.</p>
       </header>
 
       <dl class="facts">
         <div class="fact"><dt>Milestones</dt><dd>4 of 6 done<small>the other two are partial</small></dd></div>
-        <div class="fact"><dt>Product decisions</dt><dd>14 approved<small>all built</small></dd></div>
+        <div class="fact"><dt>Product decisions</dt><dd>15 approved<small>all built</small></dd></div>
         <div class="fact"><dt>Last commit</dt><dd class="mono">__COMMIT__<small>branch <span class="mono">dev</span>, 45 commits ahead of <span class="mono">master</span></small></dd></div>
         <div class="fact"><dt>Library</dt><dd>__COUNT__ documents<small>archive and the combined export left out</small></dd></div>
       </dl>
@@ -275,22 +275,25 @@
         <ul>
           <li><strong>Aksi on web.</strong> The web build now shows the same app as iOS and Android, headed for <span class="mono">app.aksisport.com</span>. Navigation, dialogs, pickers and the schedule sync were checked in Chrome; uploads, chat and image loading were not. The old scorer stays on Vercel from the <span class="mono">scorer</span> branch.</li>
         </ul>
+        <ul>
+          <li><strong>Account email and password recovery (DP-015).</strong> Sign-up now asks for an email and confirms it with a 6-digit code; older accounts get a reminder. Login accepts username or email, and there is a forgot-password flow. The owner is emailed when their password or email changes. Mail is sent through Resend from aksisport.com. It works locally; staging and production each still need the Resend key, sender address and a Firebase service account configured.</li>
+        </ul>
         <p>Schedule sync and Session History were exercised on web against the local database. None of this has been run on iOS or Android yet.</p>
 
         <h2>Known gaps in the shipped app</h2>
         <ul>
           <li><strong>No self-service Club join.</strong> Since "Join with Code" was removed, an owner or admin has to add each member by username. Club search in Explore is the planned fix and is not scheduled.</li>
-          <li><strong>No forgot-password flow.</strong> Deferred on 2026-08-05. Accounts use a synthetic email, so the standard Firebase reset does not work.</li>
+          <li><strong>Accounts with no confirmed email cannot recover a password.</strong> Recovery works for everyone who has confirmed one; older accounts are reminded to add it.</li>
           <li><strong>No push notification on check-in.</strong> Deferred when match generation (DP-005) shipped.</li>
         </ul>
 
         <h2>New feature requests</h2>
-        <p>From <a href="#request-features">request-features.md</a>. None of these is approved yet.</p>
+        <p>From <a href="#request-features">request-features.md</a>. Email is built; the others are not approved yet.</p>
         <div class="table-wrap"><table>
           <thead><tr><th>Request</th><th>Where it stands</th></tr></thead>
           <tbody>
             <tr><td>Change display name</td><td>New and small.</td></tr>
-            <tr><td>Add email with confirmation, later usable for login and register</td><td>New. Would also unblock forgot-password.</td></tr>
+            <tr><td>Add email with confirmation, later usable for login and register</td><td>Built as DP-015, sending through Resend.</td></tr>
             <tr><td>Google Maps API</td><td>Matches the Planning item "Map-Based Venue Selection". Needs an API key.</td></tr>
             <tr><td>Push notifications via Firebase</td><td>Matches the deferred check-in notification.</td></tr>
             <tr><td>Payment gateway integration</td><td>Matches Planning "Payments".</td></tr>

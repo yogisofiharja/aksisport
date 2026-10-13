@@ -15,12 +15,14 @@ import { listMySkillLevels, listSkillLevels, setMySkillLevel } from '../../core/
 import { listSportIds } from '../../sports/registry';
 import { initialsFromName } from '../../core/initials';
 import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
+import { storageGet, storageSave } from '../../storage';
 import type { SkillLevel, UserSkillLevel } from '../../core/api/types';
 
 type Props = {
   onOpenSettings: () => void;
   onCreateClub: () => void;
   onOpenHistory: () => void;
+  onOpenEmail: () => void;
 };
 
 // DP-008: only the sport name is translated — level names are data-driven
@@ -29,7 +31,7 @@ function sportLabel(sport: string, t: (key: string) => string) {
   return sport === 'tennis' ? t('sportTennis') : sport;
 }
 
-export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory }: Props) {
+export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEmail }: Props) {
   const { t } = useTranslation();
   const { profile, refreshProfile } = useAuth();
   const sports = listSportIds();
@@ -46,6 +48,23 @@ export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory }: Props)
   useEffect(() => {
     authHeader().then(setImageHeaders);
   }, []);
+
+  // DP-015: an account with no confirmed email gets a reminder it can
+  // dismiss. Remembered per user on this device; starts hidden until the
+  // stored answer is read, so a dismissed reminder never flashes.
+  const reminderKey = profile ? `aksi.emailReminderDismissed.${profile.id}` : null;
+  const [reminderDismissed, setReminderDismissed] = useState(true);
+  useEffect(() => {
+    if (!reminderKey) return;
+    storageGet(reminderKey)
+      .then((value) => setReminderDismissed(value === '1'))
+      .catch(() => setReminderDismissed(false));
+  }, [reminderKey]);
+
+  function dismissReminder() {
+    setReminderDismissed(true);
+    if (reminderKey) storageSave(reminderKey, '1').catch(() => {});
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -149,6 +168,44 @@ export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory }: Props)
           </Pressable>
         </HStack>
       </HStack>
+
+      <VStack space="sm">
+        <Typography variant="caption" color="muted">
+          {t('meAccountTitle')}
+        </Typography>
+        {!profile?.email && !reminderDismissed && (
+          <Card>
+            <HStack className="justify-between items-start" space="md">
+              <VStack space="xs" style={{ flex: 1 }}>
+                <Typography variant="body" className="font-bold">
+                  {t('meEmailReminderTitle')}
+                </Typography>
+                <Typography variant="body" color="muted">
+                  {t('meEmailReminderDesc')}
+                </Typography>
+              </VStack>
+              <Pressable className="p-1 active:opacity-60" onPress={dismissReminder} hitSlop={8} accessibilityLabel={t('meEmailReminderDismiss')}>
+                <Icon name="close" size="sm" color="muted" />
+              </Pressable>
+            </HStack>
+          </Card>
+        )}
+        <Card pressable onPress={onOpenEmail}>
+          <HStack className="justify-between items-center" space="md">
+            <VStack space="xs" style={{ flex: 1 }}>
+              <Typography variant="body" className="font-bold">
+                {t('authEmail')}
+              </Typography>
+              <Typography variant="body" color={profile?.email ? 'default' : 'muted'} numberOfLines={1}>
+                {profile?.email ?? t('meEmailNotSet')}
+              </Typography>
+            </VStack>
+            <Typography variant="body" className="font-bold text-blue-600 dark:text-blue-400">
+              {profile?.email ? t('meEmailChange') : t('meEmailAdd')}
+            </Typography>
+          </HStack>
+        </Card>
+      </VStack>
 
       <VStack space="sm">
         <Typography variant="caption" color="muted">

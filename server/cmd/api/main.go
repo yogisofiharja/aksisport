@@ -13,7 +13,9 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	"github.com/yogisofiharja/aksi-server/internal/config"
 	"github.com/yogisofiharja/aksi-server/internal/db"
+	"github.com/yogisofiharja/aksi-server/internal/firebaseadmin"
 	"github.com/yogisofiharja/aksi-server/internal/httpapi"
+	"github.com/yogisofiharja/aksi-server/internal/mail"
 	"github.com/yogisofiharja/aksi-server/internal/scheduling"
 )
 
@@ -48,7 +50,33 @@ func main() {
 		log.Fatalf("setting up firebase token verifier: %v", err)
 	}
 
-	router := httpapi.NewRouter(pool, verifier, cfg.AllowedOrigins)
+	// DP-015 account email goes out through Resend when its key is set;
+	// otherwise each message (code included) is written to this log, which
+	// is all local development needs.
+	var mailer mail.Mailer = mail.LogMailer{}
+	switch {
+	case cfg.ResendAPIKey == "":
+		log.Print("mail: RESEND_API_KEY is not set — confirmation and reset codes are written to this log")
+	case cfg.MailFrom == "":
+		mailer = mail.NewResendMailer(cfg.ResendAPIKey, "")
+		log.Printf("mail: sending through Resend from its test sender (%s) — this only delivers to the Resend account owner's address; set MAIL_FROM to a verified-domain address for real users", mail.ResendFallbackFrom)
+	default:
+		mailer = mail.NewResendMailer(cfg.ResendAPIKey, cfg.MailFrom)
+		log.Printf("mail: sending through Resend from %s", cfg.MailFrom)
+	}
+
+	// A typed-nil *PasswordSetter inside the interface would not compare
+	// equal to nil, so the interface is only assigned on success.
+	var passwords httpapi.PasswordSetter
+	if cfg.FirebaseServiceAccountFile == "" {
+		log.Print("password recovery: disabled (FIREBASE_SERVICE_ACCOUNT_FILE is not set)")
+	} else if setter, err := firebaseadmin.NewPasswordSetterFromFile(cfg.FirebaseServiceAccountFile); err != nil {
+		log.Printf("password recovery: disabled (%v)", err)
+	} else {
+		passwords = setter
+	}
+
+	router := httpapi.NewRouter(pool, verifier, cfg.AllowedOrigins, mailer, passwords)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

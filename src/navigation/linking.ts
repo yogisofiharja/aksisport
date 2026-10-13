@@ -24,6 +24,7 @@ export const linking: LinkingOptions<LinkableParamList> = {
     screens: {
       Login: 'login',
       SignUp: 'signup',
+      ForgotPassword: 'forgot-password',
       Personal: {
         screens: {
           Home: '',
@@ -33,6 +34,7 @@ export const linking: LinkingOptions<LinkableParamList> = {
         },
       },
       Settings: 'settings',
+      AccountEmail: 'me/email',
       MySessionHistory: 'history',
       CreateClub: 'clubs/new',
       ClubDetail: 'clubs/:clubId',

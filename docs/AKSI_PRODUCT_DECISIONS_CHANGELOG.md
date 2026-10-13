@@ -6,6 +6,36 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.14.2
+
+- DP-015: security notices added — "password changed" to the account's
+  email, "email changed" to the replaced address. Activity emails
+  explicitly left out of scope.
+
+---
+
+## v0.14.1
+
+- DP-015: mail provider decided — Resend. Scope updated: real delivery
+  still needs a verified sender domain.
+
+---
+
+## v0.14.0
+
+Account Email & Password Recovery approved.
+
+Major updates:
+
+- New DP-015: a User has an email confirmed by a 6-digit code. Required
+  for new accounts (sign-up does not complete without it); existing
+  accounts get a dismissible reminder instead. Login accepts username or
+  confirmed email. Forgot-password sends a code to the confirmed email.
+  Mail provider deliberately left undecided — sending is behind an
+  interface and codes go to the server log until one is configured.
+
+---
+
 ## v0.13.0
 
 DP-007 Session Synchronization resolved; DP-009 cross-Club Session

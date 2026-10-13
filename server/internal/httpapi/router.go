@@ -7,9 +7,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
+	"github.com/yogisofiharja/aksi-server/internal/mail"
 )
 
-func NewRouter(pool *pgxpool.Pool, verifier *authjwt.Verifier, allowedOrigins string) *gin.Engine {
+// mailer sends account email (DP-015). passwords may be nil — password
+// recovery then reports itself unavailable.
+func NewRouter(pool *pgxpool.Pool, verifier *authjwt.Verifier, allowedOrigins string, mailer mail.Mailer, passwords PasswordSetter) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery(), corsMiddleware(allowedOrigins))
 
@@ -18,7 +21,8 @@ func NewRouter(pool *pgxpool.Pool, verifier *authjwt.Verifier, allowedOrigins st
 	})
 
 	v1 := r.Group("/v1")
-	RegisterUserRoutes(v1, pool, verifier)
+	RegisterUserRoutes(v1, pool, verifier, mailer)
+	RegisterAccountEmailRoutes(v1, pool, verifier, mailer, passwords)
 	RegisterClubRoutes(v1, pool, verifier)
 	RegisterSessionRoutes(v1, pool, verifier)
 	RegisterActivityRoutes(v1, pool, verifier)

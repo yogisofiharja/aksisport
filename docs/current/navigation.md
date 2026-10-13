@@ -18,18 +18,28 @@ initializing (Firebase auth state loading)
 firebaseUser && needsProfile
   → CompleteProfileScreen (no navigator, standalone)
 
-firebaseUser && !needsProfile
+firebaseUser && needsEmail
+  → VerifyEmailScreen (no navigator, standalone)
+
+firebaseUser && !needsProfile && !needsEmail
   → MainStack
 ```
 
 `needsProfile` comes from `AuthContext`: true when `GET /v1/me` returns
 404 `PROFILE_NOT_FOUND` (Firebase account exists, Postgres profile
-doesn't — e.g. app was killed mid-signup).
+doesn't — e.g. app was killed mid-signup). `needsEmail` (DP-015) is true
+for an account created with `emailRequired` that has no confirmed email
+yet: the app stays on the confirmation step (enter the code, re-send it,
+or correct the address; Log Out is the only other exit).
 
 ## AuthStack (native-stack, `headerShown: false`)
 
-- **Login** (initial route) → SignUp
-- **SignUp** → Login
+- **Login** (initial route) → SignUp, ForgotPassword. The identifier
+  field takes a username or a confirmed email; the password field has a
+  show/hide toggle.
+- **SignUp** → Login. Username, email, password.
+- **ForgotPassword** → Login. Three steps in one screen: username or
+  email → code + new password → done.
 
 ## MainStack (native-stack, `headerShown: false`)
 
@@ -169,6 +179,11 @@ The app's Personal Context — always the post-auth entry point
   per-sport detail/statistics screen instead, which doesn't exist yet
   (statistics are out of scope) — when that lands, this inline editor
   may move there or stay as a quick-edit affordance.
+  Above Sports, an "Account" section: an Email row (the confirmed
+  address or "Not set") pushing `AccountEmail` (`AccountEmailScreen`, the
+  same two-step confirmation as the sign-up gate), preceded — for an
+  account with no confirmed email — by a reminder card that can be
+  dismissed (remembered per user on the device).
   At the bottom, a "Session History" card pushes `MySessionHistory`
   (`SessionHistoryScreen` with no `clubId`): every past Session the user
   joined, across all Clubs (DP-009).

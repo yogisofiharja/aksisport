@@ -20,13 +20,51 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 | Method | Path | Auth | Notes |
 |---|---|---|---|
 | GET | `/v1/users/check-username?username=` | none | `{available, reason?}`. Invalid format (not `^[a-z0-9_]{3,20}$`) returns `available:false, reason:"invalid_format"` rather than 400. |
-| POST | `/v1/users` | auth | Body `{username, displayName?}`. Creates the Postgres profile. 409 if a profile already exists for this Firebase UID, 409 if username taken (only error mapping — `CreateUser`'s error isn't distinguished further). |
+| POST | `/v1/users` | auth | Body `{username, displayName?, email?}`. Creates the Postgres profile, always with `emailRequired: true` (DP-015). `email`, when given, is validated (400), rejected if another account has confirmed it (409), stored as `pendingEmail`, and a confirmation code is mailed. It is omitted only when an interrupted sign-up is being completed. 409 if a profile already exists for this Firebase UID, 409 if username taken. |
 | GET | `/v1/me` | auth | 404 `{"error":"profile not found","code":"PROFILE_NOT_FOUND"}` if no profile yet. |
-| PATCH | `/v1/me` | profile | Body `{displayName?, email?, phoneNumber?, avatarUrl?}`. `username` is immutable — not accepted here. `avatarUrl` is a stale, never-wired string-URL stub — see the note under "Profile pictures" below; the real path is `POST /v1/me/avatar`. |
+| PATCH | `/v1/me` | profile | Body `{displayName?, phoneNumber?, avatarUrl?}`. `email` is not accepted here — it only changes through code confirmation (see Account email below). `username` is immutable — not accepted here. `avatarUrl` is a stale, never-wired string-URL stub — see the note under "Profile pictures" below; the real path is `POST /v1/me/avatar`. |
 | POST | `/v1/me/avatar` | profile | Body `{imageBase64, imageContentType}`. Self-service only — always the caller's own picture. Same size/content-type validation as every other image upload (5MB decoded cap, JPEG/PNG/WebP only). |
 | GET | `/v1/users/:userId/avatar` | profile | Serves the raw image bytes. Visible to any authenticated user with a profile — same broad visibility as the username/displayName it's paired with everywhere (search, member grids, organizer names), not scoped to a shared Club. 404 if the user has no picture. |
 | GET | `/v1/me/contact-threads` | profile | DP-013 Contact Organizer's Inbox listing. See the "Conversations" subsection under Sessions below for the full shape. |
 | GET | `/v1/users/search?q=` | profile | Case-insensitive substring match on `username` or `display_name`, excludes the caller, capped at 20 results ordered by `username`. Returns `[]` for `q` under 2 characters rather than erroring (avoids a near-full-table scan on a 0-1 char query). Response is the lean `UserSummary` shape (`id`/`username`/`displayName`/`hasAvatar`/`isOnline`) — unlike every other `/users`/`/me` route here, this never includes `email`/`phoneNumber`, since the caller is looking up *someone else*. Not club-scoped — `ClubMembersScreen`'s Add Member dialog filters out existing members client-side, since it already has that list loaded. |
+
+### Account email & password recovery (DP-015)
+
+`users.email` is the **confirmed** address; `pending_email` is one awaiting
+its code; `email_required` is true for accounts created under DP-015.
+`GET /v1/me` returns all three (`email`, `pendingEmail`, `emailRequired`) —
+only ever to the account's own owner. Rules live in `internal/account`
+(6-digit code, 15-minute TTL, 5 attempts, 1-minute resend cooldown, only
+the newest code is live, codes stored hashed in `email_codes`).
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| POST | `/v1/me/email` | profile | Body `{email}`. Records it as `pendingEmail` and mails a code; also how a code is re-sent. The confirmed email, if any, stays in effect. 400 invalid address, 409 already the caller's email or confirmed by another account, 429 inside the cooldown (`code: "TOO_SOON"`, with `retryAfterSeconds` so the client can count down), 502 if sending failed. Returns the updated profile. |
+| POST | `/v1/me/email/verify` | profile | Body `{code}`. On a match, the pending address becomes `email` and `pendingEmail` clears; if this replaced an earlier confirmed email, a notice is mailed to that old address (best-effort). 400 for any bad code (wrong, expired, used, locked — one message). 409 if another account confirmed the same address meanwhile. |
+| POST | `/v1/auth/login-identity` | none | Body `{email}` → `{loginEmail}`: the synthetic Firebase identity to sign in as. An email nobody confirmed gets a decoy identity that fails at sign-in like a wrong password, so this never reveals whether an email is registered. |
+| POST | `/v1/auth/password-reset/request` | none | Body `{identifier}` (username or confirmed email). Mails a reset code to the account's confirmed email if there is one. Always 204 — unknown account, no confirmed email, and cooldown are indistinguishable from success. 503 if no Firebase service account is configured. |
+| POST | `/v1/auth/password-reset/confirm` | none | Body `{identifier, code, newPassword}`. Redeems the code, then sets the Firebase password (`internal/firebaseadmin`, Identity Toolkit REST with the service account) and mails a "password changed" notice to the account's email (best-effort). 400 bad code or password under 6 characters, 502 if Firebase refuses (the code is spent — request a new one), 503 if unconfigured. |
+
+Not implemented: IP-based rate limiting on the three unauthenticated
+routes (only the per-account cooldown and attempt cap exist), and
+server-side enforcement of the sign-up email gate — an `emailRequired`
+account without a confirmed email is held back by the client
+(`VerifyEmailScreen`), not by the API.
+
+Mail goes through `internal/mail.Mailer`, chosen at startup in
+`cmd/api/main.go`:
+
+- `RESEND_API_KEY` set → `ResendMailer` (one POST to Resend's HTTP API per
+  message, plain text, no SDK). The sender is `MAIL_FROM`, which must be
+  on a domain verified in Resend. With `MAIL_FROM` unset it falls back to
+  Resend's test sender (`onboarding@resend.dev`), which Resend only
+  delivers to the account owner's own address.
+- `RESEND_API_KEY` unset → `LogMailer`, which writes each message, code
+  included, to the server log.
+
+A failed send on `POST /v1/me/email` surfaces as 502 with Resend's reason
+in the server log; on sign-up and on password-reset request it is logged
+and the request still succeeds.
 
 ### Profile pictures
 

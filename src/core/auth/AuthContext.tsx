@@ -10,8 +10,12 @@ type AuthContextValue = {
   profile: UserProfile | null;
   initializing: boolean;
   needsProfile: boolean;
-  signUp: (username: string, password: string, displayName?: string) => Promise<void>;
-  signIn: (username: string, password: string) => Promise<void>;
+  // DP-015: the account must confirm an email before using the app (new
+  // accounts only — see UserProfile.emailRequired).
+  needsEmail: boolean;
+  signUp: (username: string, password: string, email: string) => Promise<void>;
+  // `identifier` is a username or a confirmed email.
+  signIn: (identifier: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -57,15 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, [loadProfile]);
 
-  const signUp = useCallback(async (username: string, password: string, displayName?: string) => {
+  const signUp = useCallback(async (username: string, password: string, email: string) => {
     await firebaseSignUp(username, password);
-    const p = await createProfile(username, displayName);
+    const p = await createProfile(username, undefined, email);
     setProfile(p);
     setNeedsProfile(false);
   }, []);
 
-  const signIn = useCallback(async (username: string, password: string) => {
-    await firebaseSignIn(username, password);
+  const signIn = useCallback(async (identifier: string, password: string) => {
+    await firebaseSignIn(identifier, password);
     await loadProfile();
   }, [loadProfile]);
 
@@ -75,9 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNeedsProfile(false);
   }, []);
 
+  const needsEmail = Boolean(profile?.emailRequired && !profile.email);
+
   return (
     <AuthContext.Provider
-      value={{ firebaseUser, profile, initializing, needsProfile, signUp, signIn, signOut, refreshProfile: loadProfile }}
+      value={{ firebaseUser, profile, initializing, needsProfile, needsEmail, signUp, signIn, signOut, refreshProfile: loadProfile }}
     >
       {children}
     </AuthContext.Provider>

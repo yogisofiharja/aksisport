@@ -20,11 +20,11 @@ var ErrConflict = errors.New("conflict")
 // is an engineering choice (DP-ARCH-004), not a product requirement.
 const isOnlineExpr = "(last_active_at IS NOT NULL AND last_active_at > now() - interval '2 minutes')"
 
-const userColumns = "id, firebase_uid, username, display_name, email, phone_number, avatar_url, (avatar_image_data IS NOT NULL) AS has_avatar, " + isOnlineExpr + " AS is_online, created_at, updated_at"
+const userColumns = "id, firebase_uid, username, display_name, email, pending_email, email_required, phone_number, avatar_url, (avatar_image_data IS NOT NULL) AS has_avatar, " + isOnlineExpr + " AS is_online, created_at, updated_at"
 
 func scanUser(row pgx.CollectableRow) (models.User, error) {
 	var u models.User
-	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PhoneNumber, &u.AvatarURL, &u.HasAvatar, &u.IsOnline, &u.CreatedAt, &u.UpdatedAt)
+	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PendingEmail, &u.EmailRequired, &u.PhoneNumber, &u.AvatarURL, &u.HasAvatar, &u.IsOnline, &u.CreatedAt, &u.UpdatedAt)
 	return u, err
 }
 
@@ -99,10 +99,13 @@ func SearchUsers(ctx context.Context, pool *pgxpool.Pool, q, excludeUserID strin
 
 // CreateUser creates the user's profile row. Club membership is entirely
 // separate — a new user starts with no clubs until they create or join one.
-func CreateUser(ctx context.Context, pool *pgxpool.Pool, firebaseUID, username string, displayName *string) (models.User, error) {
+// Every account created here is email_required (DP-015); pendingEmail is
+// the address given at sign-up, still to be confirmed, or nil if sign-up
+// was interrupted before one was given.
+func CreateUser(ctx context.Context, pool *pgxpool.Pool, firebaseUID, username string, displayName, pendingEmail *string) (models.User, error) {
 	rows, err := pool.Query(ctx,
-		"INSERT INTO users (firebase_uid, username, display_name) VALUES ($1, $2, $3) RETURNING "+userColumns,
-		firebaseUID, username, displayName,
+		"INSERT INTO users (firebase_uid, username, display_name, pending_email, email_required) VALUES ($1, $2, $3, $4, true) RETURNING "+userColumns,
+		firebaseUID, username, displayName, pendingEmail,
 	)
 	if err != nil {
 		return models.User{}, err
@@ -159,9 +162,10 @@ func GetUserAvatarImage(ctx context.Context, pool *pgxpool.Pool, userID string) 
 	return img, nil
 }
 
+// UserUpdate has no Email: a User's email only changes through code
+// verification (SetVerifiedEmail), never a plain profile update.
 type UserUpdate struct {
 	DisplayName *string
-	Email       *string
 	PhoneNumber *string
 	AvatarURL   *string
 }
@@ -170,13 +174,12 @@ func UpdateUser(ctx context.Context, pool *pgxpool.Pool, id string, u UserUpdate
 	rows, err := pool.Query(ctx,
 		`UPDATE users SET
 			display_name = COALESCE($2, display_name),
-			email = COALESCE($3, email),
-			phone_number = COALESCE($4, phone_number),
-			avatar_url = COALESCE($5, avatar_url),
+			phone_number = COALESCE($3, phone_number),
+			avatar_url = COALESCE($4, avatar_url),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+userColumns,
-		id, u.DisplayName, u.Email, u.PhoneNumber, u.AvatarURL,
+		id, u.DisplayName, u.PhoneNumber, u.AvatarURL,
 	)
 	if err != nil {
 		return models.User{}, err

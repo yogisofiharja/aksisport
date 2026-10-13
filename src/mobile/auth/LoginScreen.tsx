@@ -12,9 +12,10 @@ import { PasswordField } from './PasswordField';
 
 type Props = {
   onNavigateToSignUp: () => void;
+  onForgotPassword: () => void;
 };
 
-export function LoginScreen({ onNavigateToSignUp }: Props) {
+export function LoginScreen({ onNavigateToSignUp, onForgotPassword }: Props) {
   const { t } = useTranslation();
   const { signIn } = useAuth();
   const [username, setUsername] = useState('');
@@ -46,7 +47,7 @@ export function LoginScreen({ onNavigateToSignUp }: Props) {
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authUsername')}</Text>
+            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authUsernameOrEmail')}</Text>
             <Input>
               <InputField
                 autoCapitalize="none"
@@ -60,6 +61,9 @@ export function LoginScreen({ onNavigateToSignUp }: Props) {
           <VStack className="gap-2">
             <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authPassword')}</Text>
             <PasswordField value={password} onChangeText={setPassword} onSubmitEditing={handleSubmit} />
+            <Pressable className="self-end" onPress={onForgotPassword}>
+              <Text className="text-sm font-bold text-blue-600 dark:text-blue-400">{t('forgotPasswordLink')}</Text>
+            </Pressable>
           </VStack>
 
           {error && <Text className="text-sm text-red-500">{error}</Text>}

@@ -4,10 +4,11 @@ import { useAuth } from '../core/auth/AuthContext';
 import { AuthStack } from './AuthStack';
 import { MainStack } from './MainStack';
 import { CompleteProfileScreen } from '../mobile/auth/CompleteProfileScreen';
+import { VerifyEmailScreen } from '../mobile/auth/VerifyEmailScreen';
 import { linking, restoreIntendedUrl } from './linking';
 
 export function RootNavigator() {
-  const { firebaseUser, initializing, needsProfile } = useAuth();
+  const { firebaseUser, initializing, needsProfile, needsEmail } = useAuth();
 
   if (initializing) {
     return (
@@ -22,7 +23,7 @@ export function RootNavigator() {
   // lets restoreIntendedUrl() send a just-signed-in visitor to the link
   // they originally opened. It must run before that remount, hence here
   // in render rather than in an effect.
-  const signedIn = Boolean(firebaseUser) && !needsProfile;
+  const signedIn = Boolean(firebaseUser) && !needsProfile && !needsEmail;
   if (signedIn) restoreIntendedUrl();
 
   return (
@@ -31,7 +32,16 @@ export function RootNavigator() {
       linking={linking}
       documentTitle={{ formatter: () => 'Aksi' }}
     >
-      {!firebaseUser ? <AuthStack /> : needsProfile ? <CompleteProfileScreen /> : <MainStack />}
+      {!firebaseUser ? (
+        <AuthStack />
+      ) : needsProfile ? (
+        <CompleteProfileScreen />
+      ) : needsEmail ? (
+        // DP-015: a new account confirms its email before anything else.
+        <VerifyEmailScreen />
+      ) : (
+        <MainStack />
+      )}
     </NavigationContainer>
   );
 }

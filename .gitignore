@@ -44,3 +44,7 @@ yarn-error.*
 
 # Go backend
 server/bin/
+
+# Firebase service account keys — admin access to the project, never commit
+*firebase-adminsdk*.json
+firebase-admin*.json

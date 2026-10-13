@@ -7,7 +7,15 @@ type User struct {
 	FirebaseUID string    `json:"-"`
 	Username    string    `json:"username"`
 	DisplayName *string   `json:"displayName,omitempty"`
-	Email       *string   `json:"email,omitempty"`
+	// Email is the User's *confirmed* address (DP-015) — only ever set by
+	// a successful code verification. PendingEmail is an address still
+	// awaiting its code. EmailRequired marks accounts created under
+	// DP-015, which must confirm an email before using the app; older
+	// accounts are only reminded. All three are private to the User:
+	// this struct is only ever returned to its own owner.
+	Email         *string `json:"email,omitempty"`
+	PendingEmail  *string `json:"pendingEmail,omitempty"`
+	EmailRequired bool    `json:"emailRequired"`
 	PhoneNumber *string   `json:"phoneNumber,omitempty"`
 	AvatarURL   *string   `json:"avatarUrl,omitempty"`
 	// HasAvatar is computed (avatar_image_data IS NOT NULL), same pattern

@@ -180,6 +180,15 @@ Real, live work that fell outside the six-milestone roadmap above:
   screens. Checked in Chrome on 2026-10-14 (navigation, dialogs, pickers,
   schedule sync); uploads, chat and image loading not yet checked. The
   legacy scorer stays on Vercel from the `scorer` branch.
+- **Account email & password recovery (DP-015)** — email confirmed by a
+  6-digit code (required at sign-up, reminder for older accounts), login
+  with username or email, forgot-password, show/hide on password fields.
+  The owner is also mailed when their password or email changes. Mail
+  goes through Resend. Working locally as of 2026-10-14 (confirmation,
+  email login, password reset). **Each deployed environment needs its own
+  setup before it works there:** `RESEND_API_KEY` and `MAIL_FROM` (sender
+  on a Resend-verified domain), and a Firebase service account
+  (`FIREBASE_SERVICE_ACCOUNT_FILE`) — see `docs/engineering/deployment.md`.
 - **Online Indicator (DP-014)** — a User attribute derived from recent
   request activity (no push/websocket presence infra exists), shown as
   a green outline ring on member circle avatars (Club Members grid,

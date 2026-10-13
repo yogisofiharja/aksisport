@@ -6,11 +6,13 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 export class ApiRequestError extends Error {
   status: number;
   code?: string;
+  retryAfterSeconds?: number;
 
   constructor(status: number, body: ApiError) {
     super(body.error || `Request failed with status ${status}`);
     this.status = status;
     this.code = body.code;
+    this.retryAfterSeconds = body.retryAfterSeconds;
   }
 }
 
@@ -61,10 +63,44 @@ export function searchUsers(query: string): Promise<UserSummary[]> {
   return apiFetch(`/v1/users/search?q=${encodeURIComponent(query)}`);
 }
 
-export function createProfile(username: string, displayName?: string): Promise<UserProfile> {
+// `email` is the address to confirm (DP-015) — always sent by sign-up,
+// omitted only when completing an interrupted sign-up, where the
+// confirmation step asks for it instead.
+export function createProfile(username: string, displayName?: string, email?: string): Promise<UserProfile> {
   return apiFetch('/v1/users', {
     method: 'POST',
-    body: JSON.stringify({ username, displayName }),
+    body: JSON.stringify({ username, displayName, email }),
+  });
+}
+
+// --- Account email & password recovery (DP-015) ---
+
+// Emails a 6-digit code to `email` and records it as the caller's pending
+// address. Also how a code is re-sent.
+export function requestEmailCode(email: string): Promise<UserProfile> {
+  return apiFetch('/v1/me/email', { method: 'POST', body: JSON.stringify({ email }) });
+}
+
+export function confirmEmailCode(code: string): Promise<UserProfile> {
+  return apiFetch('/v1/me/email/verify', { method: 'POST', body: JSON.stringify({ code }) });
+}
+
+// Which Firebase identity to sign in as for this email. Always answers —
+// an email nobody confirmed gets an identity that fails like a wrong
+// password — so it never reveals whether the email is registered.
+export function resolveLoginIdentity(email: string): Promise<{ loginEmail: string }> {
+  return apiFetch('/v1/auth/login-identity', { method: 'POST', body: JSON.stringify({ email }) });
+}
+
+// Succeeds whether or not the account exists or has a confirmed email.
+export function requestPasswordReset(identifier: string): Promise<void> {
+  return apiFetch('/v1/auth/password-reset/request', { method: 'POST', body: JSON.stringify({ identifier }) });
+}
+
+export function confirmPasswordReset(identifier: string, code: string, newPassword: string): Promise<void> {
+  return apiFetch('/v1/auth/password-reset/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ identifier, code, newPassword }),
   });
 }
 
@@ -72,7 +108,7 @@ export function getMe(): Promise<UserProfile> {
   return apiFetch('/v1/me');
 }
 
-export function updateMe(updates: Partial<Pick<UserProfile, 'displayName' | 'email' | 'phoneNumber' | 'avatarUrl'>>): Promise<UserProfile> {
+export function updateMe(updates: Partial<Pick<UserProfile, 'displayName' | 'phoneNumber' | 'avatarUrl'>>): Promise<UserProfile> {
   return apiFetch('/v1/me', {
     method: 'PATCH',
     body: JSON.stringify(updates),

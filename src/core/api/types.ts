@@ -2,7 +2,14 @@ export type UserProfile = {
   id: string;
   username: string;
   displayName?: string;
+  // DP-015. `email` is the *confirmed* address — set only once its code
+  // has been entered. `pendingEmail` is one still awaiting its code.
+  // `emailRequired` is true for accounts created under DP-015, which must
+  // confirm an email before using the app; older accounts are only
+  // reminded.
   email?: string;
+  pendingEmail?: string;
+  emailRequired: boolean;
   phoneNumber?: string;
   avatarUrl?: string;
   hasAvatar: boolean;
@@ -16,6 +23,9 @@ export type UserProfile = {
 export type ApiError = {
   error: string;
   code?: string;
+  // Sent with code "TOO_SOON" (DP-015 resend cooldown): how long until a
+  // new confirmation code can be requested.
+  retryAfterSeconds?: number;
 };
 
 export type Club = {

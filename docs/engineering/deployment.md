@@ -184,6 +184,18 @@ PORT=8080
 DATABASE_URL=postgres://aksi_production_user:REPLACE_ME_PROD@localhost:5432/aksi_production?sslmode=disable
 FIREBASE_PROJECT_ID=<prod-firebase-project-id>
 ALLOWED_ORIGINS=https://app.aksisport.com
+# Account email (DP-015). Without RESEND_API_KEY, confirmation and reset
+# codes are written to the server log instead of being emailed. MAIL_FROM
+# must be an address on a domain verified in Resend (DNS records added in
+# Cloudflare); without it only Resend's test sender is used, which
+# delivers to the Resend account owner's address alone.
+RESEND_API_KEY=<resend-api-key>
+MAIL_FROM=Aksi <no-reply@aksisport.com>
+# Optional. Path to a Firebase service account key (Firebase console >
+# Project settings > Service accounts > Generate new private key), readable
+# only by the API's user. Enables password recovery (DP-015); without it
+# everything else works and recovery reports itself unavailable.
+FIREBASE_SERVICE_ACCOUNT_FILE=/etc/aksi/production-firebase-admin.json
 EOF
 
 sudo tee /etc/aksi/production-web.env <<'EOF'

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -11,14 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/yogisofiharja/aksi-server/internal/account"
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	dbpkg "github.com/yogisofiharja/aksi-server/internal/db"
+	"github.com/yogisofiharja/aksi-server/internal/mail"
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
 var usernamePattern = regexp.MustCompile(`^[a-z0-9_]{3,20}$`)
 
-func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier) {
+func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, mailer mail.Mailer) {
 	rg.GET("/users/check-username", func(c *gin.Context) {
 		username := c.Query("username")
 		if !usernamePattern.MatchString(username) {
@@ -40,6 +43,11 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		var body struct {
 			Username    string  `json:"username"`
 			DisplayName *string `json:"displayName"`
+			// DP-015: the address to confirm. Sign-up always sends it;
+			// it is absent only when an interrupted sign-up is being
+			// completed (CompleteProfileScreen), in which case the app's
+			// confirmation step asks for it instead.
+			Email *string `json:"email"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			respondError(c, http.StatusBadRequest, "invalid body")
@@ -53,6 +61,23 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		uid := authjwt.FirebaseUID(c)
 		ctx := c.Request.Context()
 
+		var pendingEmail *string
+		if body.Email != nil && strings.TrimSpace(*body.Email) != "" {
+			email := account.NormalizeEmail(*body.Email)
+			if !account.ValidEmail(email) {
+				respondError(c, http.StatusBadRequest, "enter a valid email address")
+				return
+			}
+			if _, err := dbpkg.GetUserByConfirmedEmail(ctx, pool, email); err == nil {
+				respondError(c, http.StatusConflict, "this email is already used by another account")
+				return
+			} else if !errors.Is(err, dbpkg.ErrNotFound) {
+				respondError(c, http.StatusInternalServerError, "internal error")
+				return
+			}
+			pendingEmail = &email
+		}
+
 		if _, err := dbpkg.GetUserByFirebaseUID(ctx, pool, uid); err == nil {
 			respondError(c, http.StatusConflict, "profile already exists")
 			return
@@ -61,10 +86,17 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 
-		user, err := dbpkg.CreateUser(ctx, pool, uid, body.Username, body.DisplayName)
+		user, err := dbpkg.CreateUser(ctx, pool, uid, body.Username, body.DisplayName, pendingEmail)
 		if err != nil {
 			respondError(c, http.StatusConflict, "username taken")
 			return
+		}
+		// The account exists either way; if the code fails to send, the
+		// confirmation step's "send again" covers it.
+		if pendingEmail != nil {
+			if err := sendEmailCode(ctx, pool, mailer, user.ID, account.PurposeVerifyEmail, *pendingEmail); err != nil {
+				log.Printf("sending sign-up confirmation code: %v", err)
+			}
 		}
 		c.JSON(http.StatusCreated, user)
 	})
@@ -89,7 +121,6 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 	profiled.PATCH("/me", func(c *gin.Context) {
 		var body struct {
 			DisplayName *string `json:"displayName"`
-			Email       *string `json:"email"`
 			PhoneNumber *string `json:"phoneNumber"`
 			AvatarURL   *string `json:"avatarUrl"`
 		}
@@ -100,7 +131,6 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		current := authjwt.CurrentUser(c)
 		user, err := dbpkg.UpdateUser(c.Request.Context(), pool, current.ID, dbpkg.UserUpdate{
 			DisplayName: body.DisplayName,
-			Email:       body.Email,
 			PhoneNumber: body.PhoneNumber,
 			AvatarURL:   body.AvatarURL,
 		})
