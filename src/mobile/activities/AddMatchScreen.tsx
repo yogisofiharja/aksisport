@@ -21,6 +21,7 @@ import { minParticipants } from '../../sports/tennis/rules';
 import { firstCheckedInPolicy } from '../../core/sessions/scheduler';
 import { availableToPlay, generateFairRound, suggestedMatchCount, type GeneratedMatch } from '../../core/sessions/matchGenerator';
 import { buildGeneratedMatchPayload, buildServiceOrder, participantLabel } from '../../core/activities/buildGeneratedMatchPayload';
+import { webSelectStyle } from '../../platform/webSelectStyle';
 
 type Props = {
   sessionId: string;
@@ -307,13 +308,15 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
             </Typography>
             <Divider />
             <VStack className="px-5 py-4" space="xs">
-              <Pressable
-                className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
-                onPress={() => setShowMatchCountPicker((shown) => !shown)}
-              >
-                <Typography variant="label">{t('activityMatchCountValue', matchCount)}</Typography>
-              </Pressable>
-              {showMatchCountPicker && (
+              {Platform.OS !== 'web' && (
+                <Pressable
+                  className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+                  onPress={() => setShowMatchCountPicker((shown) => !shown)}
+                >
+                  <Typography variant="label">{t('activityMatchCountValue', matchCount)}</Typography>
+                </Pressable>
+              )}
+              {(Platform.OS === 'web' || showMatchCountPicker) && (
                 <>
                   <Picker
                     selectedValue={matchCount}
@@ -321,7 +324,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
                       setMatchCount(Number(next));
                       if (Platform.OS === 'android') setShowMatchCountPicker(false);
                     }}
-                    style={Platform.OS === 'android' ? { color: isDark ? '#f1f5f9' : '#0f172a' } : undefined}
+                    style={Platform.OS === 'android' ? { color: isDark ? '#f1f5f9' : '#0f172a' } : webSelectStyle(isDark)}
                     itemStyle={Platform.OS === 'ios' ? { color: isDark ? '#f1f5f9' : '#0f172a' } : undefined}
                     dropdownIconColor={isDark ? '#f1f5f9' : '#0f172a'}
                   >

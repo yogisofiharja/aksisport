@@ -29,6 +29,7 @@ import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
 import { listSportIds, getSportModule } from '../../sports/registry';
 import { weekdayLabel } from '../recurringSchedules/weekday';
 import { SkillLevelRangePicker, type SkillLevelRangeValue } from '../skillLevels/SkillLevelRangePicker';
+import { webSelectStyle } from '../../platform/webSelectStyle';
 
 type Props = {
   clubId: string;
@@ -767,13 +768,15 @@ export function CreateSessionScreen({
           ) : (
             <VStack className="gap-2">
               <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionDateLabel')}</Text>
-              <Pressable
-                className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
-                onPress={() => setShowDatePicker((shown) => !shown)}
-              >
-                <Text className="text-slate-900 dark:text-slate-100 font-bold">{date.toLocaleDateString()}</Text>
-              </Pressable>
-              {showDatePicker && (
+              {Platform.OS !== 'web' && (
+                <Pressable
+                  className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+                  onPress={() => setShowDatePicker((shown) => !shown)}
+                >
+                  <Text className="text-slate-900 dark:text-slate-100 font-bold">{date.toLocaleDateString()}</Text>
+                </Pressable>
+              )}
+              {(Platform.OS === 'web' || showDatePicker) && (
                 <>
                   <DateTimePicker
                     value={date}
@@ -785,7 +788,7 @@ export function CreateSessionScreen({
                       if (selected) setDate(selected);
                     }}
                   />
-                  {Platform.OS !== 'android' && (
+                  {Platform.OS === 'ios' && (
                     <Pressable className="self-end px-4 py-2" onPress={() => setShowDatePicker(false)}>
                       <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
                     </Pressable>
@@ -799,13 +802,15 @@ export function CreateSessionScreen({
             <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">
               {!isEditing && isRecurring ? t('recurringScheduleTimeLabel') : t('sessionTimeLabel')}
             </Text>
-            <Pressable
-              className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
-              onPress={() => setShowTimePicker((shown) => !shown)}
-            >
-              <Text className="text-slate-900 dark:text-slate-100 font-bold">{formatHHMM(time)}</Text>
-            </Pressable>
-            {showTimePicker && (
+            {Platform.OS !== 'web' && (
+              <Pressable
+                className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+                onPress={() => setShowTimePicker((shown) => !shown)}
+              >
+                <Text className="text-slate-900 dark:text-slate-100 font-bold">{formatHHMM(time)}</Text>
+              </Pressable>
+            )}
+            {(Platform.OS === 'web' || showTimePicker) && (
               <>
                 <DateTimePicker
                   value={time}
@@ -817,7 +822,7 @@ export function CreateSessionScreen({
                     if (selected) setTime(selected);
                   }}
                 />
-                {Platform.OS !== 'android' && (
+                {Platform.OS === 'ios' && (
                   <Pressable className="self-end px-4 py-2" onPress={() => setShowTimePicker(false)}>
                     <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
                   </Pressable>
@@ -842,13 +847,15 @@ export function CreateSessionScreen({
 
           <VStack className="gap-2">
             <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionDurationLabel')}</Text>
-            <Pressable
-              className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
-              onPress={() => setShowDurationPicker((shown) => !shown)}
-            >
-              <Text className="text-slate-900 dark:text-slate-100 font-bold">{t('sessionDurationHours', durationHours)}</Text>
-            </Pressable>
-            {showDurationPicker && (
+            {Platform.OS !== 'web' && (
+              <Pressable
+                className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+                onPress={() => setShowDurationPicker((shown) => !shown)}
+              >
+                <Text className="text-slate-900 dark:text-slate-100 font-bold">{t('sessionDurationHours', durationHours)}</Text>
+              </Pressable>
+            )}
+            {(Platform.OS === 'web' || showDurationPicker) && (
               <>
                 <Picker
                   selectedValue={durationHours}
@@ -856,7 +863,7 @@ export function CreateSessionScreen({
                     setDurationHours(Number(hours));
                     if (Platform.OS === 'android') setShowDurationPicker(false);
                   }}
-                  style={Platform.OS === 'android' ? { color: isDark ? '#f1f5f9' : '#0f172a' } : undefined}
+                  style={Platform.OS === 'android' ? { color: isDark ? '#f1f5f9' : '#0f172a' } : webSelectStyle(isDark)}
                   itemStyle={Platform.OS === 'ios' ? { color: isDark ? '#f1f5f9' : '#0f172a' } : undefined}
                   dropdownIconColor={isDark ? '#f1f5f9' : '#0f172a'}
                 >
@@ -869,7 +876,7 @@ export function CreateSessionScreen({
                     />
                   ))}
                 </Picker>
-                {Platform.OS !== 'android' && (
+                {Platform.OS === 'ios' && (
                   <Pressable className="self-end px-4 py-2" onPress={() => setShowDurationPicker(false)}>
                     <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
                   </Pressable>

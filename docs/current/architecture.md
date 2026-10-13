@@ -18,7 +18,9 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
     real URLs from `src/navigation/linking.ts`.
   - Platform differences live behind shared wrappers, never in screens:
     `src/platform/DateTimePicker(.web).tsx` (the native picker has no web
-    build), `design-system/feedback/appAlert.tsx` (`Alert.alert` is a
+    build; web gets an in-app calendar and hour/minute dropdowns),
+    `src/platform/webSelectStyle.ts` (themes the bare `<select>` the
+    dropdown renders on web), `design-system/feedback/appAlert.tsx` (`Alert.alert` is a
     no-op on web, so prompts go through `appAlert`, which shows an in-app
     modal there), and the `.web.ts` utilities next to `audio`, `tts`,
     `storage`, `imagePicker`.

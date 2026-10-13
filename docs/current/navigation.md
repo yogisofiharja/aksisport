@@ -212,9 +212,10 @@ Web renders the same `RootNavigator` as native — same stacks, tabs and
 screens. `src/navigation/linking.ts` maps every screen to a URL (`/`,
 `/explore`, `/inbox`, `/me`, `/clubs/:clubId`, `/clubs/:clubId/sessions`,
 `/sessions/:sessionId`, `/clubs/:clubId/schedules/:scheduleId`, …), so
-refresh, the browser back button and pasted links work. A signed-out
-visitor opening a deep URL lands on Login; the URL is not restored after
-sign-in.
+refresh, the browser back button and pasted links work. A page opened
+directly gets Home placed underneath it, so in-app back arrows have
+somewhere to go. A signed-out visitor opening a deep URL lands on Login
+and is taken to that URL after signing in (`linkingFor()`).
 
 The legacy `ScoringFlow` (its own `useState<AppScreen>` machine — see
 `docs/current/state-machines.md`) is no longer what web renders; it is

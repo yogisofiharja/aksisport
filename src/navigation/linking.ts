@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { LinkingOptions, NavigatorScreenParams } from '@react-navigation/native';
 import type { AuthStackParamList } from './AuthStack';
 import type { MainStackParamList } from './MainStack';
@@ -12,7 +13,7 @@ type LinkableParamList = AuthStackParamList &
 // shared by AuthStack and MainStack — only one is mounted at a time, and
 // a path that doesn't match the mounted one falls back to its first
 // screen (so a signed-out visitor opening /sessions/… gets Login).
-export const linking: LinkingOptions<LinkableParamList> = {
+const linking: LinkingOptions<LinkableParamList> = {
   prefixes: [],
   config: {
     // A page opened straight from a URL (refresh, pasted link) would
@@ -51,3 +52,26 @@ export const linking: LinkingOptions<LinkableParamList> = {
     },
   },
 };
+
+// The address the browser was opened at, read once before any navigator
+// mounts (the signed-out stack immediately rewrites the URL to /login).
+// A visitor who had to sign in first is taken there afterwards instead of
+// being dropped on Home. Consumed by the first signed-in mount, so a later
+// sign-out/sign-in in the same tab starts from Home as usual.
+let intendedUrl: string | null = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.href : null;
+
+function takeIntendedUrl(): string | null {
+  const url = intendedUrl;
+  intendedUrl = null;
+  return url;
+}
+
+// Built once: NavigationContainer expects a stable `linking` object.
+const signedInLinking: LinkingOptions<LinkableParamList> = {
+  ...linking,
+  getInitialURL: () => takeIntendedUrl() ?? window.location.href,
+};
+
+export function linkingFor(signedIn: boolean): LinkingOptions<LinkableParamList> {
+  return Platform.OS === 'web' && signedIn ? signedInLinking : linking;
+}

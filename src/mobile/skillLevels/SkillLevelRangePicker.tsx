@@ -7,6 +7,7 @@ import { VStack, HStack } from '../../../components/ui/box';
 import { useTranslation } from '../../i18n';
 import { listSkillLevels } from '../../core/skillLevels/api';
 import type { SkillLevel, SkillLevelEnforcement } from '../../core/api/types';
+import { webSelectStyle } from '../../platform/webSelectStyle';
 
 export type SkillLevelRangeValue = {
   skillLevelMinId?: string;
@@ -75,7 +76,7 @@ export function SkillLevelRangePicker({ sport, value, onChange }: Props) {
                 if (id) pickMin(String(id));
                 if (Platform.OS === 'android') setShowMinPicker(false);
               }}
-              style={Platform.OS === 'android' ? { color: pickerTextColor } : undefined}
+              style={Platform.OS === 'android' ? { color: pickerTextColor } : webSelectStyle(isDark)}
               itemStyle={Platform.OS === 'ios' ? { color: pickerTextColor } : undefined}
               dropdownIconColor={pickerTextColor}
             >
@@ -108,7 +109,7 @@ export function SkillLevelRangePicker({ sport, value, onChange }: Props) {
                 if (id) pickMax(String(id));
                 if (Platform.OS === 'android') setShowMaxPicker(false);
               }}
-              style={Platform.OS === 'android' ? { color: pickerTextColor } : undefined}
+              style={Platform.OS === 'android' ? { color: pickerTextColor } : webSelectStyle(isDark)}
               itemStyle={Platform.OS === 'ios' ? { color: pickerTextColor } : undefined}
               dropdownIconColor={pickerTextColor}
             >
