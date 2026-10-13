@@ -8,6 +8,7 @@ import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
+import { PasswordField } from './PasswordField';
 
 type Props = {
   onNavigateToSignUp: () => void;
@@ -58,14 +59,7 @@ export function LoginScreen({ onNavigateToSignUp }: Props) {
 
           <VStack className="gap-2">
             <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authPassword')}</Text>
-            <Input>
-              <InputField
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                onSubmitEditing={handleSubmit}
-              />
-            </Input>
+            <PasswordField value={password} onChangeText={setPassword} onSubmitEditing={handleSubmit} />
           </VStack>
 
           {error && <Text className="text-sm text-red-500">{error}</Text>}

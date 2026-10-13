@@ -8,6 +8,7 @@ import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
+import { PasswordField } from './PasswordField';
 import { USERNAME_PATTERN } from '../../core/auth/firebaseAuth';
 import { checkUsername } from '../../core/api/client';
 
@@ -109,16 +110,12 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
 
           <VStack className="gap-2">
             <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authPassword')}</Text>
-            <Input>
-              <InputField secureTextEntry value={password} onChangeText={setPassword} />
-            </Input>
+            <PasswordField value={password} onChangeText={setPassword} />
           </VStack>
 
           <VStack className="gap-2">
             <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authConfirmPassword')}</Text>
-            <Input>
-              <InputField secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
-            </Input>
+            <PasswordField value={confirmPassword} onChangeText={setConfirmPassword} />
             {confirmPassword.length > 0 && password !== confirmPassword && (
               <Text className="text-xs text-red-500">{t('authPasswordMismatch')}</Text>
             )}
