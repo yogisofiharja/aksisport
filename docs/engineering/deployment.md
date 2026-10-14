@@ -192,6 +192,8 @@ real values — DB credentials from step 3, each environment's own Firebase proj
 sudo mkdir -p /etc/aksi
 sudo tee /etc/aksi/production.env <<'EOF'
 PORT=8080
+# Turns off Gin's debug output (one log line per route on every start).
+GIN_MODE=release
 DATABASE_URL=postgres://aksi_production_user:REPLACE_ME_PROD@localhost:5432/aksi_production?sslmode=disable
 FIREBASE_PROJECT_ID=aksi-production
 ALLOWED_ORIGINS=https://app.aksisport.com
@@ -201,7 +203,7 @@ ALLOWED_ORIGINS=https://app.aksisport.com
 # Cloudflare); without it only Resend's test sender is used, which
 # delivers to the Resend account owner's address alone.
 RESEND_API_KEY=<resend-api-key>
-MAIL_FROM=Aksi <no-reply@aksisport.com>
+MAIL_FROM="Aksi <no-reply@aksisport.com>"
 # Optional. Path to a Firebase service account key (Firebase console >
 # Project settings > Service accounts > Generate new private key), readable
 # only by the API's user. Enables password recovery (DP-015); without it
@@ -232,12 +234,15 @@ EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 EXPO_PUBLIC_FIREBASE_APP_ID=
 EXPO_PUBLIC_API_BASE_URL=https://api.aksisport.com
+# Base of shareable links (Community invites); defaults to https://app.aksisport.com.
+EXPO_PUBLIC_APP_URL=https://app.aksisport.com
 EOF
 
 # repeat for staging: /etc/aksi/staging.env (PORT=8081, aksi_staging_user/aksi_staging,
 # ALLOWED_ORIGINS=https://app-dev.aksisport.com, its own RESEND/MAIL_FROM, Firebase
 # service account and CLIENT_IP_HEADER=CF-Connecting-IP) and /etc/aksi/staging-web.env
-# (staging Firebase project's values, EXPO_PUBLIC_API_BASE_URL=https://api-dev.aksisport.com)
+# (staging Firebase project's values, EXPO_PUBLIC_API_BASE_URL=https://api-dev.aksisport.com,
+# EXPO_PUBLIC_APP_URL=https://app-dev.aksisport.com)
 
 sudo chown root:deploy /etc/aksi/*.env
 sudo chmod 640 /etc/aksi/*.env
