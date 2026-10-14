@@ -13,6 +13,9 @@ import { initialsFromName } from '../../core/initials';
 import { ConversationThread } from '../sessions/ConversationThread';
 import { usePollInterval, useLiveEvents } from '../../core/live/live';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
+import { appAlert } from '../../design-system/feedback/appAlert';
+import { blockUser, unblockUser } from '../../core/safety/api';
+import { ReportSheet, type ReportTarget } from '../safety/ReportSheet';
 import type { ConversationMessage, PlayerProfile } from '../../core/api/types';
 
 type Props = {
@@ -33,6 +36,7 @@ export function DirectMessageScreen({ userId, onBack }: Props) {
   const [unavailable, setUnavailable] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   useEffect(() => {
     authHeader().then(setImageHeaders);
@@ -78,6 +82,32 @@ export function DirectMessageScreen({ userId, onBack }: Props) {
   }
 
   const name = other ? other.displayName || other.username : '';
+  const blocked = other?.blockedByMe ?? false;
+
+  // DP-021: block / unblock and report, from the header.
+  function setBlocked(value: boolean) {
+    if (!other) return;
+    (value ? blockUser(userId) : unblockUser(userId)).then(() => setOther({ ...other, blockedByMe: value })).catch(() => {});
+  }
+
+  function handleMenu() {
+    if (!other) return;
+    appAlert(name, undefined, [
+      blocked
+        ? { text: t('blockUnblock'), onPress: () => setBlocked(false) }
+        : {
+            text: t('blockPlayer'),
+            style: 'destructive',
+            onPress: () =>
+              appAlert(t('blockConfirmTitle', name), t('blockConfirmBody'), [
+                { text: t('clubCancel'), style: 'cancel' },
+                { text: t('blockPlayer'), style: 'destructive', onPress: () => setBlocked(true) },
+              ]),
+          },
+      { text: t('reportPlayer'), style: 'destructive', onPress: () => setReportTarget({ kind: 'user', userId, name }) },
+      { text: t('clubCancel'), style: 'cancel' },
+    ]);
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
@@ -109,6 +139,11 @@ export function DirectMessageScreen({ userId, onBack }: Props) {
             )}
           </VStack>
         </Pressable>
+        {other && (
+          <Pressable className="p-2 -mr-2 active:opacity-60" onPress={handleMenu} hitSlop={4}>
+            <Icon name="ellipsis-vertical" size="lg" />
+          </Pressable>
+        )}
       </HStack>
 
       {unavailable && messages.length === 0 && !loading ? (
@@ -123,8 +158,8 @@ export function DirectMessageScreen({ userId, onBack }: Props) {
             loading={loading}
             onRefresh={load}
             myUserId={me?.id ?? ''}
-            canPost
-            closedNotice=""
+            canPost={!blocked}
+            closedNotice={t('blockedNotice', name)}
             emptyText={t('directMessageEmpty', name)}
             placeholder={t('sessionChatPlaceholder')}
             onSend={handleSend}
@@ -132,7 +167,15 @@ export function DirectMessageScreen({ userId, onBack }: Props) {
           />
         </View>
       )}
-      <PlayerProfileSheet userId={showProfile ? userId : null} onClose={() => setShowProfile(false)} />
+      <PlayerProfileSheet
+        userId={showProfile ? userId : null}
+        onClose={() => {
+          setShowProfile(false);
+          // Blocking may have changed in the sheet.
+          getPlayerProfile(userId).then(setOther).catch(() => {});
+        }}
+      />
+      <ReportSheet target={reportTarget} onClose={() => setReportTarget(null)} />
     </SafeAreaView>
   );
 }

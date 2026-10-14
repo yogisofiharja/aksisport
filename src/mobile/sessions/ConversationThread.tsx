@@ -9,8 +9,16 @@ import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
 import { authHeader } from '../../core/api/client';
 import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
-import { listConversationReads, markConversationRead } from '../../core/messages/api';
+import {
+  DELETE_FOR_EVERYONE_WINDOW_MS,
+  EDIT_WINDOW_MS,
+  deleteMessage,
+  editMessage,
+  listConversationReads,
+  markConversationRead,
+} from '../../core/messages/api';
 import { sendLive, useLiveEvents } from '../../core/live/live';
+import { ReportSheet, type ReportTarget } from '../safety/ReportSheet';
 import type { ConversationMessage, ConversationRead } from '../../core/api/types';
 
 type Props = {
@@ -69,6 +77,9 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
   const [reads, setReads] = useState<ConversationRead[]>([]);
   const [typing, setTyping] = useState<Record<string, { name: string; until: number }>>({});
   const lastTypingSent = useRef(0);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  // The message being edited in the compose bar, if any (DP-021).
+  const [editing, setEditing] = useState<ConversationMessage | null>(null);
 
   useEffect(() => {
     setReads([]);
@@ -97,6 +108,8 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
         return rest;
       });
       if (!messages.some((m) => m.id === e.data.message?.id)) onRefresh();
+    } else if (e.type === 'message.removed' || e.type === 'message.updated') {
+      onRefresh();
     } else if (e.type === 'read') {
       setReads((prev) => [...prev.filter((r) => r.userId !== e.data.userId), { userId: e.data.userId, lastReadAt: e.data.lastReadAt }]);
     } else if (e.type === 'typing' && e.data.userId !== myUserId) {
@@ -117,6 +130,54 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
     }, 1000);
     return () => clearInterval(id);
   }, [typingCount]);
+
+  // Long-press a message (DP-021), WhatsApp's rules: your own can be
+  // edited for 15 minutes and deleted for everyone for about 2½ days; any
+  // can be deleted for you; someone else's can be reported.
+  function handleMessageLongPress(m: ConversationMessage) {
+    const isMine = m.senderId === myUserId;
+    const age = Date.now() - new Date(m.createdAt).getTime();
+    const gone = m.deleted || m.removed;
+    const canDeleteForEveryone = isMine && !gone && age < DELETE_FOR_EVERYONE_WINDOW_MS;
+    // At most three buttons per prompt: Android's alert shows no more.
+    const buttons: Parameters<typeof appAlert>[2] = [];
+    if (isMine && !gone && canPost && age < EDIT_WINDOW_MS) {
+      buttons.push({ text: t('chatEdit'), onPress: () => startEditing(m) });
+    }
+    buttons.push({ text: t('chatDelete'), style: 'destructive', onPress: () => askDelete(m, canDeleteForEveryone) });
+    if (!isMine && !gone) {
+      buttons.push({
+        text: t('chatReportMessage'),
+        style: 'destructive',
+        onPress: () => setReportTarget({ kind: 'message', messageId: m.id, name: messageAuthorName(m) }),
+      });
+    }
+    buttons.push({ text: t('clubCancel'), style: 'cancel' });
+    appAlert(t('chatMessageActions'), undefined, buttons);
+  }
+
+  function askDelete(m: ConversationMessage, canDeleteForEveryone: boolean) {
+    const run = (scope: 'me' | 'everyone') =>
+      deleteMessage(m.id, scope)
+        .then(onRefresh)
+        .catch(() => appAlert(t('chatEditFailed')));
+    appAlert(t('chatDeleteTitle'), undefined, [
+      ...(canDeleteForEveryone ? [{ text: t('chatDeleteForEveryone'), style: 'destructive' as const, onPress: () => run('everyone') }] : []),
+      { text: t('chatDeleteForMe'), style: 'destructive', onPress: () => run('me') },
+      { text: t('clubCancel'), style: 'cancel' },
+    ]);
+  }
+
+  function startEditing(m: ConversationMessage) {
+    setEditing(m);
+    setPendingImage(null);
+    setDraft(m.body);
+  }
+
+  function stopEditing() {
+    setEditing(null);
+    setDraft('');
+  }
 
   function handleDraftChange(text: string) {
     setDraft(text);
@@ -173,6 +234,22 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
 
   async function handleSend() {
     const trimmed = draft.trim();
+    if (editing) {
+      if ((!trimmed && !editing.hasImage) || sending) return;
+      setSending(true);
+      try {
+        if (trimmed !== editing.body) {
+          await editMessage(editing.id, trimmed);
+          onRefresh();
+        }
+        stopEditing();
+      } catch {
+        appAlert(t('chatEditFailed'));
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
     if ((!trimmed && !pendingImage) || sending) return;
     setSending(true);
     try {
@@ -212,23 +289,37 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
                       {messageAuthorName(m)}
                     </Text>
                   )}
-                  <Text className="text-xs text-slate-400 dark:text-slate-500">{formatMessageTime(m.createdAt)}</Text>
+                  <Text className="text-xs text-slate-400 dark:text-slate-500">
+                    {m.edited && !m.deleted && !m.removed ? `${t('chatEdited')} · ` : ''}
+                    {formatMessageTime(m.createdAt)}
+                  </Text>
                 </HStack>
-                <Box
-                  className={`rounded-2xl overflow-hidden ${isMine ? 'rounded-br-md' : 'rounded-bl-md'} ${
-                    isMine ? 'bg-blue-600' : 'bg-white dark:bg-slate-800'
-                  } ${m.body ? 'px-4 py-2.5' : m.hasImage ? 'p-1' : 'px-4 py-2.5'}`}
-                  style={{ maxWidth: '85%' }}
-                >
-                  {m.hasImage && (
-                    <Image
-                      source={{ uri: imageUrl(m.id), headers: imageHeaders }}
-                      style={{ width: 220, height: 220, borderRadius: 12, marginBottom: m.body ? 6 : 0 }}
-                      resizeMode="cover"
-                    />
-                  )}
-                  {m.body ? <Text className={isMine ? 'text-white' : 'text-slate-900 dark:text-white'}>{m.body}</Text> : null}
-                </Box>
+                {m.removed || m.deleted ? (
+                  <Pressable onLongPress={() => handleMessageLongPress(m)} delayLongPress={400} style={{ maxWidth: '85%' }}>
+                    <Box className="rounded-2xl px-4 py-2.5 border border-slate-200 dark:border-slate-700">
+                      <Text className="italic text-slate-500 dark:text-slate-400">
+                        {m.removed ? t('chatMessageRemoved') : isMine ? t('chatYouDeleted') : t('chatMessageDeleted')}
+                      </Text>
+                    </Box>
+                  </Pressable>
+                ) : (
+                  <Pressable onLongPress={() => handleMessageLongPress(m)} delayLongPress={400} style={{ maxWidth: '85%' }}>
+                    <Box
+                      className={`rounded-2xl overflow-hidden ${isMine ? 'rounded-br-md' : 'rounded-bl-md'} ${
+                        isMine ? 'bg-blue-600' : 'bg-white dark:bg-slate-800'
+                      } ${m.body ? 'px-4 py-2.5' : m.hasImage ? 'p-1' : 'px-4 py-2.5'}`}
+                    >
+                      {m.hasImage && (
+                        <Image
+                          source={{ uri: imageUrl(m.id), headers: imageHeaders }}
+                          style={{ width: 220, height: 220, borderRadius: 12, marginBottom: m.body ? 6 : 0 }}
+                          resizeMode="cover"
+                        />
+                      )}
+                      {m.body ? <Text className={isMine ? 'text-white' : 'text-slate-900 dark:text-white'}>{m.body}</Text> : null}
+                    </Box>
+                  </Pressable>
+                )}
               </VStack>
             );
           })
@@ -241,6 +332,20 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
 
       {canPost ? (
         <VStack className="border-t border-slate-200 dark:border-slate-700">
+          {editing && (
+            <HStack className="px-5 pt-3 items-center gap-2">
+              <Icon name="create-outline" size="sm" color="secondary" />
+              <VStack className="flex-1">
+                <Text className="text-xs font-bold text-blue-600">{t('chatEditing')}</Text>
+                <Text className="text-xs text-slate-500 dark:text-slate-400" numberOfLines={1}>
+                  {editing.body}
+                </Text>
+              </VStack>
+              <Pressable className="p-2 active:opacity-60" onPress={stopEditing}>
+                <Icon name="close-circle" size="md" color="muted" />
+              </Pressable>
+            </HStack>
+          )}
           {pendingImage && (
             <HStack className="px-5 pt-3 items-center gap-2">
               <Box className="rounded-xl overflow-hidden">
@@ -252,7 +357,11 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
             </HStack>
           )}
           <HStack className="px-5 py-3 gap-2 items-end">
-            <Pressable className="w-11 h-11 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-800" onPress={handleAttach}>
+            <Pressable
+              className={`w-11 h-11 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-800 ${editing ? 'opacity-40' : ''}`}
+              onPress={handleAttach}
+              disabled={!!editing}
+            >
               <Icon name="image-outline" size="md" color="muted" />
             </Pressable>
             <Input className="flex-1" style={{ flex: 1 }}>
@@ -294,6 +403,7 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
           <Text className="text-sm text-slate-500 dark:text-slate-400 text-center">{closedNotice}</Text>
         </Box>
       )}
+      <ReportSheet target={reportTarget} onClose={() => setReportTarget(null)} />
     </KeyboardAvoidingView>
   );
 }

@@ -72,7 +72,7 @@ func RegisterDirectMessageRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifi
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
-		messages, err := dbpkg.ListConversationMessages(ctx, pool, convID)
+		messages, err := dbpkg.ListConversationMessages(ctx, pool, convID, me.ID)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
@@ -87,18 +87,35 @@ func RegisterDirectMessageRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifi
 		if !canDirectMessage(c, pool, me.ID, otherID) {
 			return
 		}
+		ctx := c.Request.Context()
+		// DP-021: you can't message someone you blocked (unblock first)…
+		iBlocked, err := dbpkg.HasBlocked(ctx, pool, me.ID, otherID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		if iBlocked {
+			c.JSON(http.StatusForbidden, gin.H{"error": "unblock this player to message them", "code": "BLOCKED"})
+			return
+		}
+		// …and if they blocked you, you aren't told: the message is kept
+		// from them instead.
+		theyBlocked, err := dbpkg.HasBlocked(ctx, pool, otherID, me.ID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
 		body, imageData, imageContentType, ok := parseConversationMessageBody(c)
 		if !ok {
 			return
 		}
-		ctx := c.Request.Context()
 		convID, err := dbpkg.GetOrCreateDirectConversationID(ctx, pool, me.ID, otherID)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
 		message, err := dbpkg.CreateConversationMessage(ctx, pool, dbpkg.CreateConversationMessageParams{
-			ConversationID: convID, SenderID: me.ID, Body: body, ImageData: imageData, ImageContentType: imageContentType,
+			ConversationID: convID, SenderID: me.ID, Body: body, ImageData: imageData, ImageContentType: imageContentType, Withheld: theyBlocked,
 		})
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")

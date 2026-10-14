@@ -118,7 +118,7 @@ func ListConversationReads(ctx context.Context, pool *pgxpool.Pool, conversation
 // unreadForUser counts messages from others newer than the user's read
 // position in conversation alias `c` — for SELECT lists. $1 is the user.
 const unreadForUser = `(SELECT count(*) FROM conversation_messages um
-	WHERE um.conversation_id = c.id AND um.sender_id <> $1
+	WHERE um.conversation_id = c.id AND um.sender_id <> $1 AND NOT um.withheld AND um.deleted_at IS NULL
 	  AND um.created_at > coalesce((SELECT r.last_read_at FROM conversation_reads r WHERE r.conversation_id = c.id AND r.user_id = $1), '-infinity'))`
 
 // CountUnreadMessages is the Inbox tab's badge: unread messages across the

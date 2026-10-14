@@ -35,8 +35,10 @@ type DirectThread struct {
 	LastMessageHasImage bool      `json:"lastMessageHasImage"`
 	LastMessageSenderID string    `json:"lastMessageSenderId"`
 	LastMessageAt       time.Time `json:"lastMessageAt"`
-	ConversationID      string    `json:"conversationId"`
-	UnreadCount         int       `json:"unreadCount"`
+	// The latest message was deleted for everyone or removed (DP-021).
+	LastMessageDeleted bool   `json:"lastMessageDeleted"`
+	ConversationID     string `json:"conversationId"`
+	UnreadCount        int    `json:"unreadCount"`
 }
 
 // ConversationMessage is one message — the same shape regardless of Kind.
@@ -55,6 +57,16 @@ type ConversationMessage struct {
 	Body              string    `json:"body"`
 	HasImage          bool      `json:"hasImage"`
 	CreatedAt         time.Time `json:"createdAt"`
+	// Removed by a Community's owner/admin after a report (DP-021): body
+	// and image are gone; the message shows as removed.
+	Removed bool `json:"removed"`
+	// Edited by its sender (DP-021).
+	Edited bool `json:"edited"`
+	// Deleted for everyone by its sender (DP-021): body and image are gone.
+	Deleted bool `json:"deleted"`
+	// Sent while the recipient had blocked the sender: kept from the
+	// recipient, and never announced to them. Never sent to clients.
+	Withheld bool `json:"-"`
 }
 
 // ConversationMessageImage is the byte-serving shape — fetched by
@@ -80,9 +92,11 @@ type SessionContactThread struct {
 	LastMessageBody     string    `json:"lastMessageBody"`
 	LastMessageSenderID string    `json:"lastMessageSenderId"`
 	LastMessageAt       time.Time `json:"lastMessageAt"`
-	NeedsReply          bool      `json:"needsReply"`
-	ConversationID      string    `json:"conversationId"`
-	UnreadCount         int       `json:"unreadCount"`
+	// The latest message was deleted for everyone or removed (DP-021).
+	LastMessageDeleted bool   `json:"lastMessageDeleted"`
+	NeedsReply         bool   `json:"needsReply"`
+	ConversationID     string `json:"conversationId"`
+	UnreadCount        int    `json:"unreadCount"`
 }
 
 // ConversationRead (DP-021) is how far one person has read a conversation

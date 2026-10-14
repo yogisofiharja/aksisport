@@ -12,4 +12,6 @@ type PlayerProfile struct {
 	IsOnline    bool             `json:"isOnline"`
 	JoinedAt    time.Time        `json:"joinedAt"`
 	SkillLevels []UserSkillLevel `json:"skillLevels"`
+	// Whether the viewer has blocked this player (DP-021).
+	BlockedByMe bool `json:"blockedByMe"`
 }

@@ -57,7 +57,15 @@ and previewable like a public one — only joining is gated.
 | Remove self from a club | any role (member can always remove themselves) |
 | List, approve, or decline join requests (DP-017) | `owner` or `admin` (`requireOwnerOrAdmin`) |
 | View a player profile or sport page (DP-019) | the player themself, anyone sharing a club with them, or an owner/admin of a club they have a pending request to join |
-| Direct message a player (DP-020) | anyone allowed to view their profile, or anyone who already has a conversation with them |
+| Direct message a player (DP-020) | anyone allowed to view their profile, or anyone who already has a conversation with them — but not someone you blocked (DP-021) |
+| Edit a message (DP-021) | its sender, within 15 minutes |
+| Delete a message for everyone (DP-021) | its sender, within 60 hours |
+| Delete a message for yourself (DP-021) | anyone in its conversation |
+| Block a player (DP-021) | anyone you could direct message |
+| Report a player (DP-021) | anyone you could direct message |
+| Report a message (DP-021) | anyone in its conversation, except its sender |
+| See a Community's reports, dismiss one (DP-021) | that Community's owner/admins |
+| Remove a reported message (DP-021) | owner/admins of the Community whose Session conversation (Session Chat or Contact Organizer) it was posted in; never a direct message |
 | Change a club's location or visibility (DP-017) | `owner` only, same as any other club update |
 | Create session, update session, add guest participant | `owner` or `admin` (`isOwnerOrAdmin`) |
 | View session, list sessions, register, check in, view participants | any member |

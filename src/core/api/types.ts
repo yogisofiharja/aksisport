@@ -310,6 +310,12 @@ export type ConversationMessage = {
   body: string;
   hasImage: boolean;
   createdAt: string;
+  // Removed by a Community's owner/admin after a report (DP-021).
+  removed: boolean;
+  // Edited by its sender (DP-021).
+  edited: boolean;
+  // Deleted for everyone by its sender (DP-021).
+  deleted: boolean;
 };
 
 // One row in a Contact Organizer thread listing — the organizer's
@@ -327,6 +333,8 @@ export type SessionContactThread = {
   lastMessageBody: string;
   lastMessageSenderId: string;
   lastMessageAt: string;
+  // The latest message was deleted or removed (DP-021).
+  lastMessageDeleted: boolean;
   needsReply: boolean;
   conversationId: string;
   // Messages from the other side the caller hasn't read (DP-021).
@@ -427,6 +435,7 @@ export type DirectThread = {
   lastMessageHasImage: boolean;
   lastMessageSenderId: string;
   lastMessageAt: string;
+  lastMessageDeleted: boolean;
   conversationId: string;
   unreadCount: number;
 };
@@ -465,6 +474,41 @@ export type PlayerProfile = {
   isOnline: boolean;
   joinedAt: string;
   skillLevels: UserSkillLevel[];
+  // Whether you have blocked this player (DP-021).
+  blockedByMe: boolean;
+};
+
+// DP-021 blocking and reporting.
+export type BlockedUser = {
+  userId: string;
+  username: string;
+  displayName?: string;
+  hasAvatar: boolean;
+  blockedAt: string;
+};
+
+export type ClubReport = {
+  id: string;
+  reporterId: string;
+  reporterUsername: string;
+  reporterDisplayName?: string;
+  reportedUserId: string;
+  reportedUsername: string;
+  reportedDisplayName?: string;
+  reason: string;
+  createdAt: string;
+  // The reported message as it was when reported; absent for a report
+  // about a person.
+  message?: {
+    id?: string;
+    body: string;
+    hasImage: boolean;
+    conversationKind: 'session_chat' | 'session_contact' | 'direct';
+    sessionId?: string;
+    sessionName?: string;
+    removed: boolean;
+    canRemove: boolean;
+  };
 };
 
 // A player's self-reported level for one sport — exactly one per

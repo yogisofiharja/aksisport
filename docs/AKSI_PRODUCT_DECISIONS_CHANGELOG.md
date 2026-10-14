@@ -6,6 +6,15 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.21.0
+
+- DP-021 amended: senders can edit their own messages for 15 minutes and
+  delete them for everyone for 60 hours; anyone can delete a message for
+  themselves (WhatsApp's rules). Removed "no editing or deleting" from
+  its scope.
+
+---
+
 ## v0.20.0
 
 - New DP-021: Messaging — live delivery, unread counts, read receipts

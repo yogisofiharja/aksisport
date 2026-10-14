@@ -75,12 +75,12 @@ func GetDirectMessageImage(ctx context.Context, pool *pgxpool.Pool, userID, mess
 func ListMyDirectThreads(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.DirectThread, error) {
 	rows, err := pool.Query(ctx,
 		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+isOnlineExpr+`,
-		        last.body, last.has_image, last.sender_id, last.created_at, c.id, `+unreadForUser+`
+		        last.body, last.has_image, last.sender_id, last.created_at, last.gone, c.id, `+unreadForUser+`
 		 FROM conversations c
 		 JOIN users u ON u.id = CASE WHEN c.user_low = $1 THEN c.user_high ELSE c.user_low END
 		 JOIN LATERAL (
-			SELECT cm.body, (cm.image_data IS NOT NULL) AS has_image, cm.sender_id, cm.created_at
-			FROM conversation_messages cm WHERE cm.conversation_id = c.id
+			SELECT cm.body, (cm.image_data IS NOT NULL) AS has_image, cm.sender_id, cm.created_at, (cm.deleted_at IS NOT NULL OR cm.removed_at IS NOT NULL) AS gone
+			FROM conversation_messages cm WHERE cm.conversation_id = c.id AND (NOT cm.withheld OR cm.sender_id = $1) AND `+hiddenForUser+`
 			ORDER BY cm.created_at DESC LIMIT 1
 		 ) last ON true
 		 WHERE c.kind = 'direct' AND (c.user_low = $1 OR c.user_high = $1)
@@ -95,7 +95,7 @@ func ListMyDirectThreads(ctx context.Context, pool *pgxpool.Pool, userID string)
 	for rows.Next() {
 		var t models.DirectThread
 		if err := rows.Scan(&t.OtherUserID, &t.OtherUsername, &t.OtherDisplayName, &t.OtherHasAvatar, &t.OtherIsOnline,
-			&t.LastMessageBody, &t.LastMessageHasImage, &t.LastMessageSenderID, &t.LastMessageAt, &t.ConversationID, &t.UnreadCount); err != nil {
+			&t.LastMessageBody, &t.LastMessageHasImage, &t.LastMessageSenderID, &t.LastMessageAt, &t.LastMessageDeleted, &t.ConversationID, &t.UnreadCount); err != nil {
 			return nil, err
 		}
 		result = append(result, t)

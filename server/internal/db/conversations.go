@@ -63,23 +63,25 @@ func GetOrCreateConversation(ctx context.Context, pool *pgxpool.Pool, kind, sess
 	return conv, err
 }
 
-const conversationMessageSelect = `SELECT cm.id, cm.conversation_id, coalesce(c.session_id::text, ''), cm.sender_id, u.username, u.display_name, cm.body, (cm.image_data IS NOT NULL), cm.created_at
+const conversationMessageSelect = `SELECT cm.id, cm.conversation_id, coalesce(c.session_id::text, ''), cm.sender_id, u.username, u.display_name, cm.body, (cm.image_data IS NOT NULL), cm.created_at, (cm.removed_at IS NOT NULL), cm.withheld, (cm.edited_at IS NOT NULL), (cm.deleted_at IS NOT NULL)
 	 FROM conversation_messages cm
 	 JOIN conversations c ON c.id = cm.conversation_id
 	 JOIN users u ON u.id = cm.sender_id`
 
 func scanConversationMessage(row pgx.CollectableRow) (models.ConversationMessage, error) {
 	var m models.ConversationMessage
-	err := row.(pgx.Rows).Scan(&m.ID, &m.ConversationID, &m.SessionID, &m.SenderID, &m.SenderUsername, &m.SenderDisplayName, &m.Body, &m.HasImage, &m.CreatedAt)
+	err := row.(pgx.Rows).Scan(&m.ID, &m.ConversationID, &m.SessionID, &m.SenderID, &m.SenderUsername, &m.SenderDisplayName, &m.Body, &m.HasImage, &m.CreatedAt, &m.Removed, &m.Withheld, &m.Edited, &m.Deleted)
 	return m, err
 }
 
 // ListConversationMessages returns every message in a conversation,
 // oldest first — no pagination yet, same MVP tradeoff as before the
 // merge (a Session-scoped conversation is bounded by the Session's own
-// lifetime).
-func ListConversationMessages(ctx context.Context, pool *pgxpool.Pool, conversationID string) ([]models.ConversationMessage, error) {
-	rows, err := pool.Query(ctx, conversationMessageSelect+" WHERE cm.conversation_id = $1 ORDER BY cm.created_at ASC", conversationID)
+// lifetime). Messages withheld because the viewer blocked their sender
+// (DP-021) are left out — except for their own sender — as are messages
+// the viewer deleted for themself.
+func ListConversationMessages(ctx context.Context, pool *pgxpool.Pool, conversationID, viewerID string) ([]models.ConversationMessage, error) {
+	rows, err := pool.Query(ctx, conversationMessageSelect+" WHERE cm.conversation_id = $1 AND (NOT cm.withheld OR cm.sender_id = $2) AND NOT EXISTS (SELECT 1 FROM conversation_message_hides h WHERE h.message_id = cm.id AND h.user_id = $2) ORDER BY cm.created_at ASC", conversationID, viewerID)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +107,8 @@ type CreateConversationMessageParams struct {
 	Body             string
 	ImageData        []byte
 	ImageContentType *string
+	// The recipient has blocked the sender (DP-021).
+	Withheld bool
 }
 
 func CreateConversationMessage(ctx context.Context, pool *pgxpool.Pool, p CreateConversationMessageParams) (models.ConversationMessage, error) {
@@ -115,9 +119,9 @@ func CreateConversationMessage(ctx context.Context, pool *pgxpool.Pool, p Create
 	}
 	var id string
 	err := pool.QueryRow(ctx,
-		`INSERT INTO conversation_messages (conversation_id, sender_id, body, image_data, image_content_type, image_size_bytes)
-		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-		p.ConversationID, p.SenderID, p.Body, p.ImageData, p.ImageContentType, imageSizeBytes,
+		`INSERT INTO conversation_messages (conversation_id, sender_id, body, image_data, image_content_type, image_size_bytes, withheld)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+		p.ConversationID, p.SenderID, p.Body, p.ImageData, p.ImageContentType, imageSizeBytes, p.Withheld,
 	).Scan(&id)
 	if err != nil {
 		return models.ConversationMessage{}, err
@@ -174,18 +178,18 @@ func contactThreadNeedsReply(memberUserID, lastSenderID, viewerID string) bool {
 // access is enforced by the caller — every row here is from the
 // organizer's point of view, so NeedsReply is always "the member sent
 // last and nobody has answered yet."
-func ListSessionContactThreads(ctx context.Context, pool *pgxpool.Pool, sessionID string) ([]models.SessionContactThread, error) {
+func ListSessionContactThreads(ctx context.Context, pool *pgxpool.Pool, sessionID, viewerID string) ([]models.SessionContactThread, error) {
 	rows, err := pool.Query(ctx, `
-		SELECT c.session_id, u.id, u.username, u.display_name, last.body, last.sender_id, last.created_at
+		SELECT c.session_id, u.id, u.username, u.display_name, last.body, last.sender_id, last.created_at, last.gone, c.id, `+unreadForUser+`
 		FROM conversations c
 		JOIN users u ON u.id = c.member_user_id
 		JOIN LATERAL (
-			SELECT body, sender_id, created_at FROM conversation_messages cm
-			WHERE cm.conversation_id = c.id
+			SELECT body, sender_id, created_at, (deleted_at IS NOT NULL OR removed_at IS NOT NULL) AS gone FROM conversation_messages cm
+			WHERE cm.conversation_id = c.id AND `+hiddenForUser+`
 			ORDER BY cm.created_at DESC LIMIT 1
 		) last ON true
-		WHERE c.session_id = $1 AND c.kind = 'session_contact'
-		ORDER BY last.created_at DESC`, sessionID)
+		WHERE c.session_id = $2 AND c.kind = 'session_contact'
+		ORDER BY last.created_at DESC`, viewerID, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +198,8 @@ func ListSessionContactThreads(ctx context.Context, pool *pgxpool.Pool, sessionI
 	result := []models.SessionContactThread{}
 	for rows.Next() {
 		var t models.SessionContactThread
-		if err := rows.Scan(&t.SessionID, &t.MemberUserID, &t.MemberUsername, &t.MemberDisplayName, &t.LastMessageBody, &t.LastMessageSenderID, &t.LastMessageAt); err != nil {
+		if err := rows.Scan(&t.SessionID, &t.MemberUserID, &t.MemberUsername, &t.MemberDisplayName, &t.LastMessageBody, &t.LastMessageSenderID, &t.LastMessageAt,
+			&t.LastMessageDeleted, &t.ConversationID, &t.UnreadCount); err != nil {
 			return nil, err
 		}
 		t.NeedsReply = t.LastMessageSenderID == t.MemberUserID
@@ -211,14 +216,14 @@ func ListSessionContactThreads(ctx context.Context, pool *pgxpool.Pool, sessionI
 func ListMyContactThreads(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.SessionContactThread, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT c.session_id, s.name, s.club_id, cl.name, u.id, u.username, u.display_name,
-		       last.body, last.sender_id, last.created_at, c.id, `+unreadForUser+`
+		       last.body, last.sender_id, last.created_at, last.gone, c.id, `+unreadForUser+`
 		FROM conversations c
 		JOIN sessions s ON s.id = c.session_id
 		JOIN clubs cl ON cl.id = s.club_id
 		JOIN users u ON u.id = c.member_user_id
 		JOIN LATERAL (
-			SELECT body, sender_id, created_at FROM conversation_messages cm
-			WHERE cm.conversation_id = c.id
+			SELECT body, sender_id, created_at, (deleted_at IS NOT NULL OR removed_at IS NOT NULL) AS gone FROM conversation_messages cm
+			WHERE cm.conversation_id = c.id AND `+hiddenForUser+`
 			ORDER BY cm.created_at DESC LIMIT 1
 		) last ON true
 		WHERE c.kind = 'session_contact'
@@ -237,11 +242,54 @@ func ListMyContactThreads(ctx context.Context, pool *pgxpool.Pool, userID string
 	for rows.Next() {
 		var t models.SessionContactThread
 		if err := rows.Scan(&t.SessionID, &t.SessionName, &t.ClubID, &t.ClubName, &t.MemberUserID, &t.MemberUsername, &t.MemberDisplayName,
-			&t.LastMessageBody, &t.LastMessageSenderID, &t.LastMessageAt, &t.ConversationID, &t.UnreadCount); err != nil {
+			&t.LastMessageBody, &t.LastMessageSenderID, &t.LastMessageAt, &t.LastMessageDeleted, &t.ConversationID, &t.UnreadCount); err != nil {
 			return nil, err
 		}
 		t.NeedsReply = contactThreadNeedsReply(t.MemberUserID, t.LastMessageSenderID, userID)
 		result = append(result, t)
 	}
 	return result, rows.Err()
+}
+
+// hiddenForUser: message alias cm was not deleted for themself by the
+// user in $1 (DP-021) — for the latest-message lookups in thread lists.
+const hiddenForUser = `NOT EXISTS (SELECT 1 FROM conversation_message_hides h WHERE h.message_id = cm.id AND h.user_id = $1)`
+
+// GetConversationMessage loads one message.
+func GetConversationMessage(ctx context.Context, pool *pgxpool.Pool, messageID string) (models.ConversationMessage, error) {
+	rows, err := pool.Query(ctx, conversationMessageSelect+" WHERE cm.id::text = $1", messageID)
+	if err != nil {
+		return models.ConversationMessage{}, err
+	}
+	defer rows.Close()
+	m, err := pgx.CollectOneRow(rows, scanConversationMessage)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return m, ErrNotFound
+	}
+	return m, err
+}
+
+// EditConversationMessage replaces a message's text and marks it edited.
+func EditConversationMessage(ctx context.Context, pool *pgxpool.Pool, messageID, body string) (models.ConversationMessage, error) {
+	if _, err := pool.Exec(ctx, "UPDATE conversation_messages SET body = $2, edited_at = now() WHERE id = $1", messageID, body); err != nil {
+		return models.ConversationMessage{}, err
+	}
+	return GetConversationMessage(ctx, pool, messageID)
+}
+
+// DeleteConversationMessageForEveryone clears a message's text and image
+// and marks it deleted.
+func DeleteConversationMessageForEveryone(ctx context.Context, pool *pgxpool.Pool, messageID string) error {
+	_, err := pool.Exec(ctx,
+		`UPDATE conversation_messages
+		 SET body = '', image_data = NULL, image_content_type = NULL, image_size_bytes = NULL, deleted_at = now()
+		 WHERE id = $1 AND deleted_at IS NULL`, messageID)
+	return err
+}
+
+// HideConversationMessage is "delete for me".
+func HideConversationMessage(ctx context.Context, pool *pgxpool.Pool, messageID, userID string) error {
+	_, err := pool.Exec(ctx,
+		"INSERT INTO conversation_message_hides (message_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", messageID, userID)
+	return err
 }

@@ -16,6 +16,7 @@ import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';
 import { getClub, listJoinRequests, listMembers, clubAvatarUrl, removeMember, uploadClubAvatar } from '../../core/clubs/api';
+import { countClubReports } from '../../core/safety/api';
 import { clubLink, shareLink } from '../../platform/shareLink';
 import { Card } from '../../design-system/ui/Card';
 import { listSessions } from '../../core/sessions/api';
@@ -34,6 +35,7 @@ type Props = {
   onOpenSession: (sessionId: string) => void;
   onOpenRecurringSchedules: (clubId: string) => void;
   onOpenClubSettings: (clubId: string) => void;
+  onOpenReports: (clubId: string) => void;
   // After the caller has left this Community.
   onLeft: () => void;
 };
@@ -46,6 +48,7 @@ export function ClubDetailScreen({
   onOpenSession,
   onOpenRecurringSchedules,
   onOpenClubSettings,
+  onOpenReports,
   onLeft,
 }: Props) {
   const { t } = useTranslation();
@@ -59,6 +62,8 @@ export function ClubDetailScreen({
   // DP-017: how many people are waiting to be let into a private
   // Community — only meaningful (and only fetchable) for owner/admins.
   const [pendingRequests, setPendingRequests] = useState(0);
+  // DP-021: reports waiting for this Community's owner/admins.
+  const [openReports, setOpenReports] = useState(0);
   // GET .../avatar is behind the same auth as every other route — fetched
   // once per mount, same convention as ClubMembersScreen/SessionChat's own
   // image headers.
@@ -83,6 +88,7 @@ export function ClubDetailScreen({
       const organizer = members.some((m) => m.userId === profile?.id && (m.role === 'owner' || m.role === 'admin'));
       setIsOwnerOrAdmin(organizer);
       setPendingRequests(organizer ? (await listJoinRequests(clubId).catch(() => [])).length : 0);
+      setOpenReports(organizer ? (await countClubReports(clubId).catch(() => ({ count: 0 }))).count : 0);
     } catch {
       // leave stale state; user can back out and retry
     } finally {
@@ -227,6 +233,20 @@ export function ClubDetailScreen({
         </Card>
       )}
 
+      {openReports > 0 && (
+        <Card pressable onPress={() => onOpenReports(clubId)}>
+          <HStack className="justify-between items-center" space="md">
+            <HStack space="md" className="items-center" style={{ flex: 1 }}>
+              <Icon name="flag-outline" color="destructive" />
+              <Typography variant="body" className="font-bold">
+                {t('clubReportsCallout', openReports)}
+              </Typography>
+            </HStack>
+            <Icon name="chevron-forward" size="sm" color="muted" />
+          </HStack>
+        </Card>
+      )}
+
       <VStack space="sm">
         <Typography variant="caption" color="muted">
           {t('clubCurrentFocusTitle')}
@@ -265,6 +285,14 @@ export function ClubDetailScreen({
         <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={() => onOpenRecurringSchedules(clubId)}>
           <ButtonText action="secondary" variant="outline" className="text-lg">
             {t('recurringScheduleListTitle')}
+          </ButtonText>
+        </Button>
+      )}
+
+      {isOwnerOrAdmin && (
+        <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={() => onOpenReports(clubId)}>
+          <ButtonText action="secondary" variant="outline" className="text-lg">
+            {t('clubReportsTitle')}
           </ButtonText>
         </Button>
       )}

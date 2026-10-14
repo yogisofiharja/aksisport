@@ -161,6 +161,64 @@ push (`direct_message` / `contact_message`: sender's name and the text, or
 "Sent a photo"), opening the conversation. These are pushed only — not
 recorded on the Notifications page. Session Chat never pushes.
 
+### Blocking and reporting (DP-021, step 2)
+
+Migration `0032`: `user_blocks (blocker_id, blocked_id)`;
+`conversation_messages.withheld`, `removed_at`, `removed_by`; `reports`
+(reporter, reported user, optional message id plus a copy of its text,
+image flag and conversation kind, reason) and `report_clubs (report_id,
+club_id, resolved_at, resolved_by)`.
+
+**Blocking is one-directional and silent.**
+- The blocker can't send to the blocked player: `POST /v1/dm/:userId/messages`
+  → 403 `{code: "BLOCKED"}`.
+- The blocked player can still send; the message is stored `withheld`. It
+  is returned to its sender as normal, and left out for the blocker
+  everywhere: message lists, Inbox's latest message, unread counts, live
+  events and pushes. It stays hidden after an unblock.
+- Neither side's typing reaches the other. The blocker's `read` events
+  and read positions are not shown to the blocked player, so "Seen" never
+  appears for withheld messages.
+- `GET /v1/users/:userId/profile` adds `blockedByMe`.
+
+**A report** goes to the owner/admins of the Communities it concerns: a
+message in a Session conversation → that Session's Community; a direct
+message or a person → every Community both people belong to. With none,
+the report is stored but reaches no one. Each Community handles it
+separately (dismiss or remove takes it off that Community's list only).
+A removed message keeps its row with text and image cleared and
+`removed: true`; clients show "Message removed by an organizer".
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/v1/me/blocks` | profile | `[{userId, username, displayName?, hasAvatar, blockedAt}]`, newest first. |
+| PUT | `/v1/users/:userId/block` | profile | 204. Same 404 as direct messages if you couldn't message them. |
+| DELETE | `/v1/users/:userId/block` | profile | 204, also when not blocked. |
+| POST | `/v1/reports` | profile | `{messageId, reason}` or `{userId, reason}`; reason 1–500 characters. 204. Message: 404 unless you are in its conversation; 400 for your own. Person: same rule as direct messages. |
+| GET | `/v1/clubs/:clubId/reports` | owner/admin | Open reports, newest first: reporter and reported names, reason, `message?: {id?, body, hasImage, conversationKind, sessionId?, sessionName?, removed, canRemove}`. |
+| GET | `/v1/clubs/:clubId/reports/count` | owner/admin | `{count}` of open reports. |
+| POST | `/v1/clubs/:clubId/reports/:reportId/dismiss` | owner/admin | 204. |
+| POST | `/v1/clubs/:clubId/reports/:reportId/remove-message` | owner/admin | Only when `canRemove` (posted in this Community's Session conversation, not yet removed); else 400. Removes it, closes the report for this Community, announces live `message.removed {conversationId, messageId}`. 204. |
+
+### Editing and deleting messages (DP-021)
+
+Migration `0033`: `conversation_messages.edited_at`, `deleted_at`;
+`conversation_message_hides (message_id, user_id)` for "delete for me".
+Every message carries `edited` and `deleted`; Inbox and Contact Organizer
+thread rows carry `lastMessageDeleted` (deleted or removed). Hidden
+messages are left out of message lists and of a thread's latest message
+for that person; deleted ones don't count as unread.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| PATCH | `/v1/conversation-messages/:id` | profile | `{body}`. Your own message, within 15 minutes, not deleted/removed; text 1–2000 characters (may be empty for a photo). Returns the message. Announces `message.updated {conversationId, messageId}`. |
+| DELETE | `/v1/conversation-messages/:id?for=everyone` | profile | Your own message, within 60 hours: clears text and image, sets `deleted`. Announces `message.updated`. 204. |
+| DELETE | `/v1/conversation-messages/:id?for=me` | profile | Any message in a conversation you're in: hidden for you only. Announced only to your own devices. 204. |
+
+403 outside the time limits or for someone else's message; 404 when not
+in the conversation. Changes to a withheld message (DP-021 blocking) are
+announced to its sender only.
+
 ### Notifications (DP-018)
 
 `internal/notify.Service.Send` is the one way a feature notifies people:

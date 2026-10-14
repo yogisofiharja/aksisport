@@ -149,7 +149,7 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
                       {threadName(th)}
                     </Text>
                     <Text className="text-sm text-slate-500 dark:text-slate-400" numberOfLines={1}>
-                      {th.lastMessageBody}
+                      {th.lastMessageDeleted ? t('chatMessageDeleted') : th.lastMessageBody}
                     </Text>
                   </VStack>
                   <UnreadCount count={th.unreadCount} />

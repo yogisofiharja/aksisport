@@ -94,7 +94,9 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage }: Props) {
           )}
           {directThreads.map((thread) => {
             const name = thread.otherDisplayName || thread.otherUsername;
-            const preview = thread.lastMessageBody || (thread.lastMessageHasImage ? t('inboxPhoto') : '');
+            const preview = thread.lastMessageDeleted
+              ? t('chatMessageDeleted')
+              : thread.lastMessageBody || (thread.lastMessageHasImage ? t('inboxPhoto') : '');
             return (
               <Pressable
                 key={thread.otherUserId}
@@ -146,7 +148,7 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage }: Props) {
                     {partyLabel(thread)}
                   </Typography>
                   <Typography variant="body" color="muted" className="text-sm" numberOfLines={1}>
-                    {thread.lastMessageBody}
+                    {thread.lastMessageDeleted ? t('chatMessageDeleted') : thread.lastMessageBody}
                   </Typography>
                 </VStack>
                 <UnreadCount count={thread.unreadCount} />

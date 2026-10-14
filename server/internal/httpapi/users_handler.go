@@ -268,6 +268,10 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
+		if profile.BlockedByMe, err = dbpkg.HasBlocked(ctx, pool, viewer.ID, targetID); err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
 		c.JSON(http.StatusOK, profile)
 	})
 

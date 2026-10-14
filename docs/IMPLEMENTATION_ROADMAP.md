@@ -156,15 +156,20 @@ Real, live work that fell outside the six-milestone roadmap above:
   one-to-one messages (listed in Inbox). Each sport opens a page with the
   player's history across every Community; players open their own from
   the Me tab.
-- **Messaging upgrades (DP-021) — step 1 of 3 built.** A live
+- **Messaging upgrades (DP-021) — steps 1 and 2 of 3 built.** A live
   connection (WebSocket, `/v1/live`) delivers new messages, typing, read
   receipts and new notifications at once; screens fall back to polling
   every 5 seconds while it is down (30 seconds while it is up). Unread
   counts per conversation in Inbox, a total on the Inbox tab, a count on
   a Session's Chat tab; "Seen" / "Seen by N" under your latest message;
   "… is typing". New direct and Contact Organizer messages push to
-  participants who don't have Aksi open. Not yet: blocking and reporting
-  (step 2), group chats and community chat (step 3). The live connection
+  participants who don't have Aksi open. Step 2: block or report from a
+  profile or a direct conversation, report a message by long-pressing it;
+  Settings › Blocked players undoes a block; a Community's owner/admins
+  see its reports (callout and Reports button on the Community page) and
+  can remove a reported Session message or dismiss the report. Editing
+  and deleting messages, WhatsApp-style (v0.21.0 amendment). Not yet:
+  group chats and community chat (step 3). The live connection
   lives in one server process; running more than one API process needs a
   shared broker first (see `docs/current/api.md`).
 - **Push notifications (DP-018) — step 1 of 3, in progress.** Built:

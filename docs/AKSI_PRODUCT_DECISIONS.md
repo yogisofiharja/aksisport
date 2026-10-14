@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.20.0
+Version: 0.21.0
 
 Status: Living Document
 
@@ -1595,6 +1595,20 @@ and gains the usual chat features. Built in three steps, in this order.
   Owners and admins see reports in the app and can delete a reported
   message from their Community's chats.
 
+**Editing and deleting messages** (added in v0.21.0; WhatsApp's rules,
+in every kind of chat)
+
+- **Edit:** the sender can change the text of their own message for 15
+  minutes after sending it. An edited message says "Edited".
+- **Delete for everyone:** the sender can delete their own message for
+  about 2½ days (60 hours) after sending it. Everyone then sees "This
+  message was deleted" in its place (the sender sees "You deleted this
+  message").
+- **Delete for me:** anyone can delete any message they can see, hiding
+  it for themselves only.
+- Long-pressing a message offers these, along with Report for other
+  people's messages.
+
 **Step 3 — group chats and community chat**
 
 - **Group chats:** any player can start one with people they could
@@ -1606,8 +1620,7 @@ and gains the usual chat features. Built in three steps, in this order.
 
 ### Scope
 
-- No message editing or deleting by the sender, voice notes, reactions,
-  or mentions.
+- No voice notes, reactions, or mentions.
 - Reports are not reviewed by an Aksi team in this decision.
 
 ---

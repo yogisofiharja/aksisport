@@ -14,6 +14,9 @@ import { useTranslation } from '../../i18n';
 import { authHeader, getPlayerProfile, userAvatarUrl } from '../../core/api/client';
 import { initialsFromName } from '../../core/initials';
 import { listSportIds } from '../../sports/registry';
+import { appAlert } from '../../design-system/feedback/appAlert';
+import { blockUser, unblockUser } from '../../core/safety/api';
+import { ReportSheet, type ReportTarget } from '../safety/ReportSheet';
 import type { PlayerProfile, SkillLevel } from '../../core/api/types';
 
 export type ProfileSheetAction = {
@@ -50,6 +53,7 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [failed, setFailed] = useState(false);
   const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   useEffect(() => {
     authHeader().then(setImageHeaders);
@@ -76,6 +80,28 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
   // player's level or "not set".
   const sports = listSportIds().sort((a, b) => (a === sport ? -1 : b === sport ? 1 : 0));
   const name = profile ? profile.displayName || profile.username : '';
+
+  // DP-021: block (silent, undone in Settings) or report.
+  function handleBlock() {
+    if (!profile) return;
+    if (profile.blockedByMe) {
+      unblockUser(profile.id)
+        .then(() => setProfile({ ...profile, blockedByMe: false }))
+        .catch(() => {});
+      return;
+    }
+    appAlert(t('blockConfirmTitle', name), t('blockConfirmBody'), [
+      { text: t('clubCancel'), style: 'cancel' },
+      {
+        text: t('blockPlayer'),
+        style: 'destructive',
+        onPress: () =>
+          blockUser(profile.id)
+            .then(() => setProfile({ ...profile, blockedByMe: true }))
+            .catch(() => {}),
+      },
+    ]);
+  }
 
   return (
     <Modal visible={userId !== null} transparent animationType="slide" onRequestClose={onClose}>
@@ -184,6 +210,25 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
                 })}
               </VStack>
 
+              {profile.id !== me?.id && (
+                <HStack space="lg" className="justify-center">
+                  <Pressable onPress={handleBlock} hitSlop={8} className="active:opacity-60">
+                    <Typography variant="body" color="muted" className="text-sm font-bold">
+                      {profile.blockedByMe ? t('blockUnblock') : t('blockPlayer')}
+                    </Typography>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setReportTarget({ kind: 'user', userId: profile.id, name })}
+                    hitSlop={8}
+                    className="active:opacity-60"
+                  >
+                    <Typography variant="body" color="destructive" className="text-sm font-bold">
+                      {t('reportPlayer')}
+                    </Typography>
+                  </Pressable>
+                </HStack>
+              )}
+
               {actions && actions.length > 0 && (
                 <HStack space="md">
                   {actions.map((a) => (
@@ -208,6 +253,7 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
           )}
         </Pressable>
       </Pressable>
+      <ReportSheet target={reportTarget} onClose={() => setReportTarget(null)} />
     </Modal>
   );
 }

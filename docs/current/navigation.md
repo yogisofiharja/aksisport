@@ -119,6 +119,26 @@ Organizer list show unread counts (`UnreadCount`); the Inbox tab shows the
 total (`useUnreadMessageCount`); a Session's Chat tab shows its own
 (`useSessionChatUnread`). The bell re-counts on `notification.created`.
 
+**Blocking and reporting** (DP-021). `PlayerProfileSheet` has Block /
+Unblock and Report under the levels (not on your own profile).
+`DirectMessageScreen`'s header has a ⋮ menu with the same; while you
+have blocked the person the compose bar is replaced by a notice. In any
+chat, long-pressing a message opens a menu (at most three buttons, for
+Android): Edit (own, within 15 minutes — the text goes into the compose
+bar under an "Editing message" strip, photo button disabled), Delete
+(then "Delete for everyone" for your own within 60 hours, and "Delete for
+me"), and Report message (someone else's). Deleted messages show "This
+message was deleted" / "You deleted this message"; edited ones show
+"Edited" before the time.
+`ReportSheet` (`src/mobile/safety/`) asks for a reason. Settings has a
+Privacy section with Blocked players (`BlockedPlayers`,
+`/settings/blocked`). The Community page shows owner/admins a "N reports
+to review" callout when there are any and a Reports button, both opening
+`ClubReports` (`/clubs/:clubId/reports`): each report with the reported
+person (tap for their profile), where it happened, who reported it, the
+message copy and the reason, with Remove message (when allowed) and
+Dismiss.
+
 **The city picker** (`src/mobile/locations/CityPickerModal.tsx`) is the
 one way a place is chosen anywhere — a Community's location and a User's
 town. A full-screen modal over `GET /v1/locations` (fetched once per app

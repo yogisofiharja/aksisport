@@ -959,7 +959,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusForbidden, "only owner/admin can view this session's contact threads")
 			return
 		}
-		threads, err := dbpkg.ListSessionContactThreads(c.Request.Context(), pool, sessionID)
+		threads, err := dbpkg.ListSessionContactThreads(c.Request.Context(), pool, sessionID, authjwt.CurrentUser(c).ID)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
@@ -1012,7 +1012,7 @@ func listConversation(c *gin.Context, pool *pgxpool.Pool, kind, sessionID string
 	if err != nil {
 		return nil, err
 	}
-	return dbpkg.ListConversationMessages(c.Request.Context(), pool, conv.ID)
+	return dbpkg.ListConversationMessages(c.Request.Context(), pool, conv.ID, authjwt.CurrentUser(c).ID)
 }
 
 // postConversationMessage lazily creates the conversation on first use,

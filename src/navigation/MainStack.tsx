@@ -17,11 +17,14 @@ import { AccountEmailScreen } from '../mobile/me/AccountEmailScreen';
 import { NotificationsScreen } from '../mobile/notifications/NotificationsScreen';
 import { DirectMessageScreen } from '../mobile/messages/DirectMessageScreen';
 import { PlayerSportScreen } from '../mobile/profiles/PlayerSportScreen';
+import { BlockedPlayersScreen } from '../mobile/safety/BlockedPlayersScreen';
+import { ClubReportsScreen } from '../mobile/safety/ClubReportsScreen';
 import { DisplayNameScreen } from '../mobile/me/DisplayNameScreen';
 
 export type MainStackParamList = {
   Personal: undefined;
   Settings: undefined;
+  BlockedPlayers: undefined;
   AccountEmail: undefined;
   Notifications: undefined;
   DirectMessage: { userId: string };
@@ -31,6 +34,7 @@ export type MainStackParamList = {
   ClubDetail: { clubId: string };
   ClubMembers: { clubId: string };
   ClubSettings: { clubId: string };
+  ClubReports: { clubId: string };
   SessionList: { clubId: string };
   SessionHistory: { clubId: string };
   MySessionHistory: undefined;
@@ -53,7 +57,13 @@ export function MainStack() {
       <Stack.Screen name="Personal" component={PersonalTabs} />
 
       <Stack.Screen name="Settings">
-        {({ navigation }) => <SettingsScreen onBack={() => navigation.goBack()} />}
+        {({ navigation }) => (
+          <SettingsScreen onBack={() => navigation.goBack()} onOpenBlocked={() => navigation.navigate('BlockedPlayers')} />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="BlockedPlayers">
+        {({ navigation }) => <BlockedPlayersScreen onBack={() => navigation.goBack()} />}
       </Stack.Screen>
 
       <Stack.Screen name="Notifications">
@@ -99,6 +109,7 @@ export function MainStack() {
             onOpenSession={(sessionId) => navigation.navigate('SessionDetail', { sessionId })}
             onOpenRecurringSchedules={(clubId) => navigation.navigate('RecurringScheduleList', { clubId })}
             onOpenClubSettings={(clubId) => navigation.navigate('ClubSettings', { clubId })}
+            onOpenReports={(clubId) => navigation.navigate('ClubReports', { clubId })}
             onLeft={() => navigation.navigate('Personal')}
           />
         )}
@@ -162,6 +173,10 @@ export function MainStack() {
             onScheduleUpdated={() => navigation.goBack()}
           />
         )}
+      </Stack.Screen>
+
+      <Stack.Screen name="ClubReports">
+        {({ navigation, route }) => <ClubReportsScreen clubId={route.params.clubId} onBack={() => navigation.goBack()} />}
       </Stack.Screen>
 
       <Stack.Screen name="ClubMembers">

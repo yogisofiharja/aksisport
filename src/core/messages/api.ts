@@ -43,3 +43,17 @@ export function listConversationReads(conversationId: string): Promise<Conversat
 export function getUnreadMessageCount(): Promise<{ count: number }> {
   return apiFetch('/v1/me/unread-messages');
 }
+
+// DP-021, WhatsApp's rules: edit your own message within 15 minutes;
+// delete your own for everyone within about 2½ days; delete any for
+// yourself.
+export const EDIT_WINDOW_MS = 15 * 60 * 1000;
+export const DELETE_FOR_EVERYONE_WINDOW_MS = 60 * 60 * 60 * 1000;
+
+export function editMessage(messageId: string, body: string): Promise<ConversationMessage> {
+  return apiFetch(`/v1/conversation-messages/${messageId}`, { method: 'PATCH', body: JSON.stringify({ body }) });
+}
+
+export function deleteMessage(messageId: string, scope: 'me' | 'everyone'): Promise<void> {
+  return apiFetch(`/v1/conversation-messages/${messageId}?for=${scope}`, { method: 'DELETE' });
+}
