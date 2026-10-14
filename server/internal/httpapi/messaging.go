@@ -76,9 +76,13 @@ func (m *messenger) announce(ctx context.Context, sender models.User, message mo
 			Path:   "/messages/" + sender.ID,
 		})
 	case models.ConversationKindGroup:
+		label, err := dbpkg.GroupLabel(ctx, m.pool, conv.ID)
+		if err != nil {
+			log.Printf("messaging: group label %s: %v", conv.ID, err)
+		}
 		m.notifier.PushOnly(offline, notify.Notification{
 			Type:   notify.TypeGroupMessage,
-			Params: map[string]string{"name": name, "group": conv.Title, "body": message.Body},
+			Params: map[string]string{"name": name, "group": label, "body": message.Body},
 			Path:   "/groups/" + conv.ID,
 		})
 	case models.ConversationKindSessionContact:

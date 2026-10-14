@@ -221,7 +221,8 @@ announced to its sender only.
 
 ### Group chats and Community chat (DP-021, step 3)
 
-Migration `0034`: conversation kinds `group` (`title`, `created_by`,
+Migration `0034`: conversation kinds `group` (`title` — optional since
+`0035` —, `created_by`,
 members in `conversation_members`) and `club` (`club_id`, one per
 Community); `clubs.chat_enabled`. Both use the same messages, read
 receipts, typing, edit/delete and reporting as every other chat. Images
@@ -231,10 +232,10 @@ conversation).
 | Method | Path | Auth | Notes |
 |---|---|---|---|
 | GET | `/v1/me/messageable-users?q=` | profile | People you could message — sharing a Community, or an existing direct conversation — minus blocks either way; matched on username/display name; up to 50. |
-| GET | `/v1/me/groups` | profile | Your groups for Inbox, most recently active first: `{conversationId, title, memberCount, lastMessage…, lastActivityAt, unreadCount}`. |
-| POST | `/v1/groups` | profile | `{title, memberIds}`: title 1–60 characters, at least one other person, everyone someone you could message, 50 at most including you. Returns the group. |
+| GET | `/v1/me/groups` | profile | Your groups for Inbox, most recently active first: `{conversationId, title ("" if unnamed), memberCount, memberNames (up to four others, oldest first), lastMessage…, lastActivityAt, unreadCount}`. |
+| POST | `/v1/groups` | profile | `{title?, memberIds}`: title optional (0–60 characters; `""` = unnamed), at least **two** other people (one is a direct message), everyone someone you could message, 50 at most including you. Returns the group. |
 | GET | `/v1/groups/:groupId` | member | `{id, title, createdBy, createdAt, members: [{userId, username, displayName?, hasAvatar}]}`. 404 if you are not in it. |
-| PATCH | `/v1/groups/:groupId` | creator | `{title}`. |
+| PATCH | `/v1/groups/:groupId` | creator | `{title}`; `""` clears the name. |
 | POST | `/v1/groups/:groupId/members` | creator | `{userIds}`, same rules as creating. |
 | DELETE | `/v1/groups/:groupId/members/:userId` | creator, or yourself | Remove someone, or leave. When the creator leaves, the longest-standing member who remains manages the group. |
 | GET/POST | `/v1/groups/:groupId/messages` | member | Same message shapes as Session Chat. |
@@ -245,8 +246,9 @@ conversation).
 
 Group membership changes announce `group.updated {conversationId}` to
 everyone in the group (and whoever was just removed). Group messages push
-to members without Aksi open (`group_message`: group name, then "Name:
-text"); Community chat never pushes. Inbox's unread total now includes
+to members without Aksi open (`group_message`: the group's name or its
+first three members' names, then "Name: text"); Community chat never
+pushes. Inbox's unread total now includes
 groups. A reported group message goes to every Community the reporter and
 sender share and can't be removed by organizers; a reported Community chat
 message goes to that Community and can be.

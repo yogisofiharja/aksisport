@@ -546,8 +546,11 @@ export type GroupChat = {
 // One group in Inbox.
 export type GroupThread = {
   conversationId: string;
+  // "" when unnamed: shown by memberNames (DP-021).
   title: string;
   memberCount: number;
+  // Up to four other members' names, oldest member first.
+  memberNames: string[];
   lastMessageBody: string;
   lastMessageHasImage: boolean;
   lastMessageDeleted: boolean;

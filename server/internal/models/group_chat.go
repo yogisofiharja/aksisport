@@ -18,8 +18,9 @@ type GroupMember struct {
 	HasAvatar   bool    `json:"hasAvatar"`
 }
 
-// GroupChat is a group with who is in it. CreatedBy manages it: rename,
-// add and remove people.
+// GroupChat is a group with who is in it. CreatedBy manages it: name,
+// add and remove people. Title is optional ("" = shown by its members'
+// names).
 type GroupChat struct {
 	ID        string        `json:"id"`
 	Title     string        `json:"title"`
@@ -30,9 +31,12 @@ type GroupChat struct {
 
 // GroupThread is one group in Inbox.
 type GroupThread struct {
-	ConversationID               string    `json:"conversationId"`
-	Title                        string    `json:"title"`
-	MemberCount                  int       `json:"memberCount"`
+	ConversationID string `json:"conversationId"`
+	Title          string `json:"title"`
+	MemberCount    int    `json:"memberCount"`
+	// Up to four other members' names, oldest member first — what an
+	// unnamed group is shown as.
+	MemberNames                  []string  `json:"memberNames"`
 	LastMessageBody              string    `json:"lastMessageBody"`
 	LastMessageHasImage          bool      `json:"lastMessageHasImage"`
 	LastMessageDeleted           bool      `json:"lastMessageDeleted"`

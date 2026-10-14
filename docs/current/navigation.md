@@ -139,17 +139,25 @@ person (tap for their profile), where it happened, who reported it, the
 message copy and the reason, with Remove message (when allowed) and
 Dismiss.
 
-**Group chats and Community chat** (DP-021). Inbox has a **New group**
-button and lists groups with direct conversations under "Messages", most
-recent first. `NewGroup` (`/groups/new`) and `GroupAddPeople`
-(`/groups/:groupId/add`) are one screen, `GroupPeopleScreen`: a name field
-(new groups only), a search over people you can message, and checkboxes.
-`GroupChat` (`/groups/:groupId`) is the shared thread; its header opens
-`GroupInfo` (`/groups/:groupId/info`): rename (creator), people (tap for a
-profile; × to remove, creator), Add people (creator), Leave group. The
-Community page has a **Community chat** button with an unread count,
-opening `ClubChat` (`/clubs/:clubId/chat`); owner/admins get a ⋮ menu to
-turn it off/on, and "Delete for everyone" on anyone's message.
+**Chats** (DP-020, DP-021). Private chats (`DirectMessage`,
+`/messages/:userId`), group chats (`GroupChat`, `/groups/:groupId`) and
+Community chat (`ClubChat`, `/clubs/:clubId/chat`) are one screen,
+`ChatRoom` (`src/mobile/messages/`), configured with a header and where
+messages load from and go to; it wraps the shared `ConversationThread`
+(also used inside a Session for Session Chat and Contact Organizer). It
+owns loading, the polling fallback and catching a chat's first message
+live; all images load from `/v1/conversation-messages/:id/image`.
+
+Inbox's compose icon (pencil on paper) opens `NewChat` (`/messages/new`,
+`GroupPeopleScreen`): search people you can message and tick them; one
+opens the private chat, two or more create an unnamed group.
+`GroupAddPeople` (`/groups/:groupId/add`) is the same screen adding to a
+group. Groups show as their name or their members' names (`groupLabel`).
+`GroupInfo` (`/groups/:groupId/info`, from the chat's header): optional
+name (creator), people (tap for a profile; × to remove, creator), Add
+people (creator), Leave group. The Community page has a **Community
+chat** button with an unread count; owner/admins get a ⋮ menu to turn it
+off/on, and "Delete for everyone" on anyone's message.
 
 **The city picker** (`src/mobile/locations/CityPickerModal.tsx`) is the
 one way a place is chosen anywhere — a Community's location and a User's

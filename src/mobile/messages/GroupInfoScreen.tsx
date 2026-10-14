@@ -18,6 +18,7 @@ import { useLiveEvents } from '../../core/live/live';
 import { getGroup, removeGroupMember, renameGroup } from '../../core/messages/groups';
 import { PersonAvatar } from './PersonAvatar';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
+import { labelFor } from './GroupChatScreen';
 import type { GroupChat } from '../../core/api/types';
 
 type Props = {
@@ -64,9 +65,10 @@ export function GroupInfoScreen({ groupId, onBack, onAddPeople, onLeft }: Props)
 
   const isCreator = !!group && group.createdBy === me?.id;
 
+  // The name is optional; saving it empty goes back to members' names.
   function handleRename() {
     const trimmed = title.trim();
-    if (!group || !trimmed || trimmed === group.title) return;
+    if (!group || trimmed === group.title) return;
     renameGroup(groupId, trimmed)
       .then(load)
       .catch(() => appAlert(t('groupSaveFailed')));
@@ -122,15 +124,21 @@ export function GroupInfoScreen({ groupId, onBack, onAddPeople, onLeft }: Props)
               </Typography>
               <HStack space="sm" className="items-center">
                 <Input className="flex-1" style={{ flex: 1 }}>
-                  <InputField value={title} onChangeText={setTitle} maxLength={60} onSubmitEditing={handleRename} />
+                  <InputField
+                    value={title}
+                    onChangeText={setTitle}
+                    maxLength={60}
+                    placeholder={t('groupNamePlaceholder')}
+                    onSubmitEditing={handleRename}
+                  />
                 </Input>
-                <Button action="secondary" onPress={handleRename} disabled={!title.trim() || title.trim() === group.title}>
+                <Button action="secondary" onPress={handleRename} disabled={title.trim() === group.title}>
                   <ButtonText>{t('groupSaveName')}</ButtonText>
                 </Button>
               </HStack>
             </VStack>
           ) : (
-            <Typography variant="display">{group.title}</Typography>
+            <Typography variant="display">{labelFor(group, me?.id)}</Typography>
           )}
 
           <VStack space="sm">

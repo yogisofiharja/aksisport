@@ -169,8 +169,9 @@ Real, live work that fell outside the six-milestone roadmap above:
   see its reports (callout and Reports button on the Community page) and
   can remove a reported Session message or dismiss the report. Editing
   and deleting messages, WhatsApp-style (v0.21.0 amendment). Step 3:
-  group chats (New group in Inbox; up to 50 people you can message; the
-  creator renames, adds and removes; anyone leaves) and one chat per
+  a compose icon in Inbox starts a chat — one person is a private chat,
+  two or more an unnamed group (up to 50; the creator may name it, adds
+  and removes; anyone leaves) — all chats on one shared screen and one chat per
   Community (Community chat button with unread count on the Community
   page; owner/admins remove any message and turn it off). The live connection
   lives in one server process; running more than one API process needs a

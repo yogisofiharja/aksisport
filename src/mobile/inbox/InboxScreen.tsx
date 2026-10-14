@@ -15,6 +15,7 @@ import { initialsFromName } from '../../core/initials';
 import { useLiveEvents } from '../../core/live/live';
 import { UnreadCount } from '../messages/UnreadCount';
 import { listMyGroups } from '../../core/messages/groups';
+import { groupLabel } from '../../core/messages/groupLabel';
 import { Icon } from '../../design-system/ui/Icon';
 import type { DirectThread, GroupThread, SessionContactThread } from '../../core/api/types';
 
@@ -22,7 +23,7 @@ type Props = {
   onOpenSession: (sessionId: string, memberUserId: string) => void;
   onOpenDirectMessage: (userId: string) => void;
   onOpenGroup: (groupId: string) => void;
-  onNewGroup: () => void;
+  onNewChat: () => void;
 };
 
 // DP-013 Contact Organizer's Inbox — the first real content this tab has
@@ -30,7 +31,7 @@ type Props = {
 // data model existed yet). One row per thread the caller is a party to,
 // either as the member or as an owner/admin replying on behalf of the
 // organizer — most-recently-active first.
-export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, onNewGroup }: Props) {
+export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, onNewChat }: Props) {
   const { t } = useTranslation();
   const { profile } = useAuth();
   const [threads, setThreads] = useState<SessionContactThread[]>([]);
@@ -108,15 +109,8 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
     <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
       <HStack className="justify-between items-center">
         <Typography variant="display">{t('inboxTitle')}</Typography>
-        <Pressable
-          onPress={onNewGroup}
-          className="flex-row items-center gap-1 px-3 py-2 rounded-full bg-blue-600 active:opacity-70"
-          accessibilityLabel={t('groupNew')}
-        >
-          <Icon name="people-outline" size="sm" color="onBrand" />
-          <Typography variant="body" className="text-sm font-bold text-white">
-            {t('groupNew')}
-          </Typography>
+        <Pressable onPress={onNewChat} hitSlop={8} className="p-2 -mr-2 active:opacity-60" accessibilityLabel={t('newChat')}>
+          <Icon name="create-outline" size="lg" color="secondary" />
         </Pressable>
       </HStack>
 
@@ -145,7 +139,7 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
                     </View>
                     <VStack space="xs" style={{ flex: 1 }}>
                       <Typography variant="body" className="text-base font-bold" numberOfLines={1}>
-                        {group.title}
+                        {groupLabel(group.title, group.memberNames, group.memberCount - 1)}
                       </Typography>
                       <Typography variant="body" color="muted" className="text-sm" numberOfLines={1}>
                         {groupPreview(group)}

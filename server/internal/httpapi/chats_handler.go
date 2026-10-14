@@ -20,10 +20,11 @@ import (
 
 const maxGroupTitleLength = 60
 
+// A group's name is optional (DP-021 v0.22.0): "" leaves it unnamed.
 func validGroupTitle(c *gin.Context, raw string) (string, bool) {
 	title := strings.TrimSpace(raw)
-	if title == "" || utf8.RuneCountInString(title) > maxGroupTitleLength {
-		respondError(c, http.StatusBadRequest, "name the group, up to 60 characters")
+	if utf8.RuneCountInString(title) > maxGroupTitleLength {
+		respondError(c, http.StatusBadRequest, "a group name can be up to 60 characters")
 		return "", false
 	}
 	return title, true
@@ -155,8 +156,9 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		if !ok {
 			return
 		}
-		if len(req.MemberIDs) == 0 {
-			respondError(c, http.StatusBadRequest, "add at least one person")
+		// One other person is a direct message, not a group.
+		if len(req.MemberIDs) < 2 {
+			respondError(c, http.StatusBadRequest, "add at least two people")
 			return
 		}
 		members, ok := checkNewGroupMembers(c, pool, req.MemberIDs, 1)

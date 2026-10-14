@@ -87,7 +87,7 @@ export function PersonalTabs() {
           <InboxScreen
             onOpenDirectMessage={(userId) => rootNavigation.navigate('DirectMessage', { userId })}
             onOpenGroup={(groupId) => rootNavigation.navigate('GroupChat', { groupId })}
-            onNewGroup={() => rootNavigation.navigate('NewGroup')}
+            onNewChat={() => rootNavigation.navigate('NewChat')}
             onOpenSession={(sessionId, memberUserId) =>
               rootNavigation.navigate('SessionDetail', { sessionId, openContactWith: memberUserId })
             }

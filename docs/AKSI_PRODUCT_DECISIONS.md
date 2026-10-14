@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.21.0
+Version: 0.22.0
 
 Status: Living Document
 
@@ -1611,9 +1611,17 @@ in every kind of chat)
 
 **Step 3 — group chats and community chat**
 
-- **Group chats:** any player can start one with people they could
-  direct-message (DP-020). The creator names it and can rename it and add
-  or remove people; anyone can leave. Up to 50 people. Listed in Inbox.
+- **New chat:** a compose button (pencil on paper) in Inbox opens a
+  list of people the player could direct-message (DP-020). Picking **one**
+  person opens the private chat with them; picking **two or more** starts
+  a **group chat**. (Changed in v0.22.0.)
+- **Group chats** need no name: a group is shown by its members' names
+  (up to three, then "+N"). Its creator may give it a name, change it or
+  clear it, and add or remove people; anyone can leave. Up to 50 people.
+  Listed in Inbox with private chats.
+- Private chats, group chats and Community chat are the same chat: same
+  screen, messages, read receipts, typing, editing, deleting and
+  reporting.
 - **Community chat:** every Community has one chat for all its members.
   Every member can read and post. The owner and admins can delete any
   message in it and turn the chat off for their Community.

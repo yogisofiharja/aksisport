@@ -15,21 +15,23 @@ import { PersonAvatar } from './PersonAvatar';
 import type { MessageableUser } from '../../core/api/types';
 
 type Props = {
-  // Set: add people to this group. Unset: start a new group.
+  // Set: add people to this group. Unset: start a new chat.
   groupId?: string;
   onBack: () => void;
   // After creating a group, or adding people.
   onDone: (groupId: string) => void;
+  // New chat with just one person: their direct conversation.
+  onDirect?: (userId: string) => void;
 };
 
 const MAX_MEMBERS = 50;
 
-// Start a group chat, or add people to one (DP-021): name it (new groups
-// only) and pick people you can message — anyone sharing a Community
-// with you, or you already have a direct conversation with.
-export function GroupPeopleScreen({ groupId, onBack, onDone }: Props) {
+// Start a chat, or add people to a group (DP-021): pick people you can
+// message — anyone sharing a Community with you, or you already have a
+// direct conversation with. One person opens your direct conversation
+// with them; two or more start a group, which needs no name.
+export function GroupPeopleScreen({ groupId, onBack, onDone, onDirect }: Props) {
   const { t } = useTranslation();
-  const [title, setTitle] = useState('');
   const [query, setQuery] = useState('');
   const [people, setPeople] = useState<MessageableUser[]>([]);
   const [selected, setSelected] = useState<Record<string, MessageableUser>>({});
@@ -81,11 +83,15 @@ export function GroupPeopleScreen({ groupId, onBack, onDone }: Props) {
   }
 
   async function handleSave() {
-    if (saving || selectedCount === 0 || (!groupId && !title.trim())) return;
+    if (saving || selectedCount === 0) return;
+    const ids = Object.keys(selected);
+    if (!groupId && ids.length === 1) {
+      onDirect?.(ids[0]);
+      return;
+    }
     setSaving(true);
     try {
-      const ids = Object.keys(selected);
-      const group = groupId ? await addGroupMembers(groupId, ids) : await createGroup(title.trim(), ids);
+      const group = groupId ? await addGroupMembers(groupId, ids) : await createGroup('', ids);
       onDone(group.id);
     } catch {
       appAlert(t('groupSaveFailed'));
@@ -94,7 +100,8 @@ export function GroupPeopleScreen({ groupId, onBack, onDone }: Props) {
     }
   }
 
-  const canSave = selectedCount > 0 && (groupId || title.trim().length > 0);
+  const canSave = selectedCount > 0;
+  const saveLabel = groupId ? t('groupAdd') : selectedCount >= 2 ? t('groupCreate') : t('newChatStart');
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
@@ -103,15 +110,15 @@ export function GroupPeopleScreen({ groupId, onBack, onDone }: Props) {
           <Icon name="arrow-back" size="lg" />
         </Pressable>
         <Typography variant="title" style={{ flex: 1 }}>
-          {groupId ? t('groupAddPeople') : t('groupNew')}
+          {groupId ? t('groupAddPeople') : t('newChat')}
         </Typography>
       </HStack>
 
       <VStack space="md" className="px-5 pt-4">
         {!groupId && (
-          <Input>
-            <InputField value={title} onChangeText={setTitle} placeholder={t('groupNamePlaceholder')} maxLength={60} />
-          </Input>
+          <Typography variant="body" color="muted" className="text-sm">
+            {t('newChatHint')}
+          </Typography>
         )}
         <Input>
           <InputField value={query} onChangeText={setQuery} placeholder={t('groupSearchPeople')} autoCapitalize="none" />
@@ -167,7 +174,7 @@ export function GroupPeopleScreen({ groupId, onBack, onDone }: Props) {
           {saving ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <ButtonText className="text-lg">{groupId ? t('groupAdd') : t('groupCreate')}</ButtonText>
+            <ButtonText className="text-lg">{saveLabel}</ButtonText>
           )}
         </Button>
       </View>

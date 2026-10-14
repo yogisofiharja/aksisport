@@ -32,7 +32,7 @@ export type MainStackParamList = {
   AccountEmail: undefined;
   Notifications: undefined;
   DirectMessage: { userId: string };
-  NewGroup: undefined;
+  NewChat: undefined;
   GroupChat: { groupId: string };
   GroupInfo: { groupId: string };
   GroupAddPeople: { groupId: string };
@@ -83,9 +83,13 @@ export function MainStack() {
         {({ navigation, route }) => <DirectMessageScreen userId={route.params.userId} onBack={() => navigation.goBack()} />}
       </Stack.Screen>
 
-      <Stack.Screen name="NewGroup">
+      <Stack.Screen name="NewChat">
         {({ navigation }) => (
-          <GroupPeopleScreen onBack={() => navigation.goBack()} onDone={(groupId) => navigation.replace('GroupChat', { groupId })} />
+          <GroupPeopleScreen
+            onBack={() => navigation.goBack()}
+            onDone={(groupId) => navigation.replace('GroupChat', { groupId })}
+            onDirect={(userId) => navigation.replace('DirectMessage', { userId })}
+          />
         )}
       </Stack.Screen>
 

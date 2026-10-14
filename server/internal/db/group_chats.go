@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"errors"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,7 +26,7 @@ func CreateGroupChat(ctx context.Context, pool *pgxpool.Pool, creatorID, title s
 	defer tx.Rollback(ctx)
 	var id string
 	if err := tx.QueryRow(ctx,
-		"INSERT INTO conversations (kind, title, created_by) VALUES ('group', $1, $2) RETURNING id", title, creatorID,
+		"INSERT INTO conversations (kind, title, created_by) VALUES ('group', nullif($1, ''), $2) RETURNING id", title, creatorID,
 	).Scan(&id); err != nil {
 		return "", err
 	}
@@ -45,7 +47,7 @@ func GetGroupChat(ctx context.Context, pool *pgxpool.Pool, conversationID string
 		return g, ErrNotFound
 	}
 	err := pool.QueryRow(ctx,
-		"SELECT id, title, created_by, created_at FROM conversations WHERE id = $1 AND kind = 'group'", conversationID,
+		"SELECT id, coalesce(title, ''), created_by, created_at FROM conversations WHERE id = $1 AND kind = 'group'", conversationID,
 	).Scan(&g.ID, &g.Title, &g.CreatedBy, &g.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return g, ErrNotFound
@@ -73,7 +75,7 @@ func GetGroupChat(ctx context.Context, pool *pgxpool.Pool, conversationID string
 }
 
 func RenameGroupChat(ctx context.Context, pool *pgxpool.Pool, conversationID, title string) error {
-	_, err := pool.Exec(ctx, "UPDATE conversations SET title = $2 WHERE id = $1 AND kind = 'group'", conversationID, title)
+	_, err := pool.Exec(ctx, "UPDATE conversations SET title = nullif($2, '') WHERE id = $1 AND kind = 'group'", conversationID, title)
 	return err
 }
 
@@ -112,7 +114,9 @@ func RemoveGroupMember(ctx context.Context, pool *pgxpool.Pool, conversationID, 
 // recently active first (a group with no messages yet by its creation).
 func ListMyGroupThreads(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.GroupThread, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT c.id, c.title, (SELECT count(*) FROM conversation_members x WHERE x.conversation_id = c.id),
+		`SELECT c.id, coalesce(c.title, ''), (SELECT count(*) FROM conversation_members x WHERE x.conversation_id = c.id),
+		        ARRAY(SELECT coalesce(nullif(u.display_name, ''), u.username) FROM conversation_members x JOIN users u ON u.id = x.user_id
+		              WHERE x.conversation_id = c.id AND x.user_id <> $1 ORDER BY x.added_at LIMIT 4),
 		        coalesce(last.body, ''), coalesce(last.has_image, false), coalesce(last.gone, false),
 		        last.sender_id, lu.username, lu.display_name, coalesce(last.created_at, c.created_at), `+unreadForUser+`
 		 FROM conversation_members me
@@ -136,7 +140,7 @@ func ListMyGroupThreads(ctx context.Context, pool *pgxpool.Pool, userID string) 
 	result := []models.GroupThread{}
 	for rows.Next() {
 		var t models.GroupThread
-		if err := rows.Scan(&t.ConversationID, &t.Title, &t.MemberCount, &t.LastMessageBody, &t.LastMessageHasImage, &t.LastMessageDeleted,
+		if err := rows.Scan(&t.ConversationID, &t.Title, &t.MemberCount, &t.MemberNames, &t.LastMessageBody, &t.LastMessageHasImage, &t.LastMessageDeleted,
 			&t.LastMessageSenderID, &t.LastMessageSenderUsername, &t.LastMessageSenderDisplayName, &t.LastActivityAt, &t.UnreadCount); err != nil {
 			return nil, err
 		}
@@ -278,4 +282,32 @@ func GetConversationMessageImageByID(ctx context.Context, pool *pgxpool.Pool, me
 // ListClubMemberIDs is every member of a Community.
 func ListClubMemberIDs(ctx context.Context, pool *pgxpool.Pool, clubID string) ([]string, error) {
 	return collectIDs(ctx, pool, "SELECT user_id FROM club_members WHERE club_id = $1", clubID)
+}
+
+// GroupLabel is what a group is called in a push: its name, or its
+// members' names (up to three, then "+N").
+func GroupLabel(ctx context.Context, pool *pgxpool.Pool, conversationID string) (string, error) {
+	var title string
+	var names []string
+	var count int
+	err := pool.QueryRow(ctx,
+		`SELECT coalesce(c.title, ''),
+		        ARRAY(SELECT coalesce(nullif(u.display_name, ''), u.username) FROM conversation_members x JOIN users u ON u.id = x.user_id
+		              WHERE x.conversation_id = c.id ORDER BY x.added_at LIMIT 3),
+		        (SELECT count(*) FROM conversation_members x WHERE x.conversation_id = c.id)
+		 FROM conversations c WHERE c.id = $1`, conversationID,
+	).Scan(&title, &names, &count)
+	if err != nil || title != "" {
+		return title, err
+	}
+	return JoinGroupNames(names, count), nil
+}
+
+// JoinGroupNames: "Ana, Budi, Citra" or "Ana, Budi, Citra +2".
+func JoinGroupNames(names []string, total int) string {
+	label := strings.Join(names, ", ")
+	if extra := total - len(names); extra > 0 {
+		label += " +" + strconv.Itoa(extra)
+	}
+	return label
 }

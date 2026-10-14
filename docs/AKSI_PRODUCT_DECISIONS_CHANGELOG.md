@@ -6,6 +6,15 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.22.0
+
+- DP-021 step 3 changed: one "new chat" entry point (a compose icon in
+  Inbox) — one person picked is a private chat, two or more a group.
+  Groups need no name (shown by members' names); the creator may name
+  one. Every kind of chat works the same way.
+
+---
+
 ## v0.21.0
 
 - DP-021 amended: senders can edit their own messages for 15 minutes and
