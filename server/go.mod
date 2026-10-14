@@ -4,6 +4,8 @@ go 1.25.2
 
 require (
 	github.com/MicahParks/keyfunc/v3 v3.8.0
+	github.com/SherClockHolmes/webpush-go v1.4.0
+	github.com/coder/websocket v1.8.12
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang-migrate/migrate/v4 v4.19.1

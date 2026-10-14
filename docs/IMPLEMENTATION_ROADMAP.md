@@ -150,6 +150,32 @@ Real, live work that fell outside the six-milestone roadmap above:
 - **"Join with Code" removed** — part of `7e5ddd3`. Deliberate removal
   (screen, routes, invite-code display/regenerate UI). The gap it left —
   no self-service way to join — is closed by DP-017 below.
+- **Player profile & direct messages (DP-019, DP-020)** — organizers
+  open a profile from Session participants and Community join requests:
+  picture, name, level per sport, approve/decline, and a Chat button for
+  one-to-one messages (listed in Inbox). Each sport opens a page with the
+  player's history across every Community; players open their own from
+  the Me tab.
+- **Messaging upgrades (DP-021) — step 1 of 3 built.** A live
+  connection (WebSocket, `/v1/live`) delivers new messages, typing, read
+  receipts and new notifications at once; screens fall back to polling
+  every 5 seconds while it is down (30 seconds while it is up). Unread
+  counts per conversation in Inbox, a total on the Inbox tab, a count on
+  a Session's Chat tab; "Seen" / "Seen by N" under your latest message;
+  "… is typing". New direct and Contact Organizer messages push to
+  participants who don't have Aksi open. Not yet: blocking and reporting
+  (step 2), group chats and community chat (step 3). The live connection
+  lives in one server process; running more than one API process needs a
+  shared broker first (see `docs/current/api.md`).
+- **Push notifications (DP-018) — step 1 of 3, in progress.** Built:
+  device registration in the browser (Web Push, `public/sw.js`), the
+  server's notification service (Web Push + Expo delivery), the bell and
+  Notifications page, the permission offer after joining a Community, and
+  the first event (a private Community's join request notifies its
+  organizers). Not yet: the other six events and the per-kind switches
+  (step 2), the installable web app that enables iPhone browsers (step
+  3), and push on the phone apps, which waits on expo-notifications and
+  the Expo/Apple/Firebase setup.
 - **Security hardening** — per-IP rate limits on the routes callable
   without signing in (username check, email login lookup, password
   reset), and the DP-015 email gate enforced by the server, not only the
@@ -183,8 +209,8 @@ Everything below is real `# Planning` in `AKSI_PRODUCT_DECISIONS.md` —
 not approved, not built, don't build it without an explicit decision
 first:
 
-- **Communication**: Community-level chat, Direct Messages (Session Chat
-  and Contact Organizer exist).
+- **Communication**: Community-level chat; blocking/reporting for Direct
+  Messages (Session Chat, Contact Organizer and Direct Messages exist).
 - **Payments**: an actual payment gateway, Membership fees, Guest fees,
   Refunds (only manual payment-confirm + informational Pricing exist).
 - **Scheduler Evolution**: partner diversity, opponent diversity, skill

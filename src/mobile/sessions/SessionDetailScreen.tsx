@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
+import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Icon } from '../../design-system/ui/Icon';
@@ -39,6 +40,8 @@ import { formatIDR } from '../../core/currency';
 import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
 import { initialsFromName } from '../../core/initials';
 import { SessionChat } from './SessionChat';
+import { useSessionChatUnread } from '../../core/messages/useSessionChatUnread';
+import { UnreadCount } from '../messages/UnreadCount';
 import { SessionContactOrganizer } from './SessionContactOrganizer';
 import { SessionPayment } from './SessionPayment';
 import type { MatchFormat, MatchMode } from '../../sports/tennis/scoringEngine';
@@ -103,6 +106,11 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   const [activities, setActivities] = useState<ActivityDetail[]>([]);
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Set when the Session itself couldn't be loaded — shown instead of an
+  // endless spinner.
+  const [loadFailed, setLoadFailed] = useState(false);
+  // DP-019: the participant whose profile an organizer has opened.
+  const [profileParticipant, setProfileParticipant] = useState<SessionParticipant | null>(null);
   const [guestName, setGuestName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +123,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // pinned in the header outside the tab body, so switching tabs never
   // loses which session you're looking at.
   const [activeTab, setActiveTab] = useState<'details' | 'payment' | 'configuration' | 'participants' | 'matches' | 'chat'>('details');
+  const chatUnread = useSessionChatUnread(sessionId, profile?.id, activeTab === 'chat');
   // DP-013 Contact Organizer — a private thread, separate from the Chat
   // tab's group SessionChat. contactVisible opens the modal; when arriving
   // from the Inbox (openContactWith set), it opens straight into that
@@ -149,7 +158,12 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         listMembers(sess.clubId),
         listActivities(sessionId),
         getClub(sess.clubId),
-        sess.recurringScheduleId ? getRecurringSchedule(sess.clubId, sess.recurringScheduleId) : Promise.resolve(null),
+        // Only organizers may read a Recurring Schedule (DP-007), so for
+        // a member this is refused — and it only feeds the "Every <day>"
+        // label. It must never take the whole page down with it.
+        sess.recurringScheduleId
+          ? getRecurringSchedule(sess.clubId, sess.recurringScheduleId).catch(() => null)
+          : Promise.resolve(null),
       ]);
       const myRole = members.find((m) => m.userId === profile?.id)?.role;
       const amOwnerOrAdmin = myRole === 'owner' || myRole === 'admin';
@@ -199,9 +213,11 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         setSportLevels(levels);
         setMyLevel(mine.find((l) => l.sport === sess.sport));
       }
+      setLoadFailed(false);
       return { sess, parts, acts: finalActs };
     } catch {
-      // leave stale state; user can back out and retry
+      // Keep whatever is showing; with nothing loaded yet, say so.
+      setLoadFailed(true);
       return undefined;
     } finally {
       setLoading(false);
@@ -633,6 +649,120 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     if (await handleAddGuest()) closeAddParticipant();
   }
 
+  // The caller's own place in this Session — ask to join, the state of
+  // their request, check in, or give up their spot. Shown on the Details
+  // tab (where the Session opens) and on Participants, so joining never
+  // depends on finding the right tab.
+  //
+  // DP-002 Join Approval: requested -> waitlist (needs payment) ->
+  // registered (approved) -> checked_in. Only 'registered', within
+  // the Check-In Window, can self check-in. Nothing here renders
+  // while still Draft — check-in status/actions only make sense
+  // once the Session is published. Every non-terminal status below
+  // 'Checked In' status itself is already visible on the caller's
+  // own avatar in the Participants list, so this area stays a
+  // small Check Out link rather than repeating a "Checked In"
+  // banner. Cancel/Check Out are self-service (DP-002) — give up
+  // the queue spot voluntarily, the participant's own counterpart
+  // to the organizer's Remove action.
+  function renderMyParticipation() {
+    if (!session) return null;
+    return (
+      <>
+        {isPublished &&
+          (myParticipant?.status === 'checked_in' ? (
+            isSessionActive && (
+              <Pressable className="items-center py-1 self-center active:opacity-60" onPress={handleCheckOut} disabled={busy}>
+                <Text className="text-slate-400 font-bold text-sm">{t('sessionCheckOut')}</Text>
+              </Pressable>
+            )
+          ) : myParticipant?.status === 'requested' ? (
+            <VStack className="gap-2">
+              <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
+                <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionRequestedNotice')}</Text>
+              </Box>
+              <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
+                <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
+              </Pressable>
+            </VStack>
+          ) : myParticipant?.status === 'waitlist' ? (
+            <VStack className="gap-2">
+              <Box className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 items-center">
+                <Text className="text-sm text-amber-800 dark:text-amber-300">{t('sessionWaitlistedNotice')}</Text>
+              </Box>
+              <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
+                <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
+              </Pressable>
+            </VStack>
+          ) : myParticipant?.status === 'registered' ? (
+            isSessionActive && (
+              <VStack className="gap-2">
+                {checkInWindowOpen ? (
+                  <Button action="secondary" size="xl" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handleCheckIn}>
+                    <ButtonText className="text-white text-lg">{t('sessionCheckIn')}</ButtonText>
+                  </Button>
+                ) : (
+                  <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
+                    <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionCheckInWindowClosed')}</Text>
+                  </Box>
+                )}
+                <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
+                  <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
+                </Pressable>
+              </VStack>
+            )
+          ) : (
+            // Never joined, or cancelled their own spot earlier — either
+            // way they can ask (again).
+            (!myParticipant || myParticipant.status === 'cancelled') &&
+            isSessionActive && (
+              <VStack className="gap-2">
+                <Button
+                  action="secondary"
+                  size="xl"
+                  className="w-full rounded-2xl bg-blue-600"
+                  isDisabled={busy || strictLevelBlocked}
+                  onPress={handleRequestToJoin}
+                >
+                  <ButtonText className="text-white text-lg">{t('sessionRequestToJoin')}</ButtonText>
+                </Button>
+                {strictLevelBlocked && (
+                  <Text className="text-sm text-red-500">
+                    {myLevel
+                      ? t('skillLevelStrictBlockedOutOfRange', minLevel?.name ?? '', maxLevel?.name ?? '')
+                      : t('skillLevelStrictBlockedNotSet', session.sport)}
+                  </Text>
+                )}
+              </VStack>
+            )
+          ))}
+      </>
+    );
+  }
+
+  if (!session && !loading && loadFailed) {
+    return (
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+        <VStack className="px-5 pt-4 gap-4">
+          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
+            <Icon name="arrow-back" size="lg" />
+          </Pressable>
+          <Text className="text-2xl font-black text-slate-900 dark:text-white">{t('sessionLoadFailedTitle')}</Text>
+          <Text className="text-slate-500 dark:text-slate-400">{t('sessionLoadFailedDesc')}</Text>
+          <Pressable
+            className="self-start px-4 py-2 rounded-xl bg-blue-600 active:opacity-70"
+            onPress={() => {
+              setLoading(true);
+              load();
+            }}
+          >
+            <Text className="font-bold text-white">{t('retry')}</Text>
+          </Pressable>
+        </VStack>
+      </SafeAreaView>
+    );
+  }
+
   if (loading || !session) {
     return (
       <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900 items-center justify-center">
@@ -679,11 +809,20 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     return (
       <VStack key={p.id} className="items-center" style={{ width: 76 }}>
         <Box style={{ position: 'relative' }}>
-          <Box
-            className={`w-16 h-16 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700 border-2 ${participantAvatarBorderClass(p.status)}`}
+          {/* Organizers tap a member to see who they are (DP-019) —
+              what they need when deciding on a request to join. */}
+          <Pressable
+            disabled={!(isOwnerOrAdmin && p.userId)}
+            onPress={() => setProfileParticipant(p)}
+            className="active:opacity-70"
+            accessibilityLabel={isOwnerOrAdmin && p.userId ? t('playerProfileOpen') : undefined}
           >
-            <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">{participantInitials(p)}</Text>
-          </Box>
+            <Box
+              className={`w-16 h-16 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700 border-2 ${participantAvatarBorderClass(p.status)}`}
+            >
+              <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">{participantInitials(p)}</Text>
+            </Box>
+          </Pressable>
           {canRemove && (
             <Pressable
               onPress={() => handleDeleteParticipant(p)}
@@ -740,9 +879,9 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   const tabs: Array<{ key: typeof activeTab; label: string }> = [
     { key: 'details', label: t('sessionTabDetails') },
+    { key: 'participants', label: t('sessionTabParticipants') },
     { key: 'payment', label: t('sessionTabPayment') },
     { key: 'configuration', label: t('sessionTabConfiguration') },
-    { key: 'participants', label: t('sessionTabParticipants') },
     { key: 'matches', label: t('sessionTabMatches') },
     { key: 'chat', label: t('sessionTabChat') },
   ];
@@ -784,9 +923,12 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
               onPress={() => setActiveTab(tab.key)}
               hitSlop={4}
             >
-              <Text className={`text-sm font-bold ${activeTab === tab.key ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>
-                {tab.label}
-              </Text>
+              <HStack className="items-center gap-1.5">
+                <Text className={`text-sm font-bold ${activeTab === tab.key ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+                  {tab.label}
+                </Text>
+                {tab.key === 'chat' && <UnreadCount count={chatUnread} />}
+              </HStack>
             </Pressable>
           ))}
         </ScrollView>
@@ -852,6 +994,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                 </Text>
               )}
             </VStack>
+
+            {renderMyParticipation()}
 
             <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
               <VStack className="gap-2">
@@ -1075,82 +1219,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
         {activeTab === 'participants' && (
           <VStack className="gap-5">
-            {/* DP-002 Join Approval: requested -> waitlist (needs payment) ->
-                registered (approved) -> checked_in. Only 'registered', within
-                the Check-In Window, can self check-in. Nothing here renders
-                while still Draft — check-in status/actions only make sense
-                once the Session is published. Every non-terminal status below
-                'Checked In' status itself is already visible on the caller's
-                own avatar in the Participants list, so this area stays a
-                small Check Out link rather than repeating a "Checked In"
-                banner. Cancel/Check Out are self-service (DP-002) — give up
-                the queue spot voluntarily, the participant's own counterpart
-                to the organizer's Remove action. */}
-            {isPublished &&
-              (myParticipant?.status === 'checked_in' ? (
-                isSessionActive && (
-                  <Pressable className="items-center py-1 self-center active:opacity-60" onPress={handleCheckOut} disabled={busy}>
-                    <Text className="text-slate-400 font-bold text-sm">{t('sessionCheckOut')}</Text>
-                  </Pressable>
-                )
-              ) : myParticipant?.status === 'requested' ? (
-                <VStack className="gap-2">
-                  <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
-                    <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionRequestedNotice')}</Text>
-                  </Box>
-                  <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
-                    <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
-                  </Pressable>
-                </VStack>
-              ) : myParticipant?.status === 'waitlist' ? (
-                <VStack className="gap-2">
-                  <Box className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 items-center">
-                    <Text className="text-sm text-amber-800 dark:text-amber-300">{t('sessionWaitlistedNotice')}</Text>
-                  </Box>
-                  <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
-                    <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
-                  </Pressable>
-                </VStack>
-              ) : myParticipant?.status === 'registered' ? (
-                isSessionActive && (
-                  <VStack className="gap-2">
-                    {checkInWindowOpen ? (
-                      <Button action="secondary" size="xl" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handleCheckIn}>
-                        <ButtonText className="text-white text-lg">{t('sessionCheckIn')}</ButtonText>
-                      </Button>
-                    ) : (
-                      <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
-                        <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionCheckInWindowClosed')}</Text>
-                      </Box>
-                    )}
-                    <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
-                      <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
-                    </Pressable>
-                  </VStack>
-                )
-              ) : (
-                !myParticipant &&
-                isSessionActive && (
-                  <VStack className="gap-2">
-                    <Button
-                      action="secondary"
-                      size="xl"
-                      className="w-full rounded-2xl bg-blue-600"
-                      isDisabled={busy || strictLevelBlocked}
-                      onPress={handleRequestToJoin}
-                    >
-                      <ButtonText className="text-white text-lg">{t('sessionRequestToJoin')}</ButtonText>
-                    </Button>
-                    {strictLevelBlocked && (
-                      <Text className="text-sm text-red-500">
-                        {myLevel
-                          ? t('skillLevelStrictBlockedOutOfRange', minLevel?.name ?? '', maxLevel?.name ?? '')
-                          : t('skillLevelStrictBlockedNotSet', session.sport)}
-                      </Text>
-                    )}
-                  </VStack>
-                )
-              ))}
+            {renderMyParticipation()}
 
             <VStack className="gap-4">
               <HStack className="justify-between items-center">
@@ -1183,13 +1252,25 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                 <HStack className="flex-wrap items-start" style={{ rowGap: 16, columnGap: 12 }}>
                   {Array.from({ length: placeholderCount }).map((_, i) => (
                     <VStack key={`placeholder-${i}`} className="items-center" style={{ width: 76 }}>
-                      <Pressable
-                        disabled={!canAddParticipant}
-                        onPress={openAddParticipant}
-                        className="w-16 h-16 rounded-full items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 active:opacity-70"
-                      >
-                        <Icon name="add" size="md" color="muted" />
-                      </Pressable>
+                      {/* An open spot. Organizers can tap it to add someone
+                          (hence the "+"); for everyone else it only shows
+                          how many spots are left, so it carries no "+" and
+                          does nothing — a "+" that can't be pressed reads
+                          as broken. */}
+                      {canAddParticipant ? (
+                        <Pressable
+                          onPress={openAddParticipant}
+                          className="w-16 h-16 rounded-full items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 active:opacity-70"
+                          accessibilityLabel={t('sessionAddParticipantTitle')}
+                        >
+                          <Icon name="add" size="md" color="muted" />
+                        </Pressable>
+                      ) : (
+                        <Box
+                          className="w-16 h-16 rounded-full border-2 border-dashed border-slate-200 dark:border-slate-700"
+                          accessibilityLabel={t('sessionOpenSpot')}
+                        />
+                      )}
                     </VStack>
                   ))}
                 </HStack>
@@ -1401,6 +1482,20 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         isOwnerOrAdmin={isOwnerOrAdmin}
         myUserId={profile?.id ?? ''}
         initialMemberUserId={openContactWith}
+      />
+      <PlayerProfileSheet
+        userId={profileParticipant?.userId ?? null}
+        onClose={() => setProfileParticipant(null)}
+        sport={session.sport}
+        levelRange={minLevel && maxLevel ? { min: minLevel, max: maxLevel } : undefined}
+        actions={
+          profileParticipant?.status === 'requested' && profileParticipant.userId && isSessionActive
+            ? [
+                { label: t('clubJoinRequestDecline'), destructive: true, onPress: () => handleDeleteParticipant(profileParticipant) },
+                { label: t('clubJoinRequestApprove'), onPress: () => handleApprove(profileParticipant.userId!) },
+              ]
+            : undefined
+        }
       />
     </SafeAreaView>
   );

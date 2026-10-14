@@ -23,6 +23,7 @@ import { searchUsers, userAvatarUrl, authHeader } from '../../core/api/client';
 import { initialsFromName } from '../../core/initials';
 import type { ClubJoinRequest, ClubMember, UserSummary } from '../../core/api/types';
 import { ApiRequestError } from '../../core/api/client';
+import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 
 type Props = {
   clubId: string;
@@ -72,6 +73,8 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
   const [joinRequests, setJoinRequests] = useState<ClubJoinRequest[]>([]);
   const [decidingRequestId, setDecidingRequestId] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
+  // DP-019: the requester whose profile is open.
+  const [profileRequest, setProfileRequest] = useState<ClubJoinRequest | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -160,7 +163,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
     const isSelf = member.userId === profile?.id;
     appAlert(
       isSelf ? t('clubLeaveClub') : t('clubRemove'),
-      member.username,
+      isSelf ? t('clubLeaveConfirmDesc') : member.username,
       [
         { text: t('clubCancel'), style: 'cancel' },
         {
@@ -301,7 +304,11 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
             </Text>
             {joinRequests.map((request) => (
               <Box key={request.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
-                <HStack className="items-center gap-3">
+                <Pressable
+                  onPress={() => setProfileRequest(request)}
+                  className="flex-row items-center gap-3 active:opacity-70"
+                  accessibilityLabel={t('playerProfileOpen')}
+                >
                   <Box className="w-11 h-11 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700">
                     {request.hasAvatar ? (
                       <Image source={{ uri: userAvatarUrl(request.userId), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
@@ -316,10 +323,11 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                       {request.displayName || request.username}
                     </Text>
                     <Text className="text-sm text-slate-500 dark:text-slate-400" numberOfLines={1}>
-                      @{request.username}
+                      @{request.username} · {t('playerProfileView')}
                     </Text>
                   </VStack>
-                </HStack>
+                  <Icon name="chevron-forward" size="sm" color="muted" />
+                </Pressable>
                 <HStack className="gap-2">
                   <Button
                     action="secondary"
@@ -534,6 +542,18 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
           </Pressable>
         </KeyboardAvoidingView>
       </Modal>
+      <PlayerProfileSheet
+        userId={profileRequest?.userId ?? null}
+        onClose={() => setProfileRequest(null)}
+        actions={
+          profileRequest
+            ? [
+                { label: t('clubJoinRequestDecline'), destructive: true, onPress: () => handleDecide(profileRequest, 'decline') },
+                { label: t('clubJoinRequestApprove'), onPress: () => handleDecide(profileRequest, 'approve') },
+              ]
+            : undefined
+        }
+      />
     </SafeAreaView>
   );
 }

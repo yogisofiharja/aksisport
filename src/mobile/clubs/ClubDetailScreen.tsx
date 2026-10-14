@@ -15,7 +15,7 @@ import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';
-import { getClub, listJoinRequests, listMembers, clubAvatarUrl, uploadClubAvatar } from '../../core/clubs/api';
+import { getClub, listJoinRequests, listMembers, clubAvatarUrl, removeMember, uploadClubAvatar } from '../../core/clubs/api';
 import { clubLink, shareLink } from '../../platform/shareLink';
 import { Card } from '../../design-system/ui/Card';
 import { listSessions } from '../../core/sessions/api';
@@ -34,6 +34,8 @@ type Props = {
   onOpenSession: (sessionId: string) => void;
   onOpenRecurringSchedules: (clubId: string) => void;
   onOpenClubSettings: (clubId: string) => void;
+  // After the caller has left this Community.
+  onLeft: () => void;
 };
 
 export function ClubDetailScreen({
@@ -44,6 +46,7 @@ export function ClubDetailScreen({
   onOpenSession,
   onOpenRecurringSchedules,
   onOpenClubSettings,
+  onLeft,
 }: Props) {
   const { t } = useTranslation();
   const { profile } = useAuth();
@@ -125,6 +128,29 @@ export function ClubDetailScreen({
     const outcome = await shareLink(clubLink(clubId), club.name);
     if (outcome === 'copied') appAlert(t('clubLinkCopiedTitle'), t('clubLinkCopiedDesc'));
     else if (outcome === 'failed') appAlert(t('clubLinkShareFailed'), clubLink(clubId));
+  }
+
+  // Any member but the owner can leave, from here — the Community's own
+  // home — rather than only by finding themselves in the Members grid.
+  // The owner can't leave their own Community (they would have to delete
+  // it, in Club Settings).
+  function handleLeave() {
+    if (!club || !profile) return;
+    appAlert(t('clubLeaveConfirmTitle', club.name), t('clubLeaveConfirmDesc'), [
+      { text: t('clubCancel'), style: 'cancel' },
+      {
+        text: t('clubLeaveClub'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removeMember(clubId, profile.id);
+            onLeft();
+          } catch (err) {
+            appAlert(t('clubLeaveClub'), err instanceof Error ? err.message : t('authGenericError'));
+          }
+        },
+      },
+    ]);
   }
 
   if (loading || !club) {
@@ -243,6 +269,13 @@ export function ClubDetailScreen({
         </Button>
       )}
 
+      {!isOwner && (
+        <Pressable className="items-center py-3 active:opacity-60" onPress={handleLeave}>
+          <Typography variant="body" color="destructive" className="font-bold">
+            {t('clubLeaveClub')}
+          </Typography>
+        </Pressable>
+      )}
     </ScrollPage>
   );
 }

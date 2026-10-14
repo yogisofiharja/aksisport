@@ -30,6 +30,13 @@ type Config struct {
 	// TrustedProxies: the peers whose ClientIPHeader is believed — the
 	// local Caddy, by default.
 	TrustedProxies string
+	// VAPIDSubject (DP-018) identifies this server to browser push
+	// services — a mailto: or https: URL they can use to reach the
+	// operator.
+	VAPIDSubject string
+	// ExpoAccessToken is optional — only if the Expo project turns on
+	// enhanced push security.
+	ExpoAccessToken string
 	// RecurringScheduleGenerationInterval: how often the background ticker
 	// runs — DP-007 due-occurrence generation and DP-009 elapsed-Session
 	// auto-transition both ride the same tick. Generation lead time is
@@ -49,6 +56,8 @@ func Load() Config {
 		MailFrom:                            os.Getenv("MAIL_FROM"),
 		ClientIPHeader:                      os.Getenv("CLIENT_IP_HEADER"),
 		TrustedProxies:                      getEnv("TRUSTED_PROXIES", "127.0.0.1,::1"),
+		VAPIDSubject:                        getEnv("VAPID_SUBJECT", "https://app.aksisport.com"),
+		ExpoAccessToken:                     os.Getenv("EXPO_ACCESS_TOKEN"),
 		RecurringScheduleGenerationInterval: getEnvMinutes("RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES", 15),
 	}
 }

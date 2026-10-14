@@ -24,6 +24,8 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 | GET | `/v1/me` | auth | 404 `{"error":"profile not found","code":"PROFILE_NOT_FOUND"}` if no profile yet. |
 | PATCH | `/v1/me` | profile | Body `{displayName?, cityCode?, phoneNumber?, avatarUrl?}`. `displayName` (DP-016) is trimmed and limited to 40 characters (400 beyond that); an empty string removes it, so the User is shown by username again. `cityCode` (DP-017) switches the caller's **active** town, saving it among their towns if it isn't yet; it must be a city in the reference list (400 otherwise, including empty — a town is removed with `DELETE /v1/me/cities/:code`), 409 past the 10-town limit. `GET /v1/me` returns `cityCode`/`cityName` (the active town) and `cities: [{code, name}]` (every saved town, oldest first). `email` is not accepted here — it only changes through code confirmation (see Account email below). `username` is immutable — not accepted here. `avatarUrl` is a stale, never-wired string-URL stub — see the note under "Profile pictures" below; the real path is `POST /v1/me/avatar`. |
 | POST | `/v1/me/avatar` | profile | Body `{imageBase64, imageContentType}`. Self-service only — always the caller's own picture. Same size/content-type validation as every other image upload (5MB decoded cap, JPEG/PNG/WebP only). |
+| GET | `/v1/users/:userId/profile` | profile | see notes | DP-019 player profile: `{id, username, displayName?, hasAvatar, isOnline, joinedAt, skillLevels: UserSkillLevel[]}` — nothing private (no email, towns). Visible to the player themself, anyone sharing a Club with them, and the owner/admins of a Club they have a pending request to join (`db.CanViewPlayerProfile`); everyone else gets the same 404 as for a player that doesn't exist. |
+| GET | `/v1/users/:userId/sports/:sport/activity` | profile | see notes | DP-019 sport page: `{sport, summary: {sessionsAttended, noShows, matchesPlayed, wins}, sessions: [...], matches: [...]}` across every Club. Sessions: participations that were checked in/out or no-show, newest 50. Matches: completed activities the player was on a team in, newest 50, each with `team`, `won` (from the stored result's `winner`), the raw `result`, and every player's name and team. Same visibility and 404 as the profile; 404 for an unknown sport. |
 | GET | `/v1/users/:userId/avatar` | profile | Serves the raw image bytes. Visible to any authenticated user with a profile — same broad visibility as the username/displayName it's paired with everywhere (search, member grids, organizer names), not scoped to a shared Club. 404 if the user has no picture. |
 | GET | `/v1/me/contact-threads` | profile | DP-013 Contact Organizer's Inbox listing. See the "Conversations" subsection under Sessions below for the full shape. |
 | GET | `/v1/users/search?q=` | profile | Case-insensitive substring match on `username` or `display_name`, excludes the caller, capped at 20 results ordered by `username`. Returns `[]` for `q` under 2 characters rather than erroring (avoids a near-full-table scan on a 0-1 char query). Response is the lean `UserSummary` shape (`id`/`username`/`displayName`/`hasAvatar`/`isOnline`) — unlike every other `/users`/`/me` route here, this never includes `email`/`phoneNumber`, since the caller is looking up *someone else*. Not club-scoped — `ClubMembersScreen`'s Add Member dialog filters out existing members client-side, since it already has that list loaded. |
@@ -91,6 +93,101 @@ Mail goes through `internal/mail.Mailer`, chosen at startup in
 A failed send on `POST /v1/me/email` surfaces as 502 with Resend's reason
 in the server log; on sign-up and on password-reset request it is logged
 and the request still succeeds.
+
+### Direct messages (DP-020)
+
+A `conversations` row of kind `direct` (migration `0030`: `session_id`
+optional, the two people as `user_low < user_high`, one conversation per
+pair), messages on the same `conversation_messages` table as Session Chat.
+A message's `sessionId` is `""` for a direct conversation.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/v1/me/direct-threads` | profile | Every direct conversation of the caller, most recently active first: `{otherUserId, otherUsername, otherDisplayName?, otherHasAvatar, otherIsOnline, lastMessageBody, lastMessageHasImage, lastMessageSenderId, lastMessageAt}`. |
+| GET | `/v1/dm/:userId/messages` | profile | The conversation with that player, oldest first; `[]` before the first message. |
+| POST | `/v1/dm/:userId/messages` | profile | Same body as Session Chat (`{body?, imageBase64?, imageContentType?}`). Creates the conversation on first message. |
+| GET | `/v1/dm/messages/:messageId/image` | profile | An image from one of the caller's own direct conversations. |
+
+Who may message whom: an existing conversation, or the DP-019 profile
+rule (`db.CanViewPlayerProfile`); otherwise 404 "player not found". 400
+for messaging yourself.
+
+### Live connection, read receipts, unread counts (DP-021)
+
+One WebSocket per signed-in app: `GET /v1/live?token=<Firebase ID
+token>` (a browser can't put an Authorization header on a WebSocket, so
+the token is in the query; the request logger skips this path so it never
+reaches the logs). Same profile and email-gate checks as every other
+route; web pages may connect only from `ALLOWED_ORIGINS`. The server pings
+every 25 seconds (Cloudflare closes connections idle for ~100). Events are
+JSON `{type, data}`:
+
+| Event | Data | Sent to |
+|---|---|---|
+| `message.created` | `{conversationId, kind, sessionId, message}` | everyone in the conversation, sender included |
+| `read` | `{conversationId, userId, lastReadAt}` | everyone in the conversation |
+| `typing` | `{conversationId, userId, name}` | everyone in the conversation but the typist |
+| `notification.created` | — | the recipients of a new DP-018 notification |
+
+The only thing a client sends is `{"type":"typing","conversationId"}`,
+relayed only if the sender belongs in the conversation. "Everyone in the
+conversation" (`db.ConversationParticipantIDs`): the two people of a
+direct conversation; a Contact Organizer thread's member plus the
+Session's Club owner/admins; every member of the Session's Club for
+Session Chat (owner/admins only while the Session is a Draft).
+
+The hub (`internal/live`) is in-memory, per process. Running more than
+one API process needs a shared broker (e.g. Postgres LISTEN/NOTIFY)
+behind `Hub.Publish` first.
+
+Read positions are `conversation_reads (conversation_id, user_id,
+last_read_at)` (migration `0031`); unread = messages from others after
+your `last_read_at`.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| POST | `/v1/conversations/:id/read` | profile | Marks the conversation read up to now; announces `read`. 204. 404 if you are not in it. |
+| GET | `/v1/conversations/:id/reads` | profile | `[{userId, lastReadAt}]` — read receipts. |
+| GET | `/v1/me/unread-messages` | profile | `{count}` across direct conversations and Contact Organizer threads (what Inbox lists) — the Inbox tab badge. |
+| GET | `/v1/sessions/:id/chat/unread` | profile | `{count}` for the Session's Chat — its Chat tab badge. `0` before anyone has posted. |
+
+`/v1/me/direct-threads` and the Contact Organizer thread lists also return
+`conversationId` and `unreadCount` per row; every message carries its
+`conversationId`.
+
+**Message pushes.** After a direct or Contact Organizer message is stored,
+participants other than the sender who have no live connection open get a
+push (`direct_message` / `contact_message`: sender's name and the text, or
+"Sent a photo"), opening the conversation. These are pushed only — not
+recorded on the Notifications page. Session Chat never pushes.
+
+### Notifications (DP-018)
+
+`internal/notify.Service.Send` is the one way a feature notifies people:
+it records one `notifications` row per recipient (minus whoever caused
+it) and, in the background, pushes to each of their devices — browsers
+through Web Push (VAPID keys generated on first start, kept in
+`server_keys`), phone apps through Expo's push service. A device a push
+service reports gone (Web Push 404/410, Expo `DeviceNotRegistered`) is
+forgotten. Push text is rendered per device in its `locale`
+(`internal/notify/texts.go`); the stored row keeps only `type`, `params`
+and `path`, rendered by the client.
+
+**Events wired so far** (step 1 of DP-018): `community_join_request` —
+a new request to a private Community (`POST /v1/clubs/:clubId/join`
+returning a new pending request) notifies its owner and admins; path
+`/clubs/:clubId/members`. Asking again while already waiting does not
+repeat it.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/v1/push/web-public-key` | profile | `{publicKey}` — the VAPID key a browser subscribes with. |
+| POST | `/v1/me/push-subscriptions` | profile | Registers this device for the caller: `{kind: "web", endpoint, keys: {p256dh, auth}, locale}` or `{kind: "expo", token, locale}`. Upsert by address: the same browser signed in as someone else moves to them. `locale` is `en` or `id`. |
+| DELETE | `/v1/me/push-subscriptions` | profile | Body `{address}` (endpoint or token). Called on sign-out. |
+| GET | `/v1/me/notifications?limit=` | profile | Newest first, default 50, max 200: `{id, type, params, path, createdAt, readAt?}`. |
+| GET | `/v1/me/notifications/unread-count` | profile | `{count}` — the bell's badge. |
+| POST | `/v1/me/notifications/:id/read` | profile | Idempotent. 404 if not the caller's. |
+| POST | `/v1/me/notifications/read-all` | profile | |
 
 ### Towns (DP-017)
 
@@ -193,7 +290,7 @@ any route now.
 | PATCH | `/v1/sessions/:id` | profile | owner/admin | Body `{name?, location?, description?, status?, maxParticipants?, defaultMatchFormat?, defaultSingleDeuce?, activityType?, startsAt?, durationMinutes?, skillLevelMinId?, skillLevelMaxId?, skillLevelEnforcement?, hostPlaying?}`. `status` is now a guarded transition — `draft→open→in_progress→completed`, `cancelled` reachable from any non-terminal state — 409 if the transition from the session's current status isn't allowed, not just a flat set of valid strings (the DP-009 auto-start/auto-transition jobs bypass this guard entirely, see below). `publishSession`/`cancelSession` in `core/sessions/api.ts` are named wrappers over this same endpoint, not separate routes. There is deliberately no `startSession`/`completeSession` wrapper — as of Milestone 2 (revised), both `in_progress` and `completed` are reached only via the DP-009 auto-start/auto-transition jobs below, never an organizer PATCH; an earlier pass of this milestone briefly added a manual Start Session action, then removed it again in favor of auto-start. All fields here are independent partial updates (unlike `POST`'s all-or-nothing mandate) — each `skillLevel*` id just needs to belong to the session's sport; `durationMinutes`, if set, is still bound-checked (multiple of 60, 60-1440); `startsAt`, if set, cannot be in the past (Milestone 2, same rule as POST). `hostPlaying`, if set, is a plain value write — no auto-checkin side effect on PATCH, unlike POST. `priceModel`/`pricePerPerson`/`totalPrice` (DP-010) via `validatePriceModelForUpdate` — omitting `priceModel` entirely leaves price untouched; sending it re-validates/normalizes the same as POST. **Known limitation, same as Skill Level**: switching `priceModel` away from `per_person`/`split_bill` doesn't clear the now-irrelevant stale amount column (COALESCE can't distinguish "omitted" from "explicitly clear"), harmless since every reader branches on `priceModel` first. `defaultMatchFormat`/`defaultSingleDeuce` (DP-005 Match Setup) — plain `COALESCE`-based partial updates, no validation beyond opaque JSONB/nullable boolean; this is how `CreateSessionScreen`'s edit mode and the Configuration tab's Edit button change Match Setup after creation. Response also includes `joinedCount`/`lifecycleStatus` — fixed in Milestone 2 to actually query the current participant count (previously silently returned `joinedCount: 0` on every PATCH). On a Session generated by a Recurring Schedule, a PATCH carrying any Template field sets `edited_after_generation`, which excludes it from DP-007 Session Synchronization. |
 | DELETE | `/v1/sessions/:id` | profile | owner/admin | Milestone 2 — "Discard." Hard-deletes a **Draft-only** Session — `db.DeleteSession`'s query itself requires `status = 'draft'` (409 if not, 404 if the session doesn't exist at all), the only hard-delete anywhere in the Sessions domain (everything published only ever gets Cancel's soft, visible-record terminal state). Participants/Activities cascade via FK (`ON DELETE CASCADE`). `discardDraftSession()` in `core/sessions/api.ts`. |
 | GET | `/v1/sessions/:id/participants` | profile | member | |
-| POST | `/v1/sessions/:id/register` | profile | member | As of v0.10.0 (DP-002 Join Approval): this is the **"request to join" action** — creates a `requested` row, idempotent (no-op if a row already exists in any status). Has a real screen now (`SessionDetailScreen`'s "Request to Join"). Strict Skill Level (`enforceStrictSkillLevel`) is enforced here — an ineligible member can't even request. |
+| POST | `/v1/sessions/:id/register` | profile | member | As of v0.10.0 (DP-002 Join Approval): this is the **"request to join" action** — creates a `requested` row, idempotent (no-op if a row already exists in any status — except `cancelled`: someone who cancelled their own spot may ask again, and their row starts over as a fresh request with check-in times and any earlier receipt cleared). Has a real screen now (`SessionDetailScreen`'s "Request to Join"). Strict Skill Level (`enforceStrictSkillLevel`) is enforced here — an ineligible member can't even request. |
 | POST | `/v1/sessions/:id/participants/:userId/approve` | profile | owner/admin | As of v0.10.0. Moves a `requested` row to `waitlist` (approved, not yet claimed). 409 if not currently `requested`, 404 if no row. |
 | POST | `/v1/sessions/:id/participants/:userId/confirm-payment` | profile | owner/admin | As of v0.10.0. Moves a `waitlist` row to `registered` (slot claimed). No payment gateway — this just records that the organizer received payment outside the app. 409 if not currently `waitlist`, 404 if no row. As of Milestone 5, exposed on the Payment tab (`SessionPayment.tsx`), not the Participants tab. |
 | POST | `/v1/sessions/:id/receipt` | profile | `requireSessionAccess` | Milestone 5. Self-service only — attaches to the caller's own participant row. Body `{imageBase64, imageContentType}`, same validation as DP-011 Chat images (`image/jpeg`/`image/png`/`image/webp`, 5MB decoded cap, 8MB request-body cap). 404 if the caller has no participant row in this Session at all. Overwrites any previous receipt — no history, no separate edit/delete route. |
@@ -223,8 +320,8 @@ can already see the Session) or `session_contact` (private,
 `member_user_id` set — that member, plus any owner/admin of the
 Session's Club). Both are created lazily on first message, never
 pre-created. Every response below is the same `ConversationMessage`
-shape: `{id, sessionId, senderId, senderUsername, senderDisplayName?,
-body, hasImage, createdAt}`.
+shape: `{id, conversationId, sessionId, senderId, senderUsername,
+senderDisplayName?, body, hasImage, createdAt}`.
 
 | Method | Path | Auth | Extra check | Notes |
 |---|---|---|---|---|

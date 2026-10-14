@@ -6,6 +6,8 @@ import { MainStack } from './MainStack';
 import { CompleteProfileScreen } from '../mobile/auth/CompleteProfileScreen';
 import { VerifyEmailScreen } from '../mobile/auth/VerifyEmailScreen';
 import { linking, restoreIntendedUrl } from './linking';
+import { PushSync } from '../mobile/notifications/PushSync';
+import { LiveSync } from '../core/live/LiveSync';
 
 export function RootNavigator() {
   const { firebaseUser, initializing, needsProfile, needsEmail } = useAuth();
@@ -40,7 +42,11 @@ export function RootNavigator() {
         // DP-015: a new account confirms its email before anything else.
         <VerifyEmailScreen />
       ) : (
-        <MainStack />
+        <>
+          <MainStack />
+          <PushSync />
+          <LiveSync />
+        </>
       )}
     </NavigationContainer>
   );

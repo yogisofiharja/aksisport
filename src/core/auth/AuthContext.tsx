@@ -4,6 +4,7 @@ import { auth } from '../../firebase';
 import { signUp as firebaseSignUp, signIn as firebaseSignIn, signOutUser } from './firebaseAuth';
 import { createProfile, getMe, ApiRequestError } from '../api/client';
 import type { UserProfile } from '../api/types';
+import { disablePushOnThisDevice } from '../../platform/push';
 
 type AuthContextValue = {
   firebaseUser: FirebaseUser | null;
@@ -74,6 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile]);
 
   const signOut = useCallback(async () => {
+    // DP-018: stop pushes to this device for this person. Done first,
+    // while the request can still be signed; best-effort, never blocking.
+    await disablePushOnThisDevice().catch(() => {});
     await signOutUser();
     setProfile(null);
     setNeedsProfile(false);

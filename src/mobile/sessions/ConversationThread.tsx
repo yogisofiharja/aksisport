@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { Icon } from '../../design-system/ui/Icon';
 import { Box, HStack, VStack } from '../../../components/ui/box';
@@ -8,12 +8,15 @@ import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
 import { authHeader } from '../../core/api/client';
-import { conversationMessageImageUrl } from '../../core/sessions/api';
 import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
-import type { ConversationMessage } from '../../core/api/types';
+import { listConversationReads, markConversationRead } from '../../core/messages/api';
+import { sendLive, useLiveEvents } from '../../core/live/live';
+import type { ConversationMessage, ConversationRead } from '../../core/api/types';
 
 type Props = {
-  sessionId: string;
+  // Where a message's image is served from — differs by kind of
+  // conversation (Session Chat / Contact Organizer vs direct messages).
+  imageUrl: (messageId: string) => string;
   messages: ConversationMessage[];
   loading: boolean;
   onRefresh: () => void;
@@ -23,6 +26,9 @@ type Props = {
   emptyText: string;
   placeholder: string;
   onSend: (body: string, image?: { base64: string; contentType: string }) => Promise<void>;
+  // How read receipts read under your latest message (DP-021): "Seen" in a
+  // one-to-one conversation, "Seen by N" where there are more people.
+  receipts?: 'direct' | 'group';
 };
 
 // Shared by DP-011 Session Chat and DP-013 Contact Organizer — the two
@@ -38,17 +44,102 @@ function messageAuthorName(m: ConversationMessage) {
   return m.senderDisplayName || m.senderUsername;
 }
 
+// Typing shows for this long after the last signal; senders repeat it
+// every few seconds while they type.
+const TYPING_SHOW_MS = 5000;
+const TYPING_SEND_EVERY_MS = 3000;
+
 function formatMessageTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function ConversationThread({ sessionId, messages, loading, onRefresh, myUserId, canPost, closedNotice, emptyText, placeholder, onSend }: Props) {
+export function ConversationThread({ imageUrl, messages, loading, onRefresh, myUserId, canPost, closedNotice, emptyText, placeholder, onSend, receipts = 'group' }: Props) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState('');
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
   const [sending, setSending] = useState(false);
   const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
   const scrollRef = useRef<ScrollView>(null);
+
+  // DP-021: live updates, read receipts and typing. The conversation is
+  // known from its messages — before the first one there is nothing to
+  // read or receive yet.
+  const conversationId = useMemo(() => messages.find((m) => m.conversationId)?.conversationId, [messages]);
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined;
+  const [reads, setReads] = useState<ConversationRead[]>([]);
+  const [typing, setTyping] = useState<Record<string, { name: string; until: number }>>({});
+  const lastTypingSent = useRef(0);
+
+  useEffect(() => {
+    setReads([]);
+    if (!conversationId) return;
+    listConversationReads(conversationId).then(setReads).catch(() => {});
+  }, [conversationId]);
+
+  // Reading the screen marks the conversation read — on each new message,
+  // and on coming back to the app.
+  useEffect(() => {
+    if (!conversationId) return;
+    const mark = () => {
+      if (AppState.currentState === 'active') markConversationRead(conversationId).catch(() => {});
+    };
+    mark();
+    const sub = AppState.addEventListener('change', (state) => state === 'active' && mark());
+    return () => sub.remove();
+  }, [conversationId, lastMessageId]);
+
+  useLiveEvents((e) => {
+    if (!conversationId || e.data?.conversationId !== conversationId) return;
+    if (e.type === 'message.created') {
+      const senderId = e.data.message?.senderId;
+      setTyping((prev) => {
+        const { [senderId]: _, ...rest } = prev;
+        return rest;
+      });
+      if (!messages.some((m) => m.id === e.data.message?.id)) onRefresh();
+    } else if (e.type === 'read') {
+      setReads((prev) => [...prev.filter((r) => r.userId !== e.data.userId), { userId: e.data.userId, lastReadAt: e.data.lastReadAt }]);
+    } else if (e.type === 'typing' && e.data.userId !== myUserId) {
+      setTyping((prev) => ({ ...prev, [e.data.userId]: { name: e.data.name, until: Date.now() + TYPING_SHOW_MS } }));
+    }
+  });
+
+  // Let typing indicators lapse.
+  const typingCount = Object.keys(typing).length;
+  useEffect(() => {
+    if (typingCount === 0) return;
+    const id = setInterval(() => {
+      setTyping((prev) => {
+        const now = Date.now();
+        const kept = Object.fromEntries(Object.entries(prev).filter(([, v]) => v.until > now));
+        return Object.keys(kept).length === Object.keys(prev).length ? prev : kept;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [typingCount]);
+
+  function handleDraftChange(text: string) {
+    setDraft(text);
+    const now = Date.now();
+    if (conversationId && text.trim() && now - lastTypingSent.current > TYPING_SEND_EVERY_MS) {
+      lastTypingSent.current = now;
+      sendLive({ type: 'typing', conversationId });
+    }
+  }
+
+  // "Seen" under your own latest message, when it is the last one.
+  const seenLabel = useMemo(() => {
+    const last = messages[messages.length - 1];
+    if (!last || last.senderId !== myUserId) return null;
+    const sentAt = new Date(last.createdAt).getTime();
+    const seenBy = reads.filter((r) => r.userId !== myUserId && new Date(r.lastReadAt).getTime() >= sentAt);
+    if (seenBy.length === 0) return null;
+    return receipts === 'direct' ? t('chatSeen') : t('chatSeenByCount', seenBy.length);
+  }, [messages, reads, myUserId, receipts, t]);
+
+  const typingNames = Object.values(typing).map((v) => v.name);
+  const typingLabel =
+    typingNames.length === 0 ? null : typingNames.length === 1 ? t('chatTyping', typingNames[0]) : t('chatTypingMany', typingNames.length);
 
   // GET .../conversation-messages/:id/image is behind the same auth as
   // every other route — fetched once per mount, same convention
@@ -62,7 +153,7 @@ export function ConversationThread({ sessionId, messages, loading, onRefresh, my
   // scrolled up"), acceptable for this scale.
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: false });
-  }, [messages.length]);
+  }, [messages.length, typingLabel !== null]);
 
   async function handlePickImage(source: 'camera' | 'gallery') {
     const dataUrl = await pickImageAsDataUrl(source);
@@ -112,22 +203,26 @@ export function ConversationThread({ sessionId, messages, loading, onRefresh, my
           messages.map((m) => {
             const isMine = m.senderId === myUserId;
             return (
-              <VStack key={m.id} className="gap-0.5">
-                <HStack className="justify-between items-baseline gap-2">
-                  <Text className="text-xs font-bold text-slate-500 dark:text-slate-400" numberOfLines={1}>
-                    {isMine ? t('sessionYou') : messageAuthorName(m)}
-                  </Text>
+              // Yours on the right, everyone else's on the left — like any
+              // chat app. Your own name isn't repeated over your messages.
+              <VStack key={m.id} className={`gap-0.5 ${isMine ? 'items-end' : 'items-start'}`}>
+                <HStack className="items-baseline gap-2" style={{ maxWidth: '85%' }}>
+                  {!isMine && (
+                    <Text className="text-xs font-bold text-slate-500 dark:text-slate-400" numberOfLines={1} style={{ flexShrink: 1 }}>
+                      {messageAuthorName(m)}
+                    </Text>
+                  )}
                   <Text className="text-xs text-slate-400 dark:text-slate-500">{formatMessageTime(m.createdAt)}</Text>
                 </HStack>
                 <Box
-                  className={`rounded-2xl overflow-hidden self-start ${
+                  className={`rounded-2xl overflow-hidden ${isMine ? 'rounded-br-md' : 'rounded-bl-md'} ${
                     isMine ? 'bg-blue-600' : 'bg-white dark:bg-slate-800'
                   } ${m.body ? 'px-4 py-2.5' : m.hasImage ? 'p-1' : 'px-4 py-2.5'}`}
                   style={{ maxWidth: '85%' }}
                 >
                   {m.hasImage && (
                     <Image
-                      source={{ uri: conversationMessageImageUrl(sessionId, m.id), headers: imageHeaders }}
+                      source={{ uri: imageUrl(m.id), headers: imageHeaders }}
                       style={{ width: 220, height: 220, borderRadius: 12, marginBottom: m.body ? 6 : 0 }}
                       resizeMode="cover"
                     />
@@ -138,6 +233,10 @@ export function ConversationThread({ sessionId, messages, loading, onRefresh, my
             );
           })
         )}
+        {seenLabel && (
+          <Text className="text-xs text-slate-400 dark:text-slate-500 self-end -mt-2">{seenLabel}</Text>
+        )}
+        {typingLabel && <Text className="text-xs italic text-slate-500 dark:text-slate-400">{typingLabel}</Text>}
       </ScrollView>
 
       {canPost ? (
@@ -159,7 +258,18 @@ export function ConversationThread({ sessionId, messages, loading, onRefresh, my
             <Input className="flex-1" style={{ flex: 1 }}>
               <InputField
                 value={draft}
-                onChangeText={setDraft}
+                onChangeText={handleDraftChange}
+                // Web: Enter sends, Shift+Enter starts a new line — like any
+                // chat app on a computer. Phones keep the return key as a new
+                // line and send with the button.
+                onKeyPress={(e: any) => {
+                  if (Platform.OS !== 'web') return;
+                  const ev = e.nativeEvent;
+                  if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder={placeholder}
                 multiline
                 maxLength={MAX_BODY_LENGTH}

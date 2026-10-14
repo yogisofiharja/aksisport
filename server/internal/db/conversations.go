@@ -63,14 +63,14 @@ func GetOrCreateConversation(ctx context.Context, pool *pgxpool.Pool, kind, sess
 	return conv, err
 }
 
-const conversationMessageSelect = `SELECT cm.id, c.session_id, cm.sender_id, u.username, u.display_name, cm.body, (cm.image_data IS NOT NULL), cm.created_at
+const conversationMessageSelect = `SELECT cm.id, cm.conversation_id, coalesce(c.session_id::text, ''), cm.sender_id, u.username, u.display_name, cm.body, (cm.image_data IS NOT NULL), cm.created_at
 	 FROM conversation_messages cm
 	 JOIN conversations c ON c.id = cm.conversation_id
 	 JOIN users u ON u.id = cm.sender_id`
 
 func scanConversationMessage(row pgx.CollectableRow) (models.ConversationMessage, error) {
 	var m models.ConversationMessage
-	err := row.(pgx.Rows).Scan(&m.ID, &m.SessionID, &m.SenderID, &m.SenderUsername, &m.SenderDisplayName, &m.Body, &m.HasImage, &m.CreatedAt)
+	err := row.(pgx.Rows).Scan(&m.ID, &m.ConversationID, &m.SessionID, &m.SenderID, &m.SenderUsername, &m.SenderDisplayName, &m.Body, &m.HasImage, &m.CreatedAt)
 	return m, err
 }
 
@@ -211,7 +211,7 @@ func ListSessionContactThreads(ctx context.Context, pool *pgxpool.Pool, sessionI
 func ListMyContactThreads(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.SessionContactThread, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT c.session_id, s.name, s.club_id, cl.name, u.id, u.username, u.display_name,
-		       last.body, last.sender_id, last.created_at
+		       last.body, last.sender_id, last.created_at, c.id, `+unreadForUser+`
 		FROM conversations c
 		JOIN sessions s ON s.id = c.session_id
 		JOIN clubs cl ON cl.id = s.club_id
@@ -237,7 +237,7 @@ func ListMyContactThreads(ctx context.Context, pool *pgxpool.Pool, userID string
 	for rows.Next() {
 		var t models.SessionContactThread
 		if err := rows.Scan(&t.SessionID, &t.SessionName, &t.ClubID, &t.ClubName, &t.MemberUserID, &t.MemberUsername, &t.MemberDisplayName,
-			&t.LastMessageBody, &t.LastMessageSenderID, &t.LastMessageAt); err != nil {
+			&t.LastMessageBody, &t.LastMessageSenderID, &t.LastMessageAt, &t.ConversationID, &t.UnreadCount); err != nil {
 			return nil, err
 		}
 		t.NeedsReply = contactThreadNeedsReply(t.MemberUserID, t.LastMessageSenderID, userID)

@@ -242,12 +242,12 @@
       <header class="doc-head">
         <p class="kicker">Status · __SYNCED__</p>
         <h1>Where AKSI stands</h1>
-        <p class="lede">Every approved product decision (DP-001 to DP-017) is now built. Four of six milestones are done; the other two are waiting on product decisions, not on engineering. Open a document on the left to read the source.</p>
+        <p class="lede">Every approved product decision up to DP-020 is built except DP-018, push notifications, which is in progress: step 1 of 3 is built (browser push, the Notifications page, and the first event). DP-021, messaging upgrades, is in progress: step 1 of 3 (live delivery, unread counts, read receipts, typing) is built. Four of six milestones are done; the other two are waiting on product decisions, not on engineering. Open a document on the left to read the source.</p>
       </header>
 
       <dl class="facts">
         <div class="fact"><dt>Milestones</dt><dd>4 of 6 done<small>the other two are partial</small></dd></div>
-        <div class="fact"><dt>Product decisions</dt><dd>17 approved<small>all built</small></dd></div>
+        <div class="fact"><dt>Product decisions</dt><dd>21 approved<small>DP-018 and DP-021 in progress</small></dd></div>
         <div class="fact"><dt>Last commit</dt><dd class="mono">__COMMIT__<small>branch <span class="mono">dev</span>, 45 commits ahead of <span class="mono">master</span></small></dd></div>
         <div class="fact"><dt>Library</dt><dd>__COUNT__ documents<small>archive and the combined export left out</small></dd></div>
       </dl>
@@ -274,6 +274,9 @@
         </ul>
         <ul>
           <li><strong>Aksi on web.</strong> The web build now shows the same app as iOS and Android, headed for <span class="mono">app.aksisport.com</span>. Navigation, dialogs, pickers and the schedule sync were checked in Chrome; uploads, chat and image loading were not. The old scorer stays on Vercel from the <span class="mono">scorer</span> branch.</li>
+        </ul>
+        <ul>
+          <li><strong>Live messaging (DP-021, step 1 of 3).</strong> New messages, "is typing", read receipts ("Seen", "Seen by N") and new notifications arrive the moment they happen over a live connection, with polling as a fallback. Inbox shows unread counts per conversation and in total; a Session's Chat tab has its own. Direct and Contact Organizer messages push to people who don't have Aksi open. Blocking and reporting (step 2) and group and community chat (step 3) are next.</li>
         </ul>
         <ul>
           <li><strong>Community discovery and joining (DP-017).</strong> Communities are Public (join instantly) or Private (join by request). A Community's location and a User's towns are picked from a list of Indonesia's 38 provinces and 514 cities kept in the database; a User keeps several towns with one active. People find Communities by searching in Explore, in Explore's list for their active town, or through a shareable link. Owners or admins approve requests on the Members screen.</li>

@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.16.3
+Version: 0.20.0
 
 Status: Living Document
 
@@ -1399,6 +1399,219 @@ members only.
 
 ---
 
+## DP-018 — Push Notifications
+
+Status
+
+Approved
+
+### Decision
+
+People are told when something needs them or has happened to them,
+through **push notifications** on their phone (iOS, Android) and in their
+browser. Email is not used for this: it stays for account security
+(DP-015).
+
+**What sends a notification (first release):**
+
+| # | When | Who is notified | Opens |
+|---|---|---|---|
+| 1 | Someone asks to join a private Community | That Community's owner and admins | The Community's Members screen |
+| 2 | A Community join request is approved | The person who asked | The Community |
+| 3 | Someone asks to join a Session | The owner and admins of its Community | The Session's participants |
+| 4 | A Session join request is approved (the player is now on the waitlist and must pay to claim the spot) | The player | The Session's payment |
+| 5 | A player uploads a payment receipt | The owner and admins of the Session's Community | The Session's payment |
+| 6 | A payment is confirmed (the spot is claimed) | The player | The Session |
+| 7 | A Session starts in 2 hours | Every participant who has claimed a spot (Registered or Checked In) | The Session |
+
+- Nobody is notified of their own action — an admin approving a request
+  does not receive a notification about it.
+- One person may use several devices; each of them receives the push.
+
+**Notifications page.** Every notification is also kept in the app. A
+bell icon shows how many are unread and opens a **Notifications page** —
+separate from Inbox, which stays for conversations. The page lists
+notifications newest first and marks which are unread. Opening one goes
+to the screen it is about and marks it read; all can be marked read at
+once.
+
+**Settings.** A Notifications screen in Settings has a switch per kind,
+all on by default:
+
+- Community join requests (1, 2)
+- Session join requests (3, 4)
+- Payments (5, 6)
+- Session reminders (7)
+
+Turning a kind off stops its pushes. Its notifications are still listed on
+the Notifications page.
+
+**Permission.** The app asks for permission to send notifications at a
+moment where it makes sense (for example after joining a Community or a
+Session), not on first launch. Someone who declines still has the
+Notifications page.
+
+**Platforms.** Phones and web from the first release. In a browser, push
+works on desktop and Android. On an iPhone, a browser can only receive
+push once Aksi has been added to the home screen, so the web app becomes
+installable to the home screen as part of this decision.
+
+### Scope
+
+- Not in this release: Session cancelled or changed, new chat messages,
+  quiet hours, email notifications.
+- Signing out stops pushes to that device.
+
+---
+
+## DP-019 — Player Profile
+
+Status
+
+Approved
+
+### Decision
+
+When someone asks to join, the people deciding should be able to see
+who they are. An owner or admin can open a **player profile** for:
+
+- anyone who asked to join a Session in their Community — and any other
+  participant of it — from the Session's Participants tab;
+- anyone who asked to join their private Community, from the join
+  requests on the Members screen.
+
+It also opens from the header of a direct conversation (DP-020).
+
+**The profile** shows the player's picture, display name, username,
+whether they are online, when they joined Aksi, and their skill level for
+each sport (or "not set"). At the top, a **Chat** button opens a direct
+conversation with them (DP-020). Opened from a Session, the Session's own
+sport comes first, and when the Session has a skill level range the
+profile says whether the player is within it. A pending request can be
+approved or declined right from the profile.
+
+**The sport page.** Each sport on the profile opens that player's page
+for the sport:
+
+- their level;
+- **summary numbers**: Sessions attended, matches played, wins, win rate,
+  no-shows;
+- **matches played**, newest first: opponents (and partner, in doubles),
+  the score, won or lost, date and Community;
+- **Sessions attended**, newest first: date, Community, and whether they
+  checked in or didn't show.
+
+It covers the player's history in that sport **across every Community**,
+so a newcomer from elsewhere can be judged too. Every player also opens
+their own sport page by tapping a sport on their Me tab (the level is
+still edited there).
+
+### Rules
+
+- Email, towns and anything else private stay private: the profile and
+  sport page show only what is listed above.
+- A profile and sport page are visible to the player themself, to people
+  who share a Community with them, and to the owner and admins of a
+  Community the player has asked to join. They are not public: there is
+  no page anyone can browse to.
+- History lists show the most recent 50 entries; the summary numbers
+  count everything.
+
+---
+
+## DP-020 — Direct Messages
+
+Status
+
+Approved
+
+### Decision
+
+Two players can talk privately, one to one — started from the **Chat**
+button on a player profile (DP-019). It works like Session Chat: text and
+an optional image per message, newest at the bottom, no editing or
+deleting. A conversation never closes.
+
+- **Who can message whom:** the same people who may see each other's
+  profile — players who share a Community, and an organizer and someone
+  who asked to join their Community. Once a conversation exists, both can
+  keep using it even if that stops being true (for example one of them
+  leaves the Community).
+- **Inbox** lists direct conversations first, under "Messages", newest
+  first, each with the other person's picture, name, online ring and the
+  latest message; a dot marks those where the other person wrote last.
+  Session conversations (Contact Organizer) follow below.
+
+### Scope
+
+- Not in this decision: blocking or reporting someone, group messages,
+  push notifications for new messages (DP-018 leaves chat messages out),
+  unread counts, starting a conversation from anywhere but a profile.
+- Community-level chat remains Planning.
+
+---
+
+## DP-021 — Messaging: Live, Read, Safe, Groups
+
+Status
+
+Approved
+
+### Decision
+
+Messaging (Session Chat, Contact Organizer, Direct Messages) becomes live
+and gains the usual chat features. Built in three steps, in this order.
+
+**Step 1 — live and read**
+
+- **Live:** while Aksi is open, new messages, "is typing", read receipts
+  and new notifications arrive the moment they happen — no waiting for a
+  refresh. If the live connection drops, the app reconnects by itself and
+  checks every few seconds meanwhile, so nothing is missed.
+- **Unread counts:** Inbox shows how many unread messages each
+  conversation has, and the Inbox tab shows the total.
+- **Read receipts, always on:** in a direct message the sender sees
+  "Seen" once the other person has read it; in a chat with more people,
+  "Seen by N". There is no switch to turn this off.
+- **Typing:** "<name> is typing…" while someone writes.
+- **Push for new messages:** a new message in a direct message, a group
+  chat or a Contact Organizer thread sends a push to the people in it
+  who don't have Aksi open — never to the sender. Session Chat and
+  community chat don't push (they would be too noisy); their unread
+  counts still show. These pushes are not added to the Notifications
+  page: conversations live in Inbox.
+
+**Step 2 — blocking and reporting**
+
+- **Block:** from a profile or a direct conversation. Two people who have
+  blocked one another cannot message each other directly or be put in
+  the same new group by each other. Blocking is silent: the blocked
+  person is not told. It can be undone in Settings.
+- **Report:** a message, or a person, with a short reason. A report goes
+  to the **owner and admins of the Community it concerns**: for a
+  Session Chat or community chat message, that Community; for a direct
+  message, a group chat or a person, every Community both people belong
+  to. When they share none, the report is recorded but reaches no one.
+  Owners and admins see reports in the app and can delete a reported
+  message from their Community's chats.
+
+**Step 3 — group chats and community chat**
+
+- **Group chats:** any player can start one with people they could
+  direct-message (DP-020). The creator names it and can rename it and add
+  or remove people; anyone can leave. Up to 50 people. Listed in Inbox.
+- **Community chat:** every Community has one chat for all its members.
+  Every member can read and post. The owner and admins can delete any
+  message in it and turn the chat off for their Community.
+
+### Scope
+
+- No message editing or deleting by the sender, voice notes, reactions,
+  or mentions.
+- Reports are not reviewed by an Aksi team in this decision.
+
+---
+
 # Planning
 
 ## Domain Evolution
@@ -1478,9 +1691,12 @@ deleting, no moderation tooling yet.
 **Contact Organizer — promoted to DP-013, Ready to Develop.** A private,
 two-way, Session-scoped thread between one member and that Session's
 organizer(s) — plain text, distinct from Session Chat's group thread.
-The rest of this list (Direct Messages, Community-level chat) remains
-unapproved Planning.
 
+**Direct Messages — promoted to DP-020, Ready to Develop** (one-to-one,
+between players who share a Community, started from a profile).
+
+**Live messaging, read receipts, blocking/reporting, group chats and
+Community-level chat — promoted to DP-021, Ready to Develop.**
 ---
 
 ## Payments
@@ -1502,6 +1718,13 @@ A manual, organizer-confirmed payment step exists today as part of DP-002
 Join Approval (Waitlist → Registered) — the organizer records that
 payment happened outside the app. That is not an implementation of this
 Planning item; no payment gateway, provider, or automated charge exists.
+
+**Direction once a gateway exists** (product owner, 2026-10-14): paying
+becomes part of asking to join a Session — the player pays in the same
+flow as their join request, rather than as a separate later step. The
+Session's Payment tab (DP-012: manual receipts and organizer
+confirmation) is then deprecated. Until that is decided in detail and
+approved, DP-002 and DP-012 stay as they are.
 
 ---
 

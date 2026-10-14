@@ -14,12 +14,18 @@ import { RecurringScheduleListScreen } from '../mobile/recurringSchedules/Recurr
 import { RecurringScheduleDetailScreen } from '../mobile/recurringSchedules/RecurringScheduleDetailScreen';
 import { SettingsScreen } from '../mobile/me/SettingsScreen';
 import { AccountEmailScreen } from '../mobile/me/AccountEmailScreen';
+import { NotificationsScreen } from '../mobile/notifications/NotificationsScreen';
+import { DirectMessageScreen } from '../mobile/messages/DirectMessageScreen';
+import { PlayerSportScreen } from '../mobile/profiles/PlayerSportScreen';
 import { DisplayNameScreen } from '../mobile/me/DisplayNameScreen';
 
 export type MainStackParamList = {
   Personal: undefined;
   Settings: undefined;
   AccountEmail: undefined;
+  Notifications: undefined;
+  DirectMessage: { userId: string };
+  PlayerSport: { userId: string; sport: string };
   EditDisplayName: undefined;
   CreateClub: undefined;
   ClubDetail: { clubId: string };
@@ -48,6 +54,20 @@ export function MainStack() {
 
       <Stack.Screen name="Settings">
         {({ navigation }) => <SettingsScreen onBack={() => navigation.goBack()} />}
+      </Stack.Screen>
+
+      <Stack.Screen name="Notifications">
+        {({ navigation }) => <NotificationsScreen onBack={() => navigation.goBack()} />}
+      </Stack.Screen>
+
+      <Stack.Screen name="DirectMessage">
+        {({ navigation, route }) => <DirectMessageScreen userId={route.params.userId} onBack={() => navigation.goBack()} />}
+      </Stack.Screen>
+
+      <Stack.Screen name="PlayerSport">
+        {({ navigation, route }) => (
+          <PlayerSportScreen userId={route.params.userId} sport={route.params.sport} onBack={() => navigation.goBack()} />
+        )}
       </Stack.Screen>
 
       <Stack.Screen name="AccountEmail">
@@ -79,6 +99,7 @@ export function MainStack() {
             onOpenSession={(sessionId) => navigation.navigate('SessionDetail', { sessionId })}
             onOpenRecurringSchedules={(clubId) => navigation.navigate('RecurringScheduleList', { clubId })}
             onOpenClubSettings={(clubId) => navigation.navigate('ClubSettings', { clubId })}
+            onLeft={() => navigation.navigate('Personal')}
           />
         )}
       </Stack.Screen>

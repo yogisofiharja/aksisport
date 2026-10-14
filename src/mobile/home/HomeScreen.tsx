@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
+import { NotificationBell } from '../notifications/NotificationBell';
 import { Typography } from '../../design-system/ui/Typography';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
@@ -19,6 +20,7 @@ import { statusLabel, sessionStatusColor } from '../sessions/SessionListScreen';
 import type { ClubWithRole, Session } from '../../core/api/types';
 
 type Props = {
+  onOpenNotifications: () => void;
   onOpenClub: (clubId: string) => void;
   onOpenSession: (sessionId: string) => void;
 };
@@ -63,7 +65,7 @@ async function loadAttention(clubs: ClubWithRole[]): Promise<AttentionItem[]> {
   return [...live, ...today, ...next, ...drafts];
 }
 
-export function HomeScreen({ onOpenClub, onOpenSession }: Props) {
+export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession }: Props) {
   const { t } = useTranslation();
   const [clubs, setClubs] = useState<ClubWithRole[]>([]);
   const [attention, setAttention] = useState<AttentionItem[]>([]);
@@ -97,7 +99,10 @@ export function HomeScreen({ onOpenClub, onOpenSession }: Props) {
 
   return (
     <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <Typography variant="display">{t('tabHome')}</Typography>
+      <HStack className="justify-between items-center">
+        <Typography variant="display">{t('tabHome')}</Typography>
+        <NotificationBell onPress={onOpenNotifications} />
+      </HStack>
 
       {loading && clubs.length === 0 ? (
         <Loading />

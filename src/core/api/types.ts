@@ -1,3 +1,15 @@
+// A notification as its recipient reads it (DP-018). Its text is
+// rendered on the device from type + params (core/notifications/text.ts);
+// path is the app address it opens.
+export type AppNotification = {
+  id: string;
+  type: string;
+  params: Record<string, string>;
+  path: string;
+  createdAt: string;
+  readAt?: string;
+};
+
 export type UserProfile = {
   id: string;
   username: string;
@@ -290,6 +302,7 @@ export type ActivityDetail = Activity & {
 // re-transfers image data already on screen.
 export type ConversationMessage = {
   id: string;
+  conversationId: string;
   sessionId: string;
   senderId: string;
   senderUsername: string;
@@ -315,6 +328,15 @@ export type SessionContactThread = {
   lastMessageSenderId: string;
   lastMessageAt: string;
   needsReply: boolean;
+  conversationId: string;
+  // Messages from the other side the caller hasn't read (DP-021).
+  unreadCount: number;
+};
+
+// How far one person has read a conversation (DP-021) — read receipts.
+export type ConversationRead = {
+  userId: string;
+  lastReadAt: string;
 };
 
 // DP-007: MVP recurrence shape is weekly-only (an engineering default, not
@@ -392,6 +414,57 @@ export type SkillLevel = {
   slug: string;
   name: string;
   rank: number;
+};
+
+// One of the caller's direct-message conversations (DP-020), for Inbox.
+export type DirectThread = {
+  otherUserId: string;
+  otherUsername: string;
+  otherDisplayName?: string;
+  otherHasAvatar: boolean;
+  otherIsOnline: boolean;
+  lastMessageBody: string;
+  lastMessageHasImage: boolean;
+  lastMessageSenderId: string;
+  lastMessageAt: string;
+  conversationId: string;
+  unreadCount: number;
+};
+
+// A player's history in one sport, across every Community (DP-019).
+export type PlayerSportActivity = {
+  sport: string;
+  summary: { sessionsAttended: number; noShows: number; matchesPlayed: number; wins: number };
+  sessions: {
+    sessionId: string;
+    sessionName?: string;
+    clubName: string;
+    startsAt?: string;
+    outcome: 'attended' | 'no_show';
+  }[];
+  matches: {
+    activityId: string;
+    sessionName?: string;
+    clubName: string;
+    completedAt?: string;
+    team: 'A' | 'B' | '';
+    won?: boolean;
+    // The sport's own stored end state — interpreted by its Sport Module.
+    result?: unknown;
+    players: { name: string; team: 'A' | 'B' }[];
+  }[];
+};
+
+// What organizers see of a player who asked to join (DP-019) — no email,
+// towns or anything else private.
+export type PlayerProfile = {
+  id: string;
+  username: string;
+  displayName?: string;
+  hasAvatar: boolean;
+  isOnline: boolean;
+  joinedAt: string;
+  skillLevels: UserSkillLevel[];
 };
 
 // A player's self-reported level for one sport — exactly one per

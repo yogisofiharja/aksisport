@@ -243,6 +243,34 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 	// visibility as the username/displayName it's paired with everywhere
 	// (search results, member grids, organizer names), not scoped to a
 	// shared Club.
+	// DP-019: a player's profile, for organizers deciding on a request to
+	// join. 404 both when the player doesn't exist and when the caller may
+	// not see them, so the route can't be used to probe who exists.
+	profiled.GET("/users/:userId/profile", func(c *gin.Context) {
+		viewer := authjwt.CurrentUser(c)
+		targetID := c.Param("userId")
+		ctx := c.Request.Context()
+		allowed, err := dbpkg.CanViewPlayerProfile(ctx, pool, viewer.ID, targetID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		if !allowed {
+			respondError(c, http.StatusNotFound, "player not found")
+			return
+		}
+		profile, err := dbpkg.GetPlayerProfile(ctx, pool, targetID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "player not found")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, profile)
+	})
+
 	profiled.GET("/users/:userId/avatar", func(c *gin.Context) {
 		img, err := dbpkg.GetUserAvatarImage(c.Request.Context(), pool, c.Param("userId"))
 		if errors.Is(err, dbpkg.ErrNotFound) {

@@ -177,7 +177,7 @@ func isValidSessionTransition(from, to string) bool {
 	return false
 }
 
-func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier) {
+func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, msgs *messenger) {
 	authed := rg.Group("")
 	authed.Use(authjwt.RequireAuth(verifier))
 	authed.Use(authjwt.RequireProfile(pool))
@@ -892,6 +892,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
+		msgs.announce(c.Request.Context(), user, message)
 		c.JSON(http.StatusCreated, message)
 	})
 
@@ -942,6 +943,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
+		msgs.announce(c.Request.Context(), user, message)
 		c.JSON(http.StatusCreated, message)
 	})
 

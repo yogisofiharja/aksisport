@@ -89,11 +89,24 @@ func getParticipantByUser(ctx context.Context, pool *pgxpool.Pool, sessionID, us
 // approval. Idempotent: if a row already exists (any status), it's left
 // unchanged. Organizer approval (ApproveParticipant) is required before
 // the player can self check-in.
+//
+// Someone who cancelled their own spot can ask again: their row starts
+// over as a fresh request (new join time, no check-in, no receipt from
+// the earlier attempt). Any other existing row — already requested,
+// approved, registered, checked in, or marked no-show — is left alone.
 func RegisterParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
 	if _, err := pool.Exec(ctx,
 		`INSERT INTO session_participants (session_id, user_id, status)
 		 VALUES ($1, $2, 'requested')
-		 ON CONFLICT (session_id, user_id) WHERE user_id IS NOT NULL DO NOTHING`,
+		 ON CONFLICT (session_id, user_id) WHERE user_id IS NOT NULL DO UPDATE SET
+			status = 'requested',
+			joined_at = now(),
+			checked_in_at = NULL,
+			checked_out_at = NULL,
+			receipt_image_data = NULL,
+			receipt_image_content_type = NULL,
+			receipt_uploaded_at = NULL
+		 WHERE session_participants.status = 'cancelled'`,
 		sessionID, userID,
 	); err != nil {
 		return models.SessionParticipant{}, err

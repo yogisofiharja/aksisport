@@ -5,9 +5,11 @@ import { Box, HStack, VStack } from '../../../components/ui/box';
 import { Text } from '../../../components/ui/text';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
-import { listContactMessages, listSessionContactThreads, sendContactMessage } from '../../core/sessions/api';
+import { listContactMessages, listSessionContactThreads, sendContactMessage, conversationMessageImageUrl } from '../../core/sessions/api';
 import { initialsFromName } from '../../core/initials';
 import { ConversationThread } from './ConversationThread';
+import { UnreadCount } from '../messages/UnreadCount';
+import { usePollInterval, useLiveEvents } from '../../core/live/live';
 import type { ConversationMessage, Session, SessionContactThread } from '../../core/api/types';
 
 type Props = {
@@ -28,7 +30,6 @@ type Props = {
 // participants are (one member + the Club's owner/admins) and that,
 // unlike Chat, there is no posting-window restriction — a thread never
 // closes.
-const POLL_INTERVAL_MS = 5000;
 
 function threadName(t: SessionContactThread) {
   return t.memberDisplayName || t.memberUsername;
@@ -45,6 +46,7 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
   const [threadsLoading, setThreadsLoading] = useState(true);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(true);
+  const pollInterval = usePollInterval();
 
   useEffect(() => {
     if (!visible) return;
@@ -64,9 +66,9 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
   useEffect(() => {
     if (!visible || !isOwnerOrAdmin || openMemberUserId !== null) return;
     loadThreads();
-    const interval = setInterval(loadThreads, POLL_INTERVAL_MS);
+    const interval = setInterval(loadThreads, pollInterval);
     return () => clearInterval(interval);
-  }, [visible, isOwnerOrAdmin, openMemberUserId, loadThreads]);
+  }, [visible, isOwnerOrAdmin, openMemberUserId, loadThreads, pollInterval]);
 
   const loadMessages = useCallback(async () => {
     if (!openMemberUserId) return;
@@ -83,9 +85,18 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
     if (!visible || !openMemberUserId) return;
     setMessagesLoading(true);
     loadMessages();
-    const interval = setInterval(loadMessages, POLL_INTERVAL_MS);
+    const interval = setInterval(loadMessages, pollInterval);
     return () => clearInterval(interval);
-  }, [visible, openMemberUserId, loadMessages]);
+  }, [visible, openMemberUserId, loadMessages, pollInterval]);
+
+  // DP-021: a new message in this Session's Contact Organizer threads
+  // refreshes the organizer's list at once; an open thread refreshes
+  // itself (ConversationThread), except before its first message.
+  useLiveEvents((e) => {
+    if (!visible || e.type !== 'message.created' || e.data?.kind !== 'session_contact' || e.data?.sessionId !== sessionId) return;
+    if (openMemberUserId === null) loadThreads();
+    else if (messages.length === 0) loadMessages();
+  });
 
   async function handleSend(body: string, image?: { base64: string; contentType: string }) {
     if (!openMemberUserId) return;
@@ -141,14 +152,14 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
                       {th.lastMessageBody}
                     </Text>
                   </VStack>
-                  {th.needsReply && <Box className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  <UnreadCount count={th.unreadCount} />
                 </Pressable>
               ))
             )}
           </ScrollView>
         ) : (
           <ConversationThread
-            sessionId={sessionId}
+            imageUrl={(messageId) => conversationMessageImageUrl(sessionId, messageId)}
             messages={messages}
             loading={messagesLoading}
             onRefresh={loadMessages}

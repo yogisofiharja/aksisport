@@ -71,52 +71,66 @@ func SearchClubs(ctx context.Context, pool *pgxpool.Pool, viewerID, q string) ([
 	return result, rows.Err()
 }
 
+// JoinOutcome says what JoinClub actually changed.
+type JoinOutcome int
+
+const (
+	JoinUnchanged JoinOutcome = iota // already a member, or already waiting
+	JoinJoined                       // became a member of a public Club
+	JoinRequested                    // a new request to a private Club
+)
+
 // JoinClub is the self-service way in (DP-017). A public Club adds the
 // user as a member straight away; a private one records a pending join
 // request. Both are idempotent: already a member, or already waiting,
 // changes nothing. ErrNotFound if the Club doesn't exist.
-func JoinClub(ctx context.Context, pool *pgxpool.Pool, clubID, userID string) error {
+func JoinClub(ctx context.Context, pool *pgxpool.Pool, clubID, userID string) (JoinOutcome, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return err
+		return JoinUnchanged, err
 	}
 	defer tx.Rollback(ctx)
 
 	var visibility string
 	err = tx.QueryRow(ctx, "SELECT visibility FROM clubs WHERE id = $1", clubID).Scan(&visibility)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrNotFound
+		return JoinUnchanged, ErrNotFound
 	}
 	if err != nil {
-		return err
+		return JoinUnchanged, err
 	}
 
 	var isMember bool
 	if err := tx.QueryRow(ctx,
 		"SELECT EXISTS(SELECT 1 FROM club_members WHERE club_id = $1 AND user_id = $2)", clubID, userID,
 	).Scan(&isMember); err != nil {
-		return err
+		return JoinUnchanged, err
 	}
 	if isMember {
-		return nil
+		return JoinUnchanged, nil
 	}
 
 	if visibility == "private" {
-		if _, err := tx.Exec(ctx,
+		tag, err := tx.Exec(ctx,
 			`INSERT INTO club_join_requests (club_id, user_id) VALUES ($1, $2)
 			 ON CONFLICT (club_id, user_id) WHERE status = 'pending' DO NOTHING`,
 			clubID, userID,
-		); err != nil {
-			return err
+		)
+		if err != nil {
+			return JoinUnchanged, err
 		}
-		return tx.Commit(ctx)
+		outcome := JoinUnchanged
+		if tag.RowsAffected() == 1 {
+			outcome = JoinRequested
+		}
+		return outcome, tx.Commit(ctx)
 	}
 
 	if _, err := tx.Exec(ctx,
 		"INSERT INTO club_members (club_id, user_id, role) VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING",
 		clubID, userID,
 	); err != nil {
-		return err
+		return JoinUnchanged, err
 	}
 	// Joining outright settles any request left over from when the Club
 	// was private.
@@ -125,9 +139,9 @@ func JoinClub(ctx context.Context, pool *pgxpool.Pool, clubID, userID string) er
 		 WHERE club_id = $1 AND user_id = $2 AND status = 'pending'`,
 		clubID, userID,
 	); err != nil {
-		return err
+		return JoinUnchanged, err
 	}
-	return tx.Commit(ctx)
+	return JoinJoined, tx.Commit(ctx)
 }
 
 // CancelJoinRequest withdraws the caller's own pending request, if any.

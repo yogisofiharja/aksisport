@@ -127,6 +127,12 @@ apt update
 apt install -y caddy
 ```
 
+Caddy's `reverse_proxy` passes WebSockets through unchanged, so the live
+connection (`/v1/live`, DP-021) needs no extra Caddy or Cloudflare
+setting; Cloudflare proxies WebSockets on every plan and closes ones idle
+for about 100 seconds, which the server's 25-second ping prevents. Run a
+single API process per environment: the live hub is in memory.
+
 ### 7. Cloudflare — Origin CA certificate
 
 In the Cloudflare dashboard (not CLI): SSL/TLS → Origin Server → Create Certificate →
@@ -201,6 +207,12 @@ FIREBASE_SERVICE_ACCOUNT_FILE=/etc/aksi/production-firebase-admin.json
 # only from the local Caddy (TRUSTED_PROXIES defaults to 127.0.0.1,::1).
 # Without this, every visitor shares one rate limit.
 CLIENT_IP_HEADER=CF-Connecting-IP
+# Push notifications (DP-018). Web Push keys are generated on first start
+# and stored in the database — nothing to provision. VAPID_SUBJECT is how
+# browser push services can reach the operator (defaults to
+# https://app.aksisport.com). EXPO_ACCESS_TOKEN only if the Expo project
+# turns on enhanced push security.
+# VAPID_SUBJECT=mailto:admin@aksisport.com
 EOF
 
 sudo tee /etc/aksi/production-web.env <<'EOF'

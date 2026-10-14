@@ -12,6 +12,7 @@ import (
 
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	dbpkg "github.com/yogisofiharja/aksi-server/internal/db"
+	"github.com/yogisofiharja/aksi-server/internal/notify"
 )
 
 // requireMember loads the caller's membership for the club in the :clubId
@@ -73,7 +74,7 @@ func requireOwnerOrAdmin(c *gin.Context, pool *pgxpool.Pool, clubID string) bool
 	return true
 }
 
-func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier) {
+func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, notifier *notify.Service) {
 	authed := rg.Group("")
 	authed.Use(authjwt.RequireAuth(verifier))
 	authed.Use(authjwt.RequireProfile(pool))
@@ -182,7 +183,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		clubID := c.Param("clubId")
 		user := authjwt.CurrentUser(c)
 		ctx := c.Request.Context()
-		err := dbpkg.JoinClub(ctx, pool, clubID, user.ID)
+		outcome, err := dbpkg.JoinClub(ctx, pool, clubID, user.ID)
 		if errors.Is(err, dbpkg.ErrNotFound) {
 			respondError(c, http.StatusNotFound, "club not found")
 			return
@@ -195,6 +196,17 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
+		}
+		// DP-018 #1: a new request to a private Community tells its owner
+		// and admins. Asking again while waiting doesn't repeat it.
+		if outcome == dbpkg.JoinRequested {
+			if organizers, err := dbpkg.ListClubOrganizerIDs(ctx, pool, clubID); err == nil {
+				notifier.Send(ctx, organizers, user.ID, notify.Notification{
+					Type:   notify.TypeCommunityJoinRequest,
+					Params: map[string]string{"name": displayNameOf(user.DisplayName, user.Username), "club": preview.Name},
+					Path:   "/clubs/" + clubID + "/members",
+				})
+			}
 		}
 		c.JSON(http.StatusOK, preview)
 	})
@@ -590,4 +602,13 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		c.Status(http.StatusNoContent)
 	})
+}
+
+// displayNameOf is how a person is named to others: their display name,
+// or their username when they have none (DP-016).
+func displayNameOf(displayName *string, username string) string {
+	if displayName != nil && strings.TrimSpace(*displayName) != "" {
+		return *displayName
+	}
+	return username
 }

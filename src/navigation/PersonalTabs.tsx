@@ -10,6 +10,8 @@ import { ExploreScreen } from '../mobile/explore/ExploreScreen';
 import { InboxScreen } from '../mobile/inbox/InboxScreen';
 import { MeScreen } from '../mobile/me/MeScreen';
 import type { MainStackParamList } from './MainStack';
+import { useAuth } from '../core/auth/AuthContext';
+import { useUnreadMessageCount } from '../core/messages/useUnreadMessageCount';
 
 export type PersonalTabParamList = {
   Home: undefined;
@@ -31,6 +33,8 @@ export function PersonalTabs() {
   // scoped `navigation` prop (react-navigation's runtime `navigate` bubbles
   // to ancestors either way; this keeps it typed).
   const rootNavigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+  const { profile } = useAuth();
+  const unreadMessages = useUnreadMessageCount(profile?.id);
 
   return (
     <Tab.Navigator
@@ -53,6 +57,7 @@ export function PersonalTabs() {
       >
         {() => (
           <HomeScreen
+            onOpenNotifications={() => rootNavigation.navigate('Notifications')}
             onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })}
             onOpenSession={(sessionId) => rootNavigation.navigate('SessionDetail', { sessionId })}
           />
@@ -73,11 +78,14 @@ export function PersonalTabs() {
         name="Inbox"
         options={{
           tabBarLabel: t('tabInbox'),
+          tabBarBadge: unreadMessages > 0 ? (unreadMessages > 99 ? '99+' : unreadMessages) : undefined,
+          tabBarBadgeStyle: { backgroundColor: palette.brand.secondary, color: '#ffffff', fontSize: 11 },
           tabBarIcon: ({ focused }) => <Icon name={focused ? 'mail' : 'mail-outline'} color={focused ? 'secondary' : 'muted'} />,
         }}
       >
         {() => (
           <InboxScreen
+            onOpenDirectMessage={(userId) => rootNavigation.navigate('DirectMessage', { userId })}
             onOpenSession={(sessionId, memberUserId) =>
               rootNavigation.navigate('SessionDetail', { sessionId, openContactWith: memberUserId })
             }
@@ -101,6 +109,7 @@ export function PersonalTabs() {
             onOpenHistory={() => rootNavigation.navigate('MySessionHistory')}
             onOpenEmail={() => rootNavigation.navigate('AccountEmail')}
             onOpenDisplayName={() => rootNavigation.navigate('EditDisplayName')}
+            onOpenSport={(sport) => profile && rootNavigation.navigate('PlayerSport', { userId: profile.id, sport })}
           />
         )}
       </Tab.Screen>

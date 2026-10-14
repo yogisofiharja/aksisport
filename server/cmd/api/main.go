@@ -15,7 +15,9 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/db"
 	"github.com/yogisofiharja/aksi-server/internal/firebaseadmin"
 	"github.com/yogisofiharja/aksi-server/internal/httpapi"
+	"github.com/yogisofiharja/aksi-server/internal/live"
 	"github.com/yogisofiharja/aksi-server/internal/mail"
+	"github.com/yogisofiharja/aksi-server/internal/notify"
 	"github.com/yogisofiharja/aksi-server/internal/scheduling"
 )
 
@@ -76,12 +78,31 @@ func main() {
 		passwords = setter
 	}
 
+	// DP-018. The Web Push key pair is generated on first start and kept
+	// in the database: browsers bind their subscriptions to it.
+	vapidPublic, vapidPrivate, err := db.GetOrCreateServerKeys(ctx, pool, "vapid_public_key", "vapid_private_key", notify.GenerateVAPIDKeys)
+	if err != nil {
+		log.Fatalf("loading web push keys: %v", err)
+	}
+	hub := live.NewHub()
+	notifier := notify.NewService(pool,
+		notify.NewWebPush(vapidPublic, vapidPrivate, cfg.VAPIDSubject),
+		notify.NewExpoPush(cfg.ExpoAccessToken),
+	)
+
+	// A new notification refreshes the recipient's bell at once (DP-021).
+	notifier.OnRecorded = func(userIDs []string) {
+		hub.Publish(userIDs, live.Event{Type: "notification.created"})
+	}
+
 	router := httpapi.NewRouter(httpapi.Deps{
 		Pool:           pool,
 		Verifier:       verifier,
 		AllowedOrigins: cfg.AllowedOrigins,
 		Mailer:         mailer,
 		Passwords:      passwords,
+		Notifier:       notifier,
+		Hub:            hub,
 		ClientIP: httpapi.ClientIPResolver{
 			Header:         cfg.ClientIPHeader,
 			TrustedProxies: httpapi.ParseTrustedProxies(cfg.TrustedProxies),

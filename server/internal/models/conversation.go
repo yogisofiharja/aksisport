@@ -19,15 +19,35 @@ type Conversation struct {
 const (
 	ConversationKindSessionChat    = "session_chat"
 	ConversationKindSessionContact = "session_contact"
+	// ConversationKindDirect (DP-020): two players, no Session.
+	ConversationKindDirect = "direct"
 )
 
+// DirectThread is one row of a player's direct-message list (Inbox): who
+// it is with and the latest message as a preview.
+type DirectThread struct {
+	OtherUserID         string    `json:"otherUserId"`
+	OtherUsername       string    `json:"otherUsername"`
+	OtherDisplayName    *string   `json:"otherDisplayName,omitempty"`
+	OtherHasAvatar      bool      `json:"otherHasAvatar"`
+	OtherIsOnline       bool      `json:"otherIsOnline"`
+	LastMessageBody     string    `json:"lastMessageBody"`
+	LastMessageHasImage bool      `json:"lastMessageHasImage"`
+	LastMessageSenderID string    `json:"lastMessageSenderId"`
+	LastMessageAt       time.Time `json:"lastMessageAt"`
+	ConversationID      string    `json:"conversationId"`
+	UnreadCount         int       `json:"unreadCount"`
+}
+
 // ConversationMessage is one message — the same shape regardless of Kind.
+// SessionID is "" for a direct message.
 // SenderUsername/SenderDisplayName are denormalized from a join at read
 // time. HasImage is computed (image_data IS NOT NULL); the bytes
 // themselves are only ever served one at a time via GET .../image, so
 // polling a conversation never re-transfers images already on screen.
 type ConversationMessage struct {
 	ID                string    `json:"id"`
+	ConversationID    string    `json:"conversationId"`
 	SessionID         string    `json:"sessionId"`
 	SenderID          string    `json:"senderId"`
 	SenderUsername    string    `json:"senderUsername"`
@@ -61,4 +81,13 @@ type SessionContactThread struct {
 	LastMessageSenderID string    `json:"lastMessageSenderId"`
 	LastMessageAt       time.Time `json:"lastMessageAt"`
 	NeedsReply          bool      `json:"needsReply"`
+	ConversationID      string    `json:"conversationId"`
+	UnreadCount         int       `json:"unreadCount"`
+}
+
+// ConversationRead (DP-021) is how far one person has read a conversation
+// — read receipts compare it with each message's time.
+type ConversationRead struct {
+	UserID     string    `json:"userId"`
+	LastReadAt time.Time `json:"lastReadAt"`
 }

@@ -1,5 +1,5 @@
 import { auth } from '../../firebase';
-import type { ApiError, SessionContactThread, UserProfile, UserSummary } from './types';
+import type { ApiError, PlayerProfile, PlayerSportActivity, SessionContactThread, UserProfile, UserSummary } from './types';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -152,4 +152,15 @@ export function userAvatarUrl(userId: string): string {
 // Club, most-recently-active first. Backs the Inbox tab.
 export function listMyContactThreads(): Promise<SessionContactThread[]> {
   return apiFetch('/v1/me/contact-threads');
+}
+
+// DP-019: a player's profile, for organizers deciding on a request to
+// join. 404 when the caller may not see them.
+export function getPlayerProfile(userId: string): Promise<PlayerProfile> {
+  return apiFetch(`/v1/users/${userId}/profile`);
+}
+
+// DP-019: a player's history in one sport, across every Community.
+export function getPlayerSportActivity(userId: string, sport: string): Promise<PlayerSportActivity> {
+  return apiFetch(`/v1/users/${userId}/sports/${encodeURIComponent(sport)}/activity`);
 }

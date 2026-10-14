@@ -23,4 +23,10 @@ export interface SportModule {
    * is a client concern).
    */
   activityTypes: string[];
+  /**
+   * A finished match's score as one line, from `team`'s side — for
+   * history lists (DP-019). `result` is whatever the sport stores when a
+   * match completes. Optional: a sport without it shows no score.
+   */
+  formatResult?(result: unknown, team: 'A' | 'B'): string | undefined;
 }

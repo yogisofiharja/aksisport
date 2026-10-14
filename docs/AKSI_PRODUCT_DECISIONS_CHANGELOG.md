@@ -6,6 +6,49 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.20.0
+
+- New DP-021: Messaging — live delivery, unread counts, read receipts
+  (always on), typing, push for new direct/group/Contact Organizer
+  messages (step 1); blocking and reporting, reports going to the
+  Community's owner/admins (step 2); group chats and one chat per
+  Community (step 3). Promotes the rest of Planning > Communication.
+
+---
+
+## v0.19.0
+
+- DP-019 expanded and renamed Player Profile: a Chat button at the top,
+  and each sport opens a sport page — level, summary numbers, matches
+  and Sessions — across every Community; also reachable for yourself
+  from the Me tab.
+- New DP-020: Direct Messages — one-to-one conversations between players
+  who share a Community (or organizer and requester), started from a
+  profile, listed first in Inbox. Promoted from Planning; blocking,
+  reporting and moderation stay Planning.
+
+---
+
+## v0.18.0
+
+- New DP-019: Player Profile for Organizers — owners/admins open a
+  player's profile (picture, name, username, online, joined date, skill
+  level per sport) from Session participants and Community join
+  requests, and can approve or decline a pending request from it.
+
+---
+
+## v0.17.0
+
+- New DP-018: Push Notifications — seven events (Community and Session
+  join requests and approvals, payment receipts and confirmations, a
+  reminder 2 hours before a Session), on phones and web. A Notifications
+  page behind a bell with an unread count, separate from Inbox. A switch
+  per kind in Settings. Web becomes installable to the home screen so
+  iPhone browsers can receive push.
+
+---
+
 ## v0.16.3
 
 - DP-017: a User keeps several towns (up to 10) with exactly one active;

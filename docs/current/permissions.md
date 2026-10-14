@@ -56,6 +56,8 @@ and previewable like a public one — only joining is gated.
 | Update club, delete club, add/remove members, change member roles | `owner` only — `isOwnerOrAdmin` is **not** used here, `requireMember`'s `isOwner` bool is checked directly |
 | Remove self from a club | any role (member can always remove themselves) |
 | List, approve, or decline join requests (DP-017) | `owner` or `admin` (`requireOwnerOrAdmin`) |
+| View a player profile or sport page (DP-019) | the player themself, anyone sharing a club with them, or an owner/admin of a club they have a pending request to join |
+| Direct message a player (DP-020) | anyone allowed to view their profile, or anyone who already has a conversation with them |
 | Change a club's location or visibility (DP-017) | `owner` only, same as any other club update |
 | Create session, update session, add guest participant | `owner` or `admin` (`isOwnerOrAdmin`) |
 | View session, list sessions, register, check in, view participants | any member |

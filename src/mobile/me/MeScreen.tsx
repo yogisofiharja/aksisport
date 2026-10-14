@@ -26,6 +26,7 @@ type Props = {
   onOpenHistory: () => void;
   onOpenEmail: () => void;
   onOpenDisplayName: () => void;
+  onOpenSport: (sport: string) => void;
 };
 
 // DP-008: only the sport name is translated — level names are data-driven
@@ -34,7 +35,7 @@ function sportLabel(sport: string, t: (key: string) => string) {
   return sport === 'tennis' ? t('sportTennis') : sport;
 }
 
-export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEmail, onOpenDisplayName }: Props) {
+export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEmail, onOpenDisplayName, onOpenSport }: Props) {
   const { t } = useTranslation();
   const { profile, refreshProfile } = useAuth();
   const sports = listSportIds();
@@ -305,7 +306,9 @@ export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEm
             const mine = myLevels.find((l) => l.sport === sport);
             const expanded = expandedSport === sport;
             return (
-              <Card key={sport}>
+              // Tapping the card opens your own page for that sport
+              // (history, DP-019); the pencil still edits the level here.
+              <Card key={sport} pressable onPress={() => onOpenSport(sport)}>
                 <VStack space="sm">
                   <Typography variant="title">{sportLabel(sport, t)}</Typography>
                   <HStack className="justify-between items-center">

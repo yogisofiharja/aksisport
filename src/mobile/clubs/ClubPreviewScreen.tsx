@@ -14,6 +14,7 @@ import { authHeader } from '../../core/api/client';
 import { cancelJoinRequest, clubAvatarUrl, joinClub } from '../../core/clubs/api';
 import { initialsFromName } from '../../core/initials';
 import { clubLink, shareLink } from '../../platform/shareLink';
+import { offerPush } from '../../core/notifications/offerPush';
 import type { ClubPreview } from '../../core/api/types';
 
 type Props = {
@@ -31,7 +32,7 @@ type Props = {
 // and from a shared link. Sessions, members and chats are not here; they
 // are for members.
 export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
@@ -47,7 +48,11 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
     setBusy(true);
     setError(null);
     try {
-      onChanged(await joinClub(club.id));
+      const updated = await joinClub(club.id);
+      onChanged(updated);
+      // DP-018: a good moment to ask — they now have something to hear
+      // about (a decision on their request, the Community's sessions).
+      offerPush(lang, t);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('authGenericError'));
     } finally {

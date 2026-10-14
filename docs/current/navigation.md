@@ -60,12 +60,64 @@ This is what a shared link opens. `ClubDetailScreen` and
 `ClubPreviewScreen` both have a share icon (`src/platform/shareLink.ts`:
 the native share sheet, the browser's where it has one, otherwise the
 link is copied and a notice says so). `ClubDetailScreen` also shows the
-location under the name and, to owner/admins of a Community with pending
+location under the name, a "Leave Community" link at the bottom for every
+member except the owner (with a confirmation saying what leaving means;
+the owner can only delete the Community, in Club Settings), and, to owner/admins of a Community with pending
 join requests, a card with their count that opens Members.
 `ClubMembersScreen` lists those requests above the member grid with
-Approve / Decline. `CreateClubScreen` asks for a location and a "Private
+Approve / Decline; tapping a request opens the requester's player profile
+(`PlayerProfileSheet`, DP-019: picture, name, username, online, joined
+date, skill level per sport) with the same two actions. On a Session's
+Participants tab, owner/admins tap any member's circle for the same
+sheet — the Session's sport first, a within/outside-range badge when the
+Session has a level range, and Approve/Decline for a pending request. `CreateClubScreen` asks for a location and a "Private
 community" switch; `ClubSettingsScreen` (owner) edits both under "Finding
 & joining".
+
+**Notifications** (DP-018). `HomeScreen`'s header has a bell
+(`NotificationBell`) with an unread count, re-counted on focus and every
+minute while Home is showing; it pushes `Notifications`
+(`/notifications`, `NotificationsScreen`): every notification, newest
+first, unread ones tinted with a blue dot, "Mark all read", and — when
+this device hasn't allowed notifications yet — a card to turn them on.
+Opening one marks it read and goes to its `path` (`useLinkTo`).
+`PushSync` (mounted with `MainStack`) re-registers the device on
+sign-in and on language change, and handles taps: while an Aksi tab is
+open the service worker (`public/sw.js`) tells it where to go; otherwise
+a new tab opens at the path with `?notif=<id>`, marked read on arrival.
+Sign-out unregisters the device first. Permission is first offered right
+after joining or asking to join a Community (`offerPush`); "Not now" is
+remembered on the device. On the phone apps push reports itself
+unsupported until expo-notifications is set up (`src/platform/push.ts`).
+
+**Player profile, sport page, direct messages** (DP-019, DP-020).
+`PlayerProfileSheet` (bottom sheet) has a **Chat** button in its header
+(pushes `DirectMessage`, `/messages/:userId`) and lists every sport; tapping
+one pushes `PlayerSport` (`/players/:userId/sports/:sport`,
+`PlayerSportScreen`): level, five summary tiles (sessions, matches, wins,
+win rate, no-shows), matches (vs, partner, score via the sport module's
+`formatResult`, won/lost, date and Community) and Sessions (attended or
+no-show). The Me tab's sport cards push the same screen for yourself; the
+pencil on a card still edits the level in place. `DirectMessageScreen`
+uses the shared `ConversationThread` (now taking an `imageUrl` function
+instead of a Session id), polls every 5 seconds, and its header opens the
+other person's profile sheet. Inbox lists direct conversations first under
+"Messages", then the Contact Organizer threads.
+
+**Live messaging** (DP-021). `LiveSync` (mounted next to `PushSync`)
+keeps one WebSocket open while signed in (`src/core/live/live.ts`:
+reconnects with back-off, and at once on returning to the app).
+`ConversationThread` marks its conversation read on each new message,
+re-fetches when a `message.created` for it arrives, sends typing every 3
+seconds while the draft changes, shows "… is typing" for 5 seconds after
+the last signal, and shows "Seen" (direct) or "Seen by N" (others) under
+your own latest message. Your messages sit on the right (blue, no name
+over them), everyone else's on the left with their name. On web, Enter sends and Shift+Enter adds a new
+line (phones keep return as a new line). Chat screens poll every 5 seconds only while the
+connection is down (30 otherwise). Inbox rows and the organizer's Contact
+Organizer list show unread counts (`UnreadCount`); the Inbox tab shows the
+total (`useUnreadMessageCount`); a Session's Chat tab shows its own
+(`useSessionChatUnread`). The bell re-counts on `notification.created`.
 
 **The city picker** (`src/mobile/locations/CityPickerModal.tsx`) is the
 one way a place is chosen anywhere — a Community's location and a User's

@@ -508,7 +508,7 @@ well before the window.
 
 **Tabs** (Milestone 2, revised; Configuration added DP-005, Payment
 added DP-012/Milestone 5): `SessionDetailScreen.tsx` is split into
-six tabs — **Details**, **Payment**, **Configuration**, **Participants**, **Matches**, **Chat** — with
+six tabs — **Details**, **Participants**, **Payment**, **Configuration**, **Matches**, **Chat** — with
 the Session's name and start date/time pinned in a header above the tab
 bar, outside the scrolling tab body, so switching tabs never loses which
 Session you're looking at. `activeTab` is plain local state
@@ -634,10 +634,12 @@ instead of shrinking further. Section-to-tab mapping:
   subsection for the full endpoint shape.
 
 `SessionDetailScreen.tsx`'s self-service action area (v0.10.0, revised
-Milestone 2; now living in the Participants tab) branches on
+Milestone 2; `renderMyParticipation()`, shown both on the Details tab —
+where a Session opens — and on the Participants tab, so asking to join
+never depends on finding the right tab) branches on
 `myParticipant?.status`:
 
-- No row yet → "Request to Join" button (Strict Skill Level block and the
+- No row yet, or `cancelled` (they gave up their spot and may ask again) → "Request to Join" button (Strict Skill Level block and the
   Guidance-mode confirm dialog both live here now, moved from the old
   Check In button — requesting is the actual "joining" moment now).
 - `requested` → a muted notice ("waiting for organizer approval") plus a
@@ -700,7 +702,9 @@ including when a long name wraps to two lines.
 still active (`isPublished && isSessionActive` — none show once
 Cancelled/Completed, even with unfilled quota, since there's nothing
 left to add a participant to), a trailing row shows placeholder circles
-(dashed border, "+" icon) for remaining capacity — a capped Session
+for remaining capacity — dashed, with a "+" for owner/admins who can tap
+them to add someone; plain dashed circles with no "+" for everyone else,
+for whom they only show how many spots are left — a capped Session
 shows exactly `maxParticipants - joinedCount` of them; an uncapped one
 shows a single generic slot instead, so the add-flow stays reachable
 either way. Tapping one (owner/admin, `isSessionActive && isPublished`

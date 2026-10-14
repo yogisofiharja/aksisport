@@ -20,3 +20,9 @@ func MinParticipantsToStart(sport string) int {
 	}
 	return 1
 }
+
+// IsKnown reports whether the app has a Sport Module for this sport —
+// mirrors src/sports/registry.ts's listSportIds().
+func IsKnown(sport string) bool {
+	return sport == "tennis"
+}
