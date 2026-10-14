@@ -10,4 +10,4 @@ cd /opt/aksi-staging
 npm ci
 set -a; source /etc/aksi/staging-web.env; set +a
 npm run build:web
-pm2 restart web-staging
+sudo systemctl restart aksi-web-staging

@@ -3,6 +3,11 @@ aksisport.com {
 	respond "AKSI — coming soon" 200
 }
 
+www.aksisport.com {
+	tls /etc/caddy/certs/aksisport-wildcard.pem /etc/caddy/certs/aksisport-wildcard.key
+	redir https://aksisport.com{uri} permanent
+}
+
 app.aksisport.com {
 	tls /etc/caddy/certs/aksisport-wildcard.pem /etc/caddy/certs/aksisport-wildcard.key
 	reverse_proxy 127.0.0.1:4000

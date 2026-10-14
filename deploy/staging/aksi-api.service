@@ -11,6 +11,8 @@ ExecStart=/opt/aksi-staging/server/bin/aksi-server
 EnvironmentFile=/etc/aksi/staging.env
 Restart=on-failure
 RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target

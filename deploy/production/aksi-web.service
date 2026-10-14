@@ -1,0 +1,18 @@
+[Unit]
+Description=AKSI web app (production)
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+WorkingDirectory=/opt/aksi-production
+# Static export from `npm run build:web`; -s falls back to index.html for app routes.
+ExecStart=/opt/aksi-production/node_modules/.bin/serve -s dist -l tcp://127.0.0.1:4000 --no-port-switching
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

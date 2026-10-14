@@ -2,7 +2,7 @@ name: Deploy staging
 
 on:
   push:
-    branches: [master]
+    branches: [staging]
     paths:
       - 'server/**'
       - 'src/**'
@@ -16,7 +16,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Reset checkout to latest master
+      - name: Reset checkout to latest staging
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -25,7 +25,7 @@ jobs:
           script: |
             cd /opt/aksi-staging
             git fetch origin
-            git reset --hard origin/master
+            git reset --hard origin/staging
 
       - name: Build and restart staging
         uses: appleboy/ssh-action@v1.0.3

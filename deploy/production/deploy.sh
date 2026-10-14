@@ -10,4 +10,4 @@ cd /opt/aksi-production
 npm ci
 set -a; source /etc/aksi/production-web.env; set +a
 npm run build:web
-pm2 restart web-production
+sudo systemctl restart aksi-web-production

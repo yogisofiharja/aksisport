@@ -145,7 +145,7 @@ Real, live work that fell outside the six-milestone roadmap above:
 - **Club Members redesign** — `b68145f`. 4-column avatar grid, search,
   Add Member dialog backed by a new `GET /v1/users/search` endpoint.
 - **Deployment infrastructure** — `c83efc1`. Production/staging on a
-  single VPS (systemd + pm2 + Caddy + GitHub Actions), fully separate
+  single VPS (systemd + Caddy + GitHub Actions), fully separate
   environments and databases.
 - **"Join with Code" removed** — part of `7e5ddd3`. Deliberate removal
   (screen, routes, invite-code display/regenerate UI). The gap it left —

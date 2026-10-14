@@ -1,8 +1,8 @@
 # Deployment
 
 AKSI runs on a single Ubuntu VPS as native OS services — no containers. Two fully isolated
-environments share the box: **production** and **staging**. Each has its own API process
-(systemd), its own web app process (pm2), and its own Postgres database. DNS and TLS are
+environments share the box: **production** and **staging**. Each has its own API process,
+its own web app process (both systemd services), and its own Postgres database. DNS and TLS are
 handled by Cloudflare (proxied/orange-cloud), terminating at Caddy on the VPS via a Cloudflare
 Origin CA certificate.
 
@@ -11,6 +11,7 @@ Origin CA certificate.
 | Hostname | Serves | Environment |
 |---|---|---|
 | `aksisport.com` | landing page (placeholder for now) | production |
+| `www.aksisport.com` | permanent redirect to `aksisport.com` | production |
 | `app.aksisport.com` | web app | production |
 | `api.aksisport.com` | API | production |
 | `dev.aksisport.com` | landing page (placeholder for now) | staging |
@@ -19,30 +20,30 @@ Origin CA certificate.
 
 ## Branches
 
-- `master` → staging (auto-deployed by `.github/workflows/deploy-staging.yml`)
-- `production` → production (auto-deployed by `.github/workflows/deploy-production.yml`)
+- `dev` → development. Work lands here; once complete it is merged into `master`.
+- `master` → the latest code. Not deployed anywhere.
+- `staging` → staging (auto-deployed by `.github/workflows/deploy-staging.yml`). Commits are
+  cherry-picked from `master`; `master` is then rebased onto `staging`.
+- `production` → production (auto-deployed by `.github/workflows/deploy-production.yml`).
+  Commits are cherry-picked from `staging`; the other branches are then rebased so `master`
+  stays the latest.
 
 Both workflows SSH into the VPS on push and run the matching `deploy/<env>/deploy.sh`. No one
 needs to SSH in manually for a routine deploy.
 
 - `scorer` → Vercel. The legacy no-login tennis scorer, frozen at the last commit where the
   web build still rendered it. Vercel's production branch must point here, not at `master`:
-  from `master` onwards the web build is the Aksi app, which belongs on `app.aksisport.com`,
+  once `dev` is merged into `master`, the web build is the Aksi app, which belongs on `app.aksisport.com`,
   not on Vercel. Nothing is merged into `scorer`.
 
 ## One-time VPS provisioning
 
 Run once, in order, when setting up the VPS from scratch.
 
-### 0. Create the `production` branch
+### 0. Create the `staging` and `production` branches
 
-From your local machine, before touching the VPS:
-
-```bash
-git checkout master && git pull
-git checkout -b production
-git push -u origin production
-```
+From your local machine, before cloning on the VPS (step 9): both branches must exist on
+GitHub and contain `deploy/`.
 
 ### 1. As root — create the `deploy` user and lock down SSH
 
@@ -106,13 +107,15 @@ source /etc/profile.d/go.sh
 go version   # expect go1.25.2
 ```
 
-### 5. Node.js + pm2
+### 5. Node.js
+
+Node 22 LTS (Node 20 reaches end of life in 2026). Only needed to build the web app and to run
+`serve`; no global packages.
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
-npm i -g pm2
-node -v && npm -v && pm2 -v
+node -v && npm -v
 ```
 
 ### 6. Caddy
@@ -149,8 +152,9 @@ chmod 640 /etc/caddy/certs/aksisport-wildcard.*
 
 ### 8. Cloudflare — DNS
 
-In the dashboard: 6 proxied (orange-cloud) `A` records — `@` (apex `aksisport.com`), `app`,
-`api`, `dev`, `app-dev`, `api-dev` → VPS IP. Then SSL/TLS → Overview → set mode to
+In the dashboard: a proxied (orange-cloud) `A` record for `@` (apex `aksisport.com`) → VPS IP,
+and proxied records for `www`, `app`, `api`, `dev`, `app-dev`, `api-dev` — either `A` → VPS IP
+or `CNAME` → `aksisport.com` (equivalent; CNAMEs mean an IP change touches one record). Then SSL/TLS → Overview → set mode to
 **Full (Strict)** — this is what makes Cloudflare's edge validate the Origin CA cert Caddy
 presents.
 
@@ -164,7 +168,7 @@ cat ~/.ssh/id_ed25519.pub
 sudo mkdir -p /opt/aksi-production /opt/aksi-staging
 sudo chown deploy:deploy /opt/aksi-production /opt/aksi-staging
 git clone -b production git@github.com:<org>/<repo>.git /opt/aksi-production
-git clone -b master git@github.com:<org>/<repo>.git /opt/aksi-staging
+git clone -b staging git@github.com:<org>/<repo>.git /opt/aksi-staging
 ```
 
 ### 10. Caddyfile
@@ -250,28 +254,34 @@ cd /opt/aksi-staging && npm ci && set -a && source /etc/aksi/staging-web.env && 
 
 ### 13. systemd units
 
+Four units, two per environment: the API (`aksi-api-<env>`, the Go binary) and the web app
+(`aksi-web-<env>`, `serve -s dist` bound to `127.0.0.1` so only Caddy reaches it). `enable`
+makes them start on boot.
+
 ```bash
 sudo cp /opt/aksi-production/deploy/production/aksi-api.service /etc/systemd/system/aksi-api-production.service
+sudo cp /opt/aksi-production/deploy/production/aksi-web.service /etc/systemd/system/aksi-web-production.service
 sudo cp /opt/aksi-staging/deploy/staging/aksi-api.service /etc/systemd/system/aksi-api-staging.service
+sudo cp /opt/aksi-staging/deploy/staging/aksi-web.service /etc/systemd/system/aksi-web-staging.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now aksi-api-production aksi-api-staging
+sudo systemctl enable --now aksi-api-production aksi-web-production aksi-api-staging aksi-web-staging
 ```
 
-### 14. pm2
+Unit files are copied, not symlinked, so a change to `deploy/<env>/*.service` needs this step
+repeated by hand (deploys don't reinstall units).
 
-Easy to forget the `startup`/`save` steps, which silently means pm2 doesn't survive a reboot:
+### 14. Logs
+
+Everything goes to the journal:
 
 ```bash
-cd /opt/aksi-production && pm2 start deploy/production/ecosystem.config.js
-cd /opt/aksi-staging && pm2 start deploy/staging/ecosystem.config.js
-pm2 startup systemd -u deploy --hp /home/deploy
-# run the `sudo ...` command it prints, then:
-pm2 save
+journalctl -u aksi-api-production -f
+journalctl -u aksi-web-production -n 100
 ```
 
 ### 15. Narrow sudoers rule
 
-CI needs to restart the systemd units without a password, but only those two commands:
+CI needs to restart the systemd units without a password, but only those four commands:
 
 ```bash
 sudo visudo -f /etc/sudoers.d/deploy-aksi
@@ -280,14 +290,12 @@ sudo visudo -f /etc/sudoers.d/deploy-aksi
 Paste exactly:
 
 ```
-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart aksi-api-production, /usr/bin/systemctl restart aksi-api-staging
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart aksi-api-production, /usr/bin/systemctl restart aksi-api-staging, /usr/bin/systemctl restart aksi-web-production, /usr/bin/systemctl restart aksi-web-staging
 ```
 
 ```bash
 sudo visudo -c
 ```
-
-pm2 restarts need no sudo entry — pm2 runs entirely as `deploy`.
 
 ### 16. CI-only SSH key
 
@@ -305,18 +313,18 @@ Add repo secrets (Settings → Secrets and variables → Actions): `VPS_HOST` (V
 
 ### 17. Verify
 
-See the checklist below, then push a trivial change to `server/` on `master` and confirm
+See the checklist below, then push a trivial change to `server/` on `staging` and confirm
 `deploy-staging.yml` succeeds and the change is live. Repeat on `production` once that branch
 exists.
 
 ## Ongoing deploys
 
-Push to `master` → staging deploys automatically. Push to `production` → production deploys
+Push to `staging` → staging deploys automatically. Push to `production` → production deploys
 automatically. Neither requires manual SSH access.
 
 `deploy/<env>/deploy.sh` does, in order: `go build` the API, `systemctl restart` the API unit,
 `npm ci` + `npm run build:web` for the web app (with that environment's `EXPO_PUBLIC_*` vars
-sourced first, since Expo inlines them at build time), then `pm2 restart` the web app.
+sourced first, since Expo inlines them at build time), then `systemctl restart` the web unit.
 
 Each GitHub Actions workflow runs this in **two separate SSH steps** — first `git fetch` +
 `git reset --hard`, then a fresh SSH call to run `deploy.sh`. A script must never `git
@@ -331,7 +339,7 @@ backed up** — staging data is disposable, so no cron entry is set up for it.
 
 **Do not add the cron job during initial provisioning.** Set it up only once production has
 been deployed and verified running (i.e. after step 17's checklist passes for production, once
-the `production` branch exists and `aksi-api-production` / `web-production` are confirmed
+the `production` branch exists and `aksi-api-production` / `aksi-web-production` are confirmed
 healthy) — a backup job for a database that isn't live yet has nothing to back up. At that
 point:
 
@@ -353,8 +361,8 @@ directive and reload Caddy — no DNS or certificate rework needed.
 - `systemctl status aksi-api-production` / `aksi-api-staging` — active, no restart loop;
   `journalctl -u aksi-api-<env>` shows a successful migration run and `listening on :<port>`
   on the latest start.
-- `pm2 status` shows `web-production` and `web-staging` both online; `~/.pm2/dump.pm2` exists
-  (confirms `pm2 save` ran).
+- `systemctl status aksi-web-production` / `aksi-web-staging` — active; `systemctl is-enabled`
+  on all four units reports `enabled`.
 - `curl https://api.aksisport.com/healthz` and `https://api-dev.aksisport.com/healthz` →
   `{"status":"ok"}` through Cloudflare.
 - `curl -I https://app.aksisport.com/` and `https://app-dev.aksisport.com/` → 200, and an
