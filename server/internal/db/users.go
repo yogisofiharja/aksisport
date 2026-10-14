@@ -20,11 +20,17 @@ var ErrConflict = errors.New("conflict")
 // is an engineering choice (DP-ARCH-004), not a product requirement.
 const isOnlineExpr = "(last_active_at IS NOT NULL AND last_active_at > now() - interval '2 minutes')"
 
-const userColumns = "id, firebase_uid, username, display_name, email, pending_email, email_required, phone_number, avatar_url, (avatar_image_data IS NOT NULL) AS has_avatar, " + isOnlineExpr + " AS is_online, created_at, updated_at"
+// userCitiesExpr: the User's saved towns (DP-017) as a JSON array of
+// {code, name}, oldest first — scanned straight into []models.UserCity.
+const userCitiesExpr = `(SELECT coalesce(json_agg(json_build_object('code', uc.city_code, 'name', ci.name || ', ' || pr.name) ORDER BY uc.created_at, uc.city_code), '[]'::json)
+	FROM user_cities uc JOIN cities ci ON ci.code = uc.city_code JOIN provinces pr ON pr.code = ci.province_code
+	WHERE uc.user_id = users.id)`
+
+var userColumns = "id, firebase_uid, username, display_name, email, pending_email, email_required, city_code, " + cityNameExpr("users") + " AS city_name, " + userCitiesExpr + " AS cities, phone_number, avatar_url, (avatar_image_data IS NOT NULL) AS has_avatar, " + isOnlineExpr + " AS is_online, created_at, updated_at"
 
 func scanUser(row pgx.CollectableRow) (models.User, error) {
 	var u models.User
-	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PendingEmail, &u.EmailRequired, &u.PhoneNumber, &u.AvatarURL, &u.HasAvatar, &u.IsOnline, &u.CreatedAt, &u.UpdatedAt)
+	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PendingEmail, &u.EmailRequired, &u.CityCode, &u.CityName, &u.Cities, &u.PhoneNumber, &u.AvatarURL, &u.HasAvatar, &u.IsOnline, &u.CreatedAt, &u.UpdatedAt)
 	return u, err
 }
 
@@ -162,9 +168,10 @@ func GetUserAvatarImage(ctx context.Context, pool *pgxpool.Pool, userID string) 
 	return img, nil
 }
 
-// UserUpdate: nil fields are left alone. DisplayName is the one field
-// that can also be cleared — an empty string removes it (DP-016: the User
-// is then shown by username again).
+// UserUpdate: nil fields are left alone. DisplayName can also be cleared
+// — an empty string removes it (DP-016: the User is then shown by
+// username again). Towns are not here: they change through AddUserCity /
+// SetActiveCity / RemoveUserCity (internal/db/user_cities.go).
 //
 // UserUpdate has no Email: a User's email only changes through code
 // verification (SetVerifiedEmail), never a plain profile update.

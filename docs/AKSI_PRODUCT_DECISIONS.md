@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.15.0
+Version: 0.16.3
 
 Status: Living Document
 
@@ -1290,6 +1290,112 @@ participants, matches, chats, the organizer of a Session).
 - A change applies everywhere immediately, including on past Sessions and
   messages — names are read live, never copied at the time of the event.
 - Sign-up does not ask for a display name.
+
+---
+
+## DP-017 — Community Discovery & Joining
+
+Status
+
+Approved
+
+### Decision
+
+A person can find a Community and join it themselves. Before this, the
+only way in was an owner adding them by username.
+
+**Public or Private.** Every Community is one or the other.
+
+- **Public** is the default. Anyone can join immediately.
+- **Private** requires approval. Joining sends a **join request**; the
+  person becomes a member only when an owner or admin approves it.
+
+The owner chooses when creating the Community and can change it later in
+Club Settings.
+
+**Location.** A Community has a location: one of Indonesia's cities or
+regencies (kota / kabupaten), **picked from a list**, never typed. It is
+asked for when creating a Community and can be changed by the owner. It
+exists so people can tell Communities apart when searching, and so
+Communities in the same place can be found together.
+
+The list is reference data kept in the database: all 38 provinces and
+their 514 cities and regencies. A place is chosen by searching its name
+or by picking a province and then a city within it.
+
+**Two ways to find a Community:**
+
+- **Search in Explore.** Typing at least two characters lists matching
+  Communities by name, city, or province. Each result shows the name,
+  the location, the number of members, and whether it is Private.
+- **A shareable link.** Members can share a Community's link. Opening it
+  shows that Community. Someone who is not signed in is asked to log in
+  or sign up first, then lands on it.
+
+**Communities in the User's town.** A User keeps one or more **towns**,
+each picked from the same list — for example where they live (Kota
+Administrasi Jakarta Selatan) and their hometown (Kota Bukittinggi).
+Exactly one of them is **active** at a time. Before anything is typed in
+the search box, Explore lists the Communities in the active town that the
+User has not joined yet.
+
+- Switching the active town is one tap, both on the Me tab and on
+  Explore, which shows the User's towns side by side. Going home and
+  coming back is switching between two saved towns, not re-entering one.
+- Picking a new town from Explore saves it and makes it active.
+- Adding a town on the Me tab saves it without switching, except that a
+  User's first town is active straight away.
+- Removing the active town makes the most recently added remaining town
+  active; removing the last one leaves the User with no town.
+- A User with no town is invited to choose one.
+
+Because every town is picked from one list, "the same town" is exact:
+there are no spellings to disagree.
+
+**What a non-member sees.** The Community's name, picture, description,
+location, member count, and whether it is Public or Private — plus the
+action to join or request. Sessions, members, and chats stay visible to
+members only.
+
+**Join requests.**
+
+- A person has at most one pending request per Community and can cancel
+  it.
+- Owners and admins see pending requests on the Members screen and
+  approve or decline each one. The Community's home shows them how many
+  are waiting.
+- A declined person can request again later.
+
+### Rules
+
+- Private Communities **do** appear in search and open from a link; only
+  joining is gated. (Hiding a Community entirely is not part of this
+  decision.)
+- Every Community that existed before this decision is Public, like any
+  other default.
+- A Community that existed before this decision has no location until
+  its owner picks one.
+- Changing a Community from Private to Public does not approve its
+  pending requests; they stay for the owner to decide.
+- Adding a member by username (owner) still works and skips approval.
+
+### Scope
+
+- No notification is sent when a request is made, approved, or declined —
+  the app has no notifications yet. The requester sees the result the
+  next time they open the Community.
+- A location is a city or regency, not an address or a point on a map
+  (see Planning, Map-Based Venue Selection). A Session's own venue is
+  still free text.
+- The list covers Indonesia only.
+- A User keeps at most 10 towns.
+- The active town is the User's own choice. The app does not switch it
+  from the device's location.
+- "In the User's town" means the same city or regency. Communities in a
+  neighbouring one (Kota Bandung vs Kabupaten Bandung) are not listed;
+  finding Communities by actual distance waits for map support.
+- Other ways of browsing without searching (popular, categories) are not
+  part of this decision.
 
 ---
 

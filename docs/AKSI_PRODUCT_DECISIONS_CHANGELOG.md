@@ -6,6 +6,38 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.16.3
+
+- DP-017: a User keeps several towns (up to 10) with exactly one active;
+  switching is one tap on the Me tab or in Explore. Explore lists the
+  active town's Communities.
+
+---
+
+## v0.16.2
+
+- DP-017: a Community's location and a User's town are now picked from a
+  list of Indonesia's provinces and cities/regencies kept in the
+  database, replacing free text. "Same town" becomes an exact match.
+
+---
+
+## v0.16.1
+
+- DP-017: a User can set their town; Explore lists Communities in that
+  town before a search is typed. Text match, not distance.
+
+---
+
+## v0.16.0
+
+- New DP-017: Community Discovery & Joining — Communities are Public
+  (default, join instantly) or Private (join by request, approved by
+  owner/admin); Communities gain a location; search in Explore and a
+  shareable link. Closes the gap left when "Join with Code" was removed.
+
+---
+
 ## v0.15.0
 
 - New DP-016: Display Name — a User can set, change and remove their own

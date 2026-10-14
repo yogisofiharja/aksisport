@@ -73,6 +73,21 @@ export function createProfile(username: string, displayName?: string, email?: st
   });
 }
 
+// --- Towns (DP-017) ---
+// A User keeps several towns and has one active at a time. Switching the
+// active one is updateMe({ cityCode }), which also saves a town not kept
+// yet. Both calls below return the updated profile.
+
+export function addMyCity(cityCode: string): Promise<UserProfile> {
+  return apiFetch('/v1/me/cities', { method: 'POST', body: JSON.stringify({ cityCode }) });
+}
+
+// Removing the active town makes the most recently saved remaining one
+// active (or none, if it was the last).
+export function removeMyCity(cityCode: string): Promise<UserProfile> {
+  return apiFetch(`/v1/me/cities/${encodeURIComponent(cityCode)}`, { method: 'DELETE' });
+}
+
 // --- Account email & password recovery (DP-015) ---
 
 // Emails a 6-digit code to `email` and records it as the caller's pending
@@ -108,7 +123,7 @@ export function getMe(): Promise<UserProfile> {
   return apiFetch('/v1/me');
 }
 
-export function updateMe(updates: Partial<Pick<UserProfile, 'displayName' | 'phoneNumber' | 'avatarUrl'>>): Promise<UserProfile> {
+export function updateMe(updates: Partial<Pick<UserProfile, 'displayName' | 'cityCode' | 'phoneNumber' | 'avatarUrl'>>): Promise<UserProfile> {
   return apiFetch('/v1/me', {
     method: 'PATCH',
     body: JSON.stringify(updates),

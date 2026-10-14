@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -122,6 +123,9 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 	profiled.PATCH("/me", func(c *gin.Context) {
 		var body struct {
 			DisplayName *string `json:"displayName"`
+			// DP-017: switches the active town (saving it if new); "" is
+			// rejected — a town is removed with DELETE /me/cities/:code.
+			CityCode    *string `json:"cityCode"`
 			PhoneNumber *string `json:"phoneNumber"`
 			AvatarURL   *string `json:"avatarUrl"`
 		}
@@ -139,7 +143,18 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			body.DisplayName = &trimmed
 		}
 		current := authjwt.CurrentUser(c)
-		user, err := dbpkg.UpdateUser(c.Request.Context(), pool, current.ID, dbpkg.UserUpdate{
+		ctx := c.Request.Context()
+		if body.CityCode != nil {
+			code := strings.TrimSpace(*body.CityCode)
+			if !requireCity(c, pool, code) {
+				return
+			}
+			if err := dbpkg.SetActiveCity(ctx, pool, current.ID, code); err != nil {
+				respondCityError(c, err)
+				return
+			}
+		}
+		user, err := dbpkg.UpdateUser(ctx, pool, current.ID, dbpkg.UserUpdate{
 			DisplayName: body.DisplayName,
 			PhoneNumber: body.PhoneNumber,
 			AvatarURL:   body.AvatarURL,
@@ -149,6 +164,40 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		c.JSON(http.StatusOK, user)
+	})
+
+	// DP-017: save a town without switching to it (the first one saved
+	// becomes active anyway). Returns the updated profile.
+	profiled.POST("/me/cities", func(c *gin.Context) {
+		var body struct {
+			CityCode string `json:"cityCode"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			respondError(c, http.StatusBadRequest, "invalid body")
+			return
+		}
+		code := strings.TrimSpace(body.CityCode)
+		if !requireCity(c, pool, code) {
+			return
+		}
+		current := authjwt.CurrentUser(c)
+		ctx := c.Request.Context()
+		if err := dbpkg.AddUserCity(ctx, pool, current.ID, code); err != nil {
+			respondCityError(c, err)
+			return
+		}
+		respondMe(c, pool, current.FirebaseUID)
+	})
+
+	// Forget one of the caller's towns. If it was active, the most recently
+	// saved remaining town takes over (or none, if it was the last).
+	profiled.DELETE("/me/cities/:cityCode", func(c *gin.Context) {
+		current := authjwt.CurrentUser(c)
+		if err := dbpkg.RemoveUserCity(c.Request.Context(), pool, current.ID, c.Param("cityCode")); err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		respondMe(c, pool, current.FirebaseUID)
 	})
 
 	// Self-service only — the caller sets their own profile picture, never
@@ -237,4 +286,22 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		c.JSON(http.StatusOK, users)
 	})
+}
+
+// respondMe answers with the caller's freshly read profile.
+func respondMe(c *gin.Context, pool *pgxpool.Pool, firebaseUID string) {
+	user, err := dbpkg.GetUserByFirebaseUID(c.Request.Context(), pool, firebaseUID)
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, "internal error")
+		return
+	}
+	c.JSON(http.StatusOK, user)
+}
+
+func respondCityError(c *gin.Context, err error) {
+	if errors.Is(err, dbpkg.ErrTooManyCities) {
+		respondError(c, http.StatusConflict, fmt.Sprintf("you can keep at most %d towns — remove one first", dbpkg.MaxUserCities))
+		return
+	}
+	respondError(c, http.StatusInternalServerError, "internal error")
 }

@@ -16,7 +16,16 @@ type User struct {
 	Email         *string `json:"email,omitempty"`
 	PendingEmail  *string `json:"pendingEmail,omitempty"`
 	EmailRequired bool    `json:"emailRequired"`
-	PhoneNumber *string   `json:"phoneNumber,omitempty"`
+	// CityCode (DP-017): the city or regency the User says they are in,
+	// picked from the reference list; CityName is its display form
+	// ("Kota Bandung, Jawa Barat"). Used to list Communities in the same
+	// city. Private to the User.
+	CityCode *string `json:"cityCode,omitempty"`
+	CityName *string `json:"cityName,omitempty"`
+	// Cities are all the towns the User keeps (DP-017), oldest first; the
+	// active one (CityCode) is always among them.
+	Cities []UserCity `json:"cities"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
 	AvatarURL   *string   `json:"avatarUrl,omitempty"`
 	// HasAvatar is computed (avatar_image_data IS NOT NULL), same pattern
 	// as SessionParticipant.HasReceipt — the actual bytes are never
@@ -29,6 +38,13 @@ type User struct {
 	IsOnline  bool      `json:"isOnline"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// UserCity is one of a User's saved towns, with its display name
+// ("Kota Bukittinggi, Sumatera Barat").
+type UserCity struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
 }
 
 // UserSummary is the lean, public-safe shape returned by user search — a

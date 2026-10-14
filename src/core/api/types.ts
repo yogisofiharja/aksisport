@@ -10,6 +10,14 @@ export type UserProfile = {
   email?: string;
   pendingEmail?: string;
   emailRequired: boolean;
+  // DP-017: the city or regency the User says they are in, picked from
+  // the reference list; cityName is its display form ("Kota Bandung, Jawa
+  // Barat"). Used to list Communities there in Explore.
+  cityCode?: string;
+  cityName?: string;
+  // Every town the User keeps (where they live, a hometown, …), oldest
+  // first. The active one (cityCode) is always among them.
+  cities: { code: string; name: string }[];
   phoneNumber?: string;
   avatarUrl?: string;
   hasAvatar: boolean;
@@ -28,15 +36,60 @@ export type ApiError = {
   retryAfterSeconds?: number;
 };
 
+// Reference data (DP-017): Indonesia's provinces and their cities/
+// regencies. "City" means a kota or a kabupaten — `name` says which
+// ("Kota Bandung", "Kabupaten Bandung"). Codes are official region codes.
+export type Province = { code: string; name: string };
+export type City = { code: string; provinceCode: string; name: string };
+
+// DP-017: "public" — anyone joins instantly; "private" — joining creates
+// a request an owner/admin approves.
+export type ClubVisibility = 'public' | 'private';
+
 export type Club = {
   id: string;
   name: string;
   description?: string;
+  // The city or regency the Community is in, picked from the reference
+  // list; cityName is its display form ("Kota Bandung, Jawa Barat").
+  // Missing only on Communities created before DP-017.
+  cityCode?: string;
+  cityName?: string;
+  visibility: ClubVisibility;
   inviteCode: string;
   hasAvatar: boolean;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+};
+
+// What anyone signed in may see of a Community they are not necessarily
+// in (DP-017) — Explore results and the page behind a shared link.
+// viewerRole / viewerRequestPending describe the *caller's* relation to
+// it: a role means they are a member, pending means they asked to join a
+// private Community and are waiting.
+export type ClubPreview = {
+  id: string;
+  name: string;
+  description?: string;
+  cityCode?: string;
+  cityName?: string;
+  visibility: ClubVisibility;
+  hasAvatar: boolean;
+  memberCount: number;
+  viewerRole?: ClubRole;
+  viewerRequestPending: boolean;
+};
+
+// A pending request to join a private Community, as its owner/admins see it.
+export type ClubJoinRequest = {
+  id: string;
+  clubId: string;
+  userId: string;
+  username: string;
+  displayName?: string;
+  hasAvatar: boolean;
+  createdAt: string;
 };
 
 // Milestone 5 (Session Finance) — a Club can list more than one of these

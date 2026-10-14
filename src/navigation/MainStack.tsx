@@ -1,7 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { PersonalTabs } from './PersonalTabs';
 import { CreateClubScreen } from '../mobile/clubs/CreateClubScreen';
-import { ClubDetailScreen } from '../mobile/clubs/ClubDetailScreen';
+import { ClubEntryScreen } from '../mobile/clubs/ClubEntryScreen';
 import { ClubMembersScreen } from '../mobile/clubs/ClubMembersScreen';
 import { ClubSettingsScreen } from '../mobile/clubs/ClubSettingsScreen';
 import { SessionListScreen } from '../mobile/sessions/SessionListScreen';
@@ -69,7 +69,9 @@ export function MainStack() {
 
       <Stack.Screen name="ClubDetail">
         {({ navigation, route }) => (
-          <ClubDetailScreen
+          // Members get the Community's home; anyone else its preview
+          // with the option to join (DP-017).
+          <ClubEntryScreen
             clubId={route.params.clubId}
             onBack={() => navigation.goBack()}
             onOpenMembers={(clubId) => navigation.navigate('ClubMembers', { clubId })}

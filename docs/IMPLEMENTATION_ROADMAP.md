@@ -148,47 +148,19 @@ Real, live work that fell outside the six-milestone roadmap above:
   single VPS (systemd + pm2 + Caddy + GitHub Actions), fully separate
   environments and databases.
 - **"Join with Code" removed** — part of `7e5ddd3`. Deliberate removal
-  (screen, routes, invite-code display/regenerate UI) ahead of Club
-  search landing in Explore. **Known interim gap**: until Explore
-  search ships, the only way to join a Club is an owner/admin adding a
-  member by username — there is currently no self-service join path at
-  all. See `docs/current/navigation.md`'s "Not present" section.
-- **Safer destructive actions** — part of `7e5ddd3`. Delete Community
-  moved into a new Club Settings screen's Danger Zone (off
-  `ClubDetailScreen`'s home page); Edit/Cancel Session moved behind a
-  "⋮" menu on `SessionDetailScreen` (off the Details tab).
-- **Club/User profile pictures** — `ff75d90`. Stored in Postgres
-  `bytea`, same pattern as Chat/Receipt images; Club avatar upload is
-  owner-only, User avatar upload is self-only. Paired with a Home
-  redesign: "My Communities" now leads (circle-avatar grid, picture or
-  initials), "Create Community" moved off Home entirely onto the Me
-  tab (UX-013). Home's Attention section and Community Home's Current
-  Focus now share one ranking implementation
-  (`core/sessions/currentFocus.ts`) instead of two ad hoc copies
-  (UX-015).
-- **Recurring Schedule editing + Session Synchronization (DP-007)** — a
-  Schedule can now be edited from its detail page (reuses
-  `CreateSessionScreen`, same as Session editing). After saving, the
-  organizer is offered a sync of the Template to that Schedule's
-  already-generated upcoming Sessions; ones edited by hand are skipped.
-  See `docs/current/lifecycle-recurring-schedule.md`.
-- **Cross-Club Session History (DP-009)** — "Session History" on the Me
-  tab lists every past Session the Player joined, across all Clubs.
-- **Aksi on web** — web now renders the same app as iOS/Android instead
-  of the legacy scorer: URL routing, a browser-safe replacement for
-  `Alert.alert`, a web date/time picker, phone layout centred on wide
-  screens. Checked in Chrome on 2026-10-14 (navigation, dialogs, pickers,
-  schedule sync); uploads, chat and image loading not yet checked. The
-  legacy scorer stays on Vercel from the `scorer` branch.
-- **Account email & password recovery (DP-015)** — email confirmed by a
-  6-digit code (required at sign-up, reminder for older accounts), login
-  with username or email, forgot-password, show/hide on password fields.
-  The owner is also mailed when their password or email changes. Mail
-  goes through Resend. Working locally as of 2026-10-14 (confirmation,
-  email login, password reset). **Each deployed environment needs its own
-  setup before it works there:** `RESEND_API_KEY` and `MAIL_FROM` (sender
-  on a Resend-verified domain), and a Firebase service account
-  (`FIREBASE_SERVICE_ACCOUNT_FILE`) — see `docs/engineering/deployment.md`.
+  (screen, routes, invite-code display/regenerate UI). The gap it left —
+  no self-service way to join — is closed by DP-017 below.
+- **Community discovery & joining (DP-017)** — Communities are Public
+  (join instantly) or Private (join by request, approved by an
+  owner/admin). Each has a location, and a User keeps several towns with
+  one active; both
+  are picked from a list of Indonesia's 38 provinces and 514 cities/
+  regencies kept in the database (migration `0027`), never typed.
+  Communities are found through search in Explore (name, city or
+  province; results show the location), through Explore's list of
+  Communities in the User's own town, or through a shareable link. Search
+  results and links open a preview for non-members. Owner/admins approve
+  or decline requests on the Members screen.
 - **Display name (DP-016)** — set, change or remove it from the Me tab's
   Account section; shown everywhere a person appears, username as the
   fallback.
@@ -223,5 +195,3 @@ first:
   provisioning a map provider API key.
 - **Prepare** (Milestone 4) — see above, explicitly skipped pending a
   clearer product need.
-- **Self-service Club joining** — see "Join with Code removed" above;
-  planned to return as Club search from Explore, not scheduled.

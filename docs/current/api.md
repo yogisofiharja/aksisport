@@ -22,7 +22,7 @@ CORS: `Access-Control-Allow-Origin` is a single configured value
 | GET | `/v1/users/check-username?username=` | none | `{available, reason?}`. Invalid format (not `^[a-z0-9_]{3,20}$`) returns `available:false, reason:"invalid_format"` rather than 400. |
 | POST | `/v1/users` | auth | Body `{username, displayName?, email?}`. Creates the Postgres profile, always with `emailRequired: true` (DP-015). `email`, when given, is validated (400), rejected if another account has confirmed it (409), stored as `pendingEmail`, and a confirmation code is mailed. It is omitted only when an interrupted sign-up is being completed. 409 if a profile already exists for this Firebase UID, 409 if username taken. |
 | GET | `/v1/me` | auth | 404 `{"error":"profile not found","code":"PROFILE_NOT_FOUND"}` if no profile yet. |
-| PATCH | `/v1/me` | profile | Body `{displayName?, phoneNumber?, avatarUrl?}`. `displayName` (DP-016) is trimmed and limited to 40 characters (400 beyond that); an empty string removes it, so the User is shown by username again. `email` is not accepted here — it only changes through code confirmation (see Account email below). `username` is immutable — not accepted here. `avatarUrl` is a stale, never-wired string-URL stub — see the note under "Profile pictures" below; the real path is `POST /v1/me/avatar`. |
+| PATCH | `/v1/me` | profile | Body `{displayName?, cityCode?, phoneNumber?, avatarUrl?}`. `displayName` (DP-016) is trimmed and limited to 40 characters (400 beyond that); an empty string removes it, so the User is shown by username again. `cityCode` (DP-017) switches the caller's **active** town, saving it among their towns if it isn't yet; it must be a city in the reference list (400 otherwise, including empty — a town is removed with `DELETE /v1/me/cities/:code`), 409 past the 10-town limit. `GET /v1/me` returns `cityCode`/`cityName` (the active town) and `cities: [{code, name}]` (every saved town, oldest first). `email` is not accepted here — it only changes through code confirmation (see Account email below). `username` is immutable — not accepted here. `avatarUrl` is a stale, never-wired string-URL stub — see the note under "Profile pictures" below; the real path is `POST /v1/me/avatar`. |
 | POST | `/v1/me/avatar` | profile | Body `{imageBase64, imageContentType}`. Self-service only — always the caller's own picture. Same size/content-type validation as every other image upload (5MB decoded cap, JPEG/PNG/WebP only). |
 | GET | `/v1/users/:userId/avatar` | profile | Serves the raw image bytes. Visible to any authenticated user with a profile — same broad visibility as the username/displayName it's paired with everywhere (search, member grids, organizer names), not scoped to a shared Club. 404 if the user has no picture. |
 | GET | `/v1/me/contact-threads` | profile | DP-013 Contact Organizer's Inbox listing. See the "Conversations" subsection under Sessions below for the full shape. |
@@ -66,6 +66,29 @@ A failed send on `POST /v1/me/email` surfaces as 502 with Resend's reason
 in the server log; on sign-up and on password-reset request it is logged
 and the request still succeeds.
 
+### Towns (DP-017)
+
+A User keeps up to 10 towns (`user_cities`) and has one active
+(`users.city_code`, always one of them). Both routes return the updated
+profile.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| POST | `/v1/me/cities` | profile | Body `{cityCode}`. Saves a town (idempotent). It becomes active only if the caller had none. 400 unknown city, 409 past the limit. |
+| DELETE | `/v1/me/cities/:cityCode` | profile | Forgets a town. If it was active, the most recently saved remaining town becomes active, or none if it was the last. |
+
+### Locations (DP-017)
+
+Reference data: Indonesia's 38 provinces and 514 cities/regencies, seeded
+by migration `0027_indonesia_cities` (official region codes; source
+recorded in that file). "City" means a kota or a kabupaten — the name
+says which. A User's town (`users.city_code`) and a Club's location
+(`clubs.city_code`) both point at it.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/v1/locations` | profile | `{provinces: [{code, name}], cities: [{code, provinceCode, name}]}` — the whole list in one response, `Cache-Control: private, max-age=86400`. Provinces by name; cities by province, then by name ignoring the Kota/Kabupaten prefix. The city picker filters it on the device. |
+
 ### Profile pictures
 
 Club and User both carry a real, working profile picture now — stored
@@ -98,13 +121,21 @@ just ages out.
 
 | Method | Path | Auth | Extra check | Notes |
 |---|---|---|---|---|
-| POST | `/v1/clubs` | profile | — | Body `{name, description?}`. Caller becomes `owner`. |
+| POST | `/v1/clubs` | profile | — | Body `{name, cityCode, description?, visibility?}`. `cityCode` (DP-017) is required and must be a city in the reference list (400 "choose a city" / "unknown city"). `visibility` is `"public"` (default) or `"private"`. Caller becomes `owner`. |
 | GET | `/v1/clubs` | profile | — | Lists clubs the caller is a member of, with role, ordered by `created_at DESC`. |
-| GET | `/v1/clubs/:clubId` | profile | member | |
-| PATCH | `/v1/clubs/:clubId` | profile | owner | Body `{name?, description?}`. |
+| GET | `/v1/clubs/:clubId` | profile | member | The full Club, including `cityCode`, `cityName` (display form, e.g. `"Kota Bandung, Jawa Barat"`, resolved at read time) and `visibility`. Non-members use `/preview` below. |
+| GET | `/v1/clubs/search?q=` | profile | — | DP-017. Clubs whose name, or whose city's or province's name, contains `q` (case-insensitive), private ones included. Clubs matching by their own name first, then larger Clubs; capped at 20. `[]` under 2 characters. Returns `ClubPreview[]`. |
+| GET | `/v1/clubs/in-my-city` | profile | — | DP-017. Clubs in the caller's **active** town, excluding Clubs the caller is already in. Larger Clubs first, capped at 20. `[]` if the caller has no city. Returns `ClubPreview[]`. |
+| GET | `/v1/clubs/:clubId/preview` | profile | — | DP-017. `ClubPreview`: `{id, name, description?, cityCode?, cityName?, visibility, hasAvatar, memberCount, viewerRole?, viewerRequestPending}` — nothing member-only, and no invite code. `viewerRole` is the caller's role if they are a member; `viewerRequestPending` is true while their join request waits. 404 if the Club doesn't exist. |
+| POST | `/v1/clubs/:clubId/join` | profile | — | DP-017. Public Club: the caller becomes a `member`. Private Club: a pending join request is recorded. Idempotent both ways. Returns the `ClubPreview`, which says which happened. |
+| DELETE | `/v1/clubs/:clubId/join-request` | profile | — | The caller withdraws their own pending request. 204 whether or not one existed. |
+| GET | `/v1/clubs/:clubId/join-requests` | profile | owner/admin | Pending requests, oldest first: `{id, clubId, userId, username, displayName?, hasAvatar, createdAt}`. |
+| POST | `/v1/clubs/:clubId/join-requests/:requestId/approve` | profile | owner/admin | Marks it approved and adds the requester as a `member` in one transaction. 404 if it is no longer pending (already decided, or cancelled by the requester). |
+| POST | `/v1/clubs/:clubId/join-requests/:requestId/decline` | profile | owner/admin | Marks it declined. The person may request again. Same 404. |
+| PATCH | `/v1/clubs/:clubId` | profile | owner | Body `{name?, description?, cityCode?, visibility?}`. Same validation as create. Switching to `"public"` leaves pending join requests pending. |
 | DELETE | `/v1/clubs/:clubId` | profile | owner | Cascades `club_members`, `sessions`, etc. via FK. |
 | POST | `/v1/clubs/:clubId/avatar` | profile | owner | Body `{imageBase64, imageContentType}`. Same size/content-type validation as every other image upload. See "Profile pictures" below. |
-| GET | `/v1/clubs/:clubId/avatar` | profile | member | Serves the raw image bytes. 404 if the Club has no picture. |
+| GET | `/v1/clubs/:clubId/avatar` | profile | — | Open to any signed-in user since DP-017 (a Club's picture is part of its preview). Serves the raw image bytes. 404 if the Club has no picture. |
 | GET | `/v1/clubs/:clubId/members` | profile | member | |
 | POST | `/v1/clubs/:clubId/members` | profile | owner | Body `{username}`. Direct-add, no invite flow. 404 if username not found, 409 if already a member. |
 | PATCH | `/v1/clubs/:clubId/members/:userId` | profile | owner | Body `{role}` — `"member"` or `"admin"` only; cannot set/unset `"owner"` here. |

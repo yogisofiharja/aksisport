@@ -11,10 +11,17 @@ import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
-import { addMemberByUsername, changeMemberRole, listMembers, removeMember } from '../../core/clubs/api';
+import {
+  addMemberByUsername,
+  changeMemberRole,
+  decideJoinRequest,
+  listJoinRequests,
+  listMembers,
+  removeMember,
+} from '../../core/clubs/api';
 import { searchUsers, userAvatarUrl, authHeader } from '../../core/api/client';
 import { initialsFromName } from '../../core/initials';
-import type { ClubMember, UserSummary } from '../../core/api/types';
+import type { ClubJoinRequest, ClubMember, UserSummary } from '../../core/api/types';
 import { ApiRequestError } from '../../core/api/client';
 
 type Props = {
@@ -59,6 +66,13 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
     authHeader().then(setImageHeaders);
   }, []);
 
+  // DP-017: pending requests to join (private Communities). Only owner/
+  // admins may list them, so the fetch is attempted for everyone and a
+  // refusal just means "none to show".
+  const [joinRequests, setJoinRequests] = useState<ClubJoinRequest[]>([]);
+  const [decidingRequestId, setDecidingRequestId] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     try {
       setMembers(await listMembers(clubId));
@@ -67,7 +81,27 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
     } finally {
       setLoading(false);
     }
+    try {
+      setJoinRequests(await listJoinRequests(clubId));
+    } catch {
+      setJoinRequests([]);
+    }
   }, [clubId]);
+
+  async function handleDecide(request: ClubJoinRequest, decision: 'approve' | 'decline') {
+    if (decidingRequestId) return;
+    setDecidingRequestId(request.id);
+    setRequestError(null);
+    try {
+      await decideJoinRequest(clubId, request.id, decision);
+    } catch (err) {
+      // Most likely the person cancelled meanwhile; reloading shows the truth.
+      setRequestError(err instanceof Error ? err.message : t('authGenericError'));
+    } finally {
+      setDecidingRequestId(null);
+      await load();
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -259,6 +293,61 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
             </Pressable>
           )}
         </HStack>
+
+        {joinRequests.length > 0 && (
+          <VStack className="gap-2">
+            <Text className="text-xs font-bold text-slate-400 tracking-widest uppercase">
+              {t('clubJoinRequestsTitle', joinRequests.length)}
+            </Text>
+            {joinRequests.map((request) => (
+              <Box key={request.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
+                <HStack className="items-center gap-3">
+                  <Box className="w-11 h-11 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700">
+                    {request.hasAvatar ? (
+                      <Image source={{ uri: userAvatarUrl(request.userId), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
+                    ) : (
+                      <Text className="font-extrabold text-slate-600 dark:text-slate-300">
+                        {initialsFromName(request.displayName || request.username)}
+                      </Text>
+                    )}
+                  </Box>
+                  <VStack style={{ flex: 1 }}>
+                    <Text className="font-bold text-slate-900 dark:text-white" numberOfLines={1}>
+                      {request.displayName || request.username}
+                    </Text>
+                    <Text className="text-sm text-slate-500 dark:text-slate-400" numberOfLines={1}>
+                      @{request.username}
+                    </Text>
+                  </VStack>
+                </HStack>
+                <HStack className="gap-2">
+                  <Button
+                    action="secondary"
+                    variant="outline"
+                    size="md"
+                    className="flex-1 rounded-xl"
+                    isDisabled={decidingRequestId !== null}
+                    onPress={() => handleDecide(request, 'decline')}
+                  >
+                    <ButtonText action="secondary" variant="outline">
+                      {t('clubJoinRequestDecline')}
+                    </ButtonText>
+                  </Button>
+                  <Button
+                    action="secondary"
+                    size="md"
+                    className="flex-1 rounded-xl bg-blue-600"
+                    isDisabled={decidingRequestId !== null}
+                    onPress={() => handleDecide(request, 'approve')}
+                  >
+                    <ButtonText className="text-white">{t('clubJoinRequestApprove')}</ButtonText>
+                  </Button>
+                </HStack>
+              </Box>
+            ))}
+            {requestError && <Text className="text-sm text-red-500">{requestError}</Text>}
+          </VStack>
+        )}
 
         <Input>
           <InputField

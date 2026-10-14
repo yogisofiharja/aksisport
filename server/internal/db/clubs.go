@@ -22,11 +22,17 @@ func generateInviteCode() string {
 	return string(b)
 }
 
-const clubColumns = "id, name, description, invite_code, (avatar_image_data IS NOT NULL) AS has_avatar, created_by, created_at, updated_at"
+var clubColumns = "id, name, description, city_code, " + cityNameExpr("clubs") + " AS city_name, visibility, invite_code, (avatar_image_data IS NOT NULL) AS has_avatar, created_by, created_at, updated_at"
+
+// clubScanTargets lists Scan destinations in clubColumns' order — shared
+// so a query selecting clubColumns plus extra columns appends its own.
+func clubScanTargets(c *models.Club) []any {
+	return []any{&c.ID, &c.Name, &c.Description, &c.CityCode, &c.CityName, &c.Visibility, &c.InviteCode, &c.HasAvatar, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt}
+}
 
 func scanClub(row pgx.CollectableRow) (models.Club, error) {
 	var c models.Club
-	err := row.(pgx.Rows).Scan(&c.ID, &c.Name, &c.Description, &c.InviteCode, &c.HasAvatar, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt)
+	err := row.(pgx.Rows).Scan(clubScanTargets(&c)...)
 	return c, err
 }
 
@@ -37,8 +43,9 @@ func isUniqueViolation(err error) bool {
 }
 
 // CreateClub creates a club and adds the creator as its owner, retrying the
-// invite code on the rare collision.
-func CreateClub(ctx context.Context, pool *pgxpool.Pool, name string, description *string, ownerUserID string) (models.Club, error) {
+// invite code on the rare collision. cityCode (an existing city) and
+// visibility ("public" or "private") are validated by the caller.
+func CreateClub(ctx context.Context, pool *pgxpool.Pool, name string, description *string, cityCode, visibility, ownerUserID string) (models.Club, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return models.Club{}, err
@@ -49,8 +56,8 @@ func CreateClub(ctx context.Context, pool *pgxpool.Pool, name string, descriptio
 	for attempt := 0; attempt < 5; attempt++ {
 		code := generateInviteCode()
 		rows, err := tx.Query(ctx,
-			"INSERT INTO clubs (name, description, invite_code, created_by) VALUES ($1, $2, $3, $4) RETURNING "+clubColumns,
-			name, description, code, ownerUserID,
+			"INSERT INTO clubs (name, description, city_code, visibility, invite_code, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING "+clubColumns,
+			name, description, cityCode, visibility, code, ownerUserID,
 		)
 		if err == nil {
 			club, err = pgx.CollectOneRow(rows, scanClub)
@@ -93,11 +100,10 @@ func GetClub(ctx context.Context, pool *pgxpool.Pool, clubID string) (models.Clu
 
 func ListClubsForUser(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.ClubWithRole, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT c.`+clubColumns+`, cm.role
-		 FROM clubs c
-		 JOIN club_members cm ON cm.club_id = c.id
-		 WHERE cm.user_id = $1
-		 ORDER BY c.created_at DESC`,
+		`SELECT `+clubColumns+`, (SELECT role FROM club_members WHERE club_id = clubs.id AND user_id = $1)
+		 FROM clubs
+		 WHERE id IN (SELECT club_id FROM club_members WHERE user_id = $1)
+		 ORDER BY created_at DESC`,
 		userID,
 	)
 	if err != nil {
@@ -108,7 +114,7 @@ func ListClubsForUser(ctx context.Context, pool *pgxpool.Pool, userID string) ([
 	result := []models.ClubWithRole{}
 	for rows.Next() {
 		var c models.ClubWithRole
-		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &c.InviteCode, &c.HasAvatar, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt, &c.Role); err != nil {
+		if err := rows.Scan(append(clubScanTargets(&c.Club), &c.Role)...); err != nil {
 			return nil, err
 		}
 		result = append(result, c)
@@ -116,15 +122,25 @@ func ListClubsForUser(ctx context.Context, pool *pgxpool.Pool, userID string) ([
 	return result, rows.Err()
 }
 
-func UpdateClub(ctx context.Context, pool *pgxpool.Pool, clubID string, name, description *string) (models.Club, error) {
+// ClubUpdate: nil fields are left alone.
+type ClubUpdate struct {
+	Name        *string
+	Description *string
+	CityCode    *string
+	Visibility  *string
+}
+
+func UpdateClub(ctx context.Context, pool *pgxpool.Pool, clubID string, u ClubUpdate) (models.Club, error) {
 	rows, err := pool.Query(ctx,
 		`UPDATE clubs SET
 			name = COALESCE($2, name),
 			description = COALESCE($3, description),
+			city_code = COALESCE($4, city_code),
+			visibility = COALESCE($5, visibility),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+clubColumns,
-		clubID, name, description,
+		clubID, u.Name, u.Description, u.CityCode, u.Visibility,
 	)
 	if err != nil {
 		return models.Club{}, err

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, Switch } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -11,9 +11,18 @@ import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
 import { Loading } from '../../design-system/feedback/Loading';
 import { useTranslation } from '../../i18n';
-import { createClubBankAccount, deleteClub, deleteClubBankAccount, listClubBankAccounts, updateClubBankAccount } from '../../core/clubs/api';
+import {
+  createClubBankAccount,
+  deleteClub,
+  deleteClubBankAccount,
+  getClub,
+  listClubBankAccounts,
+  updateClub,
+  updateClubBankAccount,
+} from '../../core/clubs/api';
 import { ApiRequestError } from '../../core/api/client';
 import type { ClubBankAccount } from '../../core/api/types';
+import { CityPickerModal } from '../locations/CityPickerModal';
 
 type Props = {
   clubId: string;
@@ -41,10 +50,23 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // DP-017: where the Community is (a city picked from the reference
+  // list), and whether joining needs approval. Both save as soon as they
+  // are changed.
+  const [cityCode, setCityCode] = useState<string | undefined>(undefined);
+  const [cityName, setCityName] = useState<string | undefined>(undefined);
+  const [showCityPicker, setShowCityPicker] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [savingDiscovery, setSavingDiscovery] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setAccounts(await listClubBankAccounts(clubId));
+      const [accountList, club] = await Promise.all([listClubBankAccounts(clubId), getClub(clubId)]);
+      setCityCode(club.cityCode);
+      setCityName(club.cityName);
+      setIsPrivate(club.visibility === 'private');
+      setAccounts(accountList);
     } catch {
       // keep stale list; user can back out and retry
     } finally {
@@ -57,6 +79,39 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
       load();
     }, [load])
   );
+
+  async function handlePickCity(code: string) {
+    setShowCityPicker(false);
+    if (code === cityCode || savingDiscovery) return;
+    setSavingDiscovery(true);
+    setDiscoveryError(null);
+    try {
+      const club = await updateClub(clubId, { cityCode: code });
+      setCityCode(club.cityCode);
+      setCityName(club.cityName);
+    } catch (err) {
+      setDiscoveryError(err instanceof Error ? err.message : t('authGenericError'));
+    } finally {
+      setSavingDiscovery(false);
+    }
+  }
+
+  // Saved on toggle, like every other switch in the app; rolled back if
+  // the server refuses.
+  async function handleTogglePrivate(next: boolean) {
+    if (savingDiscovery) return;
+    setIsPrivate(next);
+    setSavingDiscovery(true);
+    setDiscoveryError(null);
+    try {
+      await updateClub(clubId, { visibility: next ? 'private' : 'public' });
+    } catch (err) {
+      setIsPrivate(!next);
+      setDiscoveryError(err instanceof Error ? err.message : t('authGenericError'));
+    } finally {
+      setSavingDiscovery(false);
+    }
+  }
 
   function openAdd() {
     setBankName('');
@@ -154,6 +209,35 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
         <Loading fullScreen />
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, gap: 12 }}>
+          <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('clubDiscoveryTitle')}</Text>
+
+          <VStack className="gap-2">
+            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('clubLocationLabel')}</Text>
+            <Pressable
+              className="flex-row items-center justify-between px-4 py-3 rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 active:opacity-70"
+              onPress={() => setShowCityPicker(true)}
+              disabled={savingDiscovery}
+            >
+              <Text className={cityName ? 'font-semibold text-gray-900 dark:text-slate-100' : 'font-semibold text-gray-400 dark:text-slate-500'}>
+                {cityName ?? t('clubLocationPlaceholder')}
+              </Text>
+              <Icon name="chevron-forward" size="sm" color="muted" />
+            </Pressable>
+            <Text className="text-xs text-slate-400">{t('clubLocationHint')}</Text>
+          </VStack>
+
+          <VStack className="gap-1 mt-2">
+            <HStack className="justify-between items-center">
+              <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('clubPrivateToggleLabel')}</Text>
+              <Switch value={isPrivate} onValueChange={handleTogglePrivate} disabled={savingDiscovery} />
+            </HStack>
+            <Text className="text-xs text-slate-400">{isPrivate ? t('clubPrivateJoinHint') : t('clubPublicJoinHint')}</Text>
+          </VStack>
+
+          {discoveryError && <Text className="text-sm text-red-500">{discoveryError}</Text>}
+
+          <Box className="h-px bg-slate-200 dark:bg-slate-700 my-3" />
+
           <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('clubBankAccountsTitle')}</Text>
 
           {accounts.length === 0 ? (
@@ -239,6 +323,14 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
           </Pressable>
         </KeyboardAvoidingView>
       </Modal>
+
+      <CityPickerModal
+        visible={showCityPicker}
+        title={t('clubLocationLabel')}
+        selectedCode={cityCode}
+        onSelect={(city) => handlePickCity(city.code)}
+        onClose={() => setShowCityPicker(false)}
+      />
     </SafeAreaView>
   );
 }

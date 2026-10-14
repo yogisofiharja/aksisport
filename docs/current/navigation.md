@@ -44,6 +44,35 @@ or correct the address; Log Out is the only other exit).
 ## MainStack (native-stack, `headerShown: false`)
 
 Initial route is `Personal` (a bottom-tab navigator, see below).
+
+**The Community route** (`ClubDetail`, `/clubs/:clubId`) renders
+`ClubEntryScreen`, which first asks `GET /v1/clubs/:clubId/preview` how
+the caller relates to the Community (DP-017):
+
+- a member → `ClubDetailScreen`, the Community's home, as before;
+- anyone else → `ClubPreviewScreen`: picture, name, Public/Private,
+  location, member count, description, and one action — "Join community"
+  (public; joining swaps to the home in place) or "Request to join"
+  (private; then a "Request sent" state with "Cancel request");
+- an unknown id → a "Community not found" page.
+
+This is what a shared link opens. `ClubDetailScreen` and
+`ClubPreviewScreen` both have a share icon (`src/platform/shareLink.ts`:
+the native share sheet, the browser's where it has one, otherwise the
+link is copied and a notice says so). `ClubDetailScreen` also shows the
+location under the name and, to owner/admins of a Community with pending
+join requests, a card with their count that opens Members.
+`ClubMembersScreen` lists those requests above the member grid with
+Approve / Decline. `CreateClubScreen` asks for a location and a "Private
+community" switch; `ClubSettingsScreen` (owner) edits both under "Finding
+& joining".
+
+**The city picker** (`src/mobile/locations/CityPickerModal.tsx`) is the
+one way a place is chosen anywhere — a Community's location and a User's
+town. A full-screen modal over `GET /v1/locations` (fetched once per app
+run, `core/locations/api.ts`): type two or more characters to search all
+514 cities/regencies by city or province name, or pick one of the 38
+provinces and then a city within it.
 Community/Object screens are still one flat stack, pushed on top of
 `Personal` — pushing a native-stack screen naturally covers the tab
 bar, which is what makes "entering a Community" feel like a context
@@ -132,9 +161,8 @@ The app's Personal Context — always the post-auth entry point
   no "Create Community" entry point here (moved to the Me tab — see
   below; UX-013 Navigation Follows Frequency treats it as a rare,
   deliberate action that doesn't belong among Home's everyday browsing
-  content). "Join with Code" and its whole `JoinClubScreen` flow were
-  removed; self-service joining is planned to come back as Club search
-  from the Explore tab instead, still a placeholder today. Below that,
+  content). Joining a Community is done from Explore or a shared link
+  (DP-017, see below), not from here. Below that,
   an "Attention" section surfacing what needs attention across every
   Community the user belongs to. Ranked with the same Live → Today →
   Next (single soonest upcoming, per Club) → Draft priority as
@@ -146,11 +174,18 @@ The app's Personal Context — always the post-auth entry point
   `listSessions()`; no dedicated cross-club backend endpoint yet.
   Tapping a club circle pushes `ClubDetail` on the parent `MainStack`;
   tapping an attention item pushes `SessionDetail` directly.
-- **Explore** (`ExploreScreen`) — placeholder empty state. Real
-  discovery behavior is Planning-only in `AKSI_PRODUCT_DECISIONS.md`.
-  Intended to eventually include Club search/join, replacing the
-  removed "Join with Code" flow (see Home above) — not built yet, this
-  is a stated direction, not a scoped feature.
+- **Explore** (`ExploreScreen`) — Community search (DP-017). A search
+  field queries `GET /v1/clubs/search` from two characters, 300ms after
+  the last keystroke. Each result card shows the Community's picture,
+  name, **location**, member count, a "Private" badge where it applies,
+  and "Joined"/"Requested" if that describes the caller. Tapping one
+  pushes `ClubDetail`. Before a search is typed, it lists "Communities
+  in <active town>" (`GET /v1/clubs/in-my-city`: Communities in the
+  caller's active town that they haven't joined). Above the list, the
+  caller's saved towns as chips, the active one filled in: tapping another
+  switches to it; "Other town" opens the city picker, and the town picked
+  is saved and made active. With no town at all, a card invites them to
+  choose one instead.
 - **Inbox** (`InboxScreen`) — its first real content (DP-013 Contact
   Organizer, was a placeholder through Milestone 5): every Contact
   Organizer thread the caller is a party to, either as the member (their
@@ -181,7 +216,10 @@ The app's Personal Context — always the post-auth entry point
   may move there or stay as a quick-edit affordance.
   Above Sports, an "Account" section: a Display name row pushing
   `EditDisplayName` (`DisplayNameScreen`, DP-016 — set, change, or clear
-  it), and an Email row (the confirmed
+  it), a "Your towns" card (DP-017: every saved town with a radio mark on
+  the active one — tap another to make it active, × to remove one, "Add a
+  town" opens the city picker; all save at once), and an
+  Email row (the confirmed
   address or "Not set") pushing `AccountEmail` (`AccountEmailScreen`, the
   same two-step confirmation as the sign-up gate), preceded — for an
   account with no confirmed email — by a reminder card that can be
@@ -211,12 +249,10 @@ those routes don't exist on the tab navigator itself.
   Communication entry point, even a
   placeholder — unlike `SessionDetail`'s Chat tab (Milestone 2), there
   was no existing screen shell to slot a placeholder into here.
-- No real Explore discovery or Inbox content — both are placeholders.
-- **No self-service way to join a Club at all.** "Join with Code" (and
-  its backend route) was deliberately removed ahead of Club search
-  landing in Explore — a real, known gap in the interim, not an
-  oversight. The only way to join today is an owner/admin adding a
-  member by username (`ClubMembersScreen`'s Add Member dialog).
+- No browsing of Communities by distance, popularity or category —
+  Explore lists the caller's own city and answers a typed
+  query.
+- No notification when a join request is made or decided.
 - No cross-club data beyond Home's attention section and Me's Session
   History — no aggregated feed.
 - The legacy `SettingsModal` (theme, language, TTS voice) still exists

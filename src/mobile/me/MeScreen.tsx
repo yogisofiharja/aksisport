@@ -10,7 +10,9 @@ import { Icon } from '../../design-system/ui/Icon';
 import { Card } from '../../design-system/ui/Card';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
-import { authHeader, uploadMyAvatar, userAvatarUrl } from '../../core/api/client';
+import { addMyCity, authHeader, removeMyCity, updateMe, uploadMyAvatar, userAvatarUrl } from '../../core/api/client';
+import { Badge } from '../../design-system/ui/Badge';
+import { CityPickerModal } from '../locations/CityPickerModal';
 import { listMySkillLevels, listSkillLevels, setMySkillLevel } from '../../core/skillLevels/api';
 import { listSportIds } from '../../sports/registry';
 import { initialsFromName } from '../../core/initials';
@@ -61,6 +63,22 @@ export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEm
       .then((value) => setReminderDismissed(value === '1'))
       .catch(() => setReminderDismissed(false));
   }, [reminderKey]);
+
+  // DP-017: the User's towns — several kept, one active. Every change
+  // saves at once; the profile is the only state.
+  const [showCityPicker, setShowCityPicker] = useState(false);
+  const [townError, setTownError] = useState<string | null>(null);
+
+  async function changeTowns(action: () => Promise<unknown>) {
+    setShowCityPicker(false);
+    setTownError(null);
+    try {
+      await action();
+      await refreshProfile();
+    } catch (err) {
+      setTownError(err instanceof Error ? err.message : t('authGenericError'));
+    }
+  }
 
   function dismissReminder() {
     setReminderDismissed(true);
@@ -206,6 +224,61 @@ export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEm
             </Typography>
           </HStack>
         </Card>
+        <Card>
+          <VStack space="sm">
+            <VStack space="xs">
+              <Typography variant="body" className="font-bold">
+                {t('townsLabel')}
+              </Typography>
+              <Typography variant="body" color="muted" className="text-sm">
+                {t('townsHint')}
+              </Typography>
+            </VStack>
+            {(profile?.cities ?? []).map((city) => {
+              const active = city.code === profile?.cityCode;
+              return (
+                <HStack key={city.code} className="items-center" space="sm">
+                  <Pressable
+                    style={{ flex: 1 }}
+                    className="active:opacity-60"
+                    disabled={active}
+                    onPress={() => changeTowns(() => updateMe({ cityCode: city.code }))}
+                    accessibilityLabel={active ? undefined : t('townsMakeActive', city.name)}
+                  >
+                    <HStack className="items-center" space="sm">
+                      <Icon name={active ? 'radio-button-on' : 'radio-button-off'} size="sm" color={active ? 'secondary' : 'muted'} />
+                      <Typography variant="body" style={{ flex: 1 }} numberOfLines={1}>
+                        {city.name}
+                      </Typography>
+                      {active && <Badge action="info" text={t('townsActiveBadge')} />}
+                    </HStack>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => changeTowns(() => removeMyCity(city.code))}
+                    hitSlop={8}
+                    className="p-1 active:opacity-60"
+                    accessibilityLabel={t('townsRemove', city.name)}
+                  >
+                    <Icon name="close" size="sm" color="muted" />
+                  </Pressable>
+                </HStack>
+              );
+            })}
+            <Pressable onPress={() => setShowCityPicker(true)} className="active:opacity-60 self-start">
+              <HStack className="items-center" space="xs">
+                <Icon name="add" size="sm" color="secondary" />
+                <Typography variant="body" className="font-bold text-blue-600 dark:text-blue-400">
+                  {t('townsAdd')}
+                </Typography>
+              </HStack>
+            </Pressable>
+            {townError && (
+              <Typography variant="body" color="destructive" className="text-sm">
+                {townError}
+              </Typography>
+            )}
+          </VStack>
+        </Card>
         <Card pressable onPress={onOpenEmail}>
           <HStack className="justify-between items-center" space="md">
             <VStack space="xs" style={{ flex: 1 }}>
@@ -277,6 +350,13 @@ export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEm
           <Icon name="chevron-forward" size="sm" color="muted" />
         </HStack>
       </Card>
+
+      <CityPickerModal
+        visible={showCityPicker}
+        title={t('townsAdd')}
+        onSelect={(city) => changeTowns(() => addMyCity(city.code))}
+        onClose={() => setShowCityPicker(false)}
+      />
     </ScrollPage>
   );
 }

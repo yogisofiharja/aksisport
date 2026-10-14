@@ -31,12 +31,25 @@ they share a club. It exists specifically to back `ClubMembersScreen`'s
 Add Member dialog; "is this person already a member of *this* club" is
 filtered client-side afterward, not by the search endpoint itself.
 
+**Also outside layer 3 (DP-017)**: Community discovery is open to any
+user with a profile, member or not — `GET /v1/clubs/search`,
+`GET /v1/clubs/:clubId/preview`, `GET /v1/clubs/:clubId/avatar`,
+`GET /v1/clubs/in-my-city`, `POST /v1/clubs/:clubId/join`, and
+`DELETE /v1/clubs/:clubId/join-request` — as is the reference list of
+provinces and cities, `GET /v1/locations`.
+What they expose is deliberately limited to the `ClubPreview` shape (name,
+picture, description, city, visibility, member count); everything
+else about a Club still requires membership. A private Club is findable
+and previewable like a public one — only joining is gated.
+
 ## Role capabilities (as enforced, not as documented in `docs/archive/prd.md`)
 
 | Action | Required role |
 |---|---|
 | Update club, delete club, add/remove members, change member roles | `owner` only — `isOwnerOrAdmin` is **not** used here, `requireMember`'s `isOwner` bool is checked directly |
 | Remove self from a club | any role (member can always remove themselves) |
+| List, approve, or decline join requests (DP-017) | `owner` or `admin` (`requireOwnerOrAdmin`) |
+| Change a club's location or visibility (DP-017) | `owner` only, same as any other club update |
 | Create session, update session, add guest participant | `owner` or `admin` (`isOwnerOrAdmin`) |
 | View session, list sessions, register, check in, view participants | any member |
 | Create activity (`POST /v1/sessions/:id/activities`) | `owner` or `admin` |

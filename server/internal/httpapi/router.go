@@ -24,6 +24,7 @@ func NewRouter(pool *pgxpool.Pool, verifier *authjwt.Verifier, allowedOrigins st
 	RegisterUserRoutes(v1, pool, verifier, mailer)
 	RegisterAccountEmailRoutes(v1, pool, verifier, mailer, passwords)
 	RegisterClubRoutes(v1, pool, verifier)
+	RegisterLocationRoutes(v1, pool, verifier)
 	RegisterSessionRoutes(v1, pool, verifier)
 	RegisterActivityRoutes(v1, pool, verifier)
 	RegisterRecurringScheduleRoutes(v1, pool, verifier)

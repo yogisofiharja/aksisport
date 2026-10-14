@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,6 +31,48 @@ func requireMember(c *gin.Context, pool *pgxpool.Pool, clubID string) (member bo
 	return true, m.Role == "owner", true
 }
 
+// requireCity checks that cityCode names a city in the reference list
+// (DP-017), responding 400 if it is empty or unknown. Returns false if the
+// response has already been sent.
+func requireCity(c *gin.Context, pool *pgxpool.Pool, cityCode string) bool {
+	if cityCode == "" {
+		respondError(c, http.StatusBadRequest, "choose a city")
+		return false
+	}
+	exists, err := dbpkg.CityExists(c.Request.Context(), pool, cityCode)
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, "internal error")
+		return false
+	}
+	if !exists {
+		respondError(c, http.StatusBadRequest, "unknown city")
+		return false
+	}
+	return true
+}
+
+func validClubVisibility(v string) bool { return v == "public" || v == "private" }
+
+// requireOwnerOrAdmin is requireMember for the actions DP-017 gives to
+// both roles (deciding join requests).
+func requireOwnerOrAdmin(c *gin.Context, pool *pgxpool.Pool, clubID string) bool {
+	user := authjwt.CurrentUser(c)
+	m, err := dbpkg.GetMembership(c.Request.Context(), pool, clubID, user.ID)
+	if errors.Is(err, dbpkg.ErrNotFound) {
+		respondError(c, http.StatusForbidden, "not a member of this club")
+		return false
+	}
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, "internal error")
+		return false
+	}
+	if !isOwnerOrAdmin(m.Role) {
+		respondError(c, http.StatusForbidden, "only an owner or admin can do this")
+		return false
+	}
+	return true
+}
+
 func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier) {
 	authed := rg.Group("")
 	authed.Use(authjwt.RequireAuth(verifier))
@@ -38,13 +82,29 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		var body struct {
 			Name        string  `json:"name"`
 			Description *string `json:"description"`
+			// DP-017: a city is required for a new Club; visibility
+			// defaults to "public".
+			CityCode   string  `json:"cityCode"`
+			Visibility *string `json:"visibility"`
 		}
-		if err := c.ShouldBindJSON(&body); err != nil || body.Name == "" {
+		if err := c.ShouldBindJSON(&body); err != nil || strings.TrimSpace(body.Name) == "" {
 			respondError(c, http.StatusBadRequest, "name is required")
 			return
 		}
+		cityCode := strings.TrimSpace(body.CityCode)
+		if !requireCity(c, pool, cityCode) {
+			return
+		}
+		visibility := "public"
+		if body.Visibility != nil {
+			if !validClubVisibility(*body.Visibility) {
+				respondError(c, http.StatusBadRequest, `visibility must be "public" or "private"`)
+				return
+			}
+			visibility = *body.Visibility
+		}
 		user := authjwt.CurrentUser(c)
-		club, err := dbpkg.CreateClub(c.Request.Context(), pool, body.Name, body.Description, user.ID)
+		club, err := dbpkg.CreateClub(c.Request.Context(), pool, strings.TrimSpace(body.Name), body.Description, cityCode, visibility, user.ID)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
@@ -61,6 +121,130 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		c.JSON(http.StatusOK, clubs)
 	})
+
+	// --- DP-017 Community Discovery & Joining ---------------------------
+	// Everything here is open to any signed-in user with a profile, member
+	// or not, except deciding join requests.
+
+	// Registered before /clubs/:clubId; gin matches the static segment
+	// first, so "search" is never read as a club id.
+	authed.GET("/clubs/search", func(c *gin.Context) {
+		q := strings.TrimSpace(c.Query("q"))
+		if utf8.RuneCountInString(q) < 2 {
+			c.JSON(http.StatusOK, []struct{}{})
+			return
+		}
+		user := authjwt.CurrentUser(c)
+		clubs, err := dbpkg.SearchClubs(c.Request.Context(), pool, user.ID, q)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, clubs)
+	})
+
+	// Explore before a search is typed: Communities in the caller's own
+	// city that they haven't joined. [] if they have set no city.
+	authed.GET("/clubs/in-my-city", func(c *gin.Context) {
+		user := authjwt.CurrentUser(c)
+		if user.CityCode == nil {
+			c.JSON(http.StatusOK, []struct{}{})
+			return
+		}
+		clubs, err := dbpkg.ListClubsInCity(c.Request.Context(), pool, user.ID, *user.CityCode)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, clubs)
+	})
+
+	// What a shared link opens: enough to recognise the Club and decide
+	// whether to join, nothing member-only.
+	authed.GET("/clubs/:clubId/preview", func(c *gin.Context) {
+		user := authjwt.CurrentUser(c)
+		preview, err := dbpkg.GetClubPreview(c.Request.Context(), pool, user.ID, c.Param("clubId"))
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "club not found")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, preview)
+	})
+
+	// Public Club: the caller becomes a member. Private Club: a join
+	// request is recorded. Returns the preview either way, whose
+	// viewerRole / viewerRequestPending say which happened.
+	authed.POST("/clubs/:clubId/join", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		user := authjwt.CurrentUser(c)
+		ctx := c.Request.Context()
+		err := dbpkg.JoinClub(ctx, pool, clubID, user.ID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "club not found")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		preview, err := dbpkg.GetClubPreview(ctx, pool, user.ID, clubID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, preview)
+	})
+
+	// The caller withdraws their own pending request.
+	authed.DELETE("/clubs/:clubId/join-request", func(c *gin.Context) {
+		user := authjwt.CurrentUser(c)
+		if err := dbpkg.CancelJoinRequest(c.Request.Context(), pool, c.Param("clubId"), user.ID); err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	authed.GET("/clubs/:clubId/join-requests", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		if !requireOwnerOrAdmin(c, pool, clubID) {
+			return
+		}
+		requests, err := dbpkg.ListPendingJoinRequests(c.Request.Context(), pool, clubID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, requests)
+	})
+
+	decide := func(approve bool) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			clubID := c.Param("clubId")
+			if !requireOwnerOrAdmin(c, pool, clubID) {
+				return
+			}
+			user := authjwt.CurrentUser(c)
+			err := dbpkg.DecideJoinRequest(c.Request.Context(), pool, clubID, c.Param("requestId"), user.ID, approve)
+			if errors.Is(err, dbpkg.ErrNotFound) {
+				respondError(c, http.StatusNotFound, "this request is no longer pending")
+				return
+			}
+			if err != nil {
+				respondError(c, http.StatusInternalServerError, "internal error")
+				return
+			}
+			c.Status(http.StatusNoContent)
+		}
+	}
+	authed.POST("/clubs/:clubId/join-requests/:requestId/approve", decide(true))
+	authed.POST("/clubs/:clubId/join-requests/:requestId/decline", decide(false))
+
+	// --------------------------------------------------------------------
 
 	authed.GET("/clubs/:clubId", func(c *gin.Context) {
 		clubID := c.Param("clubId")
@@ -92,12 +276,23 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		var body struct {
 			Name        *string `json:"name"`
 			Description *string `json:"description"`
+			CityCode    *string `json:"cityCode"`
+			Visibility  *string `json:"visibility"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			respondError(c, http.StatusBadRequest, "invalid body")
 			return
 		}
-		club, err := dbpkg.UpdateClub(c.Request.Context(), pool, clubID, body.Name, body.Description)
+		if body.CityCode != nil && !requireCity(c, pool, strings.TrimSpace(*body.CityCode)) {
+			return
+		}
+		if body.Visibility != nil && !validClubVisibility(*body.Visibility) {
+			respondError(c, http.StatusBadRequest, `visibility must be "public" or "private"`)
+			return
+		}
+		club, err := dbpkg.UpdateClub(c.Request.Context(), pool, clubID, dbpkg.ClubUpdate{
+			Name: body.Name, Description: body.Description, CityCode: body.CityCode, Visibility: body.Visibility,
+		})
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
@@ -123,7 +318,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 	})
 
 	// Club profile picture — owner only to set (same permission as PATCH
-	// /clubs/:clubId), any member can view. Same size/content-type
+	// /clubs/:clubId), anyone signed in can view. Same size/content-type
 	// validation as every other image upload in the app.
 	authed.POST("/clubs/:clubId/avatar", func(c *gin.Context) {
 		clubID := c.Param("clubId")
@@ -165,11 +360,10 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		c.JSON(http.StatusOK, club)
 	})
 
+	// Visible to any signed-in user, not only members: a Club's picture is
+	// part of what search results and a shared link show (DP-017).
 	authed.GET("/clubs/:clubId/avatar", func(c *gin.Context) {
 		clubID := c.Param("clubId")
-		if _, _, ok := requireMember(c, pool, clubID); !ok {
-			return
-		}
 		img, err := dbpkg.GetClubAvatarImage(c.Request.Context(), pool, clubID)
 		if errors.Is(err, dbpkg.ErrNotFound) {
 			respondError(c, http.StatusNotFound, "this club has no profile picture")

@@ -15,7 +15,9 @@ import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';
-import { getClub, listMembers, clubAvatarUrl, uploadClubAvatar } from '../../core/clubs/api';
+import { getClub, listJoinRequests, listMembers, clubAvatarUrl, uploadClubAvatar } from '../../core/clubs/api';
+import { clubLink, shareLink } from '../../platform/shareLink';
+import { Card } from '../../design-system/ui/Card';
 import { listSessions } from '../../core/sessions/api';
 import { formatSessionDateTime } from '../../core/sessions/sessionSchedule';
 import { currentFocusSessions } from '../../core/sessions/currentFocus';
@@ -51,6 +53,9 @@ export function ClubDetailScreen({
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  // DP-017: how many people are waiting to be let into a private
+  // Community — only meaningful (and only fetchable) for owner/admins.
+  const [pendingRequests, setPendingRequests] = useState(0);
   // GET .../avatar is behind the same auth as every other route — fetched
   // once per mount, same convention as ClubMembersScreen/SessionChat's own
   // image headers.
@@ -72,7 +77,9 @@ export function ClubDetailScreen({
       setIsOwner(members.some((m) => m.userId === profile?.id && m.role === 'owner'));
       // Recurring Schedules is an organizer-only management surface
       // (DP-007) — owner or admin, same as who can create Sessions.
-      setIsOwnerOrAdmin(members.some((m) => m.userId === profile?.id && (m.role === 'owner' || m.role === 'admin')));
+      const organizer = members.some((m) => m.userId === profile?.id && (m.role === 'owner' || m.role === 'admin'));
+      setIsOwnerOrAdmin(organizer);
+      setPendingRequests(organizer ? (await listJoinRequests(clubId).catch(() => [])).length : 0);
     } catch {
       // leave stale state; user can back out and retry
     } finally {
@@ -112,6 +119,14 @@ export function ClubDetailScreen({
     }
   }
 
+  // Any member can share the Community's link (DP-017).
+  async function handleShare() {
+    if (!club) return;
+    const outcome = await shareLink(clubLink(clubId), club.name);
+    if (outcome === 'copied') appAlert(t('clubLinkCopiedTitle'), t('clubLinkCopiedDesc'));
+    else if (outcome === 'failed') appAlert(t('clubLinkShareFailed'), clubLink(clubId));
+  }
+
   if (loading || !club) {
     return (
       <Page>
@@ -128,11 +143,16 @@ export function ClubDetailScreen({
         <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
           <Icon name="arrow-back" size="lg" />
         </Pressable>
-        {isOwner && (
-          <Pressable className="p-2 -mr-2 active:opacity-60" onPress={() => onOpenClubSettings(clubId)}>
-            <Icon name="settings-outline" size="lg" />
+        <HStack space="sm" className="items-center">
+          <Pressable className="p-2 active:opacity-60" onPress={handleShare} accessibilityLabel={t('clubShareLink')}>
+            <Icon name="share-outline" size="lg" />
           </Pressable>
-        )}
+          {isOwner && (
+            <Pressable className="p-2 -mr-2 active:opacity-60" onPress={() => onOpenClubSettings(clubId)}>
+              <Icon name="settings-outline" size="lg" />
+            </Pressable>
+          )}
+        </HStack>
       </HStack>
 
       <HStack space="md" className="items-center">
@@ -149,6 +169,14 @@ export function ClubDetailScreen({
         </Pressable>
         <VStack space="xs" style={{ flex: 1 }}>
           <Typography variant="display">{club.name}</Typography>
+          {club.cityName && (
+            <HStack space="xs" className="items-center">
+              <Icon name="location-outline" size="xs" color="muted" />
+              <Typography variant="body" color="muted" className="text-sm">
+                {club.cityName}
+              </Typography>
+            </HStack>
+          )}
           {club.description && (
             <Typography variant="body" color="muted">
               {club.description}
@@ -156,6 +184,22 @@ export function ClubDetailScreen({
           )}
         </VStack>
       </HStack>
+
+      {pendingRequests > 0 && (
+        <Card pressable onPress={() => onOpenMembers(clubId)}>
+          <HStack className="justify-between items-center" space="md">
+            <VStack space="xs" style={{ flex: 1 }}>
+              <Typography variant="body" className="font-bold">
+                {t('clubJoinRequestsTitle', pendingRequests)}
+              </Typography>
+              <Typography variant="body" color="muted">
+                {t('clubJoinRequestsCallout')}
+              </Typography>
+            </VStack>
+            <Icon name="chevron-forward" size="sm" color="muted" />
+          </HStack>
+        </Card>
+      )}
 
       <VStack space="sm">
         <Typography variant="caption" color="muted">

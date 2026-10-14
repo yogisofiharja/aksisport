@@ -65,8 +65,9 @@ export function PersonalTabs() {
           tabBarLabel: t('tabExplore'),
           tabBarIcon: ({ focused }) => <Icon name={focused ? 'compass' : 'compass-outline'} color={focused ? 'secondary' : 'muted'} />,
         }}
-        component={ExploreScreen}
-      />
+      >
+        {() => <ExploreScreen onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })} />}
+      </Tab.Screen>
 
       <Tab.Screen
         name="Inbox"

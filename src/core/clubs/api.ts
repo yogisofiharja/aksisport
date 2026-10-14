@@ -1,11 +1,61 @@
 import { apiFetch, apiUrl } from '../api/client';
-import type { Club, ClubBankAccount, ClubMember, ClubRole, ClubWithRole } from '../api/types';
+import type {
+  Club,
+  ClubBankAccount,
+  ClubJoinRequest,
+  ClubMember,
+  ClubPreview,
+  ClubRole,
+  ClubVisibility,
+  ClubWithRole,
+} from '../api/types';
 
-export function createClub(name: string, description?: string): Promise<Club> {
+export function createClub(
+  name: string,
+  details: { cityCode: string; visibility: ClubVisibility; description?: string }
+): Promise<Club> {
   return apiFetch('/v1/clubs', {
     method: 'POST',
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify({ name, ...details }),
   });
+}
+
+// --- Discovery & joining (DP-017) ---
+
+// Communities whose name, city or province contains `query`. The server answers
+// [] under two characters.
+export function searchClubs(query: string): Promise<ClubPreview[]> {
+  return apiFetch(`/v1/clubs/search?q=${encodeURIComponent(query)}`);
+}
+
+// Communities in the caller's own city that they haven't joined — what
+// Explore shows before a search is typed. [] if they have set no city.
+export function listClubsInMyCity(): Promise<ClubPreview[]> {
+  return apiFetch('/v1/clubs/in-my-city');
+}
+
+// Open to anyone signed in, member or not.
+export function getClubPreview(clubId: string): Promise<ClubPreview> {
+  return apiFetch(`/v1/clubs/${clubId}/preview`);
+}
+
+// Public Community: the caller becomes a member (viewerRole is set in the
+// answer). Private: a join request is recorded (viewerRequestPending).
+export function joinClub(clubId: string): Promise<ClubPreview> {
+  return apiFetch(`/v1/clubs/${clubId}/join`, { method: 'POST' });
+}
+
+export function cancelJoinRequest(clubId: string): Promise<void> {
+  return apiFetch(`/v1/clubs/${clubId}/join-request`, { method: 'DELETE' });
+}
+
+// Owner/admin only.
+export function listJoinRequests(clubId: string): Promise<ClubJoinRequest[]> {
+  return apiFetch(`/v1/clubs/${clubId}/join-requests`);
+}
+
+export function decideJoinRequest(clubId: string, requestId: string, decision: 'approve' | 'decline'): Promise<void> {
+  return apiFetch(`/v1/clubs/${clubId}/join-requests/${requestId}/${decision}`, { method: 'POST' });
 }
 
 export function listClubs(): Promise<ClubWithRole[]> {
@@ -16,7 +66,10 @@ export function getClub(clubId: string): Promise<Club> {
   return apiFetch(`/v1/clubs/${clubId}`);
 }
 
-export function updateClub(clubId: string, updates: { name?: string; description?: string }): Promise<Club> {
+export function updateClub(
+  clubId: string,
+  updates: { name?: string; description?: string; cityCode?: string; visibility?: ClubVisibility }
+): Promise<Club> {
   return apiFetch(`/v1/clubs/${clubId}`, {
     method: 'PATCH',
     body: JSON.stringify(updates),
