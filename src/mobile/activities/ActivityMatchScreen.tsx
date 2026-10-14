@@ -8,11 +8,12 @@ import {
   createInitialState,
   endMatchNow,
   getPointLabel,
+  getServerTeam,
   MatchConfig,
   MatchState,
   Team,
 } from '../../sports/tennis/scoringEngine';
-import type { TeamNames } from '../../appTypes';
+import type { TeamASide, TeamNames } from '../../appTypes';
 import type { ActivityParticipant } from '../../core/api/types';
 import { getActivity, startActivity, completeActivity } from '../../core/activities/api';
 import { ApiRequestError } from '../../core/api/client';
@@ -21,13 +22,17 @@ import { prefetchAudio, initAudio, playApplause } from '../../audio';
 import { cancelSpeech, loadTTSPreferences, speakText, speakTextWithCallback } from '../../tts';
 import {
   deleteLiveMatch,
+  readLiveMatch,
   pushLiveMatchState,
   subscribeToLiveMatch,
-  SessionPayload,
+  LiveMatchPayload,
 } from '../../sessionSync';
 import { isFirebaseReady } from '../../firebase';
 import { MobileMatchScreen } from '../MobileMatchScreen';
-import { MobileFinalScreen } from '../MobileFinalScreen';
+import { MatchResultScreen } from './MatchResultScreen';
+import { MatchStartScreen } from './MatchStartScreen';
+import { buildServiceOrder } from '../../core/activities/buildGeneratedMatchPayload';
+import { appAlert } from '../../design-system/feedback/appAlert';
 import { NativeShareModal } from '../../components/NativeShareModal';
 import type { NativeShareData } from '../../components/NativeShareModal';
 import { useTranslation } from '../../i18n';
@@ -35,6 +40,9 @@ import { useTranslation } from '../../i18n';
 type Props = {
   activityId: string;
   onDone: () => void;
+  // After a finished match: back to its Session's matches, to pick the
+  // next one.
+  onNextMatch: (sessionId: string) => void;
 };
 
 function cloneState(state: MatchState): MatchState {
@@ -47,7 +55,11 @@ function resolveScorerName(participants: ActivityParticipant[], scorerUserId: st
   return p?.displayName || p?.username || null;
 }
 
-export function ActivityMatchScreen({ activityId, onDone }: Props) {
+function normalizeSide(side: string | undefined): TeamASide {
+  return side === 'right' ? 'right' : 'left';
+}
+
+export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) {
   const { t } = useTranslation();
   const { firebaseUser, profile } = useAuth();
   const [matchState, setMatchState] = useState<MatchState | null>(null);
@@ -58,6 +70,15 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nativeShareData, setNativeShareData] = useState<NativeShareData | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  // Opened after it finished (from the Matches list): a back arrow on the
+  // result, not "Next match".
+  const [openedFinished, setOpenedFinished] = useState(false);
+  // DP-022: a match that hasn't started opens on the start screen (sides,
+  // first server); its stored config waits here until Start.
+  const [pendingConfig, setPendingConfig] = useState<MatchConfig | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [teamASide, setTeamASide] = useState<TeamASide>('left');
 
   const startedRef = useRef(false);
   const completedRef = useRef(false);
@@ -74,6 +95,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
       startedRef.current = true;
       try {
         const detail = await getActivity(activityId);
+        setSessionId(detail.sessionId);
         const config = detail.config as MatchConfig;
 
         // Already finished before this device ever opened it — render the
@@ -81,6 +103,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
         // the live node may already be gone (see cleanup notes below).
         if (detail.status === 'completed') {
           completedRef.current = true;
+          setOpenedFinished(true);
           const scorerUserId = detail.scorerUserId ?? null;
           setIsScorer(scorerUserId != null && scorerUserId === profile?.id);
           setScorerName(resolveScorerName(detail.participants, scorerUserId));
@@ -90,38 +113,33 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
           return;
         }
 
-        let scorerUserId = detail.scorerUserId ?? null;
+        // Not started yet: the start screen comes first (DP-022).
         if (detail.status === 'queued') {
-          try {
-            const started = await startActivity(activityId);
-            scorerUserId = started.scorerUserId ?? null;
-          } catch (err) {
-            // 409 = someone else's device already started it — fine, just join
-            // as whichever role we actually end up being once we re-check.
-            if (err instanceof ApiRequestError && err.status === 409) {
-              const refreshed = await getActivity(activityId);
-              scorerUserId = refreshed.scorerUserId ?? null;
-            } else {
-              throw err;
-            }
-          }
+          setScorerName(null);
+          setPendingConfig(config);
+          setLoading(false);
+          return;
         }
 
+        const scorerUserId = detail.scorerUserId ?? null;
         const iAmScorer = scorerUserId != null && scorerUserId === profile?.id;
         setIsScorer(iAmScorer);
         setScorerName(resolveScorerName(detail.participants, scorerUserId));
-        setMatchState(createInitialState(config));
 
-        if (!iAmScorer) {
-          if (!isFirebaseReady) {
-            setError(t('activityLiveUnavailable'));
+        if (iAmScorer) {
+          // Reopening a match in progress: carry on from the live copy
+          // rather than restarting at 0–0 (and overwriting it).
+          const saved = await readLiveMatch(activityId);
+          if (saved?.matchState) {
+            setMatchState(saved.matchState);
+            setHistory(saved.history ?? []);
+            setTeamASide(normalizeSide(saved.teamASide));
           } else {
-            unsubscribeLiveRef.current = subscribeToLiveMatch(activityId, (payload) => {
-              if (!payload) return; // no live data yet/anymore — keep last-known local state
-              if (payload.matchState) setMatchState(payload.matchState);
-              if (payload.history) setHistory(payload.history);
-            });
+            setMatchState(createInitialState(config));
           }
+        } else {
+          setMatchState(createInitialState(config));
+          watchAsSpectator();
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : t('activityLoadError'));
@@ -136,23 +154,75 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
       // Deliberately does NOT delete the live match node here. A scorer
       // backing out of this screen (accidentally, or to reopen later) must
       // not wipe the last known score out from under any spectators — see
-      // handleLeaveLiveSession for the only explicit deletion path.
+      // handleNextMatch for the only explicit deletion path.
     };
   }, [activityId]);
+
+  function watchAsSpectator() {
+    if (!isFirebaseReady) {
+      setError(t('activityLiveUnavailable'));
+      return;
+    }
+    unsubscribeLiveRef.current?.();
+    unsubscribeLiveRef.current = subscribeToLiveMatch(activityId, (payload) => {
+      if (!payload) return; // no live data yet/anymore — keep last-known local state
+      if (payload.matchState) setMatchState(payload.matchState);
+      if (payload.history) setHistory(payload.history);
+      setTeamASide(normalizeSide(payload.teamASide));
+    });
+  }
+
+  // Start: claim the scorer role, then begin with the chosen sides and
+  // first server. If another device started it first, watch instead.
+  async function handleStart(choice: { teamASide: TeamASide; firstServerId: string }) {
+    if (!pendingConfig || starting) return;
+    setStarting(true);
+    try {
+      const started = await startActivity(activityId);
+      const scorerUserId = started.scorerUserId ?? null;
+      const iAmScorer = scorerUserId != null && scorerUserId === profile?.id;
+      setIsScorer(iAmScorer);
+      if (iAmScorer) {
+        setMatchState(
+          createInitialState({ ...pendingConfig, serviceOrderPlayerIds: buildServiceOrder(pendingConfig.players, choice.firstServerId) })
+        );
+        setTeamASide(choice.teamASide);
+      } else {
+        setMatchState(createInitialState(pendingConfig));
+        watchAsSpectator();
+      }
+      setPendingConfig(null);
+    } catch (err) {
+      if (err instanceof ApiRequestError && err.status === 409) {
+        // Someone else's device started it — watch their scoring.
+        const refreshed = await getActivity(activityId).catch(() => null);
+        setScorerName(refreshed ? resolveScorerName(refreshed.participants, refreshed.scorerUserId ?? null) : null);
+        setIsScorer(false);
+        setMatchState(createInitialState(pendingConfig));
+        setPendingConfig(null);
+        watchAsSpectator();
+        appAlert(t('matchStartedElsewhere'));
+      } else {
+        appAlert(t('activityLoadError'));
+      }
+    } finally {
+      setStarting(false);
+    }
+  }
 
   // Push live state to Firebase — scorer only.
   useEffect(() => {
     if (!isScorer || !matchState) return;
-    const payload: SessionPayload = {
+    const payload: LiveMatchPayload = {
       matchState,
       history,
-      teamASide: 'left',
+      teamASide,
       updatedAt: Date.now(),
       activityId,
       scorerUid: firebaseUser?.uid,
     };
     pushLiveMatchState(activityId, payload);
-  }, [isScorer, matchState, history]);
+  }, [isScorer, matchState, history, teamASide]);
 
   const teamNames: TeamNames = useMemo(() => {
     if (!matchState) return { A: '', B: '' };
@@ -192,7 +262,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
       const winnerName = gameWonByA ? teamNames.A : teamNames.B;
       let intro: string;
       let standing: string;
-      const nextServerIsA = next.currentServerPlayerId.startsWith('A');
+      const nextServerIsA = getServerTeam(next) === 'A';
       if (setWonByA || setWonByB) {
         const setNum = prev.completedSets.length + 1;
         const ordinal = ORDINAL[setNum] ?? `${setNum}th`;
@@ -217,7 +287,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
     } else {
       const labelA = getPointLabel(next, 'A');
       const labelB = getPointLabel(next, 'B');
-      const serverIsA = next.currentServerPlayerId.startsWith('A');
+      const serverIsA = getServerTeam(next) === 'A';
       let text: string;
       if (labelA === 'D' || labelA === 'SD') {
         text = POINT[labelA] ?? labelA;
@@ -301,9 +371,12 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
     });
   }
 
-  function handleLeaveLiveSession() {
-    deleteLiveMatch(activityId);
-    onDone();
+  // Leaving a finished match for the next one. Its result is saved on the
+  // server, so the scorer clears the live copy spectators were following.
+  function handleNextMatch() {
+    if (isScorer) deleteLiveMatch(activityId);
+    if (sessionId) onNextMatch(sessionId);
+    else onDone();
   }
 
   if (loading) {
@@ -313,6 +386,10 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
         <Text className="mt-4 text-slate-500 dark:text-slate-400">{t('activityLoading')}</Text>
       </SafeAreaView>
     );
+  }
+
+  if (pendingConfig) {
+    return <MatchStartScreen players={pendingConfig.players} starting={starting} onBack={onDone} onStart={handleStart} />;
   }
 
   if (error || !matchState) {
@@ -327,15 +404,12 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
   if (matchState.isEnded) {
     return (
       <>
-        <MobileFinalScreen
+        <MatchResultScreen
           matchState={matchState}
           teamNames={teamNames}
-          sessionCode={null}
-          readOnly={!isScorer}
           onShare={handleShare}
-          onBackToSetup={onDone}
-          onClearSavedState={isScorer ? handleLeaveLiveSession : onDone}
-          onShowHistory={onDone}
+          onNextMatch={openedFinished ? undefined : handleNextMatch}
+          onBack={openedFinished ? onDone : undefined}
         />
         <NativeShareModal data={nativeShareData} onClose={() => setNativeShareData(null)} />
       </>
@@ -347,7 +421,7 @@ export function ActivityMatchScreen({ activityId, onDone }: Props) {
       <MobileMatchScreen
         matchState={matchState}
         teamNames={teamNames}
-        teamASide="left"
+        teamASide={teamASide}
         history={history}
         hasUndo={history.length > 0 && (
           matchState.points.A > 0 ||

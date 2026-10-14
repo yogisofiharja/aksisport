@@ -25,6 +25,49 @@ func RegisterNotificationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 		c.JSON(http.StatusOK, gin.H{"publicKey": notifier.WebPublicKey()})
 	})
 
+	// DP-018 Settings: which kinds push to the caller's devices.
+	profiled.GET("/me/notification-settings", func(c *gin.Context) {
+		settings, err := dbpkg.NotificationSettings(c.Request.Context(), pool, authjwt.CurrentUser(c).ID, notify.Categories)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, settings)
+	})
+
+	// {category: enabled, ...}; unknown categories are rejected.
+	profiled.PATCH("/me/notification-settings", func(c *gin.Context) {
+		var req map[string]bool
+		if err := c.ShouldBindJSON(&req); err != nil || len(req) == 0 {
+			respondError(c, http.StatusBadRequest, "invalid request")
+			return
+		}
+		known := map[string]bool{}
+		for _, category := range notify.Categories {
+			known[category] = true
+		}
+		for category := range req {
+			if !known[category] {
+				respondError(c, http.StatusBadRequest, "unknown notification kind")
+				return
+			}
+		}
+		ctx := c.Request.Context()
+		me := authjwt.CurrentUser(c).ID
+		for category, enabled := range req {
+			if err := dbpkg.SetNotificationSetting(ctx, pool, me, category, enabled); err != nil {
+				respondError(c, http.StatusInternalServerError, "internal error")
+				return
+			}
+		}
+		settings, err := dbpkg.NotificationSettings(ctx, pool, me, notify.Categories)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, settings)
+	})
+
 	// Register this device for the caller. Called again on every sign-in
 	// so a device follows whoever is signed in on it.
 	profiled.POST("/me/push-subscriptions", func(c *gin.Context) {

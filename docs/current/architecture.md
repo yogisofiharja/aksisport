@@ -24,11 +24,9 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
     no-op on web, so prompts go through `appAlert`, which shows an in-app
     modal there), and the `.web.ts` utilities next to `audio`, `tts`,
     `storage`, `imagePicker`.
-- **Legacy scorer** — the original no-login tennis scorer
-  (`src/mobile/ScoringFlow.tsx`, `src/components/`). Web used to render
-  it instead of the Aksi app. It is now served only by Vercel, from the
-  frozen `scorer` branch; on this branch the code is still present but
-  no platform's entry point reaches it.
+- **Legacy scorer** — the original no-login tennis scorer. It is served
+  only by Vercel, from the frozen `scorer` branch, and is no longer in
+  this codebase.
 - **Backend** — Go + Gin, module `github.com/yogisofiharja/aksi-server`,
   in `server/`, own `go.mod` (not part of the npm workspace). Talks to
   Postgres via `pgx/v5` (no ORM). Verifies Firebase ID tokens directly
@@ -91,9 +89,8 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
 - `src/sports/tennis/scoringEngine.ts` — the one clearly-isolated
   domain module: pure functions (`createInitialState`, `addPoint`,
   `endMatchNow`), no I/O, no React, no knowledge of clubs/sessions.
-  Used identically by web (`src/components/`) and mobile
-  (`src/mobile/activities/ActivityMatchScreen.tsx`,
-  `src/mobile/ScoringFlow.tsx`).
+  Used by Session matches (`src/mobile/activities/ActivityMatchScreen.tsx`)
+  on every platform.
 
 ## Sport modules
 

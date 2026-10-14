@@ -60,7 +60,7 @@ func NewRouter(d Deps) *gin.Engine {
 	RegisterChatRoutes(v1, pool, verifier, hub, msgs)
 	RegisterPlayerActivityRoutes(v1, pool, verifier)
 	RegisterLocationRoutes(v1, pool, verifier)
-	RegisterSessionRoutes(v1, pool, verifier, msgs)
+	RegisterSessionRoutes(v1, pool, verifier, msgs, d.Notifier)
 	RegisterActivityRoutes(v1, pool, verifier)
 	RegisterRecurringScheduleRoutes(v1, pool, verifier)
 	RegisterSkillLevelRoutes(v1, pool, verifier)

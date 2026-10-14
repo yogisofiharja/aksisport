@@ -241,7 +241,8 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 				return
 			}
 			user := authjwt.CurrentUser(c)
-			err := dbpkg.DecideJoinRequest(c.Request.Context(), pool, clubID, c.Param("requestId"), user.ID, approve)
+			ctx := c.Request.Context()
+			requesterID, err := dbpkg.DecideJoinRequest(ctx, pool, clubID, c.Param("requestId"), user.ID, approve)
 			if errors.Is(err, dbpkg.ErrNotFound) {
 				respondError(c, http.StatusNotFound, "this request is no longer pending")
 				return
@@ -249,6 +250,17 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			if err != nil {
 				respondError(c, http.StatusInternalServerError, "internal error")
 				return
+			}
+			// DP-018 #2: tell the person they're in. A decline is not
+			// announced.
+			if approve {
+				if club, err := dbpkg.GetClub(ctx, pool, clubID); err == nil {
+					notifier.Send(ctx, []string{requesterID}, user.ID, notify.Notification{
+						Type:   notify.TypeCommunityJoinApproved,
+						Params: map[string]string{"club": club.Name},
+						Path:   "/clubs/" + clubID,
+					})
+				}
 			}
 			c.Status(http.StatusNoContent)
 		}

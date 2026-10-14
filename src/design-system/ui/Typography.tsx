@@ -35,8 +35,8 @@ const colorClass: Record<TypographyColor, string> = {
   brand: 'text-primary-600',
   // Matches Button's action="secondary" (`ui/Button.tsx`'s outline/ghost
   // text color) — blue-600 is the color actually behind most interactive
-  // accents across the app (Create/Join buttons, selected chips), despite
-  // "brand" formally being the amber token. Added for screens that need
+  // accents across the app (Create/Join buttons, selected chips); "brand"
+  // is blue too now (no orange anywhere). Added for screens that need
   // that same accent in plain text/icons, not just inside a Button.
   secondary: 'text-blue-600',
   destructive: 'text-red-500',

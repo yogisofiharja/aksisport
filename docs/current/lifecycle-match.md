@@ -2,8 +2,8 @@
 
 This is the client-side state machine in
 `src/sports/tennis/scoringEngine.ts` — pure functions, no I/O. It runs
-identically on web and mobile, and both inside a Phase-3 Activity
-(`ActivityMatchScreen`) and in the legacy local flow (`ScoringFlow`).
+identically on web and mobile, inside a Phase-3 Activity
+(`ActivityMatchScreen`).
 It is **not** the same thing as `activities.status` in
 `lifecycle-activity.md` — a single `live` Activity's entire match plays
 out client-side inside this state machine before `complete` is ever
@@ -72,8 +72,7 @@ tiebreak is in progress) more tiebreak points → otherwise `null`
 
 ## Undo
 
-Not part of the engine itself — callers (`ScoringFlow`,
-`ActivityMatchScreen`) keep a `history: MatchState[]` array, push a
+Not part of the engine itself — the caller (`ActivityMatchScreen`) keeps a `history: MatchState[]` array, push a
 deep clone (`JSON.parse(JSON.stringify(...))`) before every
 `addPoint`/`endMatchNow` call, and undo by popping the last entry back
 into current state. The engine has no built-in undo/redo.

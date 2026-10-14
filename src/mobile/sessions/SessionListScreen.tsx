@@ -157,7 +157,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
       </Pressable>
 
       {isOwnerOrAdmin && mostRecentDraft && (
-        <Card bordered padding="md" className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+        <Card bordered padding="md" className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
           <HStack className="gap-3 items-start">
             <Icon name="document-text-outline" size="md" color="secondary" />
             <VStack space="xs" style={{ flex: 1 }}>

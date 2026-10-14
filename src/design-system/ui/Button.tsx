@@ -58,8 +58,8 @@ const variantClasses: Record<Variant, Record<Action, string>> = {
 
 const spinnerColor: Record<Variant, Record<Action, string>> = {
   solid: { primary: '#ffffff', secondary: '#ffffff', negative: '#ffffff' },
-  outline: { primary: '#d97706', secondary: '#2563eb', negative: '#dc2626' },
-  ghost: { primary: '#d97706', secondary: '#2563eb', negative: '#dc2626' },
+  outline: { primary: '#2563eb', secondary: '#2563eb', negative: '#dc2626' },
+  ghost: { primary: '#2563eb', secondary: '#2563eb', negative: '#dc2626' },
 };
 
 export function Button({
@@ -76,7 +76,9 @@ export function Button({
 }: ButtonProps) {
   const varClass = variantClasses[variant][action];
   const sizeClass = sizeClasses[size];
-  const disabled = isDisabled || loading;
+  // `disabled` (React Native's own prop) and `isDisabled` both disable and
+  // fade the button.
+  const disabled = isDisabled || loading || !!props.disabled;
 
   return (
     <Pressable

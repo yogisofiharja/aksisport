@@ -1,6 +1,6 @@
 /**
  * Semantic color tokens — composes:
- * - Tier 1 (./tokens/colors): AKSI's own brand scale (amber `primary`),
+ * - Tier 1 (./tokens/colors): AKSI's own brand scale (blue `primary`),
  *   single-sourced with tailwind.config.js (which requires the same file —
  *   see tailwind.config.js's `primaryTokens`).
  * - Tier 2 (tailwindcss/colors): Tailwind's default palette, imported
@@ -29,9 +29,9 @@ type ThemeColor = { light: string; dark: string };
 export const color = {
   brand: {
     primary: { light: brand[600], dark: brand[600] } as ThemeColor,
-    // amber-900/20 has no flat default-palette equivalent (it's an opacity
+    // blue-600/20 has no flat default-palette equivalent (it's an opacity
     // composition, not a palette entry) — stays hand-authored.
-    primarySubtle: { light: brand[50], dark: 'rgba(217, 119, 6, 0.2)' } as ThemeColor,
+    primarySubtle: { light: brand[50], dark: 'rgba(37, 99, 235, 0.2)' } as ThemeColor,
     // Not tailwind.config.js's `secondary` (#64748b, unused) — this is
     // Tailwind's default blue-600, the color actually behind every
     // action="secondary" button and the club/session management screens.

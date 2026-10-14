@@ -120,8 +120,12 @@ func RegisterParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, use
 // Returns ErrConflict if the row isn't currently 'requested' (already
 // approved, or never requested), ErrNotFound if there's no row at all.
 func ApproveParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
+	// A free Session has nothing to pay: approval registers the player
+	// straight away (DP-002, v0.24.0). A paid one puts them on the
+	// waitlist until payment is confirmed.
 	tag, err := pool.Exec(ctx,
-		`UPDATE session_participants SET status = 'waitlist'
+		`UPDATE session_participants
+		 SET status = CASE WHEN (SELECT price_model FROM sessions WHERE id = $1) = 'free' THEN 'registered' ELSE 'waitlist' END
 		 WHERE session_id = $1 AND user_id = $2 AND status = 'requested'`,
 		sessionID, userID,
 	)
@@ -387,4 +391,17 @@ func CheckInParticipantByID(ctx context.Context, pool *pgxpool.Pool, sessionID, 
 		return models.SessionParticipant{}, ErrConflict
 	}
 	return getParticipantByID(ctx, pool, sessionID, participantID)
+}
+
+// GetParticipantStatus is a member's current status in a Session;
+// ErrNotFound if they have no row.
+func GetParticipantStatus(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (string, error) {
+	var status string
+	err := pool.QueryRow(ctx,
+		"SELECT status FROM session_participants WHERE session_id = $1 AND user_id = $2", sessionID, userID,
+	).Scan(&status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrNotFound
+	}
+	return status, err
 }

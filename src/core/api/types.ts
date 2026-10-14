@@ -217,6 +217,9 @@ export type Session = {
   joinedCount: number;
   // Resolved server-side (DP-001/DP-ARCH-003) — see DerivedSessionStatus.
   lifecycleStatus: DerivedSessionStatus;
+  // DP-022: from when matches may be started (10 minutes before the start
+  // time in live use; the server decides). Absent without a start time.
+  matchesOpenAt?: string;
 };
 
 export type PriceModel = 'free' | 'per_person' | 'split_bill';

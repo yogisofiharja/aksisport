@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "sessions": {
+      "$activityId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (data.exists() ? data.child('scorerUid').val() === auth.uid : newData.child('scorerUid').val() === auth.uid)"
+      }
+    }
+  }
+}

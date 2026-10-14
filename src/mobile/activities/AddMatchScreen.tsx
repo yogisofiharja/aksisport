@@ -20,7 +20,7 @@ import type { MatchConfig, MatchFormat, MatchMode, Player, Team } from '../../sp
 import { minParticipants } from '../../sports/tennis/rules';
 import { firstCheckedInPolicy } from '../../core/sessions/scheduler';
 import { availableToPlay, generateFairRound, suggestedMatchCount, type GeneratedMatch } from '../../core/sessions/matchGenerator';
-import { buildGeneratedMatchPayload, buildServiceOrder, participantLabel } from '../../core/activities/buildGeneratedMatchPayload';
+import { buildGeneratedMatchPayload, participantLabel } from '../../core/activities/buildGeneratedMatchPayload';
 import { webSelectStyle } from '../../platform/webSelectStyle';
 
 type Props = {
@@ -72,7 +72,6 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
   // the Session's own mode).
   const [customMode, setCustomMode] = useState<MatchMode>('single');
   const [assignedOrder, setAssignedOrder] = useState<string[]>([]);
-  const [firstServerId, setFirstServerId] = useState<string | null>(null);
   const [suggestionReason, setSuggestionReason] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
@@ -92,7 +91,6 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
     });
     if (suggestion) {
       setAssignedOrder(suggestion.participantIds);
-      setFirstServerId(suggestion.participantIds[0] ?? null);
       setSuggestionReason(suggestion.reason);
     } else {
       setSuggestionReason(null);
@@ -172,7 +170,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
   const perTeam = customMode === 'double' ? 2 : 1;
   const maxAssigned = minParticipants(customMode);
   const isFull = assignedOrder.length === maxAssigned;
-  const canCreateCustom = isFull && Boolean(firstServerId) && !submitting;
+  const canCreateCustom = isFull && !submitting;
 
   function getSide(id: string): 'A' | 'B' | null {
     const idx = assignedOrder.indexOf(id);
@@ -184,7 +182,6 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
     if (next === customMode) return;
     setCustomMode(next);
     setAssignedOrder([]);
-    setFirstServerId(null);
     applySuggestion(next, participants, activities, session?.sport ?? 'tennis');
   }
 
@@ -192,7 +189,6 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
     setSuggestionReason(null);
     if (assignedOrder.includes(id)) {
       setAssignedOrder((prev) => prev.filter((p) => p !== id));
-      if (firstServerId === id) setFirstServerId(null);
       return;
     }
     if (isFull) return;
@@ -214,7 +210,6 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
         mode: customMode,
         deuceMode: singleDeuceSuddenDeath ? 'singleDeuceSuddenDeath' : 'standard',
         players,
-        serviceOrderPlayerIds: buildServiceOrder(players, firstServerId!),
         matchFormat,
       };
       const participantInputs = assigned.map((p, i) => ({
@@ -464,39 +459,12 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
               </HStack>
             )}
             {!isFull && assignedOrder.length > 0 && (
-              <Typography variant="body" className="px-5 pb-4 text-sm text-amber-600">
+              <Typography variant="body" className="px-5 pb-4 text-sm text-yellow-700 dark:text-yellow-400">
                 {t('activityNeedParticipants', maxAssigned, customMode, assignedOrder.length)}
               </Typography>
             )}
           </Card>
 
-          {isFull && (
-            <Card padding="none">
-              <Typography variant="caption" color="muted" className="px-5 pt-4 pb-2">
-                {t('firstServer')}
-              </Typography>
-              <Divider />
-              <HStack className="px-5 py-4 flex-wrap gap-2" space="sm" style={{ flexWrap: 'wrap' }}>
-                {assignedOrder.map((id) => {
-                  const p = schedulable.find((cp) => cp.id === id)!;
-                  const active = firstServerId === id;
-                  return (
-                    <Pressable
-                      key={id}
-                      onPress={() => setFirstServerId(id)}
-                      className={`px-4 py-2.5 rounded-full border-[1.5px] ${
-                        active ? 'bg-teal-600 border-teal-600' : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600'
-                      }`}
-                    >
-                      <Typography variant="label" className={active ? 'text-white' : ''}>
-                        {participantLabel(p)}
-                      </Typography>
-                    </Pressable>
-                  );
-                })}
-              </HStack>
-            </Card>
-          )}
         </>
       )}
 

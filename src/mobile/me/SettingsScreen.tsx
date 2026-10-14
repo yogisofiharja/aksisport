@@ -13,6 +13,7 @@ import { useAuth } from '../../core/auth/AuthContext';
 type Props = {
   onBack: () => void;
   onOpenBlocked: () => void;
+  onOpenNotifications: () => void;
 };
 
 const THEME_OPTIONS: { value: ThemePreference; icon: 'phone-portrait-outline' | 'sunny-outline' | 'moon-outline'; labelKey: 'followDevice' | 'light' | 'dark' }[] = [
@@ -21,7 +22,7 @@ const THEME_OPTIONS: { value: ThemePreference; icon: 'phone-portrait-outline' | 
   { value: 'dark', icon: 'moon-outline', labelKey: 'dark' },
 ];
 
-export function SettingsScreen({ onBack, onOpenBlocked }: Props) {
+export function SettingsScreen({ onBack, onOpenBlocked, onOpenNotifications }: Props) {
   const { t, lang, setLang } = useTranslation();
   const { preference, setPreference } = useTheme();
   const { signOut } = useAuth();
@@ -78,6 +79,18 @@ export function SettingsScreen({ onBack, onOpenBlocked }: Props) {
           })}
         </VStack>
       </VStack>
+
+      <Card pressable onPress={onOpenNotifications}>
+        <HStack className="justify-between items-center" space="md">
+          <HStack space="md" className="items-center">
+            <Icon name="notifications-outline" color="muted" />
+            <Typography variant="body" className="text-lg font-bold">
+              {t('notificationSettingsTitle')}
+            </Typography>
+          </HStack>
+          <Icon name="chevron-forward" size="sm" color="muted" />
+        </HStack>
+      </Card>
 
       <VStack space="sm">
         <Typography variant="label" color="muted">

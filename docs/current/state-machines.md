@@ -38,58 +38,66 @@ directly off this state to choose Auth/CompleteProfile/Main — see
 mount
   → loading: true
   → GET /v1/activities/:id
-  → createInitialState(config)          [see lifecycle-match.md]
-  → if status === 'queued': POST /start (409 from a race is swallowed)
-  → if Firebase configured: generate a session code, no subscription (push-only)
+  → completed: show the stored result (never the live copy)
+  → queued:    show MatchStartScreen (DP-022) — nothing is started yet
+  → live, I'm the scorer: resume from the live copy (readLiveMatch) if there is
+               one, else createInitialState(config)    [see lifecycle-match.md]
+  → live, someone else scores: subscribe to the live copy (watch)
   → loading: false
 
-render branches on (loading, error, matchState.isEnded):
+MatchStartScreen (queued): pick sides (Team A left or right, "Switch sides")
+  and the first server (tap a player, or "Random": the highlight spins across
+  the players — at least 16 hops, about 3 seconds, slowing down — until it
+  stops on a random one (`spinSteps`); while it spins the line below says
+  "Choosing who serves first…" and everything else is disabled; the name
+  appears once it stops) → "Start match":
+  POST /start → I'm the scorer: createInitialState with the service order
+  rebuilt from the chosen first server (buildServiceOrder), sides kept for the
+  match. 409 (another device started first) → watch it instead, with a notice.
+
+render branches on (loading, pendingConfig, error, matchState.isEnded):
   loading            → spinner + "activityLoading" text
+  pendingConfig      → MatchStartScreen
   error || !matchState → error text + back button
-  matchState.isEnded  → MobileFinalScreen (share / back-to-session / leave-live-session)
+  matchState.isEnded  → MatchResultScreen: winner, score and "Share". Right after the
+                        match ends: "Next match" (scorer clears the live copy; back to
+                        the Session's Matches tab — goBack if that's the previous
+                        screen, else replace with SessionDetail { tab: 'matches' }).
+                        Opened later from the Matches list: a back arrow instead.
   else                → MobileMatchScreen (live scoring UI)
 ```
 
-There is no explicit "live" vs "queued" render state distinct from
-`matchState.isEnded` — the screen doesn't re-check `activities.status`
-after the initial load; it trusts local `matchState` for the rest of
-the screen's life. `startedRef`/`completedRef` guards exist only to
-prevent duplicate network calls (React effect double-invocation in
-dev), not to represent additional UI states.
+`MobileMatchScreen` has two modes (DP-022), both with Team A on the side
+`teamASide` says (part of the live copy, so spectators see the same
+sides):
+- **normal** (default): portrait, in the app's look — a tools row (voice,
+  point log, Focus mode), a games/sets card, the two teams as tappable
+  blue/red cards side by side (server marked with a ball and "SERVING"),
+  then Undo and hold-to-end;
+- **focus**: landscape, the full-screen court — each half a giant tap
+  target, score box at the top with Leave focus mode on its left and
+  voice/point log on its right, Undo on the net, hold-to-end at the bottom.
+On iOS/Android the mode is remembered (`aksi.scoringFocusMode`) and the
+phone is locked to the mode's orientation while the screen is open,
+unlocked on leaving. On web, Focus mode is offered only where full screen
+and `screen.orientation.lock` exist on a touch device (Android browsers):
+entering it requests full screen then locks landscape, and the court
+covers the whole viewport (`position: fixed`, outside the app's 520px
+column); leaving it, or leaving full screen with the browser's gesture,
+returns to normal mode. Web always opens in normal mode (full screen must
+start from a tap). Which side serves comes from
+`getServerTeam` (the server's team, looked up by player id).
 
-## ScoringFlow (`src/mobile/ScoringFlow.tsx`) — legacy, web + retired-on-mobile
+The screen doesn't re-check `activities.status` after the initial load;
+it trusts local `matchState` for the rest of the screen's life.
+`startedRef`/`completedRef` guards exist only to prevent duplicate
+network calls (React effect double-invocation in dev), not to represent
+additional UI states.
 
-Still the entire web app (`App.tsx`'s web branch renders it directly,
-no auth, no navigation library). On mobile it is no longer reachable
-from any screen (see `navigation.md`) but the file and its logic are
-unchanged and still shared with web.
+## The retired standalone scorer
 
-```
-type AppScreen = 'setup' | 'lineup' | 'match' | 'final' | 'history'
-```
-
-- **setup** (default) — `MatchSetup`/`MobileSetupScreen`. Local
-  `SetupForm` state (mode, players[], matchFormat,
-  singleDeuceSuddenDeath). Optionally generates a Firebase session code
-  here or defers to lineup.
-- **lineup** — `LineupScreen`/`MobileLineupScreen`. Assigns players to
-  teams + picks first server, builds a `MatchConfig`, calls
-  `createInitialState`, → **match**.
-- **match** — `MatchScreen`/`MobileMatchScreen`, driven by
-  `src/sports/tennis/scoringEngine.ts` exactly as in
-  `lifecycle-match.md`. On `isEnded` → **final**.
-- **final** — `FinalScoreScreen`/`MobileFinalScreen`. Share, "new
-  match" (→ **lineup**, keeping session alive), or "end session"
-  (clears everything → **setup**).
-- **history** — `HistoryScreen`/`MobileHistoryScreen`, local
-  `matchHistory` array only (not Postgres) capped at 100 entries.
-  Reachable from **final** only, returns to whichever screen requested
-  it (`historyReturnScreenRef`).
-
-Firebase RTDB sync in this flow pushes/receives `SessionPayload`
-without `activityId`/`scorerUid` (those fields are `ActivityMatchScreen`-only;
-`SessionPayload` declares them optional so both flows share one type).
-
-State persists to local storage (`src/persistence.ts`) on every
-change and rehydrates on mount — this is the only one of the four
-flows described here with offline/relaunch resume.
+The original scorer (`ScoringFlow`: setup → lineup → match → final →
+history, local-only, no sign-in) is no longer in this codebase. It is
+frozen on the `scorer` branch, served by Vercel. Session matches use
+`ActivityMatchScreen` above; its live copy in Firebase RTDB is
+`sessionSync.ts`'s `LiveMatchPayload`.

@@ -147,7 +147,7 @@ export function SessionPayment({
             <VStack className="gap-2">
               <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('sessionPaymentYourPaymentTitle')}</Text>
               <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
-                <Text className={hasPaid(myParticipant) ? 'text-green-600 font-bold' : 'text-amber-600 font-bold'}>
+                <Text className={hasPaid(myParticipant) ? 'text-green-600 font-bold' : 'text-yellow-700 dark:text-yellow-400 font-bold'}>
                   {hasPaid(myParticipant) ? t('sessionPaymentStatusPaid') : t('sessionPaymentStatusAwaiting')}
                 </Text>
                 {myParticipant.hasReceipt && (
@@ -183,7 +183,7 @@ export function SessionPayment({
                   <Text className="font-bold text-slate-900 dark:text-white" style={{ flex: 1 }} numberOfLines={1}>
                     {participantName(p)}
                   </Text>
-                  <Text className={`text-sm font-bold ${hasPaid(p) ? 'text-green-600' : 'text-amber-600'}`}>
+                  <Text className={`text-sm font-bold ${hasPaid(p) ? 'text-green-600' : 'text-yellow-700 dark:text-yellow-400'}`}>
                     {hasPaid(p) ? t('sessionPaymentStatusPaid') : t('sessionPaymentStatusAwaiting')}
                   </Text>
                   {(isOwnerOrAdmin || p.userId === myParticipant?.userId) && p.hasReceipt && (

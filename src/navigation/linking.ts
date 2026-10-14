@@ -35,6 +35,7 @@ export const linking: LinkingOptions<LinkableParamList> = {
       },
       Settings: 'settings',
       BlockedPlayers: 'settings/blocked',
+      NotificationSettings: 'settings/notifications',
       AccountEmail: 'me/email',
       Notifications: 'notifications',
       NewChat: 'messages/new',

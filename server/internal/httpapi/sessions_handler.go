@@ -1,9 +1,11 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	dbpkg "github.com/yogisofiharja/aksi-server/internal/db"
 	"github.com/yogisofiharja/aksi-server/internal/models"
+	"github.com/yogisofiharja/aksi-server/internal/notify"
 )
 
 // requireSessionAccess loads the session and the caller's role in its
@@ -177,7 +180,25 @@ func isValidSessionTransition(from, to string) bool {
 	return false
 }
 
-func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, msgs *messenger) {
+// notifySession sends a DP-018 notification about a Session, named by
+// its label; best effort.
+func notifySession(ctx context.Context, pool *pgxpool.Pool, notifier *notify.Service, sessionID string, recipients []string, actor, notificationType, path string, params map[string]string) {
+	if notifier == nil || len(recipients) == 0 {
+		return
+	}
+	label, err := dbpkg.SessionLabel(ctx, pool, sessionID)
+	if err != nil {
+		log.Printf("notify: session label %s: %v", sessionID, err)
+		return
+	}
+	if params == nil {
+		params = map[string]string{}
+	}
+	params["session"] = label
+	notifier.Send(ctx, recipients, actor, notify.Notification{Type: notificationType, Params: params, Path: path})
+}
+
+func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, msgs *messenger, notifier *notify.Service) {
 	authed := rg.Group("")
 	authed.Use(authjwt.RequireAuth(verifier))
 	authed.Use(authjwt.RequireProfile(pool))
@@ -496,10 +517,21 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		if !enforceStrictSkillLevel(c, pool, sess, user.ID) {
 			return
 		}
-		p, err := dbpkg.RegisterParticipant(c.Request.Context(), pool, sessionID, user.ID)
+		ctx := c.Request.Context()
+		before, beforeErr := dbpkg.GetParticipantStatus(ctx, pool, sessionID, user.ID)
+		p, err := dbpkg.RegisterParticipant(ctx, pool, sessionID, user.ID)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
+		}
+		// DP-018 #3: a new request (or one made again after cancelling)
+		// tells the Community's owner and admins; repeating a pending one
+		// doesn't.
+		if p.Status == "requested" && (errors.Is(beforeErr, dbpkg.ErrNotFound) || before == "cancelled") {
+			if organizers, err := dbpkg.ListClubOrganizerIDs(ctx, pool, sess.ClubID); err == nil {
+				notifySession(ctx, pool, notifier, sessionID, organizers, user.ID, notify.TypeSessionJoinRequest,
+					"/sessions/"+sessionID+"?tab=participants", map[string]string{"name": displayNameOf(user.DisplayName, user.Username)})
+			}
 		}
 		c.JSON(http.StatusOK, p)
 	})
@@ -518,7 +550,8 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusForbidden, "only owner/admin can approve a join request")
 			return
 		}
-		p, err := dbpkg.ApproveParticipant(c.Request.Context(), pool, sessionID, targetUserID)
+		ctx := c.Request.Context()
+		p, err := dbpkg.ApproveParticipant(ctx, pool, sessionID, targetUserID)
 		if errors.Is(err, dbpkg.ErrNotFound) {
 			respondError(c, http.StatusNotFound, "no join request from this user")
 			return
@@ -530,6 +563,15 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
+		}
+		// DP-018 #4: approved — on a paid Session, now pay to claim the
+		// spot; on a free one the spot is already theirs.
+		if p.Status == "registered" {
+			notifySession(ctx, pool, notifier, sessionID, []string{targetUserID}, authjwt.CurrentUser(c).ID,
+				notify.TypeSessionJoinApproved, "/sessions/"+sessionID, map[string]string{"claimed": "1"})
+		} else {
+			notifySession(ctx, pool, notifier, sessionID, []string{targetUserID}, authjwt.CurrentUser(c).ID,
+				notify.TypeSessionJoinApproved, "/sessions/"+sessionID+"?tab=payment", nil)
 		}
 		c.JSON(http.StatusOK, p)
 	})
@@ -548,7 +590,8 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusForbidden, "only owner/admin can confirm payment")
 			return
 		}
-		p, err := dbpkg.ConfirmPayment(c.Request.Context(), pool, sessionID, targetUserID)
+		ctx := c.Request.Context()
+		p, err := dbpkg.ConfirmPayment(ctx, pool, sessionID, targetUserID)
 		if errors.Is(err, dbpkg.ErrNotFound) {
 			respondError(c, http.StatusNotFound, "this participant is not on the waitlist")
 			return
@@ -561,6 +604,9 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
+		// DP-018 #6: the spot is claimed.
+		notifySession(ctx, pool, notifier, sessionID, []string{targetUserID}, authjwt.CurrentUser(c).ID,
+			notify.TypePaymentConfirmed, "/sessions/"+sessionID, nil)
 		c.JSON(http.StatusOK, p)
 	})
 
@@ -569,7 +615,8 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 	// else's. Same size/content-type validation as DP-011 Chat images.
 	authed.POST("/sessions/:id/receipt", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+		sess, _, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
 			return
 		}
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxImagePostBytes)
@@ -595,7 +642,8 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		user := authjwt.CurrentUser(c)
-		p, err := dbpkg.UploadParticipantReceipt(c.Request.Context(), pool, sessionID, user.ID, decoded, body.ImageContentType)
+		ctx := c.Request.Context()
+		p, err := dbpkg.UploadParticipantReceipt(ctx, pool, sessionID, user.ID, decoded, body.ImageContentType)
 		if errors.Is(err, dbpkg.ErrNotFound) {
 			respondError(c, http.StatusNotFound, "you must have joined or requested to join this session first")
 			return
@@ -603,6 +651,11 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
+		}
+		// DP-018 #5: a receipt to check.
+		if organizers, err := dbpkg.ListClubOrganizerIDs(ctx, pool, sess.ClubID); err == nil {
+			notifySession(ctx, pool, notifier, sessionID, organizers, user.ID, notify.TypePaymentReceipt,
+				"/sessions/"+sessionID+"?tab=payment", map[string]string{"name": displayNameOf(user.DisplayName, user.Username)})
 		}
 		c.JSON(http.StatusOK, p)
 	})

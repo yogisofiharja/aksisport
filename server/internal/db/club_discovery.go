@@ -183,10 +183,11 @@ func ListPendingJoinRequests(ctx context.Context, pool *pgxpool.Pool, clubID str
 // Club. Approving adds the requester as a member in the same transaction.
 // ErrNotFound if there is no such pending request (wrong Club, already
 // decided, or cancelled by the requester meanwhile).
-func DecideJoinRequest(ctx context.Context, pool *pgxpool.Pool, clubID, requestID, decidedBy string, approve bool) error {
+// Returns who asked.
+func DecideJoinRequest(ctx context.Context, pool *pgxpool.Pool, clubID, requestID, decidedBy string, approve bool) (string, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer tx.Rollback(ctx)
 
@@ -202,20 +203,20 @@ func DecideJoinRequest(ctx context.Context, pool *pgxpool.Pool, clubID, requestI
 		clubID, requestID, decidedBy, status,
 	).Scan(&userID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrNotFound
+		return "", ErrNotFound
 	}
 	if err != nil {
-		return err
+		return "", err
 	}
 	if approve {
 		if _, err := tx.Exec(ctx,
 			"INSERT INTO club_members (club_id, user_id, role, invited_by) VALUES ($1, $2, 'member', $3) ON CONFLICT DO NOTHING",
 			clubID, userID, decidedBy,
 		); err != nil {
-			return err
+			return "", err
 		}
 	}
-	return tx.Commit(ctx)
+	return userID, tx.Commit(ctx)
 }
 
 // ListClubsInCity backs Explore's list before a search is typed: Clubs in

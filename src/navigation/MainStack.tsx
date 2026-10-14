@@ -15,6 +15,8 @@ import { RecurringScheduleDetailScreen } from '../mobile/recurringSchedules/Recu
 import { SettingsScreen } from '../mobile/me/SettingsScreen';
 import { AccountEmailScreen } from '../mobile/me/AccountEmailScreen';
 import { NotificationsScreen } from '../mobile/notifications/NotificationsScreen';
+import { NotificationSettingsScreen } from '../mobile/notifications/NotificationSettingsScreen';
+import type { SessionTabLink } from '../mobile/sessions/SessionDetailScreen';
 import { DirectMessageScreen } from '../mobile/messages/DirectMessageScreen';
 import { PlayerSportScreen } from '../mobile/profiles/PlayerSportScreen';
 import { BlockedPlayersScreen } from '../mobile/safety/BlockedPlayersScreen';
@@ -28,6 +30,7 @@ import { DisplayNameScreen } from '../mobile/me/DisplayNameScreen';
 export type MainStackParamList = {
   Personal: undefined;
   Settings: undefined;
+  NotificationSettings: undefined;
   BlockedPlayers: undefined;
   AccountEmail: undefined;
   Notifications: undefined;
@@ -49,7 +52,7 @@ export type MainStackParamList = {
   MySessionHistory: undefined;
   CreateSession: { clubId: string };
   EditSession: { sessionId: string };
-  SessionDetail: { sessionId: string; openContactWith?: string };
+  SessionDetail: { sessionId: string; openContactWith?: string; tab?: SessionTabLink };
   AddMatch: { sessionId: string };
   ActivityMatch: { activityId: string };
   RecurringScheduleList: { clubId: string };
@@ -67,8 +70,16 @@ export function MainStack() {
 
       <Stack.Screen name="Settings">
         {({ navigation }) => (
-          <SettingsScreen onBack={() => navigation.goBack()} onOpenBlocked={() => navigation.navigate('BlockedPlayers')} />
+          <SettingsScreen
+            onBack={() => navigation.goBack()}
+            onOpenBlocked={() => navigation.navigate('BlockedPlayers')}
+            onOpenNotifications={() => navigation.navigate('NotificationSettings')}
+          />
         )}
+      </Stack.Screen>
+
+      <Stack.Screen name="NotificationSettings">
+        {({ navigation }) => <NotificationSettingsScreen onBack={() => navigation.goBack()} />}
       </Stack.Screen>
 
       <Stack.Screen name="BlockedPlayers">
@@ -300,6 +311,7 @@ export function MainStack() {
           <SessionDetailScreen
             sessionId={route.params.sessionId}
             openContactWith={route.params.openContactWith}
+            initialTab={route.params.tab}
             onBack={() => navigation.goBack()}
             onAddMatch={(sessionId) => navigation.navigate('AddMatch', { sessionId })}
             onOpenMatch={(activityId) => navigation.navigate('ActivityMatch', { activityId })}
@@ -321,7 +333,20 @@ export function MainStack() {
 
       <Stack.Screen name="ActivityMatch">
         {({ navigation, route }) => (
-          <ActivityMatchScreen activityId={route.params.activityId} onDone={() => navigation.goBack()} />
+          <ActivityMatchScreen
+            activityId={route.params.activityId}
+            onDone={() => navigation.goBack()}
+            // Normally the match was opened from its Session's Matches tab:
+            // go back there. Opened from a link, open that tab instead.
+            onNextMatch={(sessionId) => {
+              const routes = navigation.getState().routes;
+              const previous = routes[routes.length - 2];
+              const cameFromSession =
+                previous?.name === 'SessionDetail' && (previous.params as { sessionId?: string } | undefined)?.sessionId === sessionId;
+              if (cameFromSession) navigation.goBack();
+              else navigation.replace('SessionDetail', { sessionId, tab: 'matches' });
+            }}
+          />
         )}
       </Stack.Screen>
     </Stack.Navigator>

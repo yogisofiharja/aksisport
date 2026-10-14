@@ -88,4 +88,9 @@ type Session struct {
 	// retired — the frontend consumes this field instead of deriving its
 	// own copy.
 	LifecycleStatus string `json:"lifecycleStatus"`
+	// MatchesOpenAt (DP-022): from when matches may be started — the start
+	// time minus the server's early-start allowance (10 minutes in live use).
+	// Starting one before the start time makes the Session In Progress.
+	// Nil for a Session with no start time.
+	MatchesOpenAt *time.Time `json:"matchesOpenAt,omitempty"`
 }

@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.22.0
+Version: 0.26.0
 
 Status: Living Document
 
@@ -420,6 +420,9 @@ Requested --organizer approves--> Waitlist --organizer confirms
   enforced at this point — an ineligible member can't even request.
 - **Waitlist**: the organizer has approved the request, but the slot
   isn't claimed yet — the member must pay to claim it.
+- **Free Sessions skip the Waitlist** (v0.24.0): there is nothing to
+  pay, so the organizer's approval registers the member straight away
+  (Requested → Registered).
 - **Registered**: payment is confirmed and the slot is claimed. There is
   no payment gateway — the organizer receives payment outside the app
   (cash, transfer, etc.) and confirms it manually. Building an actual
@@ -920,7 +923,8 @@ planned.
 
 There is no manual "Start Session" organizer action. Once a published
 (Open) Session's scheduled start time (`startsAt`) arrives, it
-automatically transitions to In Progress. A Draft Session is
+automatically transitions to In Progress — or earlier, the moment its
+first match is started (from 10 minutes before, DP-022). A Draft Session is
 unaffected (never published, nobody could have joined) — if a Draft's
 scheduled time passes while it's still a Draft, it's caught by
 Auto-Transition below instead, which cancels it the same as any other
@@ -1102,11 +1106,10 @@ This is enforced server-side (the receipt-serving endpoint checks
 identity, not just "can view this Session"), not just hidden in the
 UI.
 
-The Payment tab itself is always present, even on a Free Session —
-Waitlist → Registered is a step in DP-002's approval chain regardless
-of price, so the "Confirm" action needs to live somewhere for free
-Sessions too. Bank accounts and receipt upload are the only pieces
-that hide when `priceModel === 'free'`.
+A Free Session has no Payment tab (v0.24.0): approving a request to join
+it registers the member straight away (DP-002), so there is no payment to
+confirm. Paid Sessions keep the tab, with its bank accounts, receipts and
+"Confirm".
 
 ### Scope
 
@@ -1631,6 +1634,81 @@ in every kind of chat)
 - No voice notes, reactions, or mentions.
 - Reports are not reviewed by an Aksi team in this decision.
 
+
+---
+
+## DP-022 — Live Scoring Screen
+
+Status
+
+Approved
+
+### Decision
+
+**Portrait, everywhere — with a Focus mode.** Scoring a match happens in
+portrait on iPhone, Android and web alike, in the app's own look (like
+the start screen below): the score at the top, the two teams side by side
+— left and right — as big cards, and tapping a team's card gives it the
+point. **Focus mode** (v0.25.0) switches to landscape: the full-screen
+court, each half one big tap target, for scoring at the court side. A
+button switches between the two; the phone apps remember the choice.
+Spectators can use either mode too. On the web, Focus mode is offered only
+where the browser can go full screen and turn to landscape (Android
+browsers); iPhone browsers can do neither and computers are landscape
+already, so they don't show the button.
+
+**Before the match starts.** Whoever opens a match that hasn't started yet
+sees a start screen first:
+
+- **Sides:** which team plays on the left and which on the right, with a
+  button to switch them.
+- **First server:** pick the player who serves first, or let the app pick
+  one at random.
+- **Start match** begins scoring; that person becomes the scorer.
+
+Sides are fixed once the match starts: there is no switching during play.
+
+**Starting matches early.** A published Session's matches can be started
+from **10 minutes before** its start time (before that, only once it is
+In Progress). Starting a match early makes the Session **In Progress**
+right away; it still ends at its scheduled end time. The 10 minutes is a
+setting of the server, so test environments can allow starting earlier.
+
+### Scope
+
+- No automatic change of ends, no switching sides mid-match.
+- The same for every match, generated or custom: creating a Custom Match
+  no longer asks for the first server — the start screen does.
+
+
+---
+
+## DP-023 — Match Umpire
+
+Status
+
+Approved
+
+### Decision
+
+Every match has an **umpire**: the one person who scores it.
+
+- **Default:** the Session's creator (the host) is the umpire of every
+  match in it.
+- **Assign:** the Community's owner or an admin can make any **checked-in
+  player** of the Session the umpire of a match — including one of the
+  players in that match — before it starts or while it is being played.
+- **Reclaim:** an owner or admin can take the umpire role of a match back
+  for themselves at any time.
+- Only the match's umpire starts it (on the start screen, DP-022) and
+  scores it. When the umpire changes during a match, scoring moves to the
+  new umpire's device from the current score; the previous umpire's device
+  becomes a spectator view.
+
+### Scope
+
+- Per match, not per Session.
+- No umpire requests or acceptance step: assigning takes effect at once.
 ---
 
 # Planning

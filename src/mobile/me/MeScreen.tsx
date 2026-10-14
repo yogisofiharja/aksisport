@@ -22,7 +22,6 @@ import type { SkillLevel, UserSkillLevel } from '../../core/api/types';
 
 type Props = {
   onOpenSettings: () => void;
-  onCreateClub: () => void;
   onOpenHistory: () => void;
   onOpenEmail: () => void;
   onOpenDisplayName: () => void;
@@ -35,7 +34,7 @@ function sportLabel(sport: string, t: (key: string) => string) {
   return sport === 'tennis' ? t('sportTennis') : sport;
 }
 
-export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEmail, onOpenDisplayName, onOpenSport }: Props) {
+export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDisplayName, onOpenSport }: Props) {
   const { t } = useTranslation();
   const { profile, refreshProfile } = useAuth();
   const sports = listSportIds();
@@ -176,13 +175,6 @@ export function MeScreen({ onOpenSettings, onCreateClub, onOpenHistory, onOpenEm
           </VStack>
         </HStack>
         <HStack space="sm" className="items-center">
-          {/* Create Community lives here, not on Home — UX-013 (Navigation
-              Follows Frequency): a deliberate, infrequent action belongs in
-              secondary navigation, not sitting among Home's everyday
-              browsing content. */}
-          <Pressable className="p-2 active:opacity-60" onPress={onCreateClub} hitSlop={8}>
-            <Icon name="add-circle-outline" size="lg" />
-          </Pressable>
           <Pressable className="p-2 -mr-2 active:opacity-60" onPress={onOpenSettings}>
             <Icon name="settings-outline" size="lg" />
           </Pressable>

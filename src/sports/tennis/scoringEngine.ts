@@ -266,6 +266,14 @@ export function endMatchNow(state: MatchState): MatchState {
   };
 }
 
+// The team of whoever is serving now. Player ids are arbitrary (database
+// ids in Session matches), so this looks the player up rather than reading
+// anything into the id.
+export function getServerTeam(state: MatchState): Team {
+  const server = state.config.players.find((p) => p.id === state.currentServerPlayerId);
+  return server ? server.team : 'A';
+}
+
 export function getServerName(state: MatchState): string {
   const server = state.config.players.find((p) => p.id === state.currentServerPlayerId);
   return server ? server.name : '-';

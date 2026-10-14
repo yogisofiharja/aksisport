@@ -6,6 +6,44 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.26.0
+
+- New DP-023: Match Umpire — every match has one umpire who scores it;
+  the Session's creator by default; owner/admins can assign any checked-in
+  player of the Session, before or during the match, and reclaim it.
+
+---
+
+## v0.25.0
+
+- DP-022: Focus mode — scoring is portrait (in the start screen's look) by
+  default; a button switches to a landscape, full-screen court and back.
+- DP-022: on the web, Focus mode only where the browser can go full screen
+  and lock landscape (Android); not on iPhone browsers or computers.
+
+---
+
+## v0.24.0
+
+- DP-002: on a Free Session, approving a request to join registers the
+  member straight away — no Waitlist, no payment step. Paid Sessions are
+  unchanged.
+- The payment decision: a Free Session no longer has a Payment tab
+  (replacing "the Payment tab is always present, even on a Free Session").
+
+---
+
+## v0.23.0
+
+- New DP-022: Live Scoring Screen — portrait on every platform; a start
+  screen before each match to set sides, left and right (switchable), and the first server
+  (picked or random); no switching sides during play.
+- DP-022: matches can start from 10 minutes before a Session's start time
+  (a server setting, raisable for testing); starting one makes the Session
+  In Progress early. DP-009 Auto-Start notes the early path.
+
+---
+
 ## v0.22.0
 
 - DP-021 step 3 changed: one "new chat" entry point (a compose icon in

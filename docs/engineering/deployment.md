@@ -185,14 +185,15 @@ manually when a domain changes.
 
 `/etc/aksi/production.env`, `/etc/aksi/production-web.env`, `/etc/aksi/staging.env`,
 `/etc/aksi/staging-web.env` live outside the repo entirely and are hand-provisioned. Fill in
-real values — DB credentials from step 3, each environment's own Firebase project:
+real values — DB credentials from step 3, each environment's own Firebase project (see
+[Firebase projects](#firebase-projects)):
 
 ```bash
 sudo mkdir -p /etc/aksi
 sudo tee /etc/aksi/production.env <<'EOF'
 PORT=8080
 DATABASE_URL=postgres://aksi_production_user:REPLACE_ME_PROD@localhost:5432/aksi_production?sslmode=disable
-FIREBASE_PROJECT_ID=<prod-firebase-project-id>
+FIREBASE_PROJECT_ID=aksi-production
 ALLOWED_ORIGINS=https://app.aksisport.com
 # Account email (DP-015). Without RESEND_API_KEY, confirmation and reset
 # codes are written to the server log instead of being emailed. MAIL_FROM
@@ -211,6 +212,9 @@ FIREBASE_SERVICE_ACCOUNT_FILE=/etc/aksi/production-firebase-admin.json
 # only from the local Caddy (TRUSTED_PROXIES defaults to 127.0.0.1,::1).
 # Without this, every visitor shares one rate limit.
 CLIENT_IP_HEADER=CF-Connecting-IP
+# Matches may start this many minutes before a Session (DP-022). Keep 10
+# in production; staging may raise it to test without waiting.
+# MATCH_EARLY_START_MINUTES=10
 # Push notifications (DP-018). Web Push keys are generated on first start
 # and stored in the database — nothing to provision. VAPID_SUBJECT is how
 # browser push services can reach the operator (defaults to
@@ -330,6 +334,122 @@ Each GitHub Actions workflow runs this in **two separate SSH steps** — first `
 `git reset --hard`, then a fresh SSH call to run `deploy.sh`. A script must never `git
 reset`/pull itself and keep executing in the same process; bash reads scripts incrementally
 from disk, so self-modifying mid-run risks corrupted execution.
+
+## Firebase projects
+
+Each environment has its own Firebase project: `aksi-staging` (staging and
+local development) and `aksi-production`. The old `poin-yuk` project
+belongs to the retired standalone scorer on Vercel and is left as it is —
+its Realtime Database has to stay open to signed-out writes, because the
+old scorer has no sign-in. Aksi's projects lock theirs down
+(`deploy/firebase/database.rules.json`: signed-in readers only; only the
+match's scorer writes).
+
+Aksi uses Firebase for sign-in (Email/Password, with the synthetic
+`<username>@accounts.aksi.app` addresses), the Realtime Database (live
+scores) and the Admin SDK (password changes). Browser push uses the API's
+own keys and email goes through Resend, so neither depends on Firebase.
+
+Steps for one environment — shown for staging; production is the same
+with `aksi-production`, `/etc/aksi/production*.env` and
+`https://app.aksisport.com`.
+
+### 1. Create the project
+
+Firebase console → **Add project** → name `aksi-staging`. Google
+Analytics is not needed. Firebase may add a suffix to make the ID unique —
+staging's is `aksi-staging-f77e7`; use the ID, not the name, everywhere
+below (`FIREBASE_PROJECT_ID`, URLs, CLI `--project`).
+
+### 2. Register the web app and copy its config
+
+Project settings → General → **Your apps** → Web (`</>`) → nickname
+`aksi-web-staging`, no Hosting. Keep the `firebaseConfig` values shown;
+they go into `/etc/aksi/staging-web.env` in step 5.
+
+### 3. Turn on sign-in
+
+Authentication → **Get started** → Sign-in method → **Email/Password** →
+Enable (leave "Email link" off). Authentication → Settings → **Authorized
+domains** → add `app-dev.aksisport.com` (`localhost` is there already).
+
+### 4. Create the Realtime Database and its rules
+
+Realtime Database → **Create database** → location **Singapore
+(asia-southeast1)** → start in **locked mode**. Then Rules → replace
+everything with the contents of `deploy/firebase/database.rules.json` →
+Publish. Note the database URL shown at the top
+(`https://aksi-staging-default-rtdb.asia-southeast1.firebasedatabase.app`).
+
+Check in the **Rules Playground** (Rules tab): a read of
+`/sessions/test` while unauthenticated must be **denied**, and an
+authenticated write of `{"scorerUid": "<the same uid>"}` to
+`/sessions/test` must be **allowed**.
+
+### 5. Service account and environment files
+
+Project settings → **Service accounts** → **Generate new private key**.
+Copy it to the server and lock it down (never commit it):
+
+```bash
+scp ~/Downloads/aksi-staging-firebase-adminsdk-*.json deploy@<vps>:/tmp/staging-firebase-admin.json
+# on the VPS:
+sudo mv /tmp/staging-firebase-admin.json /etc/aksi/staging-firebase-admin.json
+sudo chown root:deploy /etc/aksi/staging-firebase-admin.json
+sudo chmod 640 /etc/aksi/staging-firebase-admin.json
+```
+
+In `/etc/aksi/staging.env` set `FIREBASE_PROJECT_ID=aksi-staging` (and
+keep `FIREBASE_SERVICE_ACCOUNT_FILE=/etc/aksi/staging-firebase-admin.json`).
+In `/etc/aksi/staging-web.env` replace every `EXPO_PUBLIC_FIREBASE_*` value
+with the config from step 2, and `EXPO_PUBLIC_FIREBASE_DATABASE_URL` with
+the URL from step 4.
+
+Locally, do the same in `.env` (app) and `server/.env` (API) with the
+`aksi-staging` values and a local copy of the key, e.g.
+`~/.config/aksi/aksi-staging-firebase-admin.json`.
+
+The API only accepts sign-in tokens from the project named in
+`FIREBASE_PROJECT_ID`, so the API and web app must switch together
+(step 7) — and everyone signed in is signed out once and signs in again.
+
+### 6. Start with no users
+
+Staging and production start fresh: accounts are not copied from
+`poin-yuk`. Aksi's database still holds users (and everything they made)
+tied to `poin-yuk`'s user ids, so empty them before switching — this keeps
+reference data (provinces, cities, skill levels, server keys):
+
+```bash
+sudo -u postgres psql aksi_staging -c 'TRUNCATE users CASCADE;'
+```
+
+For local development, do the same against your local database.
+(Copying accounts is possible — `firebase auth:export` from `poin-yuk`,
+then `firebase auth:import` with the four password hash parameters from
+`poin-yuk` → Authentication → Users → ⋮ — but an import without those
+parameters brings the accounts over **without passwords**, and they can't
+sign in.)
+
+### 7. Switch over
+
+On the VPS, after editing both env files:
+
+```bash
+bash /opt/aksi-staging/deploy/staging/deploy.sh   # restarts the API, rebuilds the web app with the new config
+```
+
+Then sign up a new account on `https://app-dev.aksisport.com`,
+open a Session match as its scorer on one device and watch it from
+another — the score must move live. Locally, restart the API and the
+Expo server after changing `.env` files.
+
+### 8. Leave `poin-yuk` alone
+
+Don't change its rules or delete its accounts: the old scorer still uses
+its database. Once production has its own project and nothing of Aksi
+points at `poin-yuk` any more, its user accounts can be deleted at
+leisure.
 
 ## Backups
 

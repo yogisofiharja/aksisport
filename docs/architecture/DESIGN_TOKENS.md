@@ -41,6 +41,10 @@ Avoid:
 
 Components should not know implementation colors.
 
+Aksi uses no orange: the brand (`primary`) scale is blue, the same blue as
+`secondary` actions; pending/warning states use yellow; the serving ball is
+yellow; destructive actions are red.
+
 ---
 
 # Typography

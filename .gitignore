@@ -41,6 +41,9 @@ yarn-error.*
 /android
 .vercel
 .env*
+# Templates with placeholders only — safe, and referenced by the README.
+!.env.example
+!server/.env.example
 
 # Go backend
 server/bin/

@@ -60,13 +60,8 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │                              (Milestone 1 — Personal Context Shell)
 │   │
 │   ├── mobile/                   Native UI — two conventions coexist:
-│   │   ├── Mobile*.tsx              Legacy scoring-flow screens (MobileMatchScreen,
-│   │   │                            MobileLineupScreen, MobileFinalScreen,
-│   │   │                            MobileSetupScreen, MobileHistoryScreen) —
-│   │   │                            each has a web/ equivalent in src/components/
-│   │   ├── ScoringFlow.tsx          The old App.tsx body, relocated. Used directly by
-│   │   │                            web; on mobile it is no longer reachable from
-│   │   │                            navigation (retired as an entry point).
+│   │   ├── MobileMatchScreen.tsx    The live scoreboard, used by ActivityMatchScreen
+│   │   │                            (kept from the retired standalone scorer)
 │   │   ├── auth/                    SignUpScreen, LoginScreen, CompleteProfileScreen
 │   │   ├── home/                     HomeScreen — Personal Context "My Communities" +
 │   │   │                            cross-club attention surfacing (Milestone 1;
@@ -75,9 +70,8 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   ├── inbox/                    InboxScreen — placeholder (Milestone 1)
 │   │   ├── me/                       MeScreen (identity hub + inline per-sport skill-level
 │   │   │                            editing, absorbing the retired SkillLevelsScreen),
-│   │   │                            SettingsScreen (Theme/Language/Logout — Milestone 1,
-│   │   │                            supersedes the legacy SettingsModal for the
-│   │   │                            authenticated flow)
+│   │   │                            SettingsScreen (Theme/Language/Notifications/
+│   │   │                            Privacy/Logout)
 │   │   ├── clubs/                    CreateClubScreen, JoinClubScreen,
 │   │   │                            ClubDetailScreen, ClubMembersScreen
 │   │   ├── sessions/                  SessionListScreen (Today/Upcoming, v0.6.3),
@@ -91,7 +85,8 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   │                              Custom Match tabs, v0.8.0; migrated to
 │   │   │                              design-system/* components, matching newer
 │   │   │                              screens like SessionListScreen — was on the
-│   │   │                              legacy components/ui/* set before), ActivityMatchScreen
+│   │   │                              legacy components/ui/* set before), ActivityMatchScreen,
+│   │   │                              MatchResultScreen (a finished match: Next match, Share)
 │   │   ├── recurringSchedules/          RecurringScheduleListScreen,
 │   │   │                              RecurringScheduleDetailScreen, weekday.ts
 │   │   └── skillLevels/                 SkillLevelRangePicker.tsx — shared by
@@ -100,9 +95,7 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │       (auth/home/explore/inbox/me/clubs/sessions/activities/recurringSchedules
 │   │        screens have no web equivalent)
 │   │
-│   ├── components/                Web UI only. MatchSetup, LineupScreen, MatchScreen,
-│   │                              FinalScoreScreen, WatchScreen, HistoryScreen,
-│   │                              NativeShareModal, ui/ (design system primitives)
+│   ├── components/                NativeShareModal (a match result's share sheet)
 │   │
 │   ├── sports/types.ts             SportModule/SportRules contract (DP-003) — minParticipants
 │   │                              only; scoringEngine/formatter not yet part of the shared shape
@@ -113,11 +106,8 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │
 │   ├── i18n.tsx                   English + Indonesian, manual dictionary + t()
 │   ├── firebase.ts                 Firebase app/auth/db init
-│   ├── sessionSync.ts               Firebase RTDB live-match push/subscribe
-│   ├── persistence.ts               Local device resume/offline cache (AsyncStorage/localStorage)
-│   ├── appTypes.ts                   SetupForm, LineupResult, MatchRecord — legacy
-│   │                                local-setup-scoped types, still used by ScoringFlow
-│   ├── shareCard.ts / nativeCard.ts   Share-card image generation
+│   ├── sessionSync.ts               Firebase RTDB live-match push/subscribe (LiveMatchPayload)
+│   ├── appTypes.ts                   TeamNames, TeamASide — shared by the live-scoring screens
 │   ├── audio.ts, tts.ts, storage.ts, imagePicker.ts   Platform-split (.ts / .web.ts) utilities
 │   └── theme.tsx
 │

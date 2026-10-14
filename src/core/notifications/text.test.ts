@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { notificationText, timeAgo } from './text';
+import { notificationText, startsIn, timeAgo } from './text';
 
 const t = (key: string, ...args: unknown[]) => `${key}(${args.join(',')})`;
 
@@ -10,6 +10,17 @@ describe('notificationText', () => {
       t
     );
     expect(text).toBe('notifCommunityJoinRequest(Budi,Aksi Tennis)');
+  });
+
+  it('fills each DP-018 step 2 kind', () => {
+    const n = (type: string, params: Record<string, string>) => notificationText({ id: '1', type, params, path: '/', createdAt: '' }, t);
+    expect(n('community_join_approved', { club: 'Aksi Tennis' })).toBe('notifCommunityJoinApproved(Aksi Tennis)');
+    expect(n('session_join_request', { name: 'Budi', session: 'Sunday' })).toBe('notifSessionJoinRequest(Budi,Sunday)');
+    expect(n('session_join_approved', { session: 'Sunday' })).toBe('notifSessionJoinApproved(Sunday)');
+    expect(n('session_join_approved', { session: 'Sunday', claimed: '1' })).toBe('notifSessionJoinApprovedFree(Sunday)');
+    expect(n('payment_receipt', { name: 'Budi', session: 'Sunday' })).toBe('notifPaymentReceipt(Budi,Sunday)');
+    expect(n('payment_confirmed', { session: 'Sunday' })).toBe('notifPaymentConfirmed(Sunday)');
+    expect(n('session_reminder', { session: 'Sunday', minutes: '120' })).toBe('notifSessionReminder(Sunday,startsIn(durationHours(2)))');
   });
 
   it('still says something for a type this version does not know', () => {
@@ -24,5 +35,15 @@ describe('timeAgo', () => {
     expect(timeAgo('2026-10-14T11:55:00Z', t, now)).toBe('timeMinutesAgo(5)');
     expect(timeAgo('2026-10-14T09:10:00Z', t, now)).toBe('timeHoursAgo(2)');
     expect(timeAgo('2026-10-12T12:00:00Z', t, now)).toBe('timeDaysAgo(2)');
+  });
+});
+
+describe('startsIn', () => {
+  it('says hours and minutes, never less than a minute', () => {
+    expect(startsIn(120, t)).toBe('startsIn(durationHours(2))');
+    expect(startsIn(90, t)).toBe('startsIn(durationHours(1) durationMinutes(30))');
+    expect(startsIn(45, t)).toBe('startsIn(durationMinutes(45))');
+    expect(startsIn(0, t)).toBe('startsIn(durationMinutes(1))');
+    expect(startsIn(NaN, t)).toBe('startsIn(durationMinutes(1))');
   });
 });

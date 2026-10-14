@@ -1,20 +1,27 @@
-# Firebase Realtime Database Security (Current + Proposal)
+# Firebase Realtime Database Security
 
-**Status: proposal only. Nothing in this document has been implemented.**
-See `docs/current/permissions.md` for how this was first flagged.
+**Status:** Aksi is moving to its own Firebase projects (`aksi-staging`,
+`aksi-production`), whose Realtime Database rules are in the repository:
+`deploy/firebase/database.rules.json` — only signed-in people can read a
+live score, and only the match's scorer (the `scorerUid` in the payload)
+can create, change or remove it. They are applied by hand when each
+project is created (`docs/engineering/deployment.md`, "Firebase
+projects"). Until an environment has moved, it still uses the shared
+`poin-yuk` project described below, whose rules must stay open for the
+retired standalone scorer. See `docs/current/permissions.md` for how this
+was first flagged.
 
-## Current state
+## The shared `poin-yuk` project
 
-No `database.rules.json` (or equivalent) exists anywhere in this
-repository, and no `firebase.json` either — RTDB rules for this
-project, whatever they are, live only in the Firebase console and
-aren't version-controlled or reviewable here.
+`poin-yuk`'s RTDB rules live only in the Firebase console and aren't
+version-controlled or reviewable here (Aksi's own projects use
+`deploy/firebase/database.rules.json` instead).
 
-What the client code implies about the effective rules: `src/sessionSync.ts`
-reads and writes `sessions/{code}` with no ID token, no per-user check,
-and no server-side mediation — `pushSessionState`/`subscribeToSession`
-just call `set`/`onValue` on a path built from the 5-character code
-alone (`src/sessionSync.ts`, `generateSessionCode`). For this to have
+What the client code implies about the effective rules: live scores are
+read and written at `sessions/{key}` with no ID token, no per-user check,
+and no server-side mediation — this app's `src/sessionSync.ts` keys them
+by Activity id; the retired standalone scorer (now only on the `scorer`
+branch, served by Vercel) keys them by a 5-character session code. For this to have
 worked in testing throughout this migration (live score sync between
 devices), the actual configured rules must currently allow open
 read/write on `sessions/{code}` to anyone who has the code — codes
@@ -44,22 +51,18 @@ a rule:
   Firebase Auth (mandatory before reaching any screen that scores a
   match, see `docs/current/navigation.md`). `auth.uid` is reliably
   available.
-- **Web** (`ScoringFlow` via `App.tsx`) — **no sign-in exists at all**.
-  `src/firebase.ts` initializes `auth` from the same app instance, but
-  nothing on web ever calls `signIn`/`signUp` — web users are always
-  anonymous/unauthenticated as far as Firebase Auth is concerned. Web
-  is explicitly frozen/untouched by this migration (see
-  `docs/current/architecture.md`).
+- **The retired standalone scorer** (`scorer` branch, on Vercel) —
+  **no sign-in exists at all**: its users are always unauthenticated as
+  far as Firebase Auth is concerned. It is frozen and untouched.
 
-Both currently write to the same `sessions/{code}` path shape via the
-same `SessionPayload` type (`activityId`/`scorerUid` are optional
-precisely so both flows can share it — see
-`docs/current/state-machines.md`). **A rule that requires
-`auth != null` to write would silently break web's live-sync/share
-feature entirely**, since no web request will ever carry a Firebase
-ID token.
+Both write under the same `sessions/` path in the same Realtime
+Database. **A rule that requires `auth != null` to write would silently
+break the standalone scorer's live sync**, since none of its requests
+carry a Firebase ID token.
 
-## Proposed ruleset (for review — do not apply yet)
+## Earlier proposal for the shared `poin-yuk` project (not applied)
+
+Superseded by giving Aksi its own projects; kept for the reasoning.
 
 ```json
 {
@@ -76,12 +79,12 @@ ID token.
 
 Mechanism: read stays open (spectators/QR viewers never sign in
 either, on either platform). Write is allowed if:
-- unauthenticated (web — no `scorerUid` enforcement possible or
-  attempted for that path), **or**
+- unauthenticated (the standalone scorer — no `scorerUid` enforcement
+  possible or attempted for that path), **or**
 - the node doesn't exist yet (first write, whoever creates the
   session), **or**
-- the existing node has no `scorerUid` (payloads without it — legacy
-  `ScoringFlow` sessions on mobile, if any old clients remain), **or**
+- the existing node has no `scorerUid` (the standalone scorer's
+  payloads), **or**
 - the caller's `auth.uid` matches the stored `scorerUid`.
 
 This closes the gap for `ActivityMatchScreen` sessions specifically

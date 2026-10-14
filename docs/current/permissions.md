@@ -140,8 +140,8 @@ ownership at all** — a club's owner is permanent once set at creation.
 
 `src/sessionSync.ts` has no security rules or auth check of any kind —
 `db.ts`'s Firebase Realtime Database has no documented rules file in
-this repo. Any client holding a session code can read and write
-`sessions/{code}`. The `scorerUid` field added to `SessionPayload` this
-migration is not enforced anywhere (client or RTDB rules) — it's
+this repo. Any client holding a key can read and write
+`sessions/{key}`. The `scorerUid` field in `LiveMatchPayload` is not
+enforced anywhere (client or RTDB rules) — it's
 present in the payload but nothing currently rejects a write from a
 non-scorer.

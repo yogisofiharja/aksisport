@@ -4,6 +4,7 @@ import {
   createInitialState,
   endMatchNow,
   getPointLabel,
+  getServerTeam,
   MatchConfig,
   MatchState,
   Team,
@@ -286,5 +287,29 @@ describe('best-of-sets format', () => {
     // After 3rd point, change again
     state = addPoint(state, 'A');
     expect(state.currentServerPlayerId).not.toBe(secondServer);
+  });
+});
+
+describe('getServerTeam', () => {
+  // Session matches use database ids, which say nothing about the team.
+  const config: MatchConfig = {
+    mode: 'single',
+    deuceMode: 'standard',
+    matchFormat: { type: 'open' },
+    players: [
+      { id: '9f1c2b7e-0000-4000-8000-000000000001', name: 'Ana', team: 'A' },
+      { id: '1a2b3c4d-0000-4000-8000-000000000002', name: 'Budi', team: 'B' },
+    ],
+    serviceOrderPlayerIds: ['1a2b3c4d-0000-4000-8000-000000000002', '9f1c2b7e-0000-4000-8000-000000000001'],
+  };
+
+  it('follows the serve to the other team after each game', () => {
+    let state = createInitialState(config);
+    expect(getServerTeam(state)).toBe('B');
+    for (let i = 0; i < 4; i++) state = addPoint(state, 'A');
+    expect(state.games.A).toBe(1);
+    expect(getServerTeam(state)).toBe('A');
+    for (let i = 0; i < 4; i++) state = addPoint(state, 'B');
+    expect(getServerTeam(state)).toBe('B');
   });
 });

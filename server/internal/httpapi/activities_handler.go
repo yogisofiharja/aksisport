@@ -3,7 +3,9 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -142,15 +144,14 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		if !ok {
 			return
 		}
-		// A match can only be started once its Session is actually live —
-		// not while still Recruiting/Ready/Full, even if matches were
-		// already generated ahead of the start time.
+		// DP-022: matches may start once the Session is In Progress, or from
+		// MatchEarlyStart before its start time (10 minutes in live use).
 		sess, err := dbpkg.GetSession(c.Request.Context(), pool, sessionID)
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
-		if sess.Status != "in_progress" {
+		if !dbpkg.MatchesOpen(sess, time.Now()) {
 			respondError(c, http.StatusConflict, "the session hasn't started yet")
 			return
 		}
@@ -183,6 +184,13 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
+		}
+		// A match started before the start time means the Session is under
+		// way: it becomes In Progress now (DP-022).
+		if sess.Status == "open" {
+			if err := dbpkg.StartSessionEarly(c.Request.Context(), pool, sessionID); err != nil {
+				log.Printf("session %s: early start: %v", sessionID, err)
+			}
 		}
 		c.JSON(http.StatusOK, activity)
 	})

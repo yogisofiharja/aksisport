@@ -39,8 +39,7 @@ Some existing screens carry real logic alongside their styling, not just present
 Known behavior-heavy screens:
 
 * `src/mobile/MobileMatchScreen.tsx` — locks screen orientation to landscape and hides the status bar during live scoring.
-* `src/mobile/MobileFinalScreen.tsx` — drives text-to-speech announcement timing tied to match state changes.
-* `src/mobile/SettingsModal.tsx` and `src/mobile/ScoringFlow.tsx` — the legacy web-only scoring flow, with its own self-contained navigation and state machine.
+* `src/mobile/activities/ActivityMatchScreen.tsx` — drives text-to-speech announcement timing tied to match state changes, and the live score sync.
 
 When migrating these screens:
 

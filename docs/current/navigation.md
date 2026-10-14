@@ -86,8 +86,13 @@ sign-in and on language change, and handles taps: while an Aksi tab is
 open the service worker (`public/sw.js`) tells it where to go; otherwise
 a new tab opens at the path with `?notif=<id>`, marked read on arrival.
 Sign-out unregisters the device first. Permission is first offered right
-after joining or asking to join a Community (`offerPush`); "Not now" is
-remembered on the device. On the phone apps push reports itself
+after joining or asking to join a Community, or asking to join a Session
+(`offerPush`); "Not now" is remembered on the device. Settings has a
+**Notifications** row opening `NotificationSettings`
+(`/settings/notifications`): four switches (Community join requests,
+Session join requests, Payments, Session reminders), saved as they're
+flipped. A notification about a Session opens it on the tab it concerns
+(`?tab=participants|payment|matches` → `SessionDetail`'s `initialTab`). On the phone apps push reports itself
 unsupported until expo-notifications is set up (`src/platform/push.ts`).
 
 **Player profile, sport page, direct messages** (DP-019, DP-020).
@@ -185,7 +190,12 @@ Personal (initial) — see PersonalTabs below
               ├─→ CreateSession { clubId }   → replaces with SessionDetail on success
               └─→ SessionDetail { sessionId }
                     ├─→ AddMatch { sessionId }        → goBack() on success
-                    ├─→ ActivityMatch { activityId }  → goBack() on done
+                    ├─→ ActivityMatch { activityId }  → "Next match" on the result: goBack()
+                    │                                   to the Matches tab if that's where it came
+                    │                                   from, else replace with SessionDetail
+                    │                                   { tab: 'matches' }. Finished matches in the
+                    │                                   list show their score and open their result
+                    │                                   (Share, back arrow) at any time.
                     └─→ EditSession { sessionId }     → goBack() on save (Milestone 2,
                                                           Draft only — see lifecycle-session.md)
 ```
@@ -250,10 +260,9 @@ The app's Personal Context — always the post-auth entry point
 - **Home** (`HomeScreen`) — leads with "My Communities": a circle-avatar
   grid (club picture if set, else initials, name below — same 4-per-row
   convention as `ClubMembersScreen`'s member grid, UX-015 consistency),
-  no "Create Community" entry point here (moved to the Me tab — see
-  below; UX-013 Navigation Follows Frequency treats it as a rare,
-  deliberate action that doesn't belong among Home's everyday browsing
-  content). Joining a Community is done from Explore or a shared link
+  ending in a "New Community" tile (dashed circle with a +) that pushes
+  `CreateClub` — shown even with no Communities yet, under a message
+  pointing to it and to Explore. Joining a Community is done from Explore or a shared link
   (DP-017, see below), not from here. Below that,
   an "Attention" section surfacing what needs attention across every
   Community the user belongs to. Ranked with the same Live → Today →
@@ -290,12 +299,9 @@ The app's Personal Context — always the post-auth entry point
   the session's own Details tab.
 - **Me** (`MeScreen`) — identity header: the user's own profile picture
   (tap to change — camera/gallery, self-service only, `POST
-  /v1/me/avatar`) next to username/display name, then two icons at
-  top-right — "Create Community" (`add-circle-outline`, pushes
-  `CreateClub` on the parent `MainStack`; this is the entry point Home
-  no longer has, see above) and the existing gear icon pushing
-  `Settings` (Theme, Language, Logout; supersedes the legacy
-  `SettingsModal` for the authenticated flow). Below it, a "Sports"
+  /v1/me/avatar`) next to username/display name, then the gear icon at
+  top-right pushing
+  `Settings` (Theme, Language, Notifications, Privacy, Logout). Below it, a "Sports"
   section: one non-interactive card per sport
   (sport name + current level, or "Not set") with a small edit icon
   that expands the card in place to a level-picker (chips), the same
@@ -344,12 +350,8 @@ those routes don't exist on the tab navigator itself.
 - No browsing of Communities by distance, popularity or category —
   Explore lists the caller's own city and answers a typed
   query.
-- No notification when a join request is made or decided.
 - No cross-club data beyond Home's attention section and Me's Session
   History — no aggregated feed.
-- The legacy `SettingsModal` (theme, language, TTS voice) still exists
-  unchanged, but only for `MobileSetupScreen` or the legacy
-  `ScoringFlow`, which remains unreachable from `MainStack`.
 
 ## Web
 
@@ -362,6 +364,5 @@ directly gets Home placed underneath it, so in-app back arrows have
 somewhere to go. A signed-out visitor opening a deep URL lands on Login
 and is taken to that URL after signing in (`restoreIntendedUrl()`).
 
-The legacy `ScoringFlow` (its own `useState<AppScreen>` machine — see
-`docs/current/state-machines.md`) is no longer what web renders; it is
-served from the `scorer` branch on Vercel only.
+The original standalone scorer is no longer in this codebase; it is
+served from the frozen `scorer` branch on Vercel only.

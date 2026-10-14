@@ -9,29 +9,8 @@ const en: Dict = {
   // Common
   commonOr: 'or',
 
-  // App
-  heroTagline: 'Track your tennis score',
-
   // Navigation
   back: 'Back',
-
-  // Landing
-  startMatch: 'Start Match',
-  startMatchSub: 'Create a session and set up players',
-  joinSession: 'Join Session',
-  joinSessionSub: 'Scan QR or enter session code',
-
-  // Join view
-  joinTitle: 'Join Session',
-  joinDesc: 'Enter the 5-letter code from the session owner',
-  sessionCodePlaceholder: 'Session code...',
-
-  // Setup — players
-  playerList: 'Player List',
-  playerNamePlaceholder: 'Player name...',
-  playerCount: (n: number) => `${n} ${n === 1 ? 'player' : 'players'}`,
-  needMorePlayers: (need: number, mode: string, have: number) =>
-    `Need at least ${need} players for ${mode} mode. Currently ${have}.`,
 
   // Setup — match type
   matchType: 'Match Type',
@@ -40,16 +19,11 @@ const en: Dict = {
 
   // Setup — match format
   matchFormat: 'Match Format',
-  customTab: 'Custom',
   regularTab: 'Regular',
   formatOpen: 'Free Play',
-  formatOpenDesc: 'End whenever you want',
   formatFixedGames: 'Fixed Games',
-  formatFixedGamesDesc: 'Play a set number of games then stop',
   formatRaceTo: 'Race To',
-  formatRaceToDesc: 'First to reach N games wins',
   formatBestOfSetsDesc: 'Standard tennis — first to win N sets',
-  regularTabDesc: 'Standard tennis format — first to win N sets',
   totalGames: 'Total Games',
   goldenGame: 'Golden Game on Tie',
   goldenGameDesc: 'Play 1 extra game if scores are tied',
@@ -59,80 +33,70 @@ const en: Dict = {
   superTiebreakDesc: 'Replace the final set with a 10-point tiebreak',
   singleDeuce: 'Single Deuce + Sudden Death',
   singleDeuceDesc: 'Second deuce immediately becomes sudden death.',
-  continueToLineup: 'Continue to Lineup →',
 
   // Lineup
-  pickPlayers: 'Pick Players',
   left: 'LEFT',
   right: 'RIGHT',
-  firstServer: 'First Server',
-  randomizeServer: '🎲  Random Server',
-  randomizing: '🎲  Randomizing...',
-  continueBtn: 'Continue →',
   swapSides: 'Swap Sides',
 
   // Match
-  endMatch: 'End Match',
   endMatchTitle: 'End Match',
   endMatchConfirm: 'Are you sure you want to end the match?',
   endMatchShort: 'End',
   holdToEndHint: 'Press and hold to end match',
   pointLog: 'Point Log',
   noPoints: 'No points yet',
-  scanToWatch: 'Scan to watch live',
   game: 'GAME',
 
   // History / Statistics
-  matchHistory: 'History',
-  matchHistoryTitle: 'Match History',
-  statistics: 'Statistics',
-  noStatsYet: 'No statistics yet',
-  noMatchesYet: 'Complete at least one match to see player statistics.',
-  playerColumn: 'Player',
-  wins: 'W',
-  losses: 'L',
   matches: 'M',
   winPct: '%',
-  won: 'Won',
-  noWinner: 'No winner',
   share: 'Share',
 
   // Final screen
   winnerLabel: 'Winner!',
   matchOver: 'Match Over',
   shareResult: 'Share',
-  newMatch: 'New Match',
-  viewHistory: 'View History',
-  endSession: 'End Session',
-  endSessionTitle: 'End Session?',
-  endSessionBody: 'All session data will be permanently deleted.',
-  endSessionConfirm: 'End session? All saved data will be deleted.',
+  nextMatch: 'Next match',
+  scoringFocusMode: 'Focus mode',
+  scoringFormatRaceTo: (n: number) => `First to ${n} games`,
+  scoringFormatFixedGames: (played: number, total: number) => `Game ${Math.min(played + 1, total)} of ${total}`,
+  scoringFormatBestOf: (n: number) => `Best of ${n} sets`,
+  scoringTiebreak: 'Tiebreak',
+  scoringSuperTiebreak: 'Super tiebreak',
+  scoringExitFocus: 'Leave focus mode',
+  scoringVoice: 'Voice announcements',
+  scoringUndo: 'Undo',
+  scoringServing: 'SERVING',
+  scoringSetsScore: (a: number, b: number) => `Sets ${a} – ${b}`,
+  scoringPointFor: (names: string) => `Point for ${names}`,
+  matchStartTitle: 'Ready to play',
+  matchStartExplainer: 'Choose each team\'s side and who serves first. Sides stay fixed once the match starts.',
+  matchStartLeftHalf: 'Left',
+  matchStartRightHalf: 'Right',
+  matchStartSwitchSides: 'Switch sides',
+  matchStartServes: (name: string) => `${name} serves first`,
+  matchStartPickServer: 'Tap a player to serve first.',
+  matchStartChoosing: 'Choosing who serves first…',
+  matchStartRandom: 'Random',
+  matchStartButton: 'Start match',
+  matchStartedElsewhere: 'Someone else already started this match. You are watching their scoring.',
   cancel: 'Cancel',
   close: 'Close',
 
-  // History
-  noHistoryYet: 'No history yet',
-  noHistoryDesc: 'Complete your first match — results will be recorded here automatically.',
-
   // Share / image picker
   shareResultTitle: 'Share Result',
+  shareCopied: 'Result copied. Paste it wherever you like.',
+  shareSaveHint: 'Press and hold the image to save it to Photos or share it.',
+  shareDownload: 'Download',
   processing: 'Processing...',
   addPlayer: 'Add Player',
   enterName: 'Enter name...',
-  tapToSelect: 'Tap to select',
-  shareSessionCode: 'Share Session Code',
   chooseImage: 'Choose Image',
   camera: 'Camera',
   gallery: 'Gallery',
   removePhoto: 'Remove Photo',
-  sessionCodeLabel: 'Session Code',
   code: 'Code',
-  scanOrTypeCode: 'Scan QR or type code to join this session',
-
-  // Watch screen
-  connecting: 'Connecting to session…',
-  waitingForMatch: 'Waiting for match to start…',
-  matchEnded: 'Match Over',
 
   // Settings modal
   settingsTitle: 'Settings',
@@ -140,8 +104,6 @@ const en: Dict = {
   followDevice: 'System',
   light: 'Light',
   dark: 'Dark',
-  announcementLang: 'ANNOUNCEMENT LANGUAGE',
-  loadingVoices: 'Loading voices…',
   done: 'Done',
   languageSection: 'LANGUAGE',
   english: 'English',
@@ -212,8 +174,6 @@ const en: Dict = {
   authContinue: 'Continue',
   authGenericError: 'Something went wrong. Please try again.',
 
-  // Clubs (product-facing term is now "Community" — AKSI_PRODUCT_DECISIONS.md;
-  // key names keep the `club` prefix, only display copy changed, to avoid
   // an unrelated identifier-rename churn)
   clubNamePlaceholder: 'Community name',
   clubDescriptionPlaceholder: 'Description (optional)',
@@ -416,6 +376,7 @@ const en: Dict = {
   sessionStatusCompleted: 'Completed',
   sessionStatusDraft: 'Draft',
   sessionStatusCancelled: 'Cancelled',
+
   // Milestone 2 — DP-001's derived lifecycle sub-states of 'open'.
   sessionStatusRecruiting: 'Recruiting',
   sessionStatusReady: 'Ready',
@@ -636,12 +597,6 @@ const en: Dict = {
     `This session requires ${min}–${max}. Your skill level is outside that range.`,
   skillLevelStrictBlockedNotSet: (sport: string) => `Set your ${sport} skill level before joining this session.`,
 
-  // Personal Navigation tab bar labels (Milestone 1). Explore/Inbox reuse
-  // their own exploreTitle/inboxTitle for their on-page heading (separate
-  // keys, same text); Home reuses this same key as its on-page heading too
-  // (HomeScreen.tsx), with homeAttentionTitle/homeMyCommunitiesTitle as
-  // subsection labels underneath it. @react-navigation/bottom-tabs falls
-  // back to `options.title` for the tab label when `tabBarLabel` is unset,
   // so these must be passed as `tabBarLabel` explicitly, not `title`.
   tabHome: 'Home',
   tabExplore: 'Explore',
@@ -651,7 +606,8 @@ const en: Dict = {
   // Home (Personal Context Shell — Milestone 1)
   homeAttentionTitle: 'Needs Attention',
   homeMyCommunitiesTitle: 'My Communities',
-  homeCommunitiesEmptyState: 'No communities yet — create one or join with a code.',
+  homeCommunitiesEmptyState: "You're not in a Community yet. Create one below, or find one in Explore.",
+  homeNewCommunity: 'New Community',
   homeCreateCommunity: 'Create Community',
 
   // Explore (Milestone 1 — placeholder, real discovery is Planning-only)
@@ -662,6 +618,27 @@ const en: Dict = {
   notificationsUnread: 'Unread',
   notificationsBellUnread: (count: number) => `Notifications, ${count} unread`,
   notifCommunityJoinRequest: (name: string, club: string) => `${name} asked to join ${club}.`,
+  notifCommunityJoinApproved: (club: string) => `You're now a member of ${club}.`,
+  notifSessionJoinRequest: (name: string, session: string) => `${name} asked to join ${session}.`,
+  notifSessionJoinApproved: (session: string) => `You're approved for ${session}. Pay to claim your spot.`,
+  notifSessionJoinApprovedFree: (session: string) => `You're in ${session}. See you there!`,
+  notifPaymentReceipt: (name: string, session: string) => `${name} uploaded a payment receipt for ${session}.`,
+  notifPaymentConfirmed: (session: string) => `Your spot in ${session} is claimed.`,
+  notifSessionReminder: (session: string, when: string) => `${session} starts ${when}.`,
+  startsIn: (duration: string) => `in ${duration}`,
+  durationHours: (n: number) => (n === 1 ? '1 hour' : `${n} hours`),
+  durationMinutes: (n: number) => (n === 1 ? '1 minute' : `${n} minutes`),
+  notificationSettingsTitle: 'Notifications',
+  notificationSettingsExplainer: 'Choose what sends a push to your devices. Everything is still listed on the Notifications page.',
+  notifSettingCommunityRequests: 'Community join requests',
+  notifSettingCommunityRequestsHint: 'Someone asks to join your Community, or your request is approved.',
+  notifSettingSessionRequests: 'Session join requests',
+  notifSettingSessionRequestsHint: 'Someone asks to join your Session, or your request is approved.',
+  notifSettingPayments: 'Payments',
+  notifSettingPaymentsHint: 'A receipt is uploaded, or your payment is confirmed.',
+  notifSettingReminders: 'Session reminders',
+  notifSettingRemindersHint: 'Two hours before a Session you have a spot in.',
+  notificationSettingsFailed: "Couldn't save. Try again.",
   notifGeneric: 'You have a new notification.',
   timeJustNow: 'just now',
   timeMinutesAgo: (n: number) => `${n} min ago`,
@@ -743,29 +720,8 @@ const id: Dict = {
   // Common
   commonOr: 'atau',
 
-  // App
-  heroTagline: 'Catat skor tenis-mu',
-
   // Navigation
   back: 'Kembali',
-
-  // Landing
-  startMatch: 'Mulai Pertandingan',
-  startMatchSub: 'Buat sesi dan atur pemain',
-  joinSession: 'Gabung Sesi',
-  joinSessionSub: 'Scan QR atau masukkan kode sesi',
-
-  // Join view
-  joinTitle: 'Gabung Sesi',
-  joinDesc: 'Masukkan kode 5 huruf dari pemilik sesi',
-  sessionCodePlaceholder: 'Kode sesi...',
-
-  // Setup — players
-  playerList: 'Daftar Pemain',
-  playerNamePlaceholder: 'Nama pemain...',
-  playerCount: (n: number) => `${n} pemain`,
-  needMorePlayers: (need: number, mode: string, have: number) =>
-    `Butuh minimal ${need} pemain untuk mode ${mode}. Baru ada ${have}.`,
 
   // Setup — match type
   matchType: 'Jenis Pertandingan',
@@ -774,16 +730,11 @@ const id: Dict = {
 
   // Setup — match format
   matchFormat: 'Format Pertandingan',
-  customTab: 'Custom',
   regularTab: 'Regular',
   formatOpen: 'Bebas',
-  formatOpenDesc: 'Akhiri kapan saja',
   formatFixedGames: 'Total Game',
-  formatFixedGamesDesc: 'Main sejumlah game lalu berhenti',
   formatRaceTo: 'Kejar Target',
-  formatRaceToDesc: 'Pertama capai N game menang',
   formatBestOfSetsDesc: 'Pertama menang N set (tenis standar)',
-  regularTabDesc: 'Format tenis standar — pertama menang N set',
   totalGames: 'Jumlah Game',
   goldenGame: 'Golden Game saat seri',
   goldenGameDesc: 'Main 1 game tambahan jika skor sama',
@@ -793,80 +744,70 @@ const id: Dict = {
   superTiebreakDesc: 'Ganti set terakhir dengan tiebreak 10 poin',
   singleDeuce: 'Single Deuce + Sudden Death',
   singleDeuceDesc: 'Deuce kedua langsung menjadi sudden death.',
-  continueToLineup: 'Lanjut ke Lineup →',
 
   // Lineup
-  pickPlayers: 'Pilih Pemain',
   left: 'KIRI',
   right: 'KANAN',
-  firstServer: 'Server Pertama',
-  randomizeServer: '🎲  Acak Server',
-  randomizing: '🎲  Mengacak...',
-  continueBtn: 'Lanjut →',
   swapSides: 'Tukar Tempat',
 
   // Match
-  endMatch: 'Akhiri Match',
   endMatchTitle: 'Akhiri Match',
   endMatchConfirm: 'Yakin ingin mengakhiri pertandingan?',
   endMatchShort: 'Akhiri',
   holdToEndHint: 'Tekan dan tahan untuk mengakhiri pertandingan',
   pointLog: 'Riwayat Poin',
   noPoints: 'Belum ada poin',
-  scanToWatch: 'Scan untuk menonton langsung',
   game: 'GAME',
 
   // History / Statistics
-  matchHistory: 'Riwayat',
-  matchHistoryTitle: 'Riwayat Pertandingan',
-  statistics: 'Statistik',
-  noStatsYet: 'Belum ada statistik',
-  noMatchesYet: 'Selesaikan setidaknya satu pertandingan untuk melihat statistik pemain.',
-  playerColumn: 'Pemain',
-  wins: 'M',
-  losses: 'K',
   matches: 'P',
   winPct: '%',
-  won: 'Menang',
-  noWinner: 'Tidak ada pemenang',
   share: 'Bagikan',
 
   // Final screen
   winnerLabel: 'Menang!',
   matchOver: 'Pertandingan Selesai',
   shareResult: 'Bagikan',
-  newMatch: 'Match Baru',
-  viewHistory: 'Lihat Riwayat',
-  endSession: 'Akhiri Sesi',
-  endSessionTitle: 'Akhiri Sesi?',
-  endSessionBody: 'Semua data sesi akan dihapus permanen.',
-  endSessionConfirm: 'Akhiri sesi? Semua data tersimpan akan dihapus.',
+  nextMatch: 'Match berikutnya',
+  scoringFocusMode: 'Mode fokus',
+  scoringFormatRaceTo: (n: number) => `Siapa cepat ${n} game`,
+  scoringFormatFixedGames: (played: number, total: number) => `Game ${Math.min(played + 1, total)} dari ${total}`,
+  scoringFormatBestOf: (n: number) => `Best of ${n} set`,
+  scoringTiebreak: 'Tiebreak',
+  scoringSuperTiebreak: 'Super tiebreak',
+  scoringExitFocus: 'Keluar mode fokus',
+  scoringVoice: 'Pengumuman suara',
+  scoringUndo: 'Batalkan',
+  scoringServing: 'SERVIS',
+  scoringSetsScore: (a: number, b: number) => `Set ${a} – ${b}`,
+  scoringPointFor: (names: string) => `Poin untuk ${names}`,
+  matchStartTitle: 'Siap bermain',
+  matchStartExplainer: 'Pilih sisi tiap tim dan siapa yang servis pertama. Sisi tidak bisa diubah setelah pertandingan dimulai.',
+  matchStartLeftHalf: 'Kiri',
+  matchStartRightHalf: 'Kanan',
+  matchStartSwitchSides: 'Tukar sisi',
+  matchStartServes: (name: string) => `${name} servis pertama`,
+  matchStartPickServer: 'Ketuk pemain yang servis pertama.',
+  matchStartChoosing: 'Memilih siapa yang servis pertama…',
+  matchStartRandom: 'Acak',
+  matchStartButton: 'Mulai pertandingan',
+  matchStartedElsewhere: 'Orang lain sudah memulai pertandingan ini. Kamu menonton skornya.',
   cancel: 'Batal',
   close: 'Tutup',
 
-  // History
-  noHistoryYet: 'Belum ada riwayat',
-  noHistoryDesc: 'Selesaikan pertandingan pertamamu — hasilnya akan otomatis tercatat di sini.',
-
   // Share / image picker
   shareResultTitle: 'Bagikan Hasil',
+  shareCopied: 'Hasil disalin. Tempel di mana saja.',
+  shareSaveHint: 'Tekan dan tahan gambar untuk menyimpan ke Foto atau membagikannya.',
+  shareDownload: 'Unduh',
   processing: 'Memproses...',
   addPlayer: 'Tambah Pemain',
   enterName: 'Masukkan nama...',
-  tapToSelect: 'Ketuk untuk pilih',
-  shareSessionCode: 'Bagikan Kode Sesi',
   chooseImage: 'Pilih Gambar',
   camera: 'Kamera',
   gallery: 'Galeri',
   removePhoto: 'Hapus Foto',
-  sessionCodeLabel: 'Kode Sesi',
   code: 'Kode',
-  scanOrTypeCode: 'Scan QR atau ketik kode untuk bergabung ke sesi ini',
-
-  // Watch screen
-  connecting: 'Menghubungkan ke sesi…',
-  waitingForMatch: 'Menunggu pertandingan dimulai…',
-  matchEnded: 'Pertandingan Selesai',
 
   // Settings modal
   settingsTitle: 'Pengaturan',
@@ -874,8 +815,6 @@ const id: Dict = {
   followDevice: 'Ikuti Perangkat',
   light: 'Terang',
   dark: 'Gelap',
-  announcementLang: 'BAHASA PENGUMUMAN',
-  loadingVoices: 'Memuat suara…',
   done: 'Selesai',
   languageSection: 'BAHASA ANTARMUKA',
   english: 'English',
@@ -946,7 +885,6 @@ const id: Dict = {
   authContinue: 'Lanjutkan',
   authGenericError: 'Terjadi kesalahan. Silakan coba lagi.',
 
-  // Clubs (istilah produk sekarang "Community/Komunitas" — nama key tetap
   // berawalan `club`, hanya teks tampilan yang berubah)
   clubNamePlaceholder: 'Nama komunitas',
   clubDescriptionPlaceholder: 'Deskripsi (opsional)',
@@ -1149,6 +1087,7 @@ const id: Dict = {
   sessionStatusCompleted: 'Selesai',
   sessionStatusDraft: 'Draf',
   sessionStatusCancelled: 'Dibatalkan',
+
   // Milestone 2 — sub-status turunan DP-001 dari 'open'.
   sessionStatusRecruiting: 'Merekrut',
   sessionStatusReady: 'Siap',
@@ -1368,8 +1307,6 @@ const id: Dict = {
     `Sesi ini memerlukan level ${min}–${max}. Level kemampuanmu di luar rentang tersebut.`,
   skillLevelStrictBlockedNotSet: (sport: string) => `Atur level kemampuan ${sport}-mu sebelum bergabung ke sesi ini.`,
 
-  // Label tab bar Navigasi Personal (Milestone 1) — berbeda dari judul
-  // di dalam masing-masing layar (mis. judul Home adalah "Komunitas
   // Saya", bukan "Home").
   tabHome: 'Beranda',
   tabExplore: 'Jelajahi',
@@ -1379,7 +1316,8 @@ const id: Dict = {
   // Home (Personal Context Shell — Milestone 1)
   homeAttentionTitle: 'Perlu Perhatian',
   homeMyCommunitiesTitle: 'Komunitas Saya',
-  homeCommunitiesEmptyState: 'Belum ada komunitas — buat satu atau gabung pakai kode.',
+  homeCommunitiesEmptyState: 'Kamu belum ikut Komunitas. Buat di bawah, atau cari di Jelajahi.',
+  homeNewCommunity: 'Komunitas Baru',
   homeCreateCommunity: 'Buat Komunitas',
 
   // Explore (Milestone 1 — placeholder, penemuan sesungguhnya masih Planning)
@@ -1390,6 +1328,27 @@ const id: Dict = {
   notificationsUnread: 'Belum dibaca',
   notificationsBellUnread: (count: number) => `Notifikasi, ${count} belum dibaca`,
   notifCommunityJoinRequest: (name: string, club: string) => `${name} ingin bergabung dengan ${club}.`,
+  notifCommunityJoinApproved: (club: string) => `Kamu sekarang anggota ${club}.`,
+  notifSessionJoinRequest: (name: string, session: string) => `${name} ingin ikut ${session}.`,
+  notifSessionJoinApproved: (session: string) => `Kamu disetujui ikut ${session}. Bayar untuk mengamankan tempatmu.`,
+  notifSessionJoinApprovedFree: (session: string) => `Kamu ikut ${session}. Sampai jumpa di sana!`,
+  notifPaymentReceipt: (name: string, session: string) => `${name} mengunggah bukti pembayaran untuk ${session}.`,
+  notifPaymentConfirmed: (session: string) => `Tempatmu di ${session} sudah aman.`,
+  notifSessionReminder: (session: string, when: string) => `${session} dimulai ${when}.`,
+  startsIn: (duration: string) => `${duration} lagi`,
+  durationHours: (n: number) => `${n} jam`,
+  durationMinutes: (n: number) => `${n} menit`,
+  notificationSettingsTitle: 'Notifikasi',
+  notificationSettingsExplainer: 'Pilih apa yang mengirim notifikasi ke perangkatmu. Semuanya tetap tercantum di halaman Notifikasi.',
+  notifSettingCommunityRequests: 'Permintaan bergabung Komunitas',
+  notifSettingCommunityRequestsHint: 'Seseorang ingin bergabung dengan Komunitasmu, atau permintaanmu diterima.',
+  notifSettingSessionRequests: 'Permintaan ikut Sesi',
+  notifSettingSessionRequestsHint: 'Seseorang ingin ikut Sesimu, atau permintaanmu diterima.',
+  notifSettingPayments: 'Pembayaran',
+  notifSettingPaymentsHint: 'Bukti pembayaran diunggah, atau pembayaranmu dikonfirmasi.',
+  notifSettingReminders: 'Pengingat Sesi',
+  notifSettingRemindersHint: 'Dua jam sebelum Sesi yang kamu ikuti.',
+  notificationSettingsFailed: 'Gagal menyimpan. Coba lagi.',
   notifGeneric: 'Ada pemberitahuan baru.',
   timeJustNow: 'baru saja',
   timeMinutesAgo: (n: number) => `${n} mnt lalu`,

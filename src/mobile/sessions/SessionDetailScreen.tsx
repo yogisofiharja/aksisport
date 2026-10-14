@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
@@ -40,6 +40,8 @@ import { formatIDR } from '../../core/currency';
 import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
 import { initialsFromName } from '../../core/initials';
 import { SessionChat } from './SessionChat';
+import { getSportModule } from '../../sports/registry';
+import { offerPush } from '../../core/notifications/offerPush';
 import { useSessionChatUnread } from '../../core/messages/useSessionChatUnread';
 import { UnreadCount } from '../messages/UnreadCount';
 import { SessionContactOrganizer } from './SessionContactOrganizer';
@@ -68,7 +70,14 @@ type Props = {
   // Set when arriving from the Inbox tab (DP-013 Contact Organizer) — the
   // memberUserId of the specific thread to jump straight into.
   openContactWith?: string;
+  // Open on this tab instead of Details: Matches after a match, or the tab
+  // a notification is about (DP-018).
+  initialTab?: SessionTabLink;
 };
+
+// Tabs a link can open a Session on (`?tab=`).
+export type SessionTabLink = 'participants' | 'payment' | 'matches';
+const LINKABLE_TABS: SessionTabLink[] = ['participants', 'payment', 'matches'];
 
 function activityParticipantNames(activity: ActivityDetail): string {
   const names = (team: 'A' | 'B') =>
@@ -93,12 +102,12 @@ function participantInitials(p: SessionParticipant): string {
 function participantAvatarBorderClass(status: SessionParticipant['status']): string {
   if (status === 'checked_in') return 'border-teal-500';
   if (status === 'registered') return 'border-blue-500';
-  if (status === 'requested' || status === 'waitlist') return 'border-amber-500';
+  if (status === 'requested' || status === 'waitlist') return 'border-yellow-500';
   return 'border-slate-300 dark:border-slate-600';
 }
 
-export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch, onEdit, onDiscarded, openContactWith }: Props) {
-  const { t } = useTranslation();
+export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch, onEdit, onDiscarded, openContactWith, initialTab }: Props) {
+  const { t, lang } = useTranslation();
   const { profile } = useAuth();
   const [session, setSession] = useState<Session | null>(null);
   const [participants, setParticipants] = useState<SessionParticipant[]>([]);
@@ -122,7 +131,19 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // Details/Participants/Matches/Chat — the session name and date stay
   // pinned in the header outside the tab body, so switching tabs never
   // loses which session you're looking at.
-  const [activeTab, setActiveTab] = useState<'details' | 'payment' | 'configuration' | 'participants' | 'matches' | 'chat'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'payment' | 'configuration' | 'participants' | 'matches' | 'chat'>(
+    initialTab && LINKABLE_TABS.includes(initialTab) ? initialTab : 'details'
+  );
+  const [now, setNow] = useState(() => Date.now());
+  // Opened on the Payment tab (e.g. from a link) for a free Session, which
+  // has none: show Details instead.
+  useEffect(() => {
+    if (session?.priceModel === 'free' && activeTab === 'payment') setActiveTab('details');
+  }, [session?.priceModel, activeTab]);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const chatUnread = useSessionChatUnread(sessionId, profile?.id, activeTab === 'chat');
   // DP-013 Contact Organizer — a private thread, separate from the Chat
   // tab's group SessionChat. contactVisible opens the modal; when arriving
@@ -247,6 +268,12 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // recorded facts (who checked in, past matches) stay visible; only the
   // action affordances are hidden.
   const isSessionActive = session?.status !== 'cancelled' && session?.status !== 'completed';
+  // DP-022: matches can start once the Session is In Progress, or from
+  // `matchesOpenAt` (shortly before the start time). `now` ticks each
+  // minute so the Start buttons appear on their own.
+  const matchesOpen =
+    session?.status === 'in_progress' ||
+    (session?.status === 'open' && !!session.matchesOpenAt && now >= new Date(session.matchesOpenAt).getTime());
 
   // Draft is pre-publish — nothing check-in/match-related is available
   // yet, not even the organizer's own check-in status (explicit product
@@ -353,6 +380,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     try {
       await registerForSession(sessionId);
       await load();
+      // DP-018: a good moment to offer push — they'll want to hear back.
+      offerPush(lang, t);
     } finally {
       setBusy(false);
     }
@@ -687,8 +716,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             </VStack>
           ) : myParticipant?.status === 'waitlist' ? (
             <VStack className="gap-2">
-              <Box className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 items-center">
-                <Text className="text-sm text-amber-800 dark:text-amber-300">{t('sessionWaitlistedNotice')}</Text>
+              <Box className="bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl p-4 items-center">
+                <Text className="text-sm text-yellow-800 dark:text-yellow-300">{t('sessionWaitlistedNotice')}</Text>
               </Box>
               <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
                 <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
@@ -877,10 +906,13 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   const organizerMember = members.find((m) => m.userId === session.createdBy);
   const organizerName = organizerMember?.displayName || organizerMember?.username || t('sessionHostLabel');
 
+  // A free Session has nothing to pay or confirm (DP-002 v0.24.0): no
+  // Payment tab.
+  const isFree = session.priceModel === 'free';
   const tabs: Array<{ key: typeof activeTab; label: string }> = [
     { key: 'details', label: t('sessionTabDetails') },
     { key: 'participants', label: t('sessionTabParticipants') },
-    { key: 'payment', label: t('sessionTabPayment') },
+    ...(isFree ? [] : [{ key: 'payment' as const, label: t('sessionTabPayment') }]),
     { key: 'configuration', label: t('sessionTabConfiguration') },
     { key: 'matches', label: t('sessionTabMatches') },
     { key: 'chat', label: t('sessionTabChat') },
@@ -1293,7 +1325,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                     <HStack className="gap-1">
                       {canRegenerate && (
                         <Pressable onPress={handleRegenerate} className="px-3 py-2 active:opacity-60" disabled={busy} hitSlop={4}>
-                          <Text className="text-sm font-bold text-amber-600">{t('activityRegenerateMatches')}</Text>
+                          <Text className="text-sm font-bold text-blue-600">{t('activityRegenerateMatches')}</Text>
                         </Pressable>
                       )}
                       <Pressable onPress={() => onAddMatch(sessionId)} className="px-3 py-2 active:opacity-60" hitSlop={4}>
@@ -1311,12 +1343,10 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                     // regardless of whether they're checked in (or even playing
                     // at all — an organizer with Host Playing off has no
                     // myParticipant row, and shouldn't be blocked from managing
-                    // the queue because of that). Either way, a match can only
-                    // be started once the Session itself is actually live — not
-                    // while still Recruiting/Ready/Full, even if matches were
-                    // already generated ahead of the start time.
+                    // the queue because of that). Either way, only once matches
+                    // are open (DP-022: In Progress, or shortly before the start).
                     const canStart =
-                      session?.status === 'in_progress' &&
+                      matchesOpen &&
                       a.status === 'queued' &&
                       (isOwnerOrAdmin ||
                         (myParticipant?.status === 'checked_in' && a.participants.some((p) => p.userId === profile?.id)));
@@ -1325,8 +1355,17 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                     // permission to "watch live score."
                     const canWatch = isSessionActive && a.status === 'live' && myParticipant?.status === 'checked_in';
                     const isLiveScorer = a.status === 'live' && a.scorerUserId === profile?.id;
+                    // A finished match opens its result (score, Share) at any
+                    // time; its final score shows on the row, team A first.
+                    const isFinished = a.status === 'completed';
+                    const finalScore = isFinished ? getSportModule(a.sport)?.formatResult?.(a.result, 'A') : undefined;
                     return (
-                      <Box key={a.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4">
+                      <Pressable
+                        key={a.id}
+                        disabled={!isFinished}
+                        onPress={() => onOpenMatch(a.id)}
+                        className="bg-white dark:bg-slate-800 rounded-2xl p-4 active:opacity-70"
+                      >
                         <HStack className="justify-between items-center gap-3">
                           <VStack className="flex-1 gap-1">
                             <Text className="font-bold text-slate-900 dark:text-white">{activityParticipantNames(a)}</Text>
@@ -1339,12 +1378,16 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                               </HStack>
                             ) : (
                               <Text className="text-xs text-slate-400">
-                                {a.status === 'queued' ? t('activityStatusQueued') : t('activityStatusCompleted')}
+                                {a.status === 'queued'
+                                  ? t('activityStatusQueued')
+                                  : finalScore
+                                    ? `${t('activityStatusCompleted')} · ${finalScore}`
+                                    : t('activityStatusCompleted')}
                               </Text>
                             )}
                           </VStack>
                           {canStart && (
-                            <Button size="sm" className="rounded-xl bg-amber-600" onPress={() => onOpenMatch(a.id)}>
+                            <Button size="sm" className="rounded-xl bg-blue-600" onPress={() => onOpenMatch(a.id)}>
                               <ButtonText className="text-white">{t('activityStart')}</ButtonText>
                             </Button>
                           )}
@@ -1353,8 +1396,9 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                               <ButtonText className="text-white">{isLiveScorer ? t('activityResume') : t('activityWatch')}</ButtonText>
                             </Button>
                           )}
+                          {isFinished && <Icon name="chevron-forward" size="sm" color="muted" />}
                         </HStack>
-                      </Box>
+                      </Pressable>
                     );
                   })
                 )}

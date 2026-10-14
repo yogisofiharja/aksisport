@@ -20,7 +20,13 @@ import (
 // Notification types — what happened. Each has text in texts.go (pushes)
 // and in the client's i18n (the Notifications page).
 const (
-	TypeCommunityJoinRequest = "community_join_request"
+	TypeCommunityJoinRequest  = "community_join_request"
+	TypeCommunityJoinApproved = "community_join_approved"
+	TypeSessionJoinRequest    = "session_join_request"
+	TypeSessionJoinApproved   = "session_join_approved"
+	TypePaymentReceipt        = "payment_receipt"
+	TypePaymentConfirmed      = "payment_confirmed"
+	TypeSessionReminder       = "session_reminder"
 
 	// Message pushes (DP-021) — pushed only, never recorded: conversations
 	// live in Inbox, not on the Notifications page.
@@ -28,6 +34,34 @@ const (
 	TypeContactMessage = "contact_message"
 	TypeGroupMessage   = "group_message"
 )
+
+// Settings categories (DP-018): one switch each in Settings. Turning one
+// off stops its pushes; its notifications are still recorded.
+const (
+	CategoryCommunityRequests = "community_requests"
+	CategorySessionRequests   = "session_requests"
+	CategoryPayments          = "payments"
+	CategorySessionReminders  = "session_reminders"
+)
+
+// Categories are every switch, in Settings order.
+var Categories = []string{CategoryCommunityRequests, CategorySessionRequests, CategoryPayments, CategorySessionReminders}
+
+// CategoryOf is the switch a notification type falls under; "" for types
+// no switch controls (message pushes, DP-021).
+func CategoryOf(notificationType string) string {
+	switch notificationType {
+	case TypeCommunityJoinRequest, TypeCommunityJoinApproved:
+		return CategoryCommunityRequests
+	case TypeSessionJoinRequest, TypeSessionJoinApproved:
+		return CategorySessionRequests
+	case TypePaymentReceipt, TypePaymentConfirmed:
+		return CategoryPayments
+	case TypeSessionReminder:
+		return CategorySessionReminders
+	}
+	return ""
+}
 
 // Notification is what to tell people. Params fill the type's text; Path
 // is the app address it opens, the same as the web app's URLs.
@@ -102,6 +136,25 @@ type pushPayload struct {
 func (s *Service) push(userIDs []string, notificationIDs map[string]string, n Notification) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// People who turned this kind off get no push (it is still recorded).
+	if category := CategoryOf(n.Type); category != "" {
+		off, err := db.UsersWithCategoryOff(ctx, s.pool, userIDs, category)
+		if err != nil {
+			log.Printf("notify: loading settings: %v", err)
+			return
+		}
+		kept := userIDs[:0:0]
+		for _, id := range userIDs {
+			if !off[id] {
+				kept = append(kept, id)
+			}
+		}
+		userIDs = kept
+		if len(userIDs) == 0 {
+			return
+		}
+	}
 
 	subs, err := db.ListPushSubscriptions(ctx, s.pool, userIDs)
 	if err != nil {

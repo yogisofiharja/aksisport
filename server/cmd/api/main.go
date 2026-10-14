@@ -84,6 +84,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("loading web push keys: %v", err)
 	}
+	db.MatchEarlyStart = cfg.MatchEarlyStart
 	hub := live.NewHub()
 	notifier := notify.NewService(pool,
 		notify.NewWebPush(vapidPublic, vapidPrivate, cfg.VAPIDSubject),
@@ -144,6 +145,21 @@ func main() {
 				if err := scheduling.AutoTransitionElapsedSessions(ctx, pool); err != nil {
 					log.Printf("session auto-transition: %v", err)
 				}
+			}
+		}
+	}()
+
+	// DP-018 #7: Session reminders, checked every minute so they go out
+	// close to two hours before.
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				notifier.SendDueReminders(ctx)
 			}
 		}
 	}()

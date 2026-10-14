@@ -58,6 +58,7 @@ export function PersonalTabs() {
         {() => (
           <HomeScreen
             onOpenNotifications={() => rootNavigation.navigate('Notifications')}
+            onCreateClub={() => rootNavigation.navigate('CreateClub')}
             onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })}
             onOpenSession={(sessionId) => rootNavigation.navigate('SessionDetail', { sessionId })}
           />
@@ -107,7 +108,6 @@ export function PersonalTabs() {
         {() => (
           <MeScreen
             onOpenSettings={() => rootNavigation.navigate('Settings')}
-            onCreateClub={() => rootNavigation.navigate('CreateClub')}
             onOpenHistory={() => rootNavigation.navigate('MySessionHistory')}
             onOpenEmail={() => rootNavigation.navigate('AccountEmail')}
             onOpenDisplayName={() => rootNavigation.navigate('EditDisplayName')}

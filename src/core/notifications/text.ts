@@ -13,15 +13,50 @@ export function notificationText(n: AppNotification, t: T): string {
   switch (n.type) {
     case 'community_join_request':
       return t('notifCommunityJoinRequest', p.name ?? '', p.club ?? '');
+    case 'community_join_approved':
+      return t('notifCommunityJoinApproved', p.club ?? '');
+    case 'session_join_request':
+      return t('notifSessionJoinRequest', p.name ?? '', p.session ?? '');
+    case 'session_join_approved':
+      // A free Session: approval already claimed the spot.
+      return p.claimed === '1' ? t('notifSessionJoinApprovedFree', p.session ?? '') : t('notifSessionJoinApproved', p.session ?? '');
+    case 'payment_receipt':
+      return t('notifPaymentReceipt', p.name ?? '', p.session ?? '');
+    case 'payment_confirmed':
+      return t('notifPaymentConfirmed', p.session ?? '');
+    case 'session_reminder':
+      return t('notifSessionReminder', p.session ?? '', startsIn(Number(p.minutes), t));
     default:
       return t('notifGeneric');
   }
 }
 
+// "in 2 hours", "in 1 hour 30 minutes", "in 45 minutes" — how long until a
+// Session starts, when its reminder was sent.
+export function startsIn(minutes: number, t: T): string {
+  const total = Math.max(1, Math.round(Number.isFinite(minutes) ? minutes : 1));
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  const parts: string[] = [];
+  if (hours > 0) parts.push(t('durationHours', hours));
+  if (mins > 0) parts.push(t('durationMinutes', mins));
+  return t('startsIn', parts.join(' '));
+}
+
 export function notificationIcon(type: string): ComponentProps<typeof Ionicons>['name'] {
   switch (type) {
     case 'community_join_request':
+    case 'session_join_request':
       return 'person-add-outline';
+    case 'community_join_approved':
+    case 'session_join_approved':
+      return 'checkmark-circle-outline';
+    case 'payment_receipt':
+      return 'receipt-outline';
+    case 'payment_confirmed':
+      return 'wallet-outline';
+    case 'session_reminder':
+      return 'alarm-outline';
     default:
       return 'notifications-outline';
   }

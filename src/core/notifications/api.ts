@@ -35,3 +35,15 @@ export function registerPushDevice(registration: DeviceRegistration): Promise<vo
 export function unregisterPushDevice(address: string): Promise<void> {
   return apiFetch('/v1/me/push-subscriptions', { method: 'DELETE', body: JSON.stringify({ address }) });
 }
+
+// DP-018 Settings: which kinds push to your devices (all on by default).
+export type NotificationCategory = 'community_requests' | 'session_requests' | 'payments' | 'session_reminders';
+export type NotificationSettings = Record<NotificationCategory, boolean>;
+
+export function getNotificationSettings(): Promise<NotificationSettings> {
+  return apiFetch('/v1/me/notification-settings');
+}
+
+export function updateNotificationSettings(changes: Partial<NotificationSettings>): Promise<NotificationSettings> {
+  return apiFetch('/v1/me/notification-settings', { method: 'PATCH', body: JSON.stringify(changes) });
+}

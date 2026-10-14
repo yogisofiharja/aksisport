@@ -291,7 +291,7 @@ subtitle with the Club's name.
 
 **Draft Recovery** (UX-005, Milestone 4): when the caller is owner/
 admin and this Club has at least one Draft Session, `SessionListScreen`
-shows a callout — amber-tinted `Card`, distinct from the plain list
+shows a callout — yellow-tinted `Card`, distinct from the plain list
 rows above it — directly above the "Create Session" button: "Continue
 where you left off" plus the most-recently-created Draft's name and a
 "Continue Draft" button that opens it via the normal `onOpenSession`
@@ -644,7 +644,7 @@ never depends on finding the right tab) branches on
   Check In button — requesting is the actual "joining" moment now).
 - `requested` → a muted notice ("waiting for organizer approval") plus a
   "Cancel my spot" link.
-- `waitlist` → an amber notice ("approved — complete payment to claim
+- `waitlist` → a yellow notice ("approved — complete payment to claim
   your spot") plus a "Cancel my spot" link.
 - `registered` → the Check In button, if within the Check-In Window
   (otherwise the "check-in opens/closes" notice), plus a "Cancel my
@@ -685,7 +685,8 @@ Approve directly from the card, replacing the old text link. Waitlist
 cards no longer carry an action badge at all (Milestone 5, DP-012) —
 Confirm Payment moved to its own Payment tab, alongside the receipt an
 organizer actually needs to look at first; Waitlist here is purely
-informational now, matching Cancelled/Other. The section header shows `joinedCount`/`maxParticipants`
+informational now, matching Cancelled/Other. (A free Session never has Waitlist
+cards or a Payment tab: approval registers the member directly, v0.24.0.) The section header shows `joinedCount`/`maxParticipants`
 next to the "Participants" title, same as before (moved off the
 Details card in an earlier pass of this milestone).
 
@@ -907,5 +908,6 @@ that's a dependency of the `round` memo but otherwise unused inside it —
 purely a "recompute now" trigger, since `generateFairRound` breaks ties
 with `Math.random()` and there was previously no way to ask for a new
 roll without touching a real input first. Custom Match is unaffected —
-its own single-screen flow (Mode, participant picker, First Server,
-Create) never had a settings step to remove.
+its own single-screen flow (Mode, participant picker, Create) never
+had a settings step to remove. (It no longer picks the first server:
+since DP-022 every match's start screen does that.)

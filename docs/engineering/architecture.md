@@ -24,7 +24,7 @@ Mapped onto this codebase:
 | Presentation | `src/mobile/`, `src/components/` | — (no server UI) |
 | Application | Use-case functions that orchestrate more than one API call or combine an API call with a business rule. Small and few — most screens don't need this layer, see below. | `server/internal/httpapi/` handlers, kept thin |
 | Domain | `src/sports/<sport>/` (scoring engines, format rules), any pure business-rule helper with no I/O | Business rules embedded in `server/internal/db/*.go` query functions (e.g. state-transition guards) |
-| Infrastructure | `src/core/api/client.ts` (HTTP), `src/sessionSync.ts` (Firebase RTDB), `src/firebase.ts`, `src/persistence.ts` | `server/internal/db/` (Postgres via pgx), `server/internal/authjwt/` (Firebase token verification) |
+| Infrastructure | `src/core/api/client.ts` (HTTP), `src/sessionSync.ts` (Firebase RTDB), `src/firebase.ts` | `server/internal/db/` (Postgres via pgx), `server/internal/authjwt/` (Firebase token verification) |
 
 **Pragmatic rule, not a mandate**: a screen calling one `core/*/api.ts`
 function and rendering the result does not need a separate Application

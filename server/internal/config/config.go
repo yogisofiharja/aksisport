@@ -43,6 +43,10 @@ type Config struct {
 	// specified in whole days, so this resolution only needs to be finer
 	// than that — 15 minutes is comfortably sufficient for both.
 	RecurringScheduleGenerationInterval time.Duration
+	// MatchEarlyStart (DP-022): how long before a Session's start time its
+	// matches may be started. 10 minutes in live use; raise it on local or
+	// staging to test matches without waiting for a Session to start.
+	MatchEarlyStart time.Duration
 }
 
 func Load() Config {
@@ -59,6 +63,7 @@ func Load() Config {
 		VAPIDSubject:                        getEnv("VAPID_SUBJECT", "https://app.aksisport.com"),
 		ExpoAccessToken:                     os.Getenv("EXPO_ACCESS_TOKEN"),
 		RecurringScheduleGenerationInterval: getEnvMinutes("RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES", 15),
+		MatchEarlyStart:                     getEnvMinutes("MATCH_EARLY_START_MINUTES", 10),
 	}
 }
 

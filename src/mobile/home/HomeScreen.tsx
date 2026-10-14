@@ -8,6 +8,7 @@ import { NotificationBell } from '../notifications/NotificationBell';
 import { Typography } from '../../design-system/ui/Typography';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
+import { Icon } from '../../design-system/ui/Icon';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { useTranslation } from '../../i18n';
 import { authHeader } from '../../core/api/client';
@@ -22,6 +23,7 @@ import type { ClubWithRole, Session } from '../../core/api/types';
 type Props = {
   onOpenNotifications: () => void;
   onOpenClub: (clubId: string) => void;
+  onCreateClub: () => void;
   onOpenSession: (sessionId: string) => void;
 };
 
@@ -65,7 +67,7 @@ async function loadAttention(clubs: ClubWithRole[]): Promise<AttentionItem[]> {
   return [...live, ...today, ...next, ...drafts];
 }
 
-export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession }: Props) {
+export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onCreateClub }: Props) {
   const { t } = useTranslation();
   const [clubs, setClubs] = useState<ClubWithRole[]>([]);
   const [attention, setAttention] = useState<AttentionItem[]>([]);
@@ -111,19 +113,15 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession }: P
           {/* My Communities — leads Home (above Attention): the user's own
               set of Communities is who they are before what's happening
               right now, same circle-avatar-grid convention as
-              ClubMembersScreen's member grid (UX-015 consistency). No
-              "Create Community" entry point here — UX-013 (Navigation
-              Follows Frequency) places a rare, deliberate action like this
-              in secondary navigation instead: it now lives on the Me tab,
-              next to the user's own profile picture. */}
+              ClubMembersScreen's member grid (UX-015 consistency). Creating
+              a Community starts here too — a "New" tile at the end of the
+              grid, where people look for their Communities. */}
           <VStack space="sm">
             <Typography variant="caption" color="muted">
               {t('homeMyCommunitiesTitle')}
             </Typography>
-            {clubs.length === 0 ? (
-              <EmptyState message={t('homeCommunitiesEmptyState')} />
-            ) : (
-              <HStack className="flex-wrap" style={{ rowGap: 20 }}>
+            {clubs.length === 0 && <EmptyState message={t('homeCommunitiesEmptyState')} />}
+            <HStack className="flex-wrap" style={{ rowGap: 20, alignItems: 'flex-start' }}>
                 {clubs.map((club) => (
                   <Pressable
                     key={club.id}
@@ -151,8 +149,19 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession }: P
                     </Typography>
                   </Pressable>
                 ))}
+                <Pressable
+                  className="w-1/4 items-center px-1 active:opacity-70"
+                  onPress={onCreateClub}
+                  accessibilityLabel={t('homeNewCommunity')}
+                >
+                  <View className="w-16 h-16 rounded-full items-center justify-center border-2 border-dashed border-blue-400 dark:border-blue-500">
+                    <Icon name="add" size="lg" color="secondary" />
+                  </View>
+                  <Typography variant="body" className="text-xs font-bold text-blue-600 dark:text-blue-400 text-center mt-1" numberOfLines={2}>
+                    {t('homeNewCommunity')}
+                  </Typography>
+                </Pressable>
               </HStack>
-            )}
           </VStack>
 
           {attention.length > 0 && (

@@ -176,15 +176,16 @@ Real, live work that fell outside the six-milestone roadmap above:
   page; owner/admins remove any message and turn it off). The live connection
   lives in one server process; running more than one API process needs a
   shared broker first (see `docs/current/api.md`).
-- **Push notifications (DP-018) — step 1 of 3, in progress.** Built:
+- **Push notifications (DP-018) — steps 1 and 2 of 3 built.** Built:
   device registration in the browser (Web Push, `public/sw.js`), the
   server's notification service (Web Push + Expo delivery), the bell and
-  Notifications page, the permission offer after joining a Community, and
-  the first event (a private Community's join request notifies its
-  organizers). Not yet: the other six events and the per-kind switches
-  (step 2), the installable web app that enables iPhone browsers (step
-  3), and push on the phone apps, which waits on expo-notifications and
-  the Expo/Apple/Firebase setup.
+  Notifications page, the permission offer after joining a Community or
+  asking to join a Session, all seven events (Community join request and
+  approval, Session join request and approval, payment receipt and
+  confirmation, a reminder two hours before a Session) and a switch per
+  kind in Settings. Not yet: the installable web app that enables iPhone
+  browsers (step 3), and push on the phone apps, which waits on
+  expo-notifications and the Expo/Apple/Firebase setup.
 - **Security hardening** — per-IP rate limits on the routes callable
   without signing in (username check, email login lookup, password
   reset), and the DP-015 email gate enforced by the server, not only the

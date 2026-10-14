@@ -12,6 +12,30 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/sports"
 )
 
+// MatchEarlyStart is how long before a Session's start time its matches
+// may be started (DP-022): 10 minutes in live use; set from
+// MATCH_EARLY_START_MINUTES at startup so test environments can allow more.
+var MatchEarlyStart = 10 * time.Minute
+
+// deriveSessionFields fills a Session's computed fields.
+func deriveSessionFields(s *models.Session) {
+	s.LifecycleStatus = resolveLifecycleStatus(*s)
+	s.MatchesOpenAt = nil
+	if s.StartsAt != nil {
+		at := s.StartsAt.Add(-MatchEarlyStart)
+		s.MatchesOpenAt = &at
+	}
+}
+
+// MatchesOpen reports whether a Session's matches may be started now:
+// it is In Progress, or published and within MatchEarlyStart of starting.
+func MatchesOpen(s models.Session, now time.Time) bool {
+	if s.Status == "in_progress" {
+		return true
+	}
+	return s.Status == "open" && s.StartsAt != nil && !now.Before(s.StartsAt.Add(-MatchEarlyStart))
+}
+
 // resolveLifecycleStatus computes DP-001's derived Session state.
 // draft/in_progress/completed/cancelled pass through Status unchanged —
 // only 'open' has a derived sub-state (recruiting/ready/full), resolved
@@ -115,7 +139,7 @@ func CreateSession(ctx context.Context, pool *pgxpool.Pool, p CreateSessionParam
 	}
 	// JoinedCount is correctly zero — a brand-new Session has no
 	// participants yet, no query needed to confirm that.
-	s.LifecycleStatus = resolveLifecycleStatus(s)
+	deriveSessionFields(&s)
 	return s, nil
 }
 
@@ -137,7 +161,7 @@ func GetSession(ctx context.Context, pool *pgxpool.Pool, sessionID string) (mode
 		return models.Session{}, err
 	}
 	s.JoinedCount = counts[s.ID]
-	s.LifecycleStatus = resolveLifecycleStatus(s)
+	deriveSessionFields(&s)
 	return s, nil
 }
 
@@ -178,7 +202,7 @@ func ListSessionsForClub(ctx context.Context, pool *pgxpool.Pool, clubID string,
 	}
 	for i := range result {
 		result[i].JoinedCount = counts[result[i].ID]
-		result[i].LifecycleStatus = resolveLifecycleStatus(result[i])
+		deriveSessionFields(&result[i])
 	}
 	return result, nil
 }
@@ -230,7 +254,7 @@ func ListJoinedSessionsForUser(ctx context.Context, pool *pgxpool.Pool, userID s
 	}
 	for i := range result {
 		result[i].JoinedCount = counts[result[i].ID]
-		result[i].LifecycleStatus = resolveLifecycleStatus(result[i].Session)
+		deriveSessionFields(&result[i].Session)
 	}
 	return result, nil
 }
@@ -329,7 +353,7 @@ func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u 
 		return models.Session{}, err
 	}
 	s.JoinedCount = counts[s.ID]
-	s.LifecycleStatus = resolveLifecycleStatus(s)
+	deriveSessionFields(&s)
 	return s, nil
 }
 
@@ -468,4 +492,12 @@ func DeleteGeneratedSession(ctx context.Context, pool *pgxpool.Pool, recurringSc
 		return ErrNotFound
 	}
 	return nil
+}
+
+// StartSessionEarly marks a published Session In Progress ahead of its
+// start time — its first match has begun (DP-022). Does nothing to a
+// Session that is already In Progress or in any other state.
+func StartSessionEarly(ctx context.Context, pool *pgxpool.Pool, sessionID string) error {
+	_, err := pool.Exec(ctx, "UPDATE sessions SET status = 'in_progress', updated_at = now() WHERE id = $1 AND status = 'open'", sessionID)
+	return err
 }
