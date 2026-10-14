@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -54,7 +55,7 @@ func findUserByIdentifier(ctx context.Context, pool *pgxpool.Pool, identifier st
 	return dbpkg.GetUserByUsername(ctx, pool, strings.ToLower(identifier))
 }
 
-func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, mailer mail.Mailer, passwords PasswordSetter) {
+func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, mailer mail.Mailer, passwords PasswordSetter, ips ClientIPResolver) {
 	profiled := rg.Group("")
 	profiled.Use(authjwt.RequireAuth(verifier))
 	profiled.Use(authjwt.RequireProfile(pool))
@@ -154,13 +155,19 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 	})
 
 	// --- Unauthenticated: the caller, by definition, cannot sign in. ---
+	//
+	// Each is limited per IP. The limits sit far above what a person
+	// needs (a few logins, one or two reset attempts) and far below what
+	// guessing codes or probing which emails are registered would take.
+	// The per-account limits (5 tries per code, one code a minute) still
+	// apply underneath.
 
 	// Login with email: Firebase identities are synthetic
 	// ("<username>@accounts.aksi.app"), so the client asks which identity
 	// to sign in as. An email nobody confirmed gets a decoy identity that
 	// fails at sign-in like a wrong password — the answer never reveals
 	// whether the email is registered.
-	rg.POST("/auth/login-identity", func(c *gin.Context) {
+	rg.POST("/auth/login-identity", rateLimited(ips, 20, time.Minute), func(c *gin.Context) {
 		var body struct {
 			Email string `json:"email"`
 		}
@@ -183,7 +190,7 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 
 	// Always 204, whatever the identifier: unknown account, no confirmed
 	// email, and cooldown all look the same from outside as success.
-	rg.POST("/auth/password-reset/request", func(c *gin.Context) {
+	rg.POST("/auth/password-reset/request", rateLimited(ips, 5, 15*time.Minute), func(c *gin.Context) {
 		var body struct {
 			Identifier string `json:"identifier"`
 		}
@@ -207,7 +214,7 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 		c.Status(http.StatusNoContent)
 	})
 
-	rg.POST("/auth/password-reset/confirm", func(c *gin.Context) {
+	rg.POST("/auth/password-reset/confirm", rateLimited(ips, 10, 15*time.Minute), func(c *gin.Context) {
 		var body struct {
 			Identifier  string `json:"identifier"`
 			Code        string `json:"code"`

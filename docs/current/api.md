@@ -45,11 +45,37 @@ the newest code is live, codes stored hashed in `email_codes`).
 | POST | `/v1/auth/password-reset/request` | none | Body `{identifier}` (username or confirmed email). Mails a reset code to the account's confirmed email if there is one. Always 204 — unknown account, no confirmed email, and cooldown are indistinguishable from success. 503 if no Firebase service account is configured. |
 | POST | `/v1/auth/password-reset/confirm` | none | Body `{identifier, code, newPassword}`. Redeems the code, then sets the Firebase password (`internal/firebaseadmin`, Identity Toolkit REST with the service account) and mails a "password changed" notice to the account's email (best-effort). 400 bad code or password under 6 characters, 502 if Firebase refuses (the code is spent — request a new one), 503 if unconfigured. |
 
-Not implemented: IP-based rate limiting on the three unauthenticated
-routes (only the per-account cooldown and attempt cap exist), and
-server-side enforcement of the sign-up email gate — an `emailRequired`
-account without a confirmed email is held back by the client
-(`VerifyEmailScreen`), not by the API.
+**Email gate, enforced by the server.** An `emailRequired` account
+without a confirmed email gets 403 `{code: "EMAIL_UNCONFIRMED"}` from
+every profile-requiring route except `POST /v1/me/email` and
+`POST /v1/me/email/verify` (`authjwt.EmailGateBlocks`, checked in
+`RequireProfile`). `GET /v1/me` needs no profile middleware, so it stays
+reachable. The app holds such accounts on `VerifyEmailScreen` anyway;
+this stops a client that skips that screen. Older accounts are never
+blocked.
+
+### Rate limits on public routes
+
+Routes callable without signing in are limited per client IP
+(`internal/ratelimit`, fixed windows, in memory — per API process).
+Beyond the limit: 429 `{code: "RATE_LIMITED", retryAfterSeconds}` with a
+`Retry-After` header. The per-account limits (5 tries per code, one code
+per minute) still apply underneath.
+
+| Route | Limit per IP |
+|---|---|
+| `GET /v1/users/check-username` | 60 per minute |
+| `POST /v1/auth/login-identity` | 20 per minute |
+| `POST /v1/auth/password-reset/request` | 5 per 15 minutes |
+| `POST /v1/auth/password-reset/confirm` | 10 per 15 minutes |
+
+The client IP comes from `httpapi.ClientIPResolver`, never gin's own
+guess (`SetTrustedProxies(nil)`): the TCP peer, or — only when that peer
+is one of `TRUSTED_PROXIES` (default the local Caddy, `127.0.0.1,::1`) —
+the header named by `CLIENT_IP_HEADER` (`CF-Connecting-IP` behind
+Cloudflare). Behind Cloudflare and Caddy the peer and `X-Forwarded-For`
+only ever name the proxies, so without `CLIENT_IP_HEADER` every visitor
+would share one limit.
 
 Mail goes through `internal/mail.Mailer`, chosen at startup in
 `cmd/api/main.go`:

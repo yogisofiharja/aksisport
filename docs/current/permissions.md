@@ -10,10 +10,17 @@ re-checks independently.
 ## Layers, from outermost in
 
 1. **Valid Firebase ID token** (`RequireAuth`) — required by every
-   route except `GET /healthz` and `GET /v1/users/check-username`.
+   route except `GET /healthz`, `GET /v1/users/check-username`, and the
+   DP-015 routes for people who cannot sign in (`POST /v1/auth/login-identity`,
+   `POST /v1/auth/password-reset/request`, `.../confirm`). Those public
+   routes are rate limited per client IP instead — see
+   `docs/current/api.md`, "Rate limits on public routes".
 2. **Existing Postgres profile** (`RequireProfile`) — required by every
    route except `POST /v1/users` and `GET /v1/me` (which exist
-   specifically to create/check that profile).
+   specifically to create/check that profile). `RequireProfile` also
+   enforces the DP-015 email gate: an account that must confirm its email
+   and hasn't gets 403 `EMAIL_UNCONFIRMED` everywhere except the two
+   routes that confirm it.
 3. **Club membership** — required for almost everything else. Checked
    via `club_members` row lookup (`requireMember` / `requireSessionAccess`
    / `requireActivityAccess`, which all resolve up to a club membership

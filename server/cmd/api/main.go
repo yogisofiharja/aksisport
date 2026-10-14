@@ -76,7 +76,17 @@ func main() {
 		passwords = setter
 	}
 
-	router := httpapi.NewRouter(pool, verifier, cfg.AllowedOrigins, mailer, passwords)
+	router := httpapi.NewRouter(httpapi.Deps{
+		Pool:           pool,
+		Verifier:       verifier,
+		AllowedOrigins: cfg.AllowedOrigins,
+		Mailer:         mailer,
+		Passwords:      passwords,
+		ClientIP: httpapi.ClientIPResolver{
+			Header:         cfg.ClientIPHeader,
+			TrustedProxies: httpapi.ParseTrustedProxies(cfg.TrustedProxies),
+		},
+	})
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

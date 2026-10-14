@@ -150,6 +150,12 @@ Real, live work that fell outside the six-milestone roadmap above:
 - **"Join with Code" removed** — part of `7e5ddd3`. Deliberate removal
   (screen, routes, invite-code display/regenerate UI). The gap it left —
   no self-service way to join — is closed by DP-017 below.
+- **Security hardening** — per-IP rate limits on the routes callable
+  without signing in (username check, email login lookup, password
+  reset), and the DP-015 email gate enforced by the server, not only the
+  app. See `docs/current/api.md`. In production, `CLIENT_IP_HEADER` must
+  be set (see `docs/engineering/deployment.md`) or every visitor shares
+  one limit.
 - **Community discovery & joining (DP-017)** — Communities are Public
   (join instantly) or Private (join by request, approved by an
   owner/admin). Each has a location, and a User keeps several towns with

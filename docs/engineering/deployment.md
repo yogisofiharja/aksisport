@@ -196,6 +196,11 @@ MAIL_FROM=Aksi <no-reply@aksisport.com>
 # only by the API's user. Enables password recovery (DP-015); without it
 # everything else works and recovery reports itself unavailable.
 FIREBASE_SERVICE_ACCOUNT_FILE=/etc/aksi/production-firebase-admin.json
+# Rate limiting on public routes needs each visitor's real address. Behind
+# Cloudflare the TCP peer is Caddy, so read Cloudflare's header — believed
+# only from the local Caddy (TRUSTED_PROXIES defaults to 127.0.0.1,::1).
+# Without this, every visitor shares one rate limit.
+CLIENT_IP_HEADER=CF-Connecting-IP
 EOF
 
 sudo tee /etc/aksi/production-web.env <<'EOF'
@@ -210,7 +215,8 @@ EXPO_PUBLIC_API_BASE_URL=https://api.aksisport.com
 EOF
 
 # repeat for staging: /etc/aksi/staging.env (PORT=8081, aksi_staging_user/aksi_staging,
-# ALLOWED_ORIGINS=https://app-dev.aksisport.com) and /etc/aksi/staging-web.env
+# ALLOWED_ORIGINS=https://app-dev.aksisport.com, its own RESEND/MAIL_FROM, Firebase
+# service account and CLIENT_IP_HEADER=CF-Connecting-IP) and /etc/aksi/staging-web.env
 # (staging Firebase project's values, EXPO_PUBLIC_API_BASE_URL=https://api-dev.aksisport.com)
 
 sudo chown root:deploy /etc/aksi/*.env

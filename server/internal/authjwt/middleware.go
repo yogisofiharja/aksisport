@@ -55,6 +55,10 @@ func RequireProfile(pool *pgxpool.Pool) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 			return
 		}
+		if EmailGateBlocks(user, c.FullPath()) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "confirm your email first", "code": "EMAIL_UNCONFIRMED"})
+			return
+		}
 		c.Set(ctxUser, user)
 		// Online indicator: no push/websocket presence exists anywhere in
 		// this app, so "online" is derived from recent activity instead of
@@ -66,6 +70,22 @@ func RequireProfile(pool *pgxpool.Pool) gin.HandlerFunc {
 		}(user.ID)
 		c.Next()
 	}
+}
+
+// emailGateOpenPaths are the only profile-requiring routes an account
+// held at the email gate may use: the ones that confirm the email.
+// (GET /v1/me needs no profile middleware at all, so it stays reachable.)
+var emailGateOpenPaths = map[string]bool{
+	"/v1/me/email":        true,
+	"/v1/me/email/verify": true,
+}
+
+// EmailGateBlocks enforces DP-015 on the server: an account created under
+// it (EmailRequired) can do nothing but confirm its email until it has. The
+// app already holds such accounts on a confirmation screen; this stops a
+// client that skips that screen. Older accounts are never blocked.
+func EmailGateBlocks(user models.User, fullPath string) bool {
+	return user.EmailRequired && user.Email == nil && !emailGateOpenPaths[fullPath]
 }
 
 func FirebaseUID(c *gin.Context) string {

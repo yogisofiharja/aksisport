@@ -23,6 +23,13 @@ type Config struct {
 	// test sender is used, which only delivers to the Resend account
 	// owner's own address.
 	MailFrom string
+	// ClientIPHeader names the header carrying a visitor's real address
+	// when the API sits behind a proxy — "CF-Connecting-IP" behind
+	// Cloudflare. Unset (local development): the TCP peer is the client.
+	ClientIPHeader string
+	// TrustedProxies: the peers whose ClientIPHeader is believed — the
+	// local Caddy, by default.
+	TrustedProxies string
 	// RecurringScheduleGenerationInterval: how often the background ticker
 	// runs — DP-007 due-occurrence generation and DP-009 elapsed-Session
 	// auto-transition both ride the same tick. Generation lead time is
@@ -40,6 +47,8 @@ func Load() Config {
 		FirebaseServiceAccountFile:          os.Getenv("FIREBASE_SERVICE_ACCOUNT_FILE"),
 		ResendAPIKey:                        os.Getenv("RESEND_API_KEY"),
 		MailFrom:                            os.Getenv("MAIL_FROM"),
+		ClientIPHeader:                      os.Getenv("CLIENT_IP_HEADER"),
+		TrustedProxies:                      getEnv("TRUSTED_PROXIES", "127.0.0.1,::1"),
 		RecurringScheduleGenerationInterval: getEnvMinutes("RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES", 15),
 	}
 }

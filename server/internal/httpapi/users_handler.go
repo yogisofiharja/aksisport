@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
@@ -23,8 +24,11 @@ import (
 
 var usernamePattern = regexp.MustCompile(`^[a-z0-9_]{3,20}$`)
 
-func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, mailer mail.Mailer) {
-	rg.GET("/users/check-username", func(c *gin.Context) {
+func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, mailer mail.Mailer, ips ClientIPResolver) {
+	// Public, so limited per IP: sign-up checks as the person types, which
+	// stays well under this, while sweeping the namespace for taken
+	// usernames does not.
+	rg.GET("/users/check-username", rateLimited(ips, 60, time.Minute), func(c *gin.Context) {
 		username := c.Query("username")
 		if !usernamePattern.MatchString(username) {
 			c.JSON(http.StatusOK, gin.H{"available": false, "reason": "invalid_format"})

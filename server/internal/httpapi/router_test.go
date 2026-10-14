@@ -10,7 +10,7 @@ import (
 // patterns conflict (e.g. a static segment added beside a ":param" one).
 // Building the router here turns that into a test failure.
 func TestRouterRegistersWithoutConflicts(t *testing.T) {
-	router := NewRouter(nil, nil, "*", mail.LogMailer{}, nil)
+	router := NewRouter(Deps{AllowedOrigins: "*", Mailer: mail.LogMailer{}})
 	if len(router.Routes()) == 0 {
 		t.Fatal("expected routes to be registered")
 	}
