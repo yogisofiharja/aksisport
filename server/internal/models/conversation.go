@@ -13,6 +13,8 @@ type Conversation struct {
 	Kind         string // "session_chat" | "session_contact"
 	SessionID    string
 	MemberUserID *string // set only for "session_contact"
+	ClubID       string  // set only for "club" (DP-021)
+	Title        string  // set only for "group" (DP-021)
 	CreatedAt    time.Time
 }
 

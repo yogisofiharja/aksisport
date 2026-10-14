@@ -12,6 +12,8 @@ func Render(locale string, n Notification) (title, body string) {
 	switch n.Type {
 	case TypeDirectMessage:
 		return p("name"), messagePreview(id, p("body"))
+	case TypeGroupMessage:
+		return p("group"), p("name") + ": " + messagePreview(id, p("body"))
 	case TypeContactMessage:
 		if id {
 			return p("name") + " · " + p("session"), messagePreview(id, p("body"))

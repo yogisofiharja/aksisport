@@ -3,10 +3,10 @@ package models
 import "time"
 
 type User struct {
-	ID          string    `json:"id"`
-	FirebaseUID string    `json:"-"`
-	Username    string    `json:"username"`
-	DisplayName *string   `json:"displayName,omitempty"`
+	ID          string  `json:"id"`
+	FirebaseUID string  `json:"-"`
+	Username    string  `json:"username"`
+	DisplayName *string `json:"displayName,omitempty"`
 	// Email is the User's *confirmed* address (DP-015) — only ever set by
 	// a successful code verification. PendingEmail is an address still
 	// awaiting its code. EmailRequired marks accounts created under
@@ -24,9 +24,9 @@ type User struct {
 	CityName *string `json:"cityName,omitempty"`
 	// Cities are all the towns the User keeps (DP-017), oldest first; the
 	// active one (CityCode) is always among them.
-	Cities []UserCity `json:"cities"`
-	PhoneNumber *string `json:"phoneNumber,omitempty"`
-	AvatarURL   *string   `json:"avatarUrl,omitempty"`
+	Cities      []UserCity `json:"cities"`
+	PhoneNumber *string    `json:"phoneNumber,omitempty"`
+	AvatarURL   *string    `json:"avatarUrl,omitempty"`
 	// HasAvatar is computed (avatar_image_data IS NOT NULL), same pattern
 	// as SessionParticipant.HasReceipt — the actual bytes are never
 	// embedded here, only served through their own endpoint.

@@ -37,6 +37,9 @@ type Props = {
   // How read receipts read under your latest message (DP-021): "Seen" in a
   // one-to-one conversation, "Seen by N" where there are more people.
   receipts?: 'direct' | 'group';
+  // Community chat, for its owner/admins (DP-021): remove anyone's
+  // message for everyone.
+  onModeratorRemove?: (messageId: string) => Promise<void>;
 };
 
 // Shared by DP-011 Session Chat and DP-013 Contact Organizer — the two
@@ -61,7 +64,7 @@ function formatMessageTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function ConversationThread({ imageUrl, messages, loading, onRefresh, myUserId, canPost, closedNotice, emptyText, placeholder, onSend, receipts = 'group' }: Props) {
+export function ConversationThread({ imageUrl, messages, loading, onRefresh, myUserId, canPost, closedNotice, emptyText, placeholder, onSend, receipts = 'group', onModeratorRemove }: Props) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState('');
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
@@ -144,7 +147,8 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
     if (isMine && !gone && canPost && age < EDIT_WINDOW_MS) {
       buttons.push({ text: t('chatEdit'), onPress: () => startEditing(m) });
     }
-    buttons.push({ text: t('chatDelete'), style: 'destructive', onPress: () => askDelete(m, canDeleteForEveryone) });
+    const moderatorRemove = !isMine && !gone && onModeratorRemove ? () => onModeratorRemove(m.id) : undefined;
+    buttons.push({ text: t('chatDelete'), style: 'destructive', onPress: () => askDelete(m, canDeleteForEveryone, moderatorRemove) });
     if (!isMine && !gone) {
       buttons.push({
         text: t('chatReportMessage'),
@@ -156,13 +160,22 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
     appAlert(t('chatMessageActions'), undefined, buttons);
   }
 
-  function askDelete(m: ConversationMessage, canDeleteForEveryone: boolean) {
+  function askDelete(m: ConversationMessage, canDeleteForEveryone: boolean, moderatorRemove?: () => Promise<void>) {
     const run = (scope: 'me' | 'everyone') =>
       deleteMessage(m.id, scope)
         .then(onRefresh)
         .catch(() => appAlert(t('chatEditFailed')));
     appAlert(t('chatDeleteTitle'), undefined, [
       ...(canDeleteForEveryone ? [{ text: t('chatDeleteForEveryone'), style: 'destructive' as const, onPress: () => run('everyone') }] : []),
+      ...(moderatorRemove
+        ? [
+            {
+              text: t('chatDeleteForEveryone'),
+              style: 'destructive' as const,
+              onPress: () => moderatorRemove().then(onRefresh).catch(() => appAlert(t('chatEditFailed'))),
+            },
+          ]
+        : []),
       { text: t('chatDeleteForMe'), style: 'destructive', onPress: () => run('me') },
       { text: t('clubCancel'), style: 'cancel' },
     ]);

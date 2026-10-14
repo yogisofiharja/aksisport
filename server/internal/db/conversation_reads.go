@@ -20,14 +20,19 @@ import (
 //   - session_contact: the member, and the owner/admins of the Session's
 //     Community;
 //   - session_chat: every member of the Session's Community (organizers
-//     only while the Session is still a Draft, which nobody else can see).
+//     only while the Session is still a Draft, which nobody else can see);
+//   - group: its members;
+//   - club: every member of the Community.
 func ConversationParticipantIDs(ctx context.Context, pool *pgxpool.Pool, conversationID string) (models.Conversation, []string, error) {
 	var conv models.Conversation
-	var sessionID, low, high *string
+	if !IsUUID(conversationID) {
+		return conv, nil, ErrNotFound
+	}
+	var sessionID, low, high, clubID, title *string
 	err := pool.QueryRow(ctx,
-		"SELECT id, kind, session_id, member_user_id, user_low, user_high, created_at FROM conversations WHERE id = $1",
+		"SELECT id, kind, session_id, member_user_id, user_low, user_high, club_id, title, created_at FROM conversations WHERE id = $1",
 		conversationID,
-	).Scan(&conv.ID, &conv.Kind, &sessionID, &conv.MemberUserID, &low, &high, &conv.CreatedAt)
+	).Scan(&conv.ID, &conv.Kind, &sessionID, &conv.MemberUserID, &low, &high, &clubID, &title, &conv.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return conv, nil, ErrNotFound
 	}
@@ -37,10 +42,22 @@ func ConversationParticipantIDs(ctx context.Context, pool *pgxpool.Pool, convers
 	if sessionID != nil {
 		conv.SessionID = *sessionID
 	}
+	if clubID != nil {
+		conv.ClubID = *clubID
+	}
+	if title != nil {
+		conv.Title = *title
+	}
 
 	switch conv.Kind {
 	case models.ConversationKindDirect:
 		return conv, []string{*low, *high}, nil
+	case models.ConversationKindGroup:
+		ids, err := collectIDs(ctx, pool, "SELECT user_id FROM conversation_members WHERE conversation_id = $1", conv.ID)
+		return conv, ids, err
+	case models.ConversationKindClub:
+		ids, err := collectIDs(ctx, pool, "SELECT user_id FROM club_members WHERE club_id = $1", conv.ClubID)
+		return conv, ids, err
 	case models.ConversationKindSessionContact:
 		ids, err := collectIDs(ctx, pool,
 			`SELECT m.user_id FROM club_members m JOIN sessions s ON s.club_id = m.club_id
@@ -122,14 +139,15 @@ const unreadForUser = `(SELECT count(*) FROM conversation_messages um
 	  AND um.created_at > coalesce((SELECT r.last_read_at FROM conversation_reads r WHERE r.conversation_id = c.id AND r.user_id = $1), '-infinity'))`
 
 // CountUnreadMessages is the Inbox tab's badge: unread messages across the
-// user's direct conversations and Contact Organizer threads (the ones
-// listed in Inbox).
+// user's direct conversations, group chats and Contact Organizer threads
+// (the ones listed in Inbox).
 func CountUnreadMessages(ctx context.Context, pool *pgxpool.Pool, userID string) (int, error) {
 	var count int
 	err := pool.QueryRow(ctx,
 		`SELECT coalesce(sum(`+unreadForUser+`), 0)
 		 FROM conversations c
 		 WHERE (c.kind = 'direct' AND (c.user_low = $1 OR c.user_high = $1))
+		    OR (c.kind = 'group' AND EXISTS (SELECT 1 FROM conversation_members gm WHERE gm.conversation_id = c.id AND gm.user_id = $1))
 		    OR (c.kind = 'session_contact' AND (c.member_user_id = $1 OR EXISTS (
 		        SELECT 1 FROM sessions s JOIN club_members m ON m.club_id = s.club_id
 		        WHERE s.id = c.session_id AND m.user_id = $1 AND m.role IN ('owner', 'admin'))))`,
@@ -144,8 +162,11 @@ func CountUnreadMessages(ctx context.Context, pool *pgxpool.Pool, userID string)
 func SessionChatUnread(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (string, int, error) {
 	var id string
 	var count int
+	if !IsUUID(sessionID) {
+		return "", 0, nil
+	}
 	err := pool.QueryRow(ctx,
-		`SELECT c.id, `+unreadForUser+` FROM conversations c WHERE c.kind = 'session_chat' AND c.session_id::text = $2`,
+		`SELECT c.id, `+unreadForUser+` FROM conversations c WHERE c.kind = 'session_chat' AND c.session_id = $2`,
 		userID, sessionID,
 	).Scan(&id, &count)
 	if errors.Is(err, pgx.ErrNoRows) {

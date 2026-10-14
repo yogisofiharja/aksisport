@@ -139,6 +139,18 @@ person (tap for their profile), where it happened, who reported it, the
 message copy and the reason, with Remove message (when allowed) and
 Dismiss.
 
+**Group chats and Community chat** (DP-021). Inbox has a **New group**
+button and lists groups with direct conversations under "Messages", most
+recent first. `NewGroup` (`/groups/new`) and `GroupAddPeople`
+(`/groups/:groupId/add`) are one screen, `GroupPeopleScreen`: a name field
+(new groups only), a search over people you can message, and checkboxes.
+`GroupChat` (`/groups/:groupId`) is the shared thread; its header opens
+`GroupInfo` (`/groups/:groupId/info`): rename (creator), people (tap for a
+profile; × to remove, creator), Add people (creator), Leave group. The
+Community page has a **Community chat** button with an unread count,
+opening `ClubChat` (`/clubs/:clubId/chat`); owner/admins get a ⋮ menu to
+turn it off/on, and "Delete for everyone" on anyone's message.
+
 **The city picker** (`src/mobile/locations/CityPickerModal.tsx`) is the
 one way a place is chosen anywhere — a Community's location and a User's
 town. A full-screen modal over `GET /v1/locations` (fetched once per app

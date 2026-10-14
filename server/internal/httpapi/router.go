@@ -57,6 +57,7 @@ func NewRouter(d Deps) *gin.Engine {
 	RegisterDirectMessageRoutes(v1, pool, verifier, msgs)
 	RegisterMessagingRoutes(v1, pool, verifier, hub, d.AllowedOrigins)
 	RegisterSafetyRoutes(v1, pool, verifier, hub)
+	RegisterChatRoutes(v1, pool, verifier, hub, msgs)
 	RegisterPlayerActivityRoutes(v1, pool, verifier)
 	RegisterLocationRoutes(v1, pool, verifier)
 	RegisterSessionRoutes(v1, pool, verifier, msgs)

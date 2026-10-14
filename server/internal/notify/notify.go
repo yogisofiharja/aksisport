@@ -26,6 +26,7 @@ const (
 	// live in Inbox, not on the Notifications page.
 	TypeDirectMessage  = "direct_message"
 	TypeContactMessage = "contact_message"
+	TypeGroupMessage   = "group_message"
 )
 
 // Notification is what to tell people. Params fill the type's text; Path

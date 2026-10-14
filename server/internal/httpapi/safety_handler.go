@@ -116,6 +116,9 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 					return
 				}
 				params.ClubIDs = []string{clubID}
+			} else if conv.ClubID != "" {
+				// A Community chat message: that Community.
+				params.ClubIDs = []string{conv.ClubID}
 			}
 		} else {
 			if req.UserID == "" || req.UserID == me.ID {

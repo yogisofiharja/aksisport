@@ -14,11 +14,15 @@ import { listDirectThreads } from '../../core/messages/api';
 import { initialsFromName } from '../../core/initials';
 import { useLiveEvents } from '../../core/live/live';
 import { UnreadCount } from '../messages/UnreadCount';
-import type { DirectThread, SessionContactThread } from '../../core/api/types';
+import { listMyGroups } from '../../core/messages/groups';
+import { Icon } from '../../design-system/ui/Icon';
+import type { DirectThread, GroupThread, SessionContactThread } from '../../core/api/types';
 
 type Props = {
   onOpenSession: (sessionId: string, memberUserId: string) => void;
   onOpenDirectMessage: (userId: string) => void;
+  onOpenGroup: (groupId: string) => void;
+  onNewGroup: () => void;
 };
 
 // DP-013 Contact Organizer's Inbox — the first real content this tab has
@@ -26,12 +30,14 @@ type Props = {
 // data model existed yet). One row per thread the caller is a party to,
 // either as the member or as an owner/admin replying on behalf of the
 // organizer — most-recently-active first.
-export function InboxScreen({ onOpenSession, onOpenDirectMessage }: Props) {
+export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, onNewGroup }: Props) {
   const { t } = useTranslation();
   const { profile } = useAuth();
   const [threads, setThreads] = useState<SessionContactThread[]>([]);
   // DP-020: one-to-one conversations, listed above the Session threads.
   const [directThreads, setDirectThreads] = useState<DirectThread[]>([]);
+  // DP-021: group chats, listed with the direct conversations.
+  const [groups, setGroups] = useState<GroupThread[]>([]);
   const [loading, setLoading] = useState(true);
   const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
 
@@ -41,9 +47,14 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const [contact, direct] = await Promise.all([listMyContactThreads(), listDirectThreads().catch(() => [])]);
+      const [contact, direct, groupList] = await Promise.all([
+        listMyContactThreads(),
+        listDirectThreads().catch(() => []),
+        listMyGroups().catch(() => []),
+      ]);
       setThreads(contact);
       setDirectThreads(direct);
+      setGroups(groupList);
     } catch {
       // stays stale; user can pull to refresh
     } finally {
@@ -61,8 +72,10 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage }: Props) {
   // re-fetches the list (latest message, unread counts), briefly batched.
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useLiveEvents((e) => {
-    const listed = e.data?.kind !== 'session_chat';
-    if (!((e.type === 'message.created' && listed) || (e.type === 'read' && e.data?.userId === profile?.id))) return;
+    const listed = e.data?.kind !== 'session_chat' && e.data?.kind !== 'club';
+    const relevant =
+      (e.type === 'message.created' && listed) || e.type === 'group.updated' || (e.type === 'read' && e.data?.userId === profile?.id);
+    if (!relevant) return;
     if (reloadTimer.current) clearTimeout(reloadTimer.current);
     reloadTimer.current = setTimeout(load, 300);
   });
@@ -77,22 +90,73 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage }: Props) {
     return thread.memberDisplayName || thread.memberUsername;
   }
 
+  // Direct conversations and groups together, most recently active first.
+  const messageRows: Array<{ at: string; direct?: DirectThread; group?: GroupThread }> = [
+    ...directThreads.map((d) => ({ at: d.lastMessageAt, direct: d })),
+    ...groups.map((g) => ({ at: g.lastActivityAt, group: g })),
+  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  const empty = threads.length === 0 && messageRows.length === 0;
+
+  function groupPreview(g: GroupThread) {
+    if (!g.lastMessageSenderId) return t('groupMemberCount', g.memberCount);
+    const text = g.lastMessageDeleted ? t('chatMessageDeleted') : g.lastMessageBody || (g.lastMessageHasImage ? t('inboxPhoto') : '');
+    const who = g.lastMessageSenderId === profile?.id ? t('inboxYouPrefix') : `${g.lastMessageSenderDisplayName || g.lastMessageSenderUsername}:`;
+    return `${who} ${text}`;
+  }
+
   return (
     <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <Typography variant="display">{t('inboxTitle')}</Typography>
+      <HStack className="justify-between items-center">
+        <Typography variant="display">{t('inboxTitle')}</Typography>
+        <Pressable
+          onPress={onNewGroup}
+          className="flex-row items-center gap-1 px-3 py-2 rounded-full bg-blue-600 active:opacity-70"
+          accessibilityLabel={t('groupNew')}
+        >
+          <Icon name="people-outline" size="sm" color="onBrand" />
+          <Typography variant="body" className="text-sm font-bold text-white">
+            {t('groupNew')}
+          </Typography>
+        </Pressable>
+      </HStack>
 
-      {loading && threads.length === 0 && directThreads.length === 0 ? (
+      {loading && empty ? (
         <Loading />
-      ) : threads.length === 0 && directThreads.length === 0 ? (
+      ) : empty ? (
         <EmptyState message={t('inboxEmptyState')} />
       ) : (
         <VStack space="md">
-          {directThreads.length > 0 && (
+          {messageRows.length > 0 && (
             <Typography variant="caption" color="muted">
               {t('inboxDirectTitle')}
             </Typography>
           )}
-          {directThreads.map((thread) => {
+          {messageRows.map(({ direct: thread, group }) => {
+            if (group) {
+              return (
+                <Pressable
+                  key={group.conversationId}
+                  className="bg-white dark:bg-slate-800 rounded-2xl p-4 active:opacity-70"
+                  onPress={() => onOpenGroup(group.conversationId)}
+                >
+                  <HStack className="items-center" space="md">
+                    <View className="w-10 h-10 rounded-full items-center justify-center bg-blue-100 dark:bg-blue-900">
+                      <Icon name="people" size="sm" color="secondary" />
+                    </View>
+                    <VStack space="xs" style={{ flex: 1 }}>
+                      <Typography variant="body" className="text-base font-bold" numberOfLines={1}>
+                        {group.title}
+                      </Typography>
+                      <Typography variant="body" color="muted" className="text-sm" numberOfLines={1}>
+                        {groupPreview(group)}
+                      </Typography>
+                    </VStack>
+                    <UnreadCount count={group.unreadCount} />
+                  </HStack>
+                </Pressable>
+              );
+            }
+            if (!thread) return null;
             const name = thread.otherDisplayName || thread.otherUsername;
             const preview = thread.lastMessageDeleted
               ? t('chatMessageDeleted')
@@ -128,7 +192,7 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage }: Props) {
               </Pressable>
             );
           })}
-          {directThreads.length > 0 && threads.length > 0 && (
+          {messageRows.length > 0 && threads.length > 0 && (
             <Typography variant="caption" color="muted">
               {t('inboxSessionThreadsTitle')}
             </Typography>

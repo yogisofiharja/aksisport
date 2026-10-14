@@ -71,7 +71,7 @@ func GetMessageForReport(ctx context.Context, pool *pgxpool.Pool, messageID stri
 
 const clubReportSelect = `SELECT r.id, r.reporter_id, ru.username, ru.display_name, r.reported_user_id, tu.username, tu.display_name,
 	r.reason, r.created_at, r.message_id, r.message_body, r.message_has_image, r.conversation_kind,
-	c.session_id::text, s.name, (cm.removed_at IS NOT NULL), (cm.id IS NOT NULL AND s.club_id = rc.club_id)
+	c.session_id::text, s.name, (cm.removed_at IS NOT NULL), (cm.id IS NOT NULL AND (s.club_id = rc.club_id OR c.club_id = rc.club_id))
 	FROM report_clubs rc
 	JOIN reports r ON r.id = rc.report_id
 	JOIN users ru ON ru.id = r.reporter_id
@@ -94,7 +94,7 @@ func scanClubReport(row pgx.Row) (models.ClubReport, error) {
 		if body != nil {
 			m.Body = *body
 		}
-		m.CanRemove = inClub && !removed && *kind != "direct"
+		m.CanRemove = inClub && !removed && *kind != "direct" && *kind != "group"
 		r.Message = m
 	}
 	return r, nil
@@ -120,7 +120,10 @@ func ListOpenClubReports(ctx context.Context, pool *pgxpool.Pool, clubID string)
 }
 
 func GetOpenClubReport(ctx context.Context, pool *pgxpool.Pool, clubID, reportID string) (models.ClubReport, error) {
-	r, err := scanClubReport(pool.QueryRow(ctx, clubReportSelect+" WHERE rc.club_id = $1 AND r.id::text = $2 AND rc.resolved_at IS NULL", clubID, reportID))
+	if !IsUUID(reportID) {
+		return models.ClubReport{}, ErrNotFound
+	}
+	r, err := scanClubReport(pool.QueryRow(ctx, clubReportSelect+" WHERE rc.club_id = $1 AND r.id = $2 AND rc.resolved_at IS NULL", clubID, reportID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return r, ErrNotFound
 	}

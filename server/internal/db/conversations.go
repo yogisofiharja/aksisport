@@ -257,7 +257,10 @@ const hiddenForUser = `NOT EXISTS (SELECT 1 FROM conversation_message_hides h WH
 
 // GetConversationMessage loads one message.
 func GetConversationMessage(ctx context.Context, pool *pgxpool.Pool, messageID string) (models.ConversationMessage, error) {
-	rows, err := pool.Query(ctx, conversationMessageSelect+" WHERE cm.id::text = $1", messageID)
+	if !IsUUID(messageID) {
+		return models.ConversationMessage{}, ErrNotFound
+	}
+	rows, err := pool.Query(ctx, conversationMessageSelect+" WHERE cm.id = $1", messageID)
 	if err != nil {
 		return models.ConversationMessage{}, err
 	}

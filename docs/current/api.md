@@ -219,6 +219,41 @@ for that person; deleted ones don't count as unread.
 in the conversation. Changes to a withheld message (DP-021 blocking) are
 announced to its sender only.
 
+### Group chats and Community chat (DP-021, step 3)
+
+Migration `0034`: conversation kinds `group` (`title`, `created_by`,
+members in `conversation_members`) and `club` (`club_id`, one per
+Community); `clubs.chat_enabled`. Both use the same messages, read
+receipts, typing, edit/delete and reporting as every other chat. Images
+of any message: `GET /v1/conversation-messages/:id/image` (anyone in its
+conversation).
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/v1/me/messageable-users?q=` | profile | People you could message — sharing a Community, or an existing direct conversation — minus blocks either way; matched on username/display name; up to 50. |
+| GET | `/v1/me/groups` | profile | Your groups for Inbox, most recently active first: `{conversationId, title, memberCount, lastMessage…, lastActivityAt, unreadCount}`. |
+| POST | `/v1/groups` | profile | `{title, memberIds}`: title 1–60 characters, at least one other person, everyone someone you could message, 50 at most including you. Returns the group. |
+| GET | `/v1/groups/:groupId` | member | `{id, title, createdBy, createdAt, members: [{userId, username, displayName?, hasAvatar}]}`. 404 if you are not in it. |
+| PATCH | `/v1/groups/:groupId` | creator | `{title}`. |
+| POST | `/v1/groups/:groupId/members` | creator | `{userIds}`, same rules as creating. |
+| DELETE | `/v1/groups/:groupId/members/:userId` | creator, or yourself | Remove someone, or leave. When the creator leaves, the longest-standing member who remains manages the group. |
+| GET/POST | `/v1/groups/:groupId/messages` | member | Same message shapes as Session Chat. |
+| GET | `/v1/clubs/:clubId/chat` | member | `{enabled, unreadCount}`. |
+| PATCH | `/v1/clubs/:clubId/chat` | owner/admin | `{enabled}`. Announces `club.chat.updated {clubId, enabled}` to members. |
+| GET/POST | `/v1/clubs/:clubId/chat/messages` | member | Posting while off → 403 `{code: "CHAT_OFF"}`; history stays readable. |
+| DELETE | `/v1/clubs/:clubId/chat/messages/:messageId` | owner/admin | Removes any message (shown as removed by an organizer); announces `message.removed`. |
+
+Group membership changes announce `group.updated {conversationId}` to
+everyone in the group (and whoever was just removed). Group messages push
+to members without Aksi open (`group_message`: group name, then "Name:
+text"); Community chat never pushes. Inbox's unread total now includes
+groups. A reported group message goes to every Community the reporter and
+sender share and can't be removed by organizers; a reported Community chat
+message goes to that Community and can be.
+
+`id`s from URLs are checked for UUID format (`db.IsUUID`) before lookups,
+so a malformed one is a 404 rather than a database error.
+
 ### Notifications (DP-018)
 
 `internal/notify.Service.Send` is the one way a feature notifies people:

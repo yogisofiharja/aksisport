@@ -14,11 +14,11 @@ type JoinedSession struct {
 }
 
 type Session struct {
-	ID                 string          `json:"id"`
-	ClubID             string          `json:"clubId"`
-	Sport              string          `json:"sport"`
-	Name               *string         `json:"name,omitempty"`
-	Location           *string         `json:"location,omitempty"`
+	ID       string  `json:"id"`
+	ClubID   string  `json:"clubId"`
+	Sport    string  `json:"sport"`
+	Name     *string `json:"name,omitempty"`
+	Location *string `json:"location,omitempty"`
 	// Description is optional free text — not part of the mandatory-at-
 	// creation set (unlike Name/Location).
 	Description        *string         `json:"description,omitempty"`

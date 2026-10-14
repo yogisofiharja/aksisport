@@ -17,6 +17,9 @@ import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';
 import { getClub, listJoinRequests, listMembers, clubAvatarUrl, removeMember, uploadClubAvatar } from '../../core/clubs/api';
 import { countClubReports } from '../../core/safety/api';
+import { getClubChat } from '../../core/messages/groups';
+import { useLiveEvents } from '../../core/live/live';
+import { UnreadCount } from '../messages/UnreadCount';
 import { clubLink, shareLink } from '../../platform/shareLink';
 import { Card } from '../../design-system/ui/Card';
 import { listSessions } from '../../core/sessions/api';
@@ -36,6 +39,7 @@ type Props = {
   onOpenRecurringSchedules: (clubId: string) => void;
   onOpenClubSettings: (clubId: string) => void;
   onOpenReports: (clubId: string) => void;
+  onOpenChat: (clubId: string) => void;
   // After the caller has left this Community.
   onLeft: () => void;
 };
@@ -49,6 +53,7 @@ export function ClubDetailScreen({
   onOpenRecurringSchedules,
   onOpenClubSettings,
   onOpenReports,
+  onOpenChat,
   onLeft,
 }: Props) {
   const { t } = useTranslation();
@@ -64,6 +69,8 @@ export function ClubDetailScreen({
   const [pendingRequests, setPendingRequests] = useState(0);
   // DP-021: reports waiting for this Community's owner/admins.
   const [openReports, setOpenReports] = useState(0);
+  // DP-021: the Community chat's unread count for the caller.
+  const [chatUnread, setChatUnread] = useState(0);
   // GET .../avatar is behind the same auth as every other route — fetched
   // once per mount, same convention as ClubMembersScreen/SessionChat's own
   // image headers.
@@ -89,12 +96,20 @@ export function ClubDetailScreen({
       setIsOwnerOrAdmin(organizer);
       setPendingRequests(organizer ? (await listJoinRequests(clubId).catch(() => [])).length : 0);
       setOpenReports(organizer ? (await countClubReports(clubId).catch(() => ({ count: 0 }))).count : 0);
+      setChatUnread((await getClubChat(clubId).catch(() => ({ unreadCount: 0 }))).unreadCount);
     } catch {
       // leave stale state; user can back out and retry
     } finally {
       setLoading(false);
     }
   }, [clubId, profile?.id]);
+
+  // A new Community chat message from someone else adds to the count.
+  useLiveEvents((e) => {
+    if (e.type === 'message.created' && e.data?.kind === 'club' && e.data?.clubId === clubId && e.data?.message?.senderId !== profile?.id) {
+      setChatUnread((n) => n + 1);
+    }
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -273,6 +288,15 @@ export function ClubDetailScreen({
 
       <Button action="secondary" size="xl" className="w-full" onPress={() => onOpenSessions(clubId)}>
         <ButtonText className="text-lg">{t('sessionListTitle')}</ButtonText>
+      </Button>
+
+      <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={() => onOpenChat(clubId)}>
+        <HStack space="sm" className="items-center">
+          <ButtonText action="secondary" variant="outline" className="text-lg">
+            {t('clubChatTitle')}
+          </ButtonText>
+          <UnreadCount count={chatUnread} />
+        </HStack>
       </Button>
 
       <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={() => onOpenMembers(clubId)}>

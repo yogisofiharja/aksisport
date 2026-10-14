@@ -156,7 +156,7 @@ Real, live work that fell outside the six-milestone roadmap above:
   one-to-one messages (listed in Inbox). Each sport opens a page with the
   player's history across every Community; players open their own from
   the Me tab.
-- **Messaging upgrades (DP-021) — steps 1 and 2 of 3 built.** A live
+- **Messaging upgrades (DP-021) — built (steps 1–3).** A live
   connection (WebSocket, `/v1/live`) delivers new messages, typing, read
   receipts and new notifications at once; screens fall back to polling
   every 5 seconds while it is down (30 seconds while it is up). Unread
@@ -168,8 +168,11 @@ Real, live work that fell outside the six-milestone roadmap above:
   Settings › Blocked players undoes a block; a Community's owner/admins
   see its reports (callout and Reports button on the Community page) and
   can remove a reported Session message or dismiss the report. Editing
-  and deleting messages, WhatsApp-style (v0.21.0 amendment). Not yet:
-  group chats and community chat (step 3). The live connection
+  and deleting messages, WhatsApp-style (v0.21.0 amendment). Step 3:
+  group chats (New group in Inbox; up to 50 people you can message; the
+  creator renames, adds and removes; anyone leaves) and one chat per
+  Community (Community chat button with unread count on the Community
+  page; owner/admins remove any message and turn it off). The live connection
   lives in one server process; running more than one API process needs a
   shared broker first (see `docs/current/api.md`).
 - **Push notifications (DP-018) — step 1 of 3, in progress.** Built:

@@ -242,12 +242,12 @@
       <header class="doc-head">
         <p class="kicker">Status · __SYNCED__</p>
         <h1>Where AKSI stands</h1>
-        <p class="lede">Every approved product decision up to DP-020 is built except DP-018, push notifications, which is in progress: step 1 of 3 is built (browser push, the Notifications page, and the first event). DP-021, messaging upgrades, is in progress: steps 1 and 2 of 3 (live delivery, unread counts, read receipts, typing; blocking and reporting) are built. Four of six milestones are done; the other two are waiting on product decisions, not on engineering. Open a document on the left to read the source.</p>
+        <p class="lede">Every approved product decision up to DP-020 is built except DP-018, push notifications, which is in progress: step 1 of 3 is built (browser push, the Notifications page, and the first event). DP-021, messaging upgrades, is built: live delivery, unread counts, read receipts, typing, blocking and reporting, editing and deleting, group chats and Community chat. Four of six milestones are done; the other two are waiting on product decisions, not on engineering. Open a document on the left to read the source.</p>
       </header>
 
       <dl class="facts">
         <div class="fact"><dt>Milestones</dt><dd>4 of 6 done<small>the other two are partial</small></dd></div>
-        <div class="fact"><dt>Product decisions</dt><dd>21 approved<small>DP-018 and DP-021 in progress</small></dd></div>
+        <div class="fact"><dt>Product decisions</dt><dd>21 approved<small>DP-018 (push) in progress</small></dd></div>
         <div class="fact"><dt>Last commit</dt><dd class="mono">__COMMIT__<small>branch <span class="mono">dev</span>, 45 commits ahead of <span class="mono">master</span></small></dd></div>
         <div class="fact"><dt>Library</dt><dd>__COUNT__ documents<small>archive and the combined export left out</small></dd></div>
       </dl>
@@ -278,7 +278,8 @@
         <ul>
           <li><strong>Live messaging (DP-021, step 1 of 3).</strong> New messages, "is typing", read receipts ("Seen", "Seen by N") and new notifications arrive the moment they happen over a live connection, with polling as a fallback. Inbox shows unread counts per conversation and in total; a Session's Chat tab has its own. Direct and Contact Organizer messages push to people who don't have Aksi open. </li>
           <li><strong>Blocking and reporting (DP-021, step 2 of 3).</strong> Block or report someone from their profile or a direct conversation, or report a message by long-pressing it. Blocking is silent: the blocked person's messages simply never arrive, and Settings lists everyone blocked. Reports reach the owner and admins of the Communities involved, who can remove a reported Session message or dismiss the report. </li>
-          <li><strong>Edit and delete messages (DP-021).</strong> WhatsApp's rules: edit your own message for 15 minutes, delete it for everyone for 60 hours, or delete any message just for yourself. Long-press a message for the options. Group and community chat (step 3) are next.</li>
+          <li><strong>Edit and delete messages (DP-021).</strong> WhatsApp's rules: edit your own message for 15 minutes, delete it for everyone for 60 hours, or delete any message just for yourself. Long-press a message for the options. </li>
+          <li><strong>Group chats and Community chat (DP-021, step 3 of 3).</strong> Start a group from Inbox with up to 50 people you can message; its creator renames it and adds or removes people, anyone can leave, and group messages push. Every Community has one chat for all members; owners and admins can remove any message and turn it off. DP-021 is complete.</li>
         </ul>
         <ul>
           <li><strong>Community discovery and joining (DP-017).</strong> Communities are Public (join instantly) or Private (join by request). A Community's location and a User's towns are picked from a list of Indonesia's 38 provinces and 514 cities kept in the database; a User keeps several towns with one active. People find Communities by searching in Explore, in Explore's list for their active town, or through a shareable link. Owners or admins approve requests on the Members screen.</li>

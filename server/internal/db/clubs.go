@@ -209,4 +209,3 @@ func DeleteClub(ctx context.Context, pool *pgxpool.Pool, clubID string) error {
 	}
 	return nil
 }
-

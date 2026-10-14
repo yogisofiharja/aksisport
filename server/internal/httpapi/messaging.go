@@ -48,13 +48,14 @@ func (m *messenger) announce(ctx context.Context, sender models.User, message mo
 		"conversationId": conv.ID,
 		"kind":           conv.Kind,
 		"sessionId":      conv.SessionID,
+		"clubId":         conv.ClubID,
 		"message":        message,
 	}})
 
-	// Pushes: direct messages and Contact Organizer only — Session Chat
-	// would be too noisy (DP-021). Only to people without Aksi open: the
+	// Pushes: direct messages, group chats and Contact Organizer only —
+	// Session Chat and Community chat would be too noisy (DP-021). Only to people without Aksi open: the
 	// live event already reached everyone else.
-	if m.notifier == nil || message.Withheld || conv.Kind == models.ConversationKindSessionChat {
+	if m.notifier == nil || message.Withheld || conv.Kind == models.ConversationKindSessionChat || conv.Kind == models.ConversationKindClub {
 		return
 	}
 	var offline []string
@@ -73,6 +74,12 @@ func (m *messenger) announce(ctx context.Context, sender models.User, message mo
 			Type:   notify.TypeDirectMessage,
 			Params: map[string]string{"name": name, "body": message.Body},
 			Path:   "/messages/" + sender.ID,
+		})
+	case models.ConversationKindGroup:
+		m.notifier.PushOnly(offline, notify.Notification{
+			Type:   notify.TypeGroupMessage,
+			Params: map[string]string{"name": name, "group": conv.Title, "body": message.Body},
+			Path:   "/groups/" + conv.ID,
 		})
 	case models.ConversationKindSessionContact:
 		sessionName := "Session"

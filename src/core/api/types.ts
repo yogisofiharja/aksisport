@@ -525,3 +525,43 @@ export type UserSkillLevel = {
 };
 
 export type SkillLevelEnforcement = 'strict' | 'guidance';
+
+// DP-021 step 3: group chats and Community chat.
+export type GroupMember = {
+  userId: string;
+  username: string;
+  displayName?: string;
+  hasAvatar: boolean;
+};
+
+export type GroupChat = {
+  id: string;
+  title: string;
+  // Manages the group: rename, add and remove people.
+  createdBy?: string;
+  createdAt: string;
+  members: GroupMember[];
+};
+
+// One group in Inbox.
+export type GroupThread = {
+  conversationId: string;
+  title: string;
+  memberCount: number;
+  lastMessageBody: string;
+  lastMessageHasImage: boolean;
+  lastMessageDeleted: boolean;
+  lastMessageSenderId?: string;
+  lastMessageSenderUsername?: string;
+  lastMessageSenderDisplayName?: string;
+  lastActivityAt: string;
+  unreadCount: number;
+};
+
+// Someone you can start a conversation or group with.
+export type MessageableUser = GroupMember;
+
+export type ClubChatState = {
+  enabled: boolean;
+  unreadCount: number;
+};

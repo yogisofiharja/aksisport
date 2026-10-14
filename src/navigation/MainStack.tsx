@@ -19,6 +19,10 @@ import { DirectMessageScreen } from '../mobile/messages/DirectMessageScreen';
 import { PlayerSportScreen } from '../mobile/profiles/PlayerSportScreen';
 import { BlockedPlayersScreen } from '../mobile/safety/BlockedPlayersScreen';
 import { ClubReportsScreen } from '../mobile/safety/ClubReportsScreen';
+import { GroupChatScreen } from '../mobile/messages/GroupChatScreen';
+import { GroupInfoScreen } from '../mobile/messages/GroupInfoScreen';
+import { GroupPeopleScreen } from '../mobile/messages/GroupPeopleScreen';
+import { ClubChatScreen } from '../mobile/clubs/ClubChatScreen';
 import { DisplayNameScreen } from '../mobile/me/DisplayNameScreen';
 
 export type MainStackParamList = {
@@ -28,6 +32,10 @@ export type MainStackParamList = {
   AccountEmail: undefined;
   Notifications: undefined;
   DirectMessage: { userId: string };
+  NewGroup: undefined;
+  GroupChat: { groupId: string };
+  GroupInfo: { groupId: string };
+  GroupAddPeople: { groupId: string };
   PlayerSport: { userId: string; sport: string };
   EditDisplayName: undefined;
   CreateClub: undefined;
@@ -35,6 +43,7 @@ export type MainStackParamList = {
   ClubMembers: { clubId: string };
   ClubSettings: { clubId: string };
   ClubReports: { clubId: string };
+  ClubChat: { clubId: string };
   SessionList: { clubId: string };
   SessionHistory: { clubId: string };
   MySessionHistory: undefined;
@@ -74,6 +83,39 @@ export function MainStack() {
         {({ navigation, route }) => <DirectMessageScreen userId={route.params.userId} onBack={() => navigation.goBack()} />}
       </Stack.Screen>
 
+      <Stack.Screen name="NewGroup">
+        {({ navigation }) => (
+          <GroupPeopleScreen onBack={() => navigation.goBack()} onDone={(groupId) => navigation.replace('GroupChat', { groupId })} />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="GroupChat">
+        {({ navigation, route }) => (
+          <GroupChatScreen
+            groupId={route.params.groupId}
+            onBack={() => navigation.goBack()}
+            onOpenInfo={(groupId) => navigation.navigate('GroupInfo', { groupId })}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="GroupInfo">
+        {({ navigation, route }) => (
+          <GroupInfoScreen
+            groupId={route.params.groupId}
+            onBack={() => navigation.goBack()}
+            onAddPeople={(groupId) => navigation.navigate('GroupAddPeople', { groupId })}
+            onLeft={() => navigation.navigate('Personal')}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="GroupAddPeople">
+        {({ navigation, route }) => (
+          <GroupPeopleScreen groupId={route.params.groupId} onBack={() => navigation.goBack()} onDone={() => navigation.goBack()} />
+        )}
+      </Stack.Screen>
+
       <Stack.Screen name="PlayerSport">
         {({ navigation, route }) => (
           <PlayerSportScreen userId={route.params.userId} sport={route.params.sport} onBack={() => navigation.goBack()} />
@@ -110,6 +152,7 @@ export function MainStack() {
             onOpenRecurringSchedules={(clubId) => navigation.navigate('RecurringScheduleList', { clubId })}
             onOpenClubSettings={(clubId) => navigation.navigate('ClubSettings', { clubId })}
             onOpenReports={(clubId) => navigation.navigate('ClubReports', { clubId })}
+            onOpenChat={(clubId) => navigation.navigate('ClubChat', { clubId })}
             onLeft={() => navigation.navigate('Personal')}
           />
         )}
@@ -173,6 +216,10 @@ export function MainStack() {
             onScheduleUpdated={() => navigation.goBack()}
           />
         )}
+      </Stack.Screen>
+
+      <Stack.Screen name="ClubChat">
+        {({ navigation, route }) => <ClubChatScreen clubId={route.params.clubId} onBack={() => navigation.goBack()} />}
       </Stack.Screen>
 
       <Stack.Screen name="ClubReports">

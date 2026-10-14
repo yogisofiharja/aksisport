@@ -42,7 +42,8 @@ export function useUnreadMessageCount(myUserId: string | undefined): number {
 
   useLiveEvents((e) => {
     const counts =
-      (e.type === 'message.created' && e.data?.kind !== 'session_chat' && e.data?.message?.senderId !== myUserId) ||
+      (e.type === 'message.created' && e.data?.kind !== 'session_chat' && e.data?.kind !== 'club' && e.data?.message?.senderId !== myUserId) ||
+      e.type === 'group.updated' ||
       (e.type === 'read' && e.data?.userId === myUserId);
     if (!counts) return;
     if (timer.current) clearTimeout(timer.current);

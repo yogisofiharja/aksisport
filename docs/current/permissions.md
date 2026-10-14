@@ -61,6 +61,11 @@ and previewable like a public one — only joining is gated.
 | Edit a message (DP-021) | its sender, within 15 minutes |
 | Delete a message for everyone (DP-021) | its sender, within 60 hours |
 | Delete a message for yourself (DP-021) | anyone in its conversation |
+| Start a group chat; add people to one (DP-021) | anyone; only people they could direct message and haven't blocked (or been blocked by); adding is for the group's creator |
+| Rename a group, remove someone from it (DP-021) | the group's creator (passes to the longest-standing member if the creator leaves) |
+| Leave a group (DP-021) | any member |
+| Read and post in Community chat (DP-021) | every member of the Community, while the chat is on |
+| Turn Community chat off/on, remove any message in it (DP-021) | that Community's owner/admins |
 | Block a player (DP-021) | anyone you could direct message |
 | Report a player (DP-021) | anyone you could direct message |
 | Report a message (DP-021) | anyone in its conversation, except its sender |
