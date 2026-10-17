@@ -8,64 +8,65 @@ No reusable component should hardcode values.
 
 # Relationship to Tailwind Configuration
 
-`tailwind.config.js` is the implementation source of truth for token values. Design Tokens do not replace it — they name it.
-
-* `tailwind.config.js`'s existing semantic colors (`primary`, `secondary`, `accent`, `destructive`, `success`) remain the public API described in this document.
-* Component code should reference these semantic names, never raw Tailwind palette values (`blue-600`, `slate-500`, `amber-600`).
-* Future design token work should evolve this existing system — adding names, filling gaps, resolving inconsistencies — rather than introducing a second, parallel token system alongside it.
+The token values come from the **Aksi Sport** design system (Claude Design).
+`src/design-system/foundation/tokens/colors.js` is the single source of truth
+for colour: every entry is a light/dark pair, and `tailwind.config.js` turns
+each into two classes, the light value under its kebab-case name and the dark
+value under `<name>-dark` (`bg-surface dark:bg-surface-dark`).
+`foundation/colors.ts` and `foundation/theme.ts` expose the same values to JS
+(`theme[mode].heat`).
 
 Light or dark is the person's choice in Settings (Follow device, the
 default; Light; Dark), applied by `src/theme.tsx`. Tailwind uses
 `darkMode: 'class'`: on web the provider sets the `dark` class on `<html>`,
 resolving Follow device from the browser and tracking it as it changes.
 
+* Component code should reference these semantic names, never raw Tailwind palette values (`blue-600`, `slate-500`).
+* Transitional (until each component is restyled): Tailwind keeps a `primary`
+  scale mapped onto the heat colours, and `theme.ts` keeps the old
+  `text`, `brand`, `background` and `destructive` keys mapped onto the new names.
+
 ---
 
 # Colors
 
-Use semantic names.
+| Token | Light | Dark | Use |
+| --- | --- | --- | --- |
+| `heat` | #F9440E | #F9440E | Brand: primary actions, live state |
+| `heat-strong` | #C2330A | #FF6A3D | Heat text and icons on light surfaces, active tab |
+| `heat-tint` | #FFE9E0 | #3A1A0E | Heat backgrounds |
+| `on-heat` | #131315 | #131315 | Text on heat (ink, not white) |
+| `ink` / `ink-muted` / `ink-faint` | #131315 / #5F5A55 / #9A948E | #F4F2EF / #A19C96 / #6B6660 | Text |
+| `ground` | #FAF8F6 | #0E0E10 | Screen background |
+| `surface` / `surface-sunken` | #FFFFFF / #F2EFEC | #18181B / #222226 | Cards / wells |
+| `asphalt` / `on-asphalt` / `heat-on-asphalt` | #131315 / #F4F2EF / #FF6A3D | #26262B / #F4F2EF / #FF6A3D | Dark panels (scoreboard, toast) |
+| `border` / `border-strong` | #E4DFDA / #9A948E | #2E2E33 / #77716B | Dividers / input outlines |
+| `ball` | #DCF23A | #DCF23A | The serving ball |
+| `success`, `info`, `danger` (+ `-tint`) | | | Status |
 
-Examples:
-
-- background
-- surface
-- border
-- primary
-- secondary
-- success
-- warning
-- danger
-- text
-- muted
-
-Avoid:
-
-- blue600
-- slate700
-- amber500
-
-Components should not know implementation colors.
-
-Aksi uses no orange: the brand (`primary`) scale is blue, the same blue as
-`secondary` actions; pending/warning states use yellow; the serving ball is
-yellow; destructive actions are red.
+There is no `warning` colour.
 
 ---
 
 # Typography
 
-Use semantic typography.
+Saira for display text, Plus Jakarta Sans for everything else. The files are
+in `assets/fonts/` (SIL OFL) and load in `App.tsx`. React Native picks a font
+file by family name, so each weight is its own family: `font-sans`,
+`font-sans-medium`, `font-sans-semibold`, `font-sans-bold`, `font-display`
+(Saira Bold) and `font-display-hero` (Saira ExtraBold Italic).
 
-Examples:
+| Role | Size / line height | Face |
+| --- | --- | --- |
+| Display | 48/48 | Saira ExtraBold Italic |
+| Heading | 30/34 | Saira Bold |
+| Title | 20/26 | Saira Bold |
+| Body | 15/22 | Plus Jakarta Sans Regular |
+| Label | 14/20 | Plus Jakarta Sans SemiBold |
+| Caption | 12/16 | Plus Jakarta Sans Medium |
+| Overline | 11/16, 0.9px tracking, uppercase | Plus Jakarta Sans Bold |
 
-- Display
-- Heading
-- Title
-- Body
-- Label
-- Caption
-
-Avoid hardcoded font sizes.
+The heaviest weight is 800, used only for the Display line. Avoid hardcoded font sizes.
 
 ---
 
@@ -93,11 +94,13 @@ Never hardcode spacing in reusable components.
 
 # Radius
 
-Corner radius should be minimal.
-
-Prefer a very small number of radius values.
-
-Consistency is more important than variety.
+| Token | Value | Tailwind | Use |
+| --- | --- | --- | --- |
+| xs | 4 | `rounded` | Score cells, checkbox |
+| sm | 8 | `rounded-lg` | Buttons, inputs, chips |
+| md | 12 | `rounded-xl` | Cards |
+| lg | 20 | `rounded-[20px]` | Sheets, dialogs |
+| full | 9999 | `rounded-full` | Pills, avatars |
 
 ---
 

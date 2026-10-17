@@ -1,4 +1,14 @@
-const primaryTokens = require('./src/design-system/foundation/tokens/colors');
+const aksi = require('./src/design-system/foundation/tokens/colors');
+
+// Every palette entry becomes two classes: the light value under its
+// kebab-case name and the dark value under `<name>-dark`, used as
+// `bg-surface dark:bg-surface-dark`.
+const kebab = (s) => s.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase());
+const aksiColors = {};
+for (const [name, value] of Object.entries(aksi)) {
+  aksiColors[kebab(name)] = value.light;
+  aksiColors[`${kebab(name)}-dark`] = value.dark;
+}
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -14,29 +24,29 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: {
-          DEFAULT: '#0f1021',
-          muted: '#1a1c33',
-        },
-        foreground: '#1f2937',
-        muted: '#58657a',
-        'app-border': '#263054',
-        // Single source of truth: src/design-system/foundation/tokens/colors.js
-        // (also imported directly by the Design System's colors.ts).
+        ...aksiColors,
+        // Transitional: the old `primary-*` classes (Button, Typography,
+        // components/ui/button) mapped onto the heat colours until those
+        // components move to the palette names directly.
         primary: {
-          DEFAULT: primaryTokens[600],
-          ...primaryTokens,
+          DEFAULT: aksi.heat.light,
+          50: aksi.heatTint.light,
+          100: aksi.heatTint.light,
+          400: aksi.heatOnAsphalt.light,
+          500: aksi.heat.light,
+          600: aksi.heat.light,
+          700: aksi.heatStrong.light,
         },
-        secondary: '#64748b',
-        accent: {
-          DEFAULT: '#ffd000',
-          soft: '#fff5c2',
-        },
-        destructive: {
-          DEFAULT: '#c02828',
-          soft: '#fee2e2',
-        },
-        success: '#0f9b8e',
+      },
+      // React Native picks a font file by family name, so each weight is
+      // its own family (loaded in App.tsx).
+      fontFamily: {
+        sans: ['PlusJakartaSans-Regular'],
+        'sans-medium': ['PlusJakartaSans-Medium'],
+        'sans-semibold': ['PlusJakartaSans-SemiBold'],
+        'sans-bold': ['PlusJakartaSans-Bold'],
+        display: ['Saira-Bold'],
+        'display-hero': ['Saira-ExtraBoldItalic'],
       },
     },
   },

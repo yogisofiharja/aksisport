@@ -25,6 +25,7 @@ const roleClass: Record<TypeRoleToken, string> = {
   body: 'text-base font-normal',
   label: 'text-sm font-bold',
   caption: 'text-xs font-extrabold tracking-widest uppercase',
+  overline: 'text-[11px] leading-4 font-sans-bold tracking-[0.9px] uppercase',
 };
 
 type TypographyColor = 'default' | 'muted' | 'brand' | 'secondary' | 'destructive';

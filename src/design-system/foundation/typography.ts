@@ -1,16 +1,24 @@
 /**
- * Typography scale.
+ * Type (Aksi Sport design system): Saira for display text, Plus Jakarta
+ * Sans for everything else. The font files live in assets/fonts/ and are
+ * loaded in App.tsx under the family names below; tailwind.config.js has
+ * the matching `font-*` classes.
  *
- * The numeric scale matches Tailwind's default `text-*` steps (already the
- * basis for every `Heading`/`Text` size in `components/ui/text.tsx`), so
- * adopting these tokens later requires no new build-time config.
- *
- * The 58 raw `text-[Npx]` values found in the legacy scoring screens
- * (`MobileFinalScreen.tsx`, `MobileHistoryScreen.tsx`, `MobileLineupScreen.tsx`,
- * `SettingsModal.tsx`) are NOT reconciled here — that migration is Phase 2,
- * not Phase 1. This file only defines the target scale those screens will
- * eventually migrate onto.
+ * React Native picks a font file by family name, not by weight, so each
+ * weight is its own family. The heaviest weight is 800, used only for the
+ * hero line.
  */
+
+export const fontFamily = {
+  sans: 'PlusJakartaSans-Regular', // font-sans
+  sansMedium: 'PlusJakartaSans-Medium', // font-sans-medium
+  sansSemibold: 'PlusJakartaSans-SemiBold', // font-sans-semibold
+  sansBold: 'PlusJakartaSans-Bold', // font-sans-bold
+  display: 'Saira-Bold', // font-display
+  displayHero: 'Saira-ExtraBoldItalic', // font-display-hero
+} as const;
+
+export type FontFamilyToken = keyof typeof fontFamily;
 
 export const fontSize = {
   xs: { size: 12, lineHeight: 16 },
@@ -32,22 +40,29 @@ export const fontWeight = {
   semibold: '600',
   bold: '700',
   extrabold: '800',
-  black: '900',
 } as const;
 
 export type FontWeightToken = keyof typeof fontWeight;
 
 /**
- * Semantic roles (DESIGN_TOKENS.md: Display, Heading, Title, Body, Label,
- * Caption), each pointing at one step of the scale above.
+ * Semantic roles. `family` already carries the weight; `weight` is there
+ * for web, where it keeps synthetic bolding off.
  */
 export const typeRole = {
-  display: { size: fontSize['4xl'], weight: fontWeight.black }, // largest headline
-  heading: { size: fontSize['3xl'], weight: fontWeight.black }, // screen titles — matches Heading size="xl" today
-  title: { size: fontSize['2xl'], weight: fontWeight.black }, // section/card titles — matches Heading size="lg" today
-  body: { size: fontSize.base, weight: fontWeight.regular }, // default text
-  label: { size: fontSize.sm, weight: fontWeight.bold }, // form field labels
-  caption: { size: fontSize.xs, weight: fontWeight.extrabold }, // eyebrow / section-label text
+  display: { size: 48, lineHeight: 48, family: fontFamily.displayHero, weight: fontWeight.extrabold }, // hero line
+  heading: { size: 30, lineHeight: 34, family: fontFamily.display, weight: fontWeight.bold }, // screen titles
+  title: { size: 20, lineHeight: 26, family: fontFamily.display, weight: fontWeight.bold }, // section/card titles
+  body: { size: 15, lineHeight: 22, family: fontFamily.sans, weight: fontWeight.regular }, // default text
+  label: { size: 14, lineHeight: 20, family: fontFamily.sansSemibold, weight: fontWeight.semibold }, // form labels, buttons
+  caption: { size: 12, lineHeight: 16, family: fontFamily.sansMedium, weight: fontWeight.medium }, // secondary detail
+  overline: {
+    size: 11,
+    lineHeight: 16,
+    family: fontFamily.sansBold,
+    weight: fontWeight.bold,
+    letterSpacing: 0.9,
+    uppercase: true,
+  }, // eyebrow / section labels
 } as const;
 
 export type TypeRoleToken = keyof typeof typeRole;

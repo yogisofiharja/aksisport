@@ -1,10 +1,28 @@
+type Pair = { light: string; dark: string };
+
 declare const colors: {
-  50: string;
-  100: string;
-  400: string;
-  500: string;
-  600: string;
-  700: string;
+  heat: Pair;
+  heatStrong: Pair;
+  heatTint: Pair;
+  onHeat: Pair;
+  ink: Pair;
+  inkMuted: Pair;
+  inkFaint: Pair;
+  ground: Pair;
+  surface: Pair;
+  surfaceSunken: Pair;
+  asphalt: Pair;
+  onAsphalt: Pair;
+  heatOnAsphalt: Pair;
+  border: Pair;
+  borderStrong: Pair;
+  ball: Pair;
+  success: Pair;
+  successTint: Pair;
+  info: Pair;
+  infoTint: Pair;
+  danger: Pair;
+  dangerTint: Pair;
 };
 
 export = colors;

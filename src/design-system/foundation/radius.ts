@@ -1,14 +1,15 @@
 /**
- * Corner radius — deliberately minimal. The app has already converged on a
- * single radius value in practice (`rounded-2xl`, 50 uses across every
- * card, button, and input), plus `rounded-full` for pills/badges/the
- * rounded Input variant. DESIGN_TOKENS.md: "consistency more important than
- * variety" — no additional values are defined without a real use.
+ * Corner radius (Aksi Sport design system). Tailwind equivalents:
+ * xs `rounded`, sm `rounded-lg`, md `rounded-xl`, lg `rounded-[20px]`,
+ * full `rounded-full`.
  */
 
 export const radius = {
-  md: 16, // rounded-2xl — the app's dominant, effectively only, radius
-  full: 9999, // rounded-full — pills, badges, JoinClub code input
+  xs: 4, // score cells, checkbox
+  sm: 8, // buttons, inputs, chips
+  md: 12, // cards
+  lg: 20, // sheets, dialogs
+  full: 9999, // pills, avatars
 } as const;
 
 export type RadiusToken = keyof typeof radius;
