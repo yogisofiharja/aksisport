@@ -14,6 +14,11 @@ No reusable component should hardcode values.
 * Component code should reference these semantic names, never raw Tailwind palette values (`blue-600`, `slate-500`, `amber-600`).
 * Future design token work should evolve this existing system — adding names, filling gaps, resolving inconsistencies — rather than introducing a second, parallel token system alongside it.
 
+Light or dark is the person's choice in Settings (Follow device, the
+default; Light; Dark), applied by `src/theme.tsx`. Tailwind uses
+`darkMode: 'class'`: on web the provider sets the `dark` class on `<html>`,
+resolving Follow device from the browser and tracking it as it changes.
+
 ---
 
 # Colors

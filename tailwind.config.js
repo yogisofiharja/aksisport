@@ -2,7 +2,9 @@ const primaryTokens = require('./src/design-system/foundation/tokens/colors');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'media',
+  // 'class', not 'media': the app's own Light / Dark / Follow device setting
+  // (src/theme.tsx) decides, and on web toggles the `dark` class on <html>.
+  darkMode: 'class',
   content: [
     './App.{js,jsx,ts,tsx}',
     './src/**/*.{js,jsx,ts,tsx}',
