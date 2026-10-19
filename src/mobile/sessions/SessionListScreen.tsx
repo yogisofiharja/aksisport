@@ -43,13 +43,13 @@ export function statusLabel(status: Session['lifecycleStatus'], t: (key: string)
 // Distinct colors per lifecycle status so the list is scannable without
 // reading every pill's text.
 export function sessionStatusColor(status: Session['lifecycleStatus']): BadgeAction {
-  if (status === 'draft') return 'warning';
+  if (status === 'draft') return 'heat';
   if (status === 'cancelled') return 'error';
   if (status === 'in_progress') return 'success';
   if (status === 'completed') return 'muted';
   if (status === 'recruiting') return 'info';
   if (status === 'ready') return 'success';
-  return 'warning'; // full
+  return 'heat'; // full
 }
 
 function byStartsAtAsc(a: Session, b: Session) {
@@ -123,7 +123,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
         <Icon name="arrow-back" size="lg" />
       </Pressable>
 
-      <Typography variant="display">{t('sessionListTitle')}</Typography>
+      <Typography variant="heading">{t('sessionListTitle')}</Typography>
 
       {loading && sessions.length === 0 ? (
         <Loading />
@@ -133,7 +133,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
         <>
           {todaySessions.length > 0 && (
             <VStack space="sm">
-              <Typography variant="caption" color="muted">
+              <Typography variant="overline" color="muted">
                 {t('sessionSectionToday')}
               </Typography>
               <VStack space="md">{todaySessions.map(renderCard)}</VStack>
@@ -141,7 +141,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
           )}
           {upcomingSessions.length > 0 && (
             <VStack space="sm">
-              <Typography variant="caption" color="muted">
+              <Typography variant="overline" color="muted">
                 {t('sessionSectionUpcoming')}
               </Typography>
               <VStack space="md">{upcomingSessions.map(renderCard)}</VStack>
@@ -157,7 +157,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
       </Pressable>
 
       {isOwnerOrAdmin && mostRecentDraft && (
-        <Card bordered padding="md" className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+        <Card bordered padding="md" className="bg-heat-tint dark:bg-heat-tint-dark border-heat-tint dark:border-heat-tint-dark">
           <HStack className="gap-3 items-start">
             <Icon name="document-text-outline" size="md" color="secondary" />
             <VStack space="xs" style={{ flex: 1 }}>
@@ -166,13 +166,12 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
                 {t('sessionDraftRecoveryDesc', mostRecentDraft.name || mostRecentDraft.sport)}
               </Typography>
               <Button
-                action="secondary"
                 variant="outline"
                 size="sm"
                 className="self-start mt-1"
                 onPress={() => onOpenSession(mostRecentDraft.id)}
               >
-                <ButtonText action="secondary" variant="outline">
+                <ButtonText variant="outline">
                   {t('sessionDraftRecoveryContinue')}
                 </ButtonText>
               </Button>
@@ -183,8 +182,8 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
 
       {isOwnerOrAdmin && (
         <VStack space="xs">
-          <Button action="secondary" size="xl" className="w-full" onPress={onCreateSession}>
-            <ButtonText className="text-lg">{t('sessionCreate')}</ButtonText>
+          <Button size="xl" className="w-full" onPress={onCreateSession}>
+            <ButtonText>{t('sessionCreate')}</ButtonText>
           </Button>
           {mostRecentDraft && (
             <Typography variant="body" color="muted" className="text-xs text-center">

@@ -45,7 +45,7 @@ export function DisplayNameScreen({ onBack }: Props) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-6" keyboardShouldPersistTaps="handled">
           <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
@@ -53,10 +53,10 @@ export function DisplayNameScreen({ onBack }: Props) {
           </Pressable>
           <VStack className="gap-2">
             <Heading size="2xl">{t('displayNameTitle')}</Heading>
-            <Text className="text-slate-500 dark:text-slate-400">{t('displayNameDesc', profile?.username ?? '')}</Text>
+            <Text className="text-ink-muted dark:text-ink-muted-dark">{t('displayNameDesc', profile?.username ?? '')}</Text>
           </VStack>
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('displayNameLabel')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('displayNameLabel')}</Text>
             <Input>
               <InputField
                 autoCorrect={false}
@@ -67,19 +67,18 @@ export function DisplayNameScreen({ onBack }: Props) {
                 onSubmitEditing={save}
               />
             </Input>
-            <Text className="text-xs text-slate-400">
+            <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">
               {trimmed ? t('displayNameCount', trimmed.length, MAX_LENGTH) : t('displayNameEmptyHint')}
             </Text>
           </VStack>
           {error && <Text className="text-sm text-red-500">{error}</Text>}
           <Button
-            action="secondary"
             size="xl"
             isDisabled={busy || unchanged}
-            className="w-full rounded-2xl bg-blue-600"
+            className="w-full"
             onPress={save}
           >
-            <ButtonText className="text-white text-xl">{t('sessionEditSubmit')}</ButtonText>
+            <ButtonText>{t('sessionEditSubmit')}</ButtonText>
           </Button>
         </ScrollView>
       </KeyboardAvoidingView>

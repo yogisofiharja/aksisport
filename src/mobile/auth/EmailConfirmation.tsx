@@ -80,7 +80,7 @@ export function EmailConfirmation({ onConfirmed }: Props) {
     return (
       <VStack className="gap-4">
         <VStack className="gap-2">
-          <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authEmail')}</Text>
+          <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authEmail')}</Text>
           <Input>
             <InputField
               autoCapitalize="none"
@@ -95,13 +95,12 @@ export function EmailConfirmation({ onConfirmed }: Props) {
         </VStack>
         {error && <Text className="text-sm text-red-500">{error}</Text>}
         <Button
-          action="secondary"
           size="xl"
           isDisabled={busy || !email.trim()}
-          className="w-full rounded-2xl bg-blue-600"
+          className="w-full"
           onPress={() => sendCode(false)}
         >
-          <ButtonText className="text-white text-xl">{t('emailSendCode')}</ButtonText>
+          <ButtonText>{t('emailSendCode')}</ButtonText>
         </Button>
       </VStack>
     );
@@ -109,9 +108,9 @@ export function EmailConfirmation({ onConfirmed }: Props) {
 
   return (
     <VStack className="gap-4">
-      <Text className="text-slate-500 dark:text-slate-400">{t('emailCodeSentTo', email.trim())}</Text>
+      <Text className="text-ink-muted dark:text-ink-muted-dark">{t('emailCodeSentTo', email.trim())}</Text>
       <VStack className="gap-2">
-        <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('emailCodeLabel')}</Text>
+        <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('emailCodeLabel')}</Text>
         <Input>
           <InputField
             keyboardType="number-pad"
@@ -124,22 +123,21 @@ export function EmailConfirmation({ onConfirmed }: Props) {
         </Input>
       </VStack>
       {error && <Text className="text-sm text-red-500">{error}</Text>}
-      {notice && <Text className="text-sm text-slate-500 dark:text-slate-400">{notice}</Text>}
+      {notice && <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{notice}</Text>}
       <Button
-        action="secondary"
         size="xl"
         isDisabled={busy || code.trim().length !== 6}
-        className="w-full rounded-2xl bg-blue-600"
+        className="w-full"
         onPress={confirm}
       >
-        <ButtonText className="text-white text-xl">{t('emailConfirm')}</ButtonText>
+        <ButtonText>{t('emailConfirm')}</ButtonText>
       </Button>
       <VStack className="gap-3 items-center">
         {resendIn > 0 ? (
-          <Text className="font-bold text-slate-400 dark:text-slate-500">{t('emailResendIn', resendIn)}</Text>
+          <Text className="font-bold text-ink-faint dark:text-ink-faint-dark">{t('emailResendIn', resendIn)}</Text>
         ) : (
           <Pressable onPress={() => sendCode(true)} disabled={busy}>
-            <Text className="font-bold text-blue-600 dark:text-blue-400">{t('emailResendCode')}</Text>
+            <Text className="font-bold text-heat-strong dark:text-heat-strong-dark">{t('emailResendCode')}</Text>
           </Pressable>
         )}
         <Pressable
@@ -150,7 +148,7 @@ export function EmailConfirmation({ onConfirmed }: Props) {
           }}
           disabled={busy}
         >
-          <Text className="font-bold text-blue-600 dark:text-blue-400">{t('emailUseDifferent')}</Text>
+          <Text className="font-bold text-heat-strong dark:text-heat-strong-dark">{t('emailUseDifferent')}</Text>
         </Pressable>
       </VStack>
     </VStack>

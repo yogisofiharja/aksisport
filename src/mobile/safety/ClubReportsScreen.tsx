@@ -78,7 +78,7 @@ export function ClubReportsScreen({ clubId, onBack }: Props) {
       <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
         <Icon name="arrow-back" size="lg" />
       </Pressable>
-      <Typography variant="display">{t('clubReportsTitle')}</Typography>
+      <Typography variant="heading">{t('clubReportsTitle')}</Typography>
 
       {loading && reports.length === 0 ? (
         <Loading />
@@ -106,8 +106,8 @@ export function ClubReportsScreen({ clubId, onBack }: Props) {
                     {where(r)} · {t('reportBy', reporter)}
                   </Typography>
                   {r.message && (
-                    <VStack className="rounded-xl bg-slate-100 dark:bg-slate-700 px-3 py-2">
-                      <Typography variant="body" className={r.message.removed ? 'italic text-slate-500' : ''}>
+                    <VStack className="rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark px-3 py-2">
+                      <Typography variant="body" className={r.message.removed ? 'italic text-ink-muted dark:text-ink-muted-dark' : ''}>
                         {r.message.body || (r.message.hasImage ? t('inboxPhoto') : '')}
                       </Typography>
                       {r.message.removed && (
@@ -129,8 +129,8 @@ export function ClubReportsScreen({ clubId, onBack }: Props) {
                         <ButtonText action="negative">{t('reportRemoveMessage')}</ButtonText>
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" action="secondary" className="flex-1" onPress={() => act(r, 'dismiss')}>
-                      <ButtonText variant="outline" action="secondary">
+                    <Button size="sm" variant="outline" className="flex-1" onPress={() => act(r, 'dismiss')}>
+                      <ButtonText variant="outline">
                         {t('reportDismiss')}
                       </ButtonText>
                     </Button>

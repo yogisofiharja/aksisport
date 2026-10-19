@@ -25,6 +25,7 @@ const groups = [
   ['Engineering', readmeFirst(dir('docs/engineering'))],
   ['Decisions', dir('docs/decisions')],
   ['Design system', readmeFirst(dir('docs/architecture'))],
+  ['Aksi Sport', readmeFirst(dir('docs/design-system'))],
 ];
 
 const titleOverrides = { 'docs/request-features.md': 'Feature Requests' };

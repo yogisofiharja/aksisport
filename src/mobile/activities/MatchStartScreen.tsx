@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
@@ -63,12 +63,16 @@ export function MatchStartScreen({ players, starting, onBack, onStart }: Props) 
 
   function half(team: Team, position: 'left' | 'right') {
     const teamPlayers = players.filter((p) => p.team === team);
+    // Left in heat with ink text, right in asphalt with light text — the
+    // same team colours as the scoring screen.
+    const left = position === 'left';
+    const fg = left ? 'text-on-heat' : 'text-on-asphalt';
     return (
       <View
-        className={`flex-1 rounded-2xl px-3 py-4 gap-3 ${position === 'left' ? 'bg-blue-900' : 'bg-red-900'}`}
+        className={`flex-1 rounded-xl px-3 py-4 gap-3 ${left ? 'bg-heat' : 'bg-asphalt dark:bg-asphalt-dark'}`}
         accessibilityLabel={position === 'left' ? t('matchStartLeftHalf') : t('matchStartRightHalf')}
       >
-        <Typography variant="caption" className="text-white/70 text-center">
+        <Typography variant="overline" className={`${fg} opacity-70 text-center`}>
           {position === 'left' ? t('matchStartLeftHalf') : t('matchStartRightHalf')}
         </Typography>
         <VStack space="sm">
@@ -79,13 +83,25 @@ export function MatchStartScreen({ players, starting, onBack, onStart }: Props) 
                 key={p.id}
                 onPress={() => setFirstServerId(p.id)}
                 disabled={spinning}
+                // The server's chip is solid: ink on the orange side, light on
+                // the dark side, with the ball as a small dot before the name.
                 className={`flex-row items-center justify-center gap-2 px-3 py-2.5 rounded-full border-[1.5px] active:opacity-70 ${
-                  serving ? 'bg-yellow-300 border-yellow-300' : 'bg-white/10 border-white/30'
+                  serving
+                    ? left
+                      ? 'bg-ink border-ink'
+                      : 'bg-on-asphalt border-on-asphalt'
+                    : left
+                      ? 'border-on-heat/40'
+                      : 'border-on-asphalt/30'
                 }`}
                 accessibilityLabel={t('matchStartServes', p.name)}
               >
-                {serving && <Icon name="tennisball" size="sm" color="default" />}
-                <Typography variant="body" numberOfLines={1} className={`font-bold ${serving ? 'text-slate-900' : 'text-white'}`}>
+                {serving && <View className="w-2 h-2 rounded-full bg-ball" />}
+                <Typography
+                  variant="body"
+                  numberOfLines={1}
+                  className={`font-bold ${serving ? (left ? 'text-on-asphalt' : 'text-ink') : fg}`}
+                >
                   {p.name}
                 </Typography>
               </Pressable>
@@ -102,7 +118,7 @@ export function MatchStartScreen({ players, starting, onBack, onStart }: Props) 
         <Icon name="arrow-back" size="lg" />
       </Pressable>
       <VStack space="xs">
-        <Typography variant="display">{t('matchStartTitle')}</Typography>
+        <Typography variant="heading">{t('matchStartTitle')}</Typography>
         <Typography variant="body" color="muted">
           {t('matchStartExplainer')}
         </Typography>
@@ -116,13 +132,12 @@ export function MatchStartScreen({ players, starting, onBack, onStart }: Props) 
           </HStack>
           <Button
             variant="outline"
-            action="secondary"
             disabled={spinning}
             onPress={() => setTeamASide(teamASide === 'left' ? 'right' : 'left')}
           >
             <HStack space="sm" className="items-center">
               <Icon name="swap-horizontal" size="sm" color="secondary" />
-              <ButtonText variant="outline" action="secondary">
+              <ButtonText variant="outline">
                 {t('matchStartSwitchSides')}
               </ButtonText>
             </HStack>
@@ -138,10 +153,10 @@ export function MatchStartScreen({ players, starting, onBack, onStart }: Props) 
               ? t('matchStartServes', players.find((p) => p.id === firstServerId)?.name ?? '')
               : t('matchStartPickServer')}
         </Typography>
-        <Button variant="outline" action="secondary" size="sm" onPress={pickRandom} disabled={spinning}>
+        <Button variant="outline" size="sm" onPress={pickRandom} disabled={spinning}>
           <HStack space="xs" className="items-center">
             <Icon name="shuffle" size="sm" color="secondary" />
-            <ButtonText variant="outline" action="secondary">
+            <ButtonText variant="outline">
               {t('matchStartRandom')}
             </ButtonText>
           </HStack>
@@ -149,13 +164,13 @@ export function MatchStartScreen({ players, starting, onBack, onStart }: Props) 
       </HStack>
 
       <Button
-        action="secondary"
         size="xl"
         className="w-full"
-        disabled={!firstServerId || starting || spinning}
+        disabled={!firstServerId || spinning}
+        loading={starting}
         onPress={() => firstServerId && onStart({ teamASide, firstServerId })}
       >
-        {starting ? <ActivityIndicator color="#ffffff" /> : <ButtonText className="text-lg">{t('matchStartButton')}</ButtonText>}
+        <ButtonText>{t('matchStartButton')}</ButtonText>
       </Button>
     </ScrollPage>
   );

@@ -34,19 +34,18 @@ export function CompleteProfileScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900 items-center justify-center px-6">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark items-center justify-center px-6">
       <VStack className="gap-4 items-center">
         <Heading size="xl" className="text-center">{t('authCompleteProfileTitle')}</Heading>
-        <Text className="text-center text-slate-500 dark:text-slate-400">{t('authCompleteProfileDesc')}</Text>
+        <Text className="text-center text-ink-muted dark:text-ink-muted-dark">{t('authCompleteProfileDesc')}</Text>
         {error && <Text className="text-sm text-red-500">{error}</Text>}
         <Button
-          action="secondary"
           size="xl"
           isDisabled={submitting || !username}
-          className="w-full rounded-2xl bg-blue-600"
+          className="w-full"
           onPress={handleContinue}
         >
-          <ButtonText className="text-white text-xl">{t('authContinue')}</ButtonText>
+          <ButtonText>{t('authContinue')}</ButtonText>
         </Button>
       </VStack>
     </SafeAreaView>

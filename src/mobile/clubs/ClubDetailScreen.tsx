@@ -204,18 +204,18 @@ export function ClubDetailScreen({
 
       <HStack space="md" className="items-center">
         <Pressable onPress={isOwner ? handleChangeAvatar : undefined} disabled={!isOwner || uploadingAvatar} className="active:opacity-70">
-          <View className="w-20 h-20 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-blue-500">
+          <View className="w-20 h-20 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark border-2 border-border dark:border-border-dark">
             {club.hasAvatar ? (
               <Image source={{ uri: clubAvatarUrl(clubId), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
             ) : (
-              <Typography variant="body" className="text-xl font-extrabold text-slate-600 dark:text-slate-300">
+              <Typography variant="body" className="text-xl font-extrabold text-ink-muted dark:text-ink-muted-dark">
                 {initialsFromName(club.name)}
               </Typography>
             )}
           </View>
         </Pressable>
         <VStack space="xs" style={{ flex: 1 }}>
-          <Typography variant="display">{club.name}</Typography>
+          <Typography variant="heading">{club.name}</Typography>
           {club.cityName && (
             <HStack space="xs" className="items-center">
               <Icon name="location-outline" size="xs" color="muted" />
@@ -263,7 +263,7 @@ export function ClubDetailScreen({
       )}
 
       <VStack space="sm">
-        <Typography variant="caption" color="muted">
+        <Typography variant="overline" color="muted">
           {t('clubCurrentFocusTitle')}
         </Typography>
         {focus.length === 0 ? (
@@ -286,36 +286,36 @@ export function ClubDetailScreen({
         )}
       </VStack>
 
-      <Button action="secondary" size="xl" className="w-full" onPress={() => onOpenSessions(clubId)}>
-        <ButtonText className="text-lg">{t('sessionListTitle')}</ButtonText>
+      <Button size="xl" className="w-full" onPress={() => onOpenSessions(clubId)}>
+        <ButtonText>{t('sessionListTitle')}</ButtonText>
       </Button>
 
-      <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={() => onOpenChat(clubId)}>
+      <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenChat(clubId)}>
         <HStack space="sm" className="items-center">
-          <ButtonText action="secondary" variant="outline" className="text-lg">
+          <ButtonText variant="outline">
             {t('clubChatTitle')}
           </ButtonText>
           <UnreadCount count={chatUnread} />
         </HStack>
       </Button>
 
-      <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={() => onOpenMembers(clubId)}>
-        <ButtonText action="secondary" variant="outline" className="text-lg">
+      <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenMembers(clubId)}>
+        <ButtonText variant="outline">
           {t('clubMembersTitle')}
         </ButtonText>
       </Button>
 
       {isOwnerOrAdmin && (
-        <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={() => onOpenRecurringSchedules(clubId)}>
-          <ButtonText action="secondary" variant="outline" className="text-lg">
+        <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenRecurringSchedules(clubId)}>
+          <ButtonText variant="outline">
             {t('recurringScheduleListTitle')}
           </ButtonText>
         </Button>
       )}
 
       {isOwnerOrAdmin && (
-        <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={() => onOpenReports(clubId)}>
-          <ButtonText action="secondary" variant="outline" className="text-lg">
+        <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenReports(clubId)}>
+          <ButtonText variant="outline">
             {t('clubReportsTitle')}
           </ButtonText>
         </Button>

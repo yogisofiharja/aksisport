@@ -59,7 +59,7 @@ export function BlockedPlayersScreen({ onBack }: Props) {
         <Icon name="arrow-back" size="lg" />
       </Pressable>
       <VStack space="xs">
-        <Typography variant="display">{t('blockedPlayersTitle')}</Typography>
+        <Typography variant="heading">{t('blockedPlayersTitle')}</Typography>
         <Typography variant="body" color="muted">
           {t('blockedPlayersExplainer')}
         </Typography>
@@ -76,11 +76,11 @@ export function BlockedPlayersScreen({ onBack }: Props) {
             return (
               <Card key={b.userId}>
                 <HStack className="items-center" space="md">
-                  <View className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700">
+                  <View className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark">
                     {b.hasAvatar ? (
                       <Image source={{ uri: userAvatarUrl(b.userId), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
                     ) : (
-                      <Typography variant="body" className="text-sm font-extrabold text-slate-600 dark:text-slate-300">
+                      <Typography variant="body" className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark">
                         {initialsFromName(name)}
                       </Typography>
                     )}
@@ -93,8 +93,8 @@ export function BlockedPlayersScreen({ onBack }: Props) {
                       @{b.username}
                     </Typography>
                   </VStack>
-                  <Button size="sm" variant="outline" action="secondary" onPress={() => handleUnblock(b.userId)}>
-                    <ButtonText variant="outline" action="secondary">
+                  <Button size="sm" variant="outline" onPress={() => handleUnblock(b.userId)}>
+                    <ButtonText variant="outline">
                       {t('blockUnblock')}
                     </ButtonText>
                   </Button>

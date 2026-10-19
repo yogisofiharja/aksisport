@@ -84,7 +84,7 @@ export function CityPickerModal({ visible, title, selectedCode, onSelect, onClos
 
   function row(key: string, label: string, sublabel: string | undefined, trailing: 'chevron' | 'check' | 'none', onPress: () => void) {
     return (
-      <Pressable key={key} onPress={onPress} className="px-5 py-3 active:opacity-60 border-b border-slate-200 dark:border-slate-800">
+      <Pressable key={key} onPress={onPress} className="px-5 py-3 active:opacity-60 border-b border-border dark:border-border-dark">
         <HStack className="justify-between items-center" space="md">
           <VStack space="xs" style={{ flex: 1 }}>
             <Typography variant="body" className="font-semibold">
@@ -107,7 +107,7 @@ export function CityPickerModal({ visible, title, selectedCode, onSelect, onClos
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       {/* Same centred column as the app itself on a wide browser window. */}
       <View className="flex-1 bg-slate-200 dark:bg-black">
-        <SafeAreaView className="flex-1 w-full self-center bg-slate-50 dark:bg-slate-900" style={{ maxWidth: 520 }}>
+        <SafeAreaView className="flex-1 w-full self-center bg-ground dark:bg-ground-dark" style={{ maxWidth: 520 }}>
           <VStack space="md" className="px-5 pt-4 pb-3">
             <HStack className="justify-between items-center">
               <Typography variant="title">{title}</Typography>
@@ -115,7 +115,7 @@ export function CityPickerModal({ visible, title, selectedCode, onSelect, onClos
                 <Icon name="close" size="lg" />
               </Pressable>
             </HStack>
-            <HStack className="items-center rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4" space="sm">
+            <HStack className="items-center rounded-2xl border border-border-strong dark:border-border-strong-dark bg-surface dark:bg-surface-dark px-4" space="sm">
               <Icon name="search" size="sm" color="muted" />
               <TextInput
                 value={query}
@@ -124,7 +124,7 @@ export function CityPickerModal({ visible, title, selectedCode, onSelect, onClos
                 placeholderTextColor={isDark ? '#64748b' : '#9ca3af'}
                 autoCapitalize="none"
                 autoCorrect={false}
-                className="flex-1 font-semibold text-gray-900 dark:text-slate-100"
+                className="flex-1 font-semibold text-ink dark:text-ink-dark"
                 style={{ height: 48, fontSize: 16 }}
               />
               {query.length > 0 && (
@@ -137,14 +137,14 @@ export function CityPickerModal({ visible, title, selectedCode, onSelect, onClos
               <Pressable onPress={() => setProvince(null)} className="active:opacity-60 self-start">
                 <HStack space="xs" className="items-center">
                   <Icon name="chevron-back" size="sm" color="secondary" />
-                  <Typography variant="body" className="font-bold text-blue-600 dark:text-blue-400">
+                  <Typography variant="body" className="font-bold text-heat-strong dark:text-heat-strong-dark">
                     {province.name}
                   </Typography>
                 </HStack>
               </Pressable>
             )}
             {showingProvinces && locations && (
-              <Typography variant="caption" color="muted">
+              <Typography variant="overline" color="muted">
                 {t('cityPickerChooseProvince')}
               </Typography>
             )}
@@ -163,7 +163,7 @@ export function CityPickerModal({ visible, title, selectedCode, onSelect, onClos
               keyboardShouldPersistTaps="handled"
               ListHeaderComponent={
                 onClear && selectedCode ? (
-                  <Pressable onPress={onClear} className="px-5 py-3 active:opacity-60 border-b border-slate-200 dark:border-slate-800">
+                  <Pressable onPress={onClear} className="px-5 py-3 active:opacity-60 border-b border-border dark:border-border-dark">
                     <Typography variant="body" color="destructive" className="font-semibold">
                       {t('cityPickerRemove')}
                     </Typography>

@@ -19,5 +19,5 @@ export function HStack({ className = '', space, ...props }: BoxProps & { space?:
 }
 
 export function Divider({ className = '' }: { className?: string }) {
-  return <View className={`h-px bg-gray-100 dark:bg-slate-700 ${className}`} />;
+  return <View className={`h-px bg-border dark:bg-border-dark ${className}`} />;
 }

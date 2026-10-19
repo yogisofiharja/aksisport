@@ -59,7 +59,7 @@ export function SessionHistoryScreen({ clubId, onBack, onOpenSession }: Props) {
         <Icon name="arrow-back" size="lg" />
       </Pressable>
 
-      <Typography variant="display">{t(clubId ? 'sessionHistoryTitle' : 'mySessionHistoryTitle')}</Typography>
+      <Typography variant="heading">{t(clubId ? 'sessionHistoryTitle' : 'mySessionHistoryTitle')}</Typography>
 
       {loading && sessions.length === 0 ? (
         <Loading />

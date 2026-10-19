@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps, type ViewProps } from 'react-native';
 import { useColorScheme } from 'nativewind';
+import { color } from '../foundation/colors';
 
 /**
  * Promoted from components/ui/input.tsx (already correctly built — the
@@ -22,11 +23,11 @@ type InputProps = ViewProps & {
 export function Input({ className = '', variant = 'outline', isInvalid = false, style, ...props }: InputProps) {
   const radiusClass = variant === 'rounded' ? 'rounded-full' : 'rounded-2xl';
   const borderClass = isInvalid
-    ? 'border border-red-500'
-    : 'border border-gray-200 dark:border-slate-600';
+    ? 'border border-danger dark:border-danger-dark'
+    : 'border border-border-strong dark:border-border-strong-dark';
   return (
     <View
-      className={`${radiusClass} ${borderClass} bg-white dark:bg-slate-800 ${className}`}
+      className={`${radiusClass} ${borderClass} bg-surface dark:bg-surface-dark ${className}`}
       // overflow:visible stops borderRadius from acting as a clip mask on native
       style={[s.wrapper, style]}
       {...props}
@@ -45,10 +46,10 @@ export const InputField = forwardRef<TextInput, InputFieldProps>(function InputF
     <TextInput
       ref={ref}
       // Only colour/font classes here — no padding classes so StyleSheet wins
-      className={`text-gray-900 dark:text-slate-100 text-base font-semibold ${className}`}
+      className={`text-ink dark:text-ink-dark text-base font-sans-medium ${className}`}
       // StyleSheet-based padding guarantees descenders are not clipped
       style={[s.field, style]}
-      placeholderTextColor={colorScheme === 'dark' ? '#64748b' : '#9ca3af'}
+      placeholderTextColor={color.inkFaint[colorScheme === 'dark' ? 'dark' : 'light']}
       {...props}
     />
   );

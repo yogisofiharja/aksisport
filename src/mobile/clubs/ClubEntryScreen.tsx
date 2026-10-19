@@ -51,7 +51,7 @@ export function ClubEntryScreen(props: Props) {
         <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={props.onBack}>
           <Icon name="arrow-back" size="lg" />
         </Pressable>
-        <Typography variant="display">{t('clubNotFoundTitle')}</Typography>
+        <Typography variant="heading">{t('clubNotFoundTitle')}</Typography>
         <Typography variant="body" color="muted">
           {t('clubNotFoundDesc')}
         </Typography>

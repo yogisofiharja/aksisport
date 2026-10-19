@@ -91,8 +91,8 @@ function activityTypeLabel(id: string, t: (key: string) => string): string {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <HStack className="justify-between">
-      <Text className="text-slate-500 dark:text-slate-400">{label}</Text>
-      <Text className="font-bold text-slate-900 dark:text-white">{value}</Text>
+      <Text className="text-ink-muted dark:text-ink-muted-dark">{label}</Text>
+      <Text className="font-bold text-ink dark:text-ink-dark">{value}</Text>
     </HStack>
   );
 }
@@ -106,16 +106,16 @@ function Stepper({ value, min, max, onChange }: { value: number; min: number; ma
     <HStack className="items-center gap-3">
       <Pressable
         onPress={() => value > min && onChange(value - 1)}
-        className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-60"
+        className="w-9 h-9 rounded-full bg-surface-sunken dark:bg-surface-sunken-dark items-center justify-center active:opacity-60"
       >
-        <Text className="text-lg font-bold text-slate-900 dark:text-white">−</Text>
+        <Text className="text-lg font-bold text-ink dark:text-ink-dark">−</Text>
       </Pressable>
-      <Text className="w-8 text-center font-bold text-slate-900 dark:text-white">{value}</Text>
+      <Text className="w-8 text-center font-bold text-ink dark:text-ink-dark">{value}</Text>
       <Pressable
         onPress={() => value < max && onChange(value + 1)}
-        className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 items-center justify-center active:opacity-60"
+        className="w-9 h-9 rounded-full bg-surface-sunken dark:bg-surface-sunken-dark items-center justify-center active:opacity-60"
       >
-        <Text className="text-lg font-bold text-slate-900 dark:text-white">+</Text>
+        <Text className="text-lg font-bold text-ink dark:text-ink-dark">+</Text>
       </Pressable>
     </HStack>
   );
@@ -521,7 +521,7 @@ export function CreateSessionScreen({
 
   if (loadingExisting) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark items-center justify-center">
         <ActivityIndicator size="large" />
       </SafeAreaView>
     );
@@ -529,28 +529,28 @@ export function CreateSessionScreen({
 
   if (showPreview) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5">
           <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={() => setShowPreview(false)}>
             <Icon name="arrow-back" size="lg" />
           </Pressable>
 
           <VStack className="gap-1">
-            <Box className="bg-blue-100 dark:bg-blue-900/30 rounded-full px-2.5 py-1 self-start mb-1">
-              <Text className="text-xs font-extrabold text-blue-700 dark:text-blue-300 tracking-wide">
+            <Box className="bg-info-tint dark:bg-info-tint-dark rounded-full px-2.5 py-1 self-start mb-1">
+              <Text className="text-xs font-extrabold text-info dark:text-info-dark tracking-wide">
                 {t('sessionStatusDraft').toUpperCase()}
               </Text>
             </Box>
-            <Text className="text-2xl font-black text-slate-900 dark:text-white">{name.trim()}</Text>
+            <Text className="text-2xl font-black text-ink dark:text-ink-dark">{name.trim()}</Text>
             {location.trim() && (
               <HStack className="items-center gap-1">
                 <Icon name="location-outline" size="xs" color="muted" />
-                <Text className="text-slate-500 dark:text-slate-400">{location.trim()}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark">{location.trim()}</Text>
               </HStack>
             )}
           </VStack>
 
-          <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
+          <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-3">
             <VStack className="gap-2">
               <DetailRow label={t('sessionSportLabel')} value={sport === 'tennis' ? t('sportTennis') : sport} />
               {activityType && <DetailRow label={t('sessionActivityTypeLabel')} value={activityTypeLabel(activityType, t)} />}
@@ -594,35 +594,34 @@ export function CreateSessionScreen({
           </Box>
 
           {description.trim() && (
-            <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-1">
-              <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
+            <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-1">
+              <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">
                 {t('sessionDescriptionSectionTitle')}
               </Text>
-              <Text className="text-slate-700 dark:text-slate-300">{description.trim()}</Text>
+              <Text className="text-ink-muted dark:text-ink-muted-dark">{description.trim()}</Text>
             </Box>
           )}
 
           {error && <Text className="text-sm text-red-500">{error}</Text>}
 
           <VStack className="gap-3">
-            <Button action="secondary" size="lg" className="w-full rounded-2xl bg-blue-600" isDisabled={submitting} onPress={doPublishNew}>
-              <ButtonText className="text-white">{t('sessionPublish')}</ButtonText>
+            <Button size="lg" className="w-full" isDisabled={submitting} onPress={doPublishNew}>
+              <ButtonText>{t('sessionPublish')}</ButtonText>
             </Button>
-            <Text className="text-center text-xs font-bold text-slate-400">{t('commonOr')}</Text>
+            <Text className="text-center text-xs font-bold text-ink-muted dark:text-ink-muted-dark">{t('commonOr')}</Text>
             <Button
               variant="outline"
-              action="secondary"
               size="lg"
-              className="w-full rounded-2xl"
+              className="w-full"
               isDisabled={submitting}
               onPress={doSaveAsDraft}
             >
-              <ButtonText variant="outline" action="secondary">
+              <ButtonText variant="outline">
                 {t('sessionSaveAsDraft')}
               </ButtonText>
             </Button>
 
-            <Box className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
+            <Box className="h-px bg-surface-sunken dark:bg-surface-sunken-dark my-1" />
 
             <Pressable className="items-center py-2 active:opacity-60" onPress={handleDiscardPreview} disabled={submitting}>
               <Text className="text-red-500 font-bold">{t('sessionDiscard')}</Text>
@@ -634,7 +633,7 @@ export function CreateSessionScreen({
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5" keyboardShouldPersistTaps="handled">
           <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
@@ -643,15 +642,15 @@ export function CreateSessionScreen({
 
           {!isEditing && !isEditingSchedule && (
             <VStack className="gap-2">
-              <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionSportLabel')}</Text>
+              <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionSportLabel')}</Text>
               <HStack className="gap-2 flex-wrap">
                 {sports.map((id) => (
                   <Pressable
                     key={id}
-                    className={`px-3 py-2 rounded-full ${id === sport ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                    className={`px-3 py-2 rounded-full ${id === sport ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'}`}
                     onPress={() => handleSelectSport(id)}
                   >
-                    <Text className={id === sport ? 'text-white font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                    <Text className={id === sport ? 'text-surface dark:text-surface-dark font-sans-bold' : 'text-ink-muted dark:text-ink-muted-dark'}>
                       {id === 'tennis' ? t('sportTennis') : id}
                     </Text>
                   </Pressable>
@@ -661,15 +660,15 @@ export function CreateSessionScreen({
           )}
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionActivityTypeLabel')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionActivityTypeLabel')}</Text>
             <HStack className="gap-2 flex-wrap">
               {activityTypes.map((id) => (
                 <Pressable
                   key={id}
-                  className={`px-3 py-2 rounded-full ${id === activityType ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                  className={`px-3 py-2 rounded-full ${id === activityType ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'}`}
                   onPress={() => setActivityType(id)}
                 >
-                  <Text className={id === activityType ? 'text-white font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                  <Text className={id === activityType ? 'text-surface dark:text-surface-dark font-sans-bold' : 'text-ink-muted dark:text-ink-muted-dark'}>
                     {activityTypeLabel(id, t)}
                   </Text>
                 </Pressable>
@@ -678,21 +677,21 @@ export function CreateSessionScreen({
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionNamePlaceholder')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionNamePlaceholder')}</Text>
             <Input>
               <InputField value={name} onChangeText={setName} maxLength={80} />
             </Input>
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionLocationPlaceholder')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionLocationPlaceholder')}</Text>
             <Input>
               <InputField value={location} onChangeText={setLocation} maxLength={120} />
             </Input>
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionDescriptionLabel')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionDescriptionLabel')}</Text>
             <Input className="h-auto items-start py-2">
               <InputField
                 // Uncontrolled deliberately — this screen is one large
@@ -724,7 +723,7 @@ export function CreateSessionScreen({
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionMaxParticipantsLabel')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionMaxParticipantsLabel')}</Text>
             <Input>
               <InputField
                 value={maxParticipants}
@@ -737,28 +736,28 @@ export function CreateSessionScreen({
           </VStack>
 
           <HStack className="justify-between items-center">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionHostPlayingLabel')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionHostPlayingLabel')}</Text>
             <Switch value={hostPlaying} onValueChange={setHostPlaying} />
           </HStack>
 
           {!isEditing && !isEditingSchedule && (
             <HStack className="justify-between items-center">
-              <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('recurringToggleLabel')}</Text>
+              <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('recurringToggleLabel')}</Text>
               <Switch value={isRecurring} onValueChange={setIsRecurring} />
             </HStack>
           )}
 
           {!isEditing && isRecurring ? (
             <VStack className="gap-2">
-              <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('recurringScheduleWeekdayLabel')}</Text>
+              <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('recurringScheduleWeekdayLabel')}</Text>
               <HStack className="gap-2 flex-wrap">
                 {[0, 1, 2, 3, 4, 5, 6].map((day) => (
                   <Pressable
                     key={day}
-                    className={`px-3 py-2 rounded-full ${day === weekday ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                    className={`px-3 py-2 rounded-full ${day === weekday ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'}`}
                     onPress={() => setWeekday(day)}
                   >
-                    <Text className={day === weekday ? 'text-white font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                    <Text className={day === weekday ? 'text-surface dark:text-surface-dark font-sans-bold' : 'text-ink-muted dark:text-ink-muted-dark'}>
                       {weekdayLabel(day, t)}
                     </Text>
                   </Pressable>
@@ -767,13 +766,13 @@ export function CreateSessionScreen({
             </VStack>
           ) : (
             <VStack className="gap-2">
-              <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionDateLabel')}</Text>
+              <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionDateLabel')}</Text>
               {Platform.OS !== 'web' && (
                 <Pressable
-                  className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+                  className="px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark"
                   onPress={() => setShowDatePicker((shown) => !shown)}
                 >
-                  <Text className="text-slate-900 dark:text-slate-100 font-bold">{date.toLocaleDateString()}</Text>
+                  <Text className="text-ink dark:text-ink-dark font-bold">{date.toLocaleDateString()}</Text>
                 </Pressable>
               )}
               {(Platform.OS === 'web' || showDatePicker) && (
@@ -790,7 +789,7 @@ export function CreateSessionScreen({
                   />
                   {Platform.OS === 'ios' && (
                     <Pressable className="self-end px-4 py-2" onPress={() => setShowDatePicker(false)}>
-                      <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
+                      <Text className="text-heat-strong dark:text-heat-strong-dark font-bold">{t('recurringScheduleTimeDone')}</Text>
                     </Pressable>
                   )}
                 </>
@@ -799,15 +798,15 @@ export function CreateSessionScreen({
           )}
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">
               {!isEditing && isRecurring ? t('recurringScheduleTimeLabel') : t('sessionTimeLabel')}
             </Text>
             {Platform.OS !== 'web' && (
               <Pressable
-                className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+                className="px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark"
                 onPress={() => setShowTimePicker((shown) => !shown)}
               >
-                <Text className="text-slate-900 dark:text-slate-100 font-bold">{formatHHMM(time)}</Text>
+                <Text className="text-ink dark:text-ink-dark font-bold">{formatHHMM(time)}</Text>
               </Pressable>
             )}
             {(Platform.OS === 'web' || showTimePicker) && (
@@ -824,7 +823,7 @@ export function CreateSessionScreen({
                 />
                 {Platform.OS === 'ios' && (
                   <Pressable className="self-end px-4 py-2" onPress={() => setShowTimePicker(false)}>
-                    <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
+                    <Text className="text-heat-strong dark:text-heat-strong-dark font-bold">{t('recurringScheduleTimeDone')}</Text>
                   </Pressable>
                 )}
               </>
@@ -833,7 +832,7 @@ export function CreateSessionScreen({
 
           {!isEditing && isRecurring && (
             <VStack className="gap-2">
-              <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('recurringScheduleLeadDaysLabel')}</Text>
+              <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('recurringScheduleLeadDaysLabel')}</Text>
               <Input>
                 <InputField
                   value={generationLeadDays}
@@ -846,13 +845,13 @@ export function CreateSessionScreen({
           )}
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionDurationLabel')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionDurationLabel')}</Text>
             {Platform.OS !== 'web' && (
               <Pressable
-                className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+                className="px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark"
                 onPress={() => setShowDurationPicker((shown) => !shown)}
               >
-                <Text className="text-slate-900 dark:text-slate-100 font-bold">{t('sessionDurationHours', durationHours)}</Text>
+                <Text className="text-ink dark:text-ink-dark font-bold">{t('sessionDurationHours', durationHours)}</Text>
               </Pressable>
             )}
             {(Platform.OS === 'web' || showDurationPicker) && (
@@ -878,7 +877,7 @@ export function CreateSessionScreen({
                 </Picker>
                 {Platform.OS === 'ios' && (
                   <Pressable className="self-end px-4 py-2" onPress={() => setShowDurationPicker(false)}>
-                    <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
+                    <Text className="text-heat-strong dark:text-heat-strong-dark font-bold">{t('recurringScheduleTimeDone')}</Text>
                   </Pressable>
                 )}
               </>
@@ -886,17 +885,17 @@ export function CreateSessionScreen({
           </VStack>
 
           <VStack className="gap-3">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('matchFormat')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('matchFormat')}</Text>
             <VStack className="gap-2">
               <Pressable
                 onPress={() => setMatchFormat({ type: 'open' })}
                 className={`py-3 px-4 rounded-xl border-2 ${
                   matchFormat.type === 'open'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                    ? 'bg-heat-tint dark:bg-heat-tint-dark border-heat'
+                    : 'bg-surface dark:bg-surface-dark border-border dark:border-border-dark'
                 }`}
               >
-                <Text className={matchFormat.type === 'open' ? 'text-blue-600 font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                <Text className={matchFormat.type === 'open' ? 'text-heat-strong dark:text-heat-strong-dark font-bold' : 'text-ink-muted dark:text-ink-muted-dark'}>
                   {t('formatOpen')}
                 </Text>
               </Pressable>
@@ -905,18 +904,18 @@ export function CreateSessionScreen({
                 onPress={() => setMatchFormat({ type: 'fixed-games', totalGames: 4, goldenGameOnTie: false })}
                 className={`py-3 px-4 rounded-xl border-2 ${
                   matchFormat.type === 'fixed-games'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                    ? 'bg-heat-tint dark:bg-heat-tint-dark border-heat'
+                    : 'bg-surface dark:bg-surface-dark border-border dark:border-border-dark'
                 }`}
               >
-                <Text className={matchFormat.type === 'fixed-games' ? 'text-blue-600 font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                <Text className={matchFormat.type === 'fixed-games' ? 'text-heat-strong dark:text-heat-strong-dark font-bold' : 'text-ink-muted dark:text-ink-muted-dark'}>
                   {t('formatFixedGames')}
                 </Text>
               </Pressable>
               {matchFormat.type === 'fixed-games' && (
                 <VStack className="gap-3 pl-2">
                   <HStack className="justify-between items-center">
-                    <Text className="text-slate-500 dark:text-slate-400">{t('totalGames')}</Text>
+                    <Text className="text-ink-muted dark:text-ink-muted-dark">{t('totalGames')}</Text>
                     <Stepper
                       value={matchFormat.totalGames}
                       min={2}
@@ -926,8 +925,8 @@ export function CreateSessionScreen({
                   </HStack>
                   <HStack className="justify-between items-center gap-4">
                     <VStack className="flex-1 gap-1">
-                      <Text className="font-bold text-slate-900 dark:text-white">{t('goldenGame')}</Text>
-                      <Text className="text-sm text-slate-500 dark:text-slate-400">{t('goldenGameDesc')}</Text>
+                      <Text className="font-bold text-ink dark:text-ink-dark">{t('goldenGame')}</Text>
+                      <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('goldenGameDesc')}</Text>
                     </VStack>
                     <Switch
                       value={matchFormat.goldenGameOnTie}
@@ -941,17 +940,17 @@ export function CreateSessionScreen({
                 onPress={() => setMatchFormat({ type: 'race-to', raceTo: 4 })}
                 className={`py-3 px-4 rounded-xl border-2 ${
                   matchFormat.type === 'race-to'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                    ? 'bg-heat-tint dark:bg-heat-tint-dark border-heat'
+                    : 'bg-surface dark:bg-surface-dark border-border dark:border-border-dark'
                 }`}
               >
-                <Text className={matchFormat.type === 'race-to' ? 'text-blue-600 font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                <Text className={matchFormat.type === 'race-to' ? 'text-heat-strong dark:text-heat-strong-dark font-bold' : 'text-ink-muted dark:text-ink-muted-dark'}>
                   {t('formatRaceTo')}
                 </Text>
               </Pressable>
               {matchFormat.type === 'race-to' && (
                 <HStack className="justify-between items-center pl-2">
-                  <Text className="text-slate-500 dark:text-slate-400">{t('targetGames')}</Text>
+                  <Text className="text-ink-muted dark:text-ink-muted-dark">{t('targetGames')}</Text>
                   <Stepper value={matchFormat.raceTo} min={1} max={20} onChange={(n) => setMatchFormat({ ...matchFormat, raceTo: n })} />
                 </HStack>
               )}
@@ -960,18 +959,18 @@ export function CreateSessionScreen({
                 onPress={() => setMatchFormat({ type: 'best-of-sets', setsToWin: 2, superTiebreak: false })}
                 className={`py-3 px-4 rounded-xl border-2 ${
                   matchFormat.type === 'best-of-sets'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                    ? 'bg-heat-tint dark:bg-heat-tint-dark border-heat'
+                    : 'bg-surface dark:bg-surface-dark border-border dark:border-border-dark'
                 }`}
               >
-                <Text className={matchFormat.type === 'best-of-sets' ? 'text-blue-600 font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                <Text className={matchFormat.type === 'best-of-sets' ? 'text-heat-strong dark:text-heat-strong-dark font-bold' : 'text-ink-muted dark:text-ink-muted-dark'}>
                   {t('regularTab')}
                 </Text>
               </Pressable>
               {matchFormat.type === 'best-of-sets' && (
                 <VStack className="gap-3 pl-2">
                   <HStack className="justify-between items-center">
-                    <Text className="text-slate-500 dark:text-slate-400">{t('setsToWin')}</Text>
+                    <Text className="text-ink-muted dark:text-ink-muted-dark">{t('setsToWin')}</Text>
                     <HStack className="gap-2">
                       {([1, 2, 3] as const).map((n) => {
                         const active = matchFormat.type === 'best-of-sets' && matchFormat.setsToWin === n;
@@ -979,9 +978,9 @@ export function CreateSessionScreen({
                           <Pressable
                             key={n}
                             onPress={() => setMatchFormat({ type: 'best-of-sets', setsToWin: n, superTiebreak: n === 1 ? false : matchFormat.superTiebreak })}
-                            className={`w-9 h-9 rounded-full items-center justify-center ${active ? 'bg-blue-600' : 'bg-slate-100 dark:bg-slate-700'}`}
+                            className={`w-9 h-9 rounded-full items-center justify-center ${active ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'}`}
                           >
-                            <Text className={active ? 'text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-bold'}>{n}</Text>
+                            <Text className={active ? 'text-surface dark:text-surface-dark font-sans-bold' : 'text-ink-muted dark:text-ink-muted-dark font-bold'}>{n}</Text>
                           </Pressable>
                         );
                       })}
@@ -990,8 +989,8 @@ export function CreateSessionScreen({
                   {matchFormat.setsToWin > 1 && (
                     <HStack className="justify-between items-center gap-4">
                       <VStack className="flex-1 gap-1">
-                        <Text className="font-bold text-slate-900 dark:text-white">{t('superTiebreak')}</Text>
-                        <Text className="text-sm text-slate-500 dark:text-slate-400">{t('superTiebreakDesc')}</Text>
+                        <Text className="font-bold text-ink dark:text-ink-dark">{t('superTiebreak')}</Text>
+                        <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('superTiebreakDesc')}</Text>
                       </VStack>
                       <Switch
                         value={matchFormat.superTiebreak}
@@ -1005,15 +1004,15 @@ export function CreateSessionScreen({
 
             <HStack className="justify-between items-center gap-4">
               <VStack className="flex-1 gap-1">
-                <Text className="font-bold text-slate-900 dark:text-white">{t('singleDeuce')}</Text>
-                <Text className="text-sm text-slate-500 dark:text-slate-400">{t('singleDeuceDesc')}</Text>
+                <Text className="font-bold text-ink dark:text-ink-dark">{t('singleDeuce')}</Text>
+                <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('singleDeuceDesc')}</Text>
               </VStack>
               <Switch value={singleDeuceSuddenDeath} onValueChange={setSingleDeuceSuddenDeath} />
             </HStack>
           </VStack>
 
           <HStack className="justify-between items-center">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('skillLevelRequireToggleLabel')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('skillLevelRequireToggleLabel')}</Text>
             <Switch value={requireSkillLevel} onValueChange={setRequireSkillLevel} />
           </HStack>
 
@@ -1022,15 +1021,15 @@ export function CreateSessionScreen({
           )}
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('sessionPriceLabel')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionPriceLabel')}</Text>
             <HStack className="gap-2 flex-wrap">
               {(['free', 'per_person', 'split_bill'] as PriceModel[]).map((model) => (
                 <Pressable
                   key={model}
-                  className={`px-3 py-2 rounded-full ${model === priceModel ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                  className={`px-3 py-2 rounded-full ${model === priceModel ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'}`}
                   onPress={() => setPriceModel(model)}
                 >
-                  <Text className={model === priceModel ? 'text-white font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                  <Text className={model === priceModel ? 'text-surface dark:text-surface-dark font-sans-bold' : 'text-ink-muted dark:text-ink-muted-dark'}>
                     {model === 'free'
                       ? t('sessionPriceModelFree')
                       : model === 'per_person'
@@ -1067,13 +1066,12 @@ export function CreateSessionScreen({
           {error && <Text className="text-sm text-red-500">{error}</Text>}
 
           <Button
-            action="secondary"
             size="lg"
             isDisabled={submitting}
-            className="w-full rounded-2xl bg-blue-600"
+            className="w-full"
             onPress={isEditing || isRecurring ? handleSubmit : handleContinue}
           >
-            <ButtonText className="text-white">
+            <ButtonText>
               {isEditing || isEditingSchedule ? t('sessionEditSubmit') : isRecurring ? t('recurringScheduleCreateSubmit') : t('sessionContinue')}
             </ButtonText>
           </Button>

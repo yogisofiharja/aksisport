@@ -41,6 +41,7 @@
     "expo-screen-orientation": "~9.0.9",
     "expo-sharing": "~14.0.8",
     "expo-speech": "~14.0.8",
+    "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "firebase": "^12.14.0",
     "nativewind": "^4.2.6",

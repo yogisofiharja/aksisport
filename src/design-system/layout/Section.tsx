@@ -35,12 +35,12 @@ export function Section({ className = '', title, description, actions, children,
           <HStack className="justify-between items-center" space="md">
             <Stack space="xs" style={{ flex: 1 }}>
               {title && (
-                <Text className="text-xs font-extrabold text-slate-400 dark:text-slate-500 tracking-widest uppercase">
+                <Text className="text-xs font-extrabold text-ink-faint dark:text-ink-faint-dark tracking-widest uppercase">
                   {title}
                 </Text>
               )}
               {description && (
-                <Text className="text-sm text-slate-500 dark:text-slate-400">{description}</Text>
+                <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{description}</Text>
               )}
             </Stack>
             {actions}

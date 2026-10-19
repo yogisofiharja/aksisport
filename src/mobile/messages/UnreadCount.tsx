@@ -9,10 +9,10 @@ export function UnreadCount({ count }: { count: number }) {
   if (!count) return null;
   return (
     <View
-      className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-blue-600 items-center justify-center"
+      className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-heat items-center justify-center"
       accessibilityLabel={t('inboxUnread', count)}
     >
-      <Typography variant="body" className="text-xs font-extrabold text-white">
+      <Typography variant="body" className="text-xs font-sans-bold text-on-heat">
         {count > 99 ? '99+' : String(count)}
       </Typography>
     </View>

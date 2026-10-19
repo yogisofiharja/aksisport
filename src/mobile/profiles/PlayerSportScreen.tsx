@@ -81,10 +81,10 @@ export function PlayerSportScreen({ userId, sport, onBack }: Props) {
       </Pressable>
 
       <VStack space="xs">
-        <Typography variant="caption" color="muted">
+        <Typography variant="overline" color="muted">
           {isMe ? t('playerSportYours') : player ? player.displayName || player.username : ''}
         </Typography>
-        <Typography variant="display">{sportLabel(sport, t)}</Typography>
+        <Typography variant="heading">{sportLabel(sport, t)}</Typography>
         <Typography variant="body" color={level ? 'default' : 'muted'}>
           {level ? t('playerSportLevel', level.skillLevelName) : t('playerSportLevelNotSet')}
         </Typography>
@@ -113,7 +113,7 @@ export function PlayerSportScreen({ userId, sport, onBack }: Props) {
           </View>
 
           <VStack space="sm">
-            <Typography variant="caption" color="muted">
+            <Typography variant="overline" color="muted">
               {t('playerSportMatchesTitle')}
             </Typography>
             {activity && activity.matches.length === 0 ? (
@@ -155,7 +155,7 @@ export function PlayerSportScreen({ userId, sport, onBack }: Props) {
           </VStack>
 
           <VStack space="sm">
-            <Typography variant="caption" color="muted">
+            <Typography variant="overline" color="muted">
               {t('playerSportSessionsTitle')}
             </Typography>
             {activity && activity.sessions.length === 0 ? (
@@ -173,7 +173,7 @@ export function PlayerSportScreen({ userId, sport, onBack }: Props) {
                       </Typography>
                     </VStack>
                     <Badge
-                      action={s.outcome === 'no_show' ? 'warning' : 'success'}
+                      action={s.outcome === 'no_show' ? 'heat' : 'success'}
                       text={s.outcome === 'no_show' ? t('playerSportNoShowBadge') : t('playerSportAttendedBadge')}
                     />
                   </HStack>

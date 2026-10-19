@@ -37,7 +37,7 @@ export function MatchCard({ matchup, status, statusLabel, action, className = ''
           {status === 'live' ? (
             <HStack space="xs">
               <View className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              <Typography variant="caption" className="text-red-500">
+              <Typography variant="overline" className="text-red-500">
                 LIVE
               </Typography>
             </HStack>

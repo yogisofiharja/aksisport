@@ -8,7 +8,7 @@ import { VStack } from '../layout/VStack';
  * The shared shape verified across two real screens: ClubMembersScreen's
  * member row (name, role label, promote/remove links) and
  * SessionDetailScreen's participant row (name, check-in status). Both are
- * `bg-white dark:bg-slate-800 rounded-2xl p-4` cards with a name+subtitle
+ * `bg-surface dark:bg-surface-dark rounded-2xl p-4` cards with a name+subtitle
  * on the left and optional trailing content on the right — identical
  * enough to be one component, not two.
  *

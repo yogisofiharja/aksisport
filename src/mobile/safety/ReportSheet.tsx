@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, View } from 'react-native';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
@@ -50,11 +50,11 @@ export function ReportSheet({ target, onClose }: Props) {
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={onClose}>
           <Pressable
-            className="w-full self-center bg-white dark:bg-slate-800 rounded-t-3xl px-6 pt-6 pb-10 gap-4"
+            className="w-full self-center bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4"
             style={{ maxWidth: 520 }}
             onPress={() => {}}
           >
-            <View className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 self-center" />
+            <View className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center" />
             <VStack space="xs">
               <Typography variant="title">
                 {target?.kind === 'message' ? t('reportMessageTitle') : t('reportUserTitle', target?.name ?? '')}
@@ -76,13 +76,13 @@ export function ReportSheet({ target, onClose }: Props) {
               />
             </Input>
             <HStack space="md">
-              <Button variant="outline" action="secondary" className="flex-1" onPress={onClose}>
-                <ButtonText variant="outline" action="secondary">
+              <Button variant="outline" className="flex-1" onPress={onClose}>
+                <ButtonText variant="outline">
                   {t('clubCancel')}
                 </ButtonText>
               </Button>
-              <Button action="negative" className="flex-1" onPress={handleSend} disabled={!reason.trim() || sending}>
-                {sending ? <ActivityIndicator color="#ffffff" /> : <ButtonText action="negative">{t('reportSend')}</ButtonText>}
+              <Button action="negative" className="flex-1" onPress={handleSend} disabled={!reason.trim()} loading={sending}>
+                <ButtonText>{t('reportSend')}</ButtonText>
               </Button>
             </HStack>
           </Pressable>

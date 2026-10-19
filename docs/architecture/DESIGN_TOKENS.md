@@ -1,5 +1,9 @@
 # Design Tokens
 
+The visual source is the Aksi Sport design system; its documents are in
+`docs/design-system/` (principles, the mapping onto this codebase, mobile
+rules and every component's spec).
+
 Design Tokens provide a single source of truth for visual consistency.
 
 No reusable component should hardcode values.
@@ -66,7 +70,14 @@ file by family name, so each weight is its own family: `font-sans`,
 | Caption | 12/16 | Plus Jakarta Sans Medium |
 | Overline | 11/16, 0.9px tracking, uppercase | Plus Jakarta Sans Bold |
 
-The heaviest weight is 800, used only for the Display line. Avoid hardcoded font sizes.
+The heaviest weight is 800, used only for the Display line. Screen titles are
+Heading, not Display; the uppercase eyebrow above a section is Overline.
+Avoid hardcoded font sizes.
+
+Weight classes still work: `Typography`, `ButtonText` and the older
+`components/ui/text` turn `font-medium` / `font-semibold` / `font-bold`
+(and heavier) into the matching Plus Jakarta Sans family
+(`src/design-system/ui/fontClass.ts`), and drop them on Saira.
 
 ---
 

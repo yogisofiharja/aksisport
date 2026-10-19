@@ -9,5 +9,5 @@ import { View, type ViewProps } from 'react-native';
 type DividerProps = ViewProps & { className?: string };
 
 export function Divider({ className = '', ...props }: DividerProps) {
-  return <View className={`h-px bg-gray-100 dark:bg-slate-700 ${className}`} {...props} />;
+  return <View className={`h-px bg-border dark:bg-border-dark ${className}`} {...props} />;
 }

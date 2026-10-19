@@ -80,6 +80,20 @@ Examples:
 
 These should work in every application.
 
+They follow the Aksi Sport design system (`DESIGN_TOKENS.md`). Heat orange
+marks the one main action on a screen, so:
+
+- **Button:** `solid primary` is the main action (heat fill, ink label,
+  never white); `solid secondary` a strong second action, often
+  organizer-only (asphalt); `outline` neutral actions; `ghost` low-weight
+  links (heat-strong); `negative` destructive. Heights 32 / 44 / 52.
+  `ButtonText` takes its colour and size from its Button.
+- **Selected chips and tabs:** ink fill with surface text. **Checkboxes:**
+  heat fill with an ink tick. **Count badges:** heat with ink numerals.
+- **Card:** surface, hairline border, 12px corners, no shadow.
+- **Links and active icons:** heat-strong, never plain heat (too light on
+  ground and surface).
+
 ---
 
 # Domain UI

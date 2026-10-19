@@ -102,7 +102,7 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
   return (
     <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
       <HStack className="justify-between items-center">
-        <Typography variant="display">{t('tabHome')}</Typography>
+        <Typography variant="heading">{t('tabHome')}</Typography>
         <NotificationBell onPress={onOpenNotifications} />
       </HStack>
 
@@ -117,7 +117,7 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
               a Community starts here too — a "New" tile at the end of the
               grid, where people look for their Communities. */}
           <VStack space="sm">
-            <Typography variant="caption" color="muted">
+            <Typography variant="overline" color="muted">
               {t('homeMyCommunitiesTitle')}
             </Typography>
             {clubs.length === 0 && <EmptyState message={t('homeCommunitiesEmptyState')} />}
@@ -128,21 +128,21 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
                     className="w-1/4 items-center px-1 active:opacity-70"
                     onPress={() => onOpenClub(club.id)}
                   >
-                    <View className="w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600">
+                    <View className="w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark border-2 border-border-strong dark:border-border-strong-dark">
                       {club.hasAvatar ? (
                         <Image
                           source={{ uri: clubAvatarUrl(club.id), headers: imageHeaders }}
                           style={{ width: '100%', height: '100%' }}
                         />
                       ) : (
-                        <Typography variant="body" className="text-base font-extrabold text-slate-600 dark:text-slate-300">
+                        <Typography variant="body" className="text-base font-extrabold text-ink-muted dark:text-ink-muted-dark">
                           {initialsFromName(club.name)}
                         </Typography>
                       )}
                     </View>
                     <Typography
                       variant="body"
-                      className="text-xs font-bold text-slate-900 dark:text-white text-center mt-1"
+                      className="text-xs font-bold text-ink dark:text-ink-dark text-center mt-1"
                       numberOfLines={2}
                     >
                       {club.name}
@@ -154,10 +154,10 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
                   onPress={onCreateClub}
                   accessibilityLabel={t('homeNewCommunity')}
                 >
-                  <View className="w-16 h-16 rounded-full items-center justify-center border-2 border-dashed border-blue-400 dark:border-blue-500">
+                  <View className="w-16 h-16 rounded-full items-center justify-center border-2 border-dashed border-border-strong dark:border-border-strong-dark">
                     <Icon name="add" size="lg" color="secondary" />
                   </View>
-                  <Typography variant="body" className="text-xs font-bold text-blue-600 dark:text-blue-400 text-center mt-1" numberOfLines={2}>
+                  <Typography variant="body" className="text-xs font-bold text-heat-strong dark:text-heat-strong-dark text-center mt-1" numberOfLines={2}>
                     {t('homeNewCommunity')}
                   </Typography>
                 </Pressable>
@@ -166,7 +166,7 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
 
           {attention.length > 0 && (
             <VStack space="sm">
-              <Typography variant="caption" color="muted">
+              <Typography variant="overline" color="muted">
                 {t('homeAttentionTitle')}
               </Typography>
               <VStack space="md">

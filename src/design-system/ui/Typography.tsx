@@ -1,46 +1,43 @@
 import { Text as RNText, type TextProps } from 'react-native';
 import type { TypeRoleToken } from '../foundation/typography';
+import { hasTextColor, withFontFamily } from './fontClass';
 
 /**
- * Single component with a `variant` prop, not six separate components —
+ * Single component with a `variant` prop, not seven separate components —
  * COMPONENT_STANDARDS.md: "Prefer variants instead of duplicate
  * components." (Named `variant`, not `role`, deliberately: React Native's
  * own `TextProps` already defines an accessibility `role` prop — reusing
  * that name would collide with it.)
  *
  * `variant` maps onto foundation/typography.ts's `typeRole` scale,
- * expressed as NativeWind classes (this is a className-context consumer,
- * same reasoning as Page's background — see Page.tsx).
- *
- * `color` covers the four semantic colors with real, evidenced usage across
- * the app: default body text, muted secondary text (the single most
- * repeated raw class pair in the whole codebase), destructive (form
- * errors), and brand (links/emphasis).
+ * expressed as NativeWind classes: Saira (`font-display`) for `display`,
+ * `heading` and `title`, Plus Jakarta Sans for the rest. `display` is the
+ * italic hero line (a celebration, a big number), not a screen title —
+ * screen titles are `heading`. `overline` is the uppercase eyebrow above a
+ * section.
  */
 
 const roleClass: Record<TypeRoleToken, string> = {
-  display: 'text-4xl font-black',
-  heading: 'text-3xl font-black',
-  title: 'text-2xl font-black',
-  body: 'text-base font-normal',
-  label: 'text-sm font-bold',
-  caption: 'text-xs font-extrabold tracking-widest uppercase',
+  display: 'text-[48px] leading-[48px] font-display-hero',
+  heading: 'text-[30px] leading-[34px] font-display',
+  title: 'text-xl leading-[26px] font-display',
+  body: 'text-[15px] leading-[22px] font-sans',
+  label: 'text-sm font-sans-semibold',
+  caption: 'text-xs font-sans-medium',
   overline: 'text-[11px] leading-4 font-sans-bold tracking-[0.9px] uppercase',
 };
 
 type TypographyColor = 'default' | 'muted' | 'brand' | 'secondary' | 'destructive';
 
 const colorClass: Record<TypographyColor, string> = {
-  default: 'text-slate-900 dark:text-slate-50',
-  muted: 'text-slate-500 dark:text-slate-400',
-  brand: 'text-primary-600',
-  // Matches Button's action="secondary" (`ui/Button.tsx`'s outline/ghost
-  // text color) — blue-600 is the color actually behind most interactive
-  // accents across the app (Create/Join buttons, selected chips); "brand"
-  // is blue too now (no orange anywhere). Added for screens that need
-  // that same accent in plain text/icons, not just inside a Button.
-  secondary: 'text-blue-600',
-  destructive: 'text-red-500',
+  default: 'text-ink dark:text-ink-dark',
+  muted: 'text-ink-muted dark:text-ink-muted-dark',
+  // Brand as text (links, selected labels) is heat-strong: plain heat is
+  // too light to read on ground or surface.
+  brand: 'text-heat-strong dark:text-heat-strong-dark',
+  // Same accent; kept as its own name for existing callers.
+  secondary: 'text-heat-strong dark:text-heat-strong-dark',
+  destructive: 'text-danger dark:text-danger-dark',
 };
 
 type TypographyProps = Omit<TextProps, 'role'> & {
@@ -55,5 +52,8 @@ export function Typography({
   color = 'default',
   ...props
 }: TypographyProps) {
-  return <RNText className={`${roleClass[variant]} ${colorClass[color]} ${className}`} {...props} />;
+  // A text colour in className replaces the `color` prop's classes
+  // entirely, so its light value isn't beaten by the default's `dark:` one.
+  const colorClasses = hasTextColor(className) ? '' : colorClass[color];
+  return <RNText className={withFontFamily(`${roleClass[variant]} ${colorClasses} ${className}`)} {...props} />;
 }

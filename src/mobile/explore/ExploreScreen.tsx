@@ -130,11 +130,11 @@ export function ExploreScreen({ onOpenClub }: Props) {
     return (
       <Card key={club.id} pressable onPress={() => onOpenClub(club.id)}>
         <HStack space="md" className="items-center">
-          <View className="w-12 h-12 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700">
+          <View className="w-12 h-12 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark">
             {club.hasAvatar ? (
               <Image source={{ uri: clubAvatarUrl(club.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
             ) : (
-              <Typography variant="body" className="font-extrabold text-slate-600 dark:text-slate-300">
+              <Typography variant="body" className="font-extrabold text-ink-muted dark:text-ink-muted-dark">
                 {initialsFromName(club.name)}
               </Typography>
             )}
@@ -168,9 +168,9 @@ export function ExploreScreen({ onOpenClub }: Props) {
 
   return (
     <ScrollPage gap="lg" keyboardShouldPersistTaps="handled">
-      <Typography variant="display">{t('exploreTitle')}</Typography>
+      <Typography variant="heading">{t('exploreTitle')}</Typography>
 
-      <HStack className="items-center rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4" space="sm">
+      <HStack className="items-center rounded-2xl border border-border-strong dark:border-border-strong-dark bg-surface dark:bg-surface-dark px-4" space="sm">
         <Icon name="search" size="sm" color="muted" />
         <TextInput
           value={query}
@@ -180,7 +180,7 @@ export function ExploreScreen({ onOpenClub }: Props) {
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
-          className="flex-1 font-semibold text-gray-900 dark:text-slate-100"
+          className="flex-1 font-semibold text-ink dark:text-ink-dark"
           style={{ height: 48, fontSize: 16 }}
         />
         {searching ? (
@@ -209,14 +209,14 @@ export function ExploreScreen({ onOpenClub }: Props) {
                 {t('exploreSetTownDesc')}
               </Typography>
             </VStack>
-            <Button action="secondary" size="lg" className="w-full" onPress={() => setShowCityPicker(true)}>
+            <Button size="lg" className="w-full" onPress={() => setShowCityPicker(true)}>
               <ButtonText>{t('exploreSetTownAction')}</ButtonText>
             </Button>
           </VStack>
         </Card>
       ) : (
         <VStack space="sm">
-          <Typography variant="caption" color="muted">
+          <Typography variant="overline" color="muted">
             {t('exploreInTownTitle', town)}
           </Typography>
           {/* The person's saved towns, the active one highlighted — going
@@ -229,9 +229,9 @@ export function ExploreScreen({ onOpenClub }: Props) {
                   key={city.code}
                   onPress={() => switchTown(city.code)}
                   disabled={active}
-                  className={`px-3 py-2 rounded-full ${active ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'} active:opacity-70`}
+                  className={`px-3 py-2 rounded-full ${active ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'} active:opacity-70`}
                 >
-                  <Typography variant="body" className={active ? 'text-sm font-bold text-white' : 'text-sm font-semibold text-slate-700 dark:text-slate-200'}>
+                  <Typography variant="body" className={active ? 'text-sm font-sans-bold text-surface dark:text-surface-dark' : 'text-sm font-semibold text-ink-muted dark:text-ink-muted-dark'}>
                     {shortCityName(city.name)}
                   </Typography>
                 </Pressable>
@@ -239,7 +239,7 @@ export function ExploreScreen({ onOpenClub }: Props) {
             })}
             <Pressable
               onPress={() => setShowCityPicker(true)}
-              className="px-3 py-2 rounded-full border border-dashed border-slate-400 dark:border-slate-500 active:opacity-70"
+              className="px-3 py-2 rounded-full border border-dashed border-border-strong dark:border-border-strong-dark active:opacity-70"
               accessibilityLabel={t('townsAdd')}
             >
               <HStack className="items-center" space="xs">

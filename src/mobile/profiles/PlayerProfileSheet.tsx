@@ -107,11 +107,11 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
     <Modal visible={userId !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={onClose}>
         <Pressable
-          className="w-full self-center bg-white dark:bg-slate-800 rounded-t-3xl px-6 pt-6 pb-10 gap-5"
+          className="w-full self-center bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-5"
           style={{ maxWidth: 520 }}
           onPress={() => {}}
         >
-          <View className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 self-center" />
+          <View className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center" />
 
           {failed ? (
             <Typography variant="body" color="muted" style={{ textAlign: 'center' }}>
@@ -123,11 +123,11 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
             <>
               <HStack space="md" className="items-center">
                 <View className={`rounded-full ${profile.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
-                  <View className="w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700">
+                  <View className="w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark">
                     {profile.hasAvatar ? (
                       <Image source={{ uri: userAvatarUrl(profile.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
                     ) : (
-                      <Typography variant="body" className="text-lg font-extrabold text-slate-600 dark:text-slate-300">
+                      <Typography variant="body" className="text-lg font-extrabold text-ink-muted dark:text-ink-muted-dark">
                         {initialsFromName(name)}
                       </Typography>
                     )}
@@ -144,11 +144,11 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
                           onClose();
                           navigation.navigate('DirectMessage', { userId: profile.id });
                         }}
-                        className="flex-row items-center gap-1 px-3 py-1.5 rounded-full bg-blue-600 active:opacity-70"
+                        className="flex-row items-center gap-1 px-3 py-1.5 rounded-full bg-heat active:bg-heat-strong"
                         accessibilityLabel={t('playerProfileChat')}
                       >
                         <Icon name="chatbubble-ellipses-outline" size="xs" color="onBrand" />
-                        <Typography variant="body" className="text-sm font-bold text-white">
+                        <Typography variant="body" className="text-sm font-sans-bold text-on-heat">
                           {t('playerProfileChat')}
                         </Typography>
                       </Pressable>
@@ -165,7 +165,7 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
               </HStack>
 
               <VStack space="sm">
-                <Typography variant="caption" color="muted">
+                <Typography variant="overline" color="muted">
                   {t('playerProfileSkillLevels')}
                 </Typography>
                 {sports.map((s) => {
@@ -193,7 +193,7 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
                         </Typography>
                         {s === sport && levelRange && (
                           <Badge
-                            action={inRange ? 'success' : 'warning'}
+                            action={inRange ? 'success' : 'heat'}
                             text={
                               inRange
                                 ? t('playerProfileInRange')
@@ -234,7 +234,7 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
                   {actions.map((a) => (
                     <Button
                       key={a.label}
-                      action={a.destructive ? 'negative' : 'secondary'}
+                      action={a.destructive ? 'negative' : 'primary'}
                       variant={a.destructive ? 'outline' : 'solid'}
                       className="flex-1"
                       onPress={() => {
@@ -242,7 +242,7 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
                         a.onPress();
                       }}
                     >
-                      <ButtonText action={a.destructive ? 'negative' : 'secondary'} variant={a.destructive ? 'outline' : 'solid'}>
+                      <ButtonText action={a.destructive ? 'negative' : 'primary'} variant={a.destructive ? 'outline' : 'solid'}>
                         {a.label}
                       </ButtonText>
                     </Button>

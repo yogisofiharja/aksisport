@@ -3,7 +3,7 @@ import { elevation, type ElevationToken } from '../foundation/elevation';
 import { spacing, type SpacingToken } from '../foundation/spacing';
 
 /**
- * Collapses the 6 hand-typed `bg-white dark:bg-slate-800 rounded-2xl...`
+ * Collapses the 6 hand-typed `bg-surface dark:bg-surface-dark rounded-2xl...`
  * variants found across the app into one component with props.
  *
  * Deliberately has no header/footer/title slots — LAYOUT_SYSTEM.md keeps
@@ -24,6 +24,7 @@ import { spacing, type SpacingToken } from '../foundation/spacing';
 type CardProps = PressableProps & {
   className?: string;
   padding?: SpacingToken | 'none';
+  /** @deprecated Every card has its border now; kept so callers compile. */
   bordered?: boolean;
   elevated?: ElevationToken;
   pressable?: boolean;
@@ -33,19 +34,18 @@ type CardProps = PressableProps & {
 export function Card({
   className = '',
   padding = 'lg',
-  bordered = false,
+  bordered: _bordered,
   elevated = 'none',
   pressable = false,
   style,
   ...props
 }: CardProps) {
   const paddingStyle = padding === 'none' ? undefined : { padding: spacing[padding] };
-  const borderClass = bordered ? 'border border-slate-100 dark:border-slate-700' : '';
   const pressClass = pressable ? 'active:opacity-70' : '';
 
   return (
     <Pressable
-      className={`bg-white dark:bg-slate-800 rounded-2xl ${pressClass} ${borderClass} ${className}`}
+      className={`bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl ${pressClass} ${className}`}
       style={[paddingStyle, elevation[elevated], style]}
       {...props}
     />

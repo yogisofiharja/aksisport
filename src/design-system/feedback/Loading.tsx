@@ -1,4 +1,6 @@
 import { ActivityIndicator, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
+import { color } from '../foundation/colors';
 import { Stack } from '../layout/Stack';
 import { Typography } from '../ui/Typography';
 
@@ -19,10 +21,11 @@ type LoadingProps = {
 };
 
 export function Loading({ fullScreen = false, label }: LoadingProps) {
+  const { colorScheme } = useColorScheme();
   return (
     <View className={fullScreen ? 'flex-1 items-center justify-center' : 'items-center py-10'}>
       <Stack space="md" style={{ alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={color.heatStrong[colorScheme === 'dark' ? 'dark' : 'light']} />
         {label && (
           <Typography variant="body" color="muted">
             {label}

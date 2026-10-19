@@ -11,7 +11,7 @@ import { VStack } from '../layout/VStack';
  * not `title`/`label` — checked against the literal migration source
  * during Phase 6: the original name is `text-lg font-bold` (18px/700), not
  * `title`'s `text-2xl font-black` (24px/900); the subtitle is
- * `text-sm text-slate-400` (regular weight), not `label`'s
+ * `text-sm text-ink-muted dark:text-ink-muted-dark` (regular weight), not `label`'s
  * `text-sm font-bold`. An earlier version of this component used those
  * variants directly, based on what sounded semantically right rather than
  * a check against the actual classes — caught here, before this component

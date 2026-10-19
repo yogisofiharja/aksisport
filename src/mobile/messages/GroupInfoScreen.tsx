@@ -119,7 +119,7 @@ export function GroupInfoScreen({ groupId, onBack, onAddPeople, onLeft }: Props)
         <>
           {isCreator ? (
             <VStack space="sm">
-              <Typography variant="caption" color="muted">
+              <Typography variant="overline" color="muted">
                 {t('groupName')}
               </Typography>
               <HStack space="sm" className="items-center">
@@ -132,18 +132,18 @@ export function GroupInfoScreen({ groupId, onBack, onAddPeople, onLeft }: Props)
                     onSubmitEditing={handleRename}
                   />
                 </Input>
-                <Button action="secondary" onPress={handleRename} disabled={title.trim() === group.title}>
+                <Button onPress={handleRename} disabled={title.trim() === group.title}>
                   <ButtonText>{t('groupSaveName')}</ButtonText>
                 </Button>
               </HStack>
             </VStack>
           ) : (
-            <Typography variant="display">{labelFor(group, me?.id)}</Typography>
+            <Typography variant="heading">{labelFor(group, me?.id)}</Typography>
           )}
 
           <VStack space="sm">
             <HStack className="justify-between items-center">
-              <Typography variant="caption" color="muted">
+              <Typography variant="overline" color="muted">
                 {t('groupMemberCount', group.members.length)}
               </Typography>
               {isCreator && group.members.length < 50 && (

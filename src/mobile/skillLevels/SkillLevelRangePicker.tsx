@@ -58,15 +58,15 @@ export function SkillLevelRangePicker({ sport, value, onChange }: Props) {
 
   return (
     <VStack className="gap-3">
-      <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('skillLevelRangeLabel')}</Text>
+      <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('skillLevelRangeLabel')}</Text>
 
       <VStack className="gap-2">
-        <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('skillLevelMinLabel')}</Text>
+        <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('skillLevelMinLabel')}</Text>
         <Pressable
-          className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+          className="px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark"
           onPress={() => setShowMinPicker((shown) => !shown)}
         >
-          <Text className="text-slate-900 dark:text-slate-100 font-bold">{levelName(value.skillLevelMinId)}</Text>
+          <Text className="text-ink dark:text-ink-dark font-bold">{levelName(value.skillLevelMinId)}</Text>
         </Pressable>
         {showMinPicker && (
           <>
@@ -86,7 +86,7 @@ export function SkillLevelRangePicker({ sport, value, onChange }: Props) {
             </Picker>
             {Platform.OS === 'ios' && (
               <Pressable className="self-end px-4 py-2" onPress={() => setShowMinPicker(false)}>
-                <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
+                <Text className="text-heat-strong dark:text-heat-strong-dark font-bold">{t('recurringScheduleTimeDone')}</Text>
               </Pressable>
             )}
           </>
@@ -94,12 +94,12 @@ export function SkillLevelRangePicker({ sport, value, onChange }: Props) {
       </VStack>
 
       <VStack className="gap-2">
-        <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('skillLevelMaxLabel')}</Text>
+        <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('skillLevelMaxLabel')}</Text>
         <Pressable
-          className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+          className="px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark"
           onPress={() => setShowMaxPicker((shown) => !shown)}
         >
-          <Text className="text-slate-900 dark:text-slate-100 font-bold">{levelName(value.skillLevelMaxId)}</Text>
+          <Text className="text-ink dark:text-ink-dark font-bold">{levelName(value.skillLevelMaxId)}</Text>
         </Pressable>
         {showMaxPicker && (
           <>
@@ -119,7 +119,7 @@ export function SkillLevelRangePicker({ sport, value, onChange }: Props) {
             </Picker>
             {Platform.OS === 'ios' && (
               <Pressable className="self-end px-4 py-2" onPress={() => setShowMaxPicker(false)}>
-                <Text className="text-blue-600 font-bold">{t('recurringScheduleTimeDone')}</Text>
+                <Text className="text-heat-strong dark:text-heat-strong-dark font-bold">{t('recurringScheduleTimeDone')}</Text>
               </Pressable>
             )}
           </>
@@ -127,17 +127,17 @@ export function SkillLevelRangePicker({ sport, value, onChange }: Props) {
       </VStack>
 
       <VStack className="gap-2">
-        <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('skillLevelEnforcementLabel')}</Text>
+        <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('skillLevelEnforcementLabel')}</Text>
         <HStack className="gap-2">
           {(['strict', 'guidance'] as SkillLevelEnforcement[]).map((mode) => {
             const selected = (value.skillLevelEnforcement ?? 'guidance') === mode;
             return (
               <Pressable
                 key={mode}
-                className={`flex-1 py-2 rounded-xl items-center border-[1.5px] ${selected ? 'bg-blue-600 border-blue-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}
+                className={`flex-1 py-2 rounded-xl items-center border-[1.5px] ${selected ? 'bg-ink dark:bg-ink-dark border-ink dark:border-ink-dark' : 'bg-surface dark:bg-surface-dark border-border dark:border-border-dark'}`}
                 onPress={() => pickEnforcement(mode)}
               >
-                <Text className={selected ? 'text-white font-bold' : 'text-slate-900 dark:text-slate-50 font-bold'}>
+                <Text className={selected ? 'text-surface dark:text-surface-dark font-sans-bold' : 'text-ink dark:text-ink-dark font-bold'}>
                   {mode === 'strict' ? t('skillLevelEnforcementStrict') : t('skillLevelEnforcementGuidance')}
                 </Text>
               </Pressable>

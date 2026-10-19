@@ -19,7 +19,7 @@ import { iconSize, type IconSizeToken } from '../foundation/icon-size';
  * replaces).
  */
 
-type IconColor = 'default' | 'muted' | 'brand' | 'secondary' | 'destructive' | 'onBrand';
+type IconColor = 'default' | 'muted' | 'brand' | 'secondary' | 'destructive' | 'onBrand' | 'onDark';
 
 type IconProps = {
   name: ComponentProps<typeof Ionicons>['name'];
@@ -34,14 +34,15 @@ export function Icon({ name, size = 'md', color: colorToken = 'default', style }
   const palette = theme[mode];
 
   const resolved: Record<IconColor, string> = {
-    default: palette.text.default,
-    muted: palette.text.muted,
-    brand: palette.brand.primary,
-    // Matches Button's action="secondary" — see Typography.tsx's `secondary`
-    // color for the same rationale.
-    secondary: palette.brand.secondary,
-    destructive: palette.destructive,
-    onBrand: '#ffffff', // icon on top of a solid brand-filled surface, e.g. inside a solid Button
+    default: palette.ink,
+    muted: palette.inkMuted,
+    // Active/brand icons on ground or surface are heat-strong: plain heat
+    // is for fills.
+    brand: palette.heatStrong,
+    secondary: palette.heatStrong,
+    destructive: palette.danger,
+    onBrand: palette.onHeat, // on a heat fill (primary Button, checkbox, count): ink, never white
+    onDark: palette.onAsphalt, // on asphalt or danger fills
   };
 
   return <Ionicons name={name} size={iconSize[size]} color={resolved[colorToken]} style={style} />;

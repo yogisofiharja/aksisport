@@ -38,7 +38,7 @@ export function MatchResultScreen({ matchState, teamNames, onShare, onNextMatch,
       )}
       <Card padding="xl">
         <VStack space="sm" className="items-center">
-          <View className="w-16 h-16 rounded-full items-center justify-center bg-blue-100 dark:bg-blue-900/40">
+          <View className="w-16 h-16 rounded-full items-center justify-center bg-heat-tint dark:bg-heat-tint-dark">
             <Icon name="trophy" size="xl" color="secondary" />
           </View>
           {winnerName ? (
@@ -60,15 +60,15 @@ export function MatchResultScreen({ matchState, teamNames, onShare, onNextMatch,
 
       <Card padding="none">
         <ScoreRow name={teamNames.A} team="A" matchState={matchState} />
-        <View className="h-px bg-slate-100 dark:bg-slate-700" />
+        <View className="h-px bg-surface-sunken dark:bg-surface-sunken-dark" />
         <ScoreRow name={teamNames.B} team="B" matchState={matchState} />
       </Card>
 
       <VStack space="md">
         {onNextMatch && (
-          <Button action="secondary" size="xl" className="w-full" onPress={onNextMatch}>
+          <Button size="xl" className="w-full" onPress={onNextMatch}>
             <HStack space="sm" className="items-center">
-              <ButtonText action="secondary" className="text-lg">
+              <ButtonText>
                 {t('nextMatch')}
               </ButtonText>
               <Icon name="arrow-forward" size="sm" color="onBrand" />
@@ -76,10 +76,10 @@ export function MatchResultScreen({ matchState, teamNames, onShare, onNextMatch,
           </Button>
         )}
         {/* Share is the main action when there's no "Next match" */}
-        <Button action="secondary" variant={onNextMatch ? 'outline' : 'solid'} size="xl" className="w-full" onPress={onShare}>
+        <Button variant={onNextMatch ? 'outline' : 'solid'} size="xl" className="w-full" onPress={onShare}>
           <HStack space="sm" className="items-center">
-            <Icon name="share-social-outline" size="sm" color={onNextMatch ? 'secondary' : 'onBrand'} />
-            <ButtonText action="secondary" variant={onNextMatch ? 'outline' : 'solid'} className="text-lg">
+            <Icon name="share-social-outline" size="sm" color={onNextMatch ? 'default' : 'onBrand'} />
+            <ButtonText variant={onNextMatch ? 'outline' : 'solid'}>
               {t('shareResult')}
             </ButtonText>
           </HStack>
@@ -112,7 +112,7 @@ function ScoreRow({ name, team, matchState }: { name: string; team: Team; matchS
         {name}
       </Typography>
       {sets.length > 0 && (
-        <Typography variant="body" className={`text-2xl font-black w-8 text-center ${isWinner ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>
+        <Typography variant="body" className={`text-2xl font-black w-8 text-center ${isWinner ? 'text-heat-strong dark:text-heat-strong-dark' : 'text-ink-faint dark:text-ink-faint-dark'}`}>
           {matchState.sets[team]}
         </Typography>
       )}
@@ -120,7 +120,7 @@ function ScoreRow({ name, team, matchState }: { name: string; team: Team; matchS
         <Typography
           key={i}
           variant="body"
-          className={`text-2xl font-black w-8 text-center ${s.won ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}
+          className={`text-2xl font-black w-8 text-center ${s.won ? 'text-ink dark:text-ink-dark' : 'text-ink-faint dark:text-ink-faint-dark'}`}
         >
           {s.value}
         </Typography>

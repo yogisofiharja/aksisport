@@ -16,7 +16,7 @@ import { VStack } from '../layout/VStack';
  * Typography uses `className` overrides on `variant="body"`, not
  * `title`/`label` — same bug as ClubCard had, same fix, caught in the same
  * pass: the original title is `text-lg font-bold` (18px/700), not
- * `title`'s `text-2xl font-black`; the subtitle is `text-sm text-slate-400`
+ * `title`'s `text-2xl font-black`; the subtitle is `text-sm text-ink-muted dark:text-ink-muted-dark`
  * (regular weight), not `label`'s `text-sm font-bold`.
  */
 

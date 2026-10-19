@@ -657,7 +657,7 @@ never depends on finding the right tab) branches on
 **Organizer section** (Milestone 2, new — shown in the Details tab,
 always, any lifecycle stage): a single avatar card for `session.createdBy`
 (looked up in `members`, falling back to the generic "Host" label if
-not found), blue-bordered, name only. This is about identity, not
+not found), name only. This is about identity, not
 participation — if the organizer is also playing (`hostPlaying`),
 they *additionally* appear in the Participants tab's Confirmed/Checked
 In sub-section, same as any other participant; the Organizer card itself

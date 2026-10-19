@@ -17,16 +17,16 @@ export function VerifyEmailScreen() {
   const { signOut } = useAuth();
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-8 pb-6 gap-6" keyboardShouldPersistTaps="handled">
           <VStack className="gap-2">
             <Heading size="2xl">{t('emailVerifyTitle')}</Heading>
-            <Text className="text-slate-500 dark:text-slate-400">{t('emailVerifyDesc')}</Text>
+            <Text className="text-ink-muted dark:text-ink-muted-dark">{t('emailVerifyDesc')}</Text>
           </VStack>
           <EmailConfirmation />
           <Pressable className="self-center" onPress={signOut}>
-            <Text className="text-slate-500 dark:text-slate-400">{t('logout')}</Text>
+            <Text className="text-ink-muted dark:text-ink-muted-dark">{t('logout')}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

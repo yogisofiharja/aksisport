@@ -109,15 +109,15 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <VStack className="flex-1 bg-slate-50 dark:bg-slate-900">
-        <HStack className="px-5 pt-4 pb-3 items-center justify-between border-b border-slate-200 dark:border-slate-700">
+      <VStack className="flex-1 bg-ground dark:bg-ground-dark">
+        <HStack className="px-5 pt-4 pb-3 items-center justify-between border-b border-border dark:border-border-dark">
           <Pressable
             className="p-2 -ml-2 active:opacity-60"
             onPress={() => (isOwnerOrAdmin && openMemberUserId !== null ? setOpenMemberUserId(null) : onClose())}
           >
             <Icon name={isOwnerOrAdmin && openMemberUserId !== null ? 'arrow-back' : 'close'} size="lg" />
           </Pressable>
-          <Text className="text-lg font-black text-slate-900 dark:text-white">
+          <Text className="text-lg font-black text-ink dark:text-ink-dark">
             {showingList ? t('sessionContactTitle') : isOwnerOrAdmin && openThread ? threadName(openThread) : t('sessionContactTitle')}
           </Text>
           <Box className="w-9" />
@@ -132,23 +132,23 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
             {threads.length === 0 && !threadsLoading ? (
               <VStack className="items-center py-16 gap-3">
                 <Icon name="mail-outline" size="xl" color="muted" />
-                <Text className="text-slate-500 dark:text-slate-400 text-center">{t('sessionContactThreadsEmpty')}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark text-center">{t('sessionContactThreadsEmpty')}</Text>
               </VStack>
             ) : (
               threads.map((th) => (
                 <Pressable
                   key={th.memberUserId}
-                  className="flex-row items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 active:opacity-70"
+                  className="flex-row items-center gap-3 px-4 py-3 rounded-xl bg-surface dark:bg-surface-dark active:opacity-70"
                   onPress={() => setOpenMemberUserId(th.memberUserId)}
                 >
-                  <Box className="w-11 h-11 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700">
-                    <Text className="text-sm font-extrabold text-slate-600 dark:text-slate-300">{initialsFromName(threadName(th))}</Text>
+                  <Box className="w-11 h-11 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark">
+                    <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark">{initialsFromName(threadName(th))}</Text>
                   </Box>
                   <VStack className="flex-1 gap-0.5">
-                    <Text className="font-bold text-slate-900 dark:text-white" numberOfLines={1}>
+                    <Text className="font-bold text-ink dark:text-ink-dark" numberOfLines={1}>
                       {threadName(th)}
                     </Text>
-                    <Text className="text-sm text-slate-500 dark:text-slate-400" numberOfLines={1}>
+                    <Text className="text-sm text-ink-muted dark:text-ink-muted-dark" numberOfLines={1}>
                       {th.lastMessageDeleted ? t('chatMessageDeleted') : th.lastMessageBody}
                     </Text>
                   </VStack>

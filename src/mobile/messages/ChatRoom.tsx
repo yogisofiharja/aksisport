@@ -105,8 +105,8 @@ export function ChatRoom({
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
-      <HStack className="items-center px-4 pt-3 pb-3 border-b border-slate-200 dark:border-slate-800" space="sm">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <HStack className="items-center px-4 pt-3 pb-3 border-b border-border dark:border-border-dark" space="sm">
         <Pressable className="p-2 -ml-2 active:opacity-60" onPress={onBack}>
           <Icon name="arrow-back" size="lg" />
         </Pressable>

@@ -48,7 +48,7 @@ export function RecurringScheduleListScreen({ clubId, onBack, onOpenSchedule, on
         <Icon name="arrow-back" size="lg" />
       </Pressable>
 
-      <Typography variant="display">{t('recurringScheduleListTitle')}</Typography>
+      <Typography variant="heading">{t('recurringScheduleListTitle')}</Typography>
 
       {loading && schedules.length === 0 ? (
         <Loading />
@@ -69,8 +69,8 @@ export function RecurringScheduleListScreen({ clubId, onBack, onOpenSchedule, on
         </VStack>
       )}
 
-      <Button action="secondary" size="xl" className="w-full" onPress={onCreateSchedule}>
-        <ButtonText className="text-lg">{t('recurringScheduleCreate')}</ButtonText>
+      <Button size="xl" className="w-full" onPress={onCreateSchedule}>
+        <ButtonText>{t('recurringScheduleCreate')}</ButtonText>
       </Button>
     </ScrollPage>
   );

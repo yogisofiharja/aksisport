@@ -197,7 +197,7 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <VStack className="px-5 pt-4 pb-2 gap-3">
         <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
           <Icon name="arrow-back" size="lg" />
@@ -209,47 +209,47 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
         <Loading fullScreen />
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, gap: 12 }}>
-          <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('clubDiscoveryTitle')}</Text>
+          <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('clubDiscoveryTitle')}</Text>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('clubLocationLabel')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('clubLocationLabel')}</Text>
             <Pressable
-              className="flex-row items-center justify-between px-4 py-3 rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 active:opacity-70"
+              className="flex-row items-center justify-between px-4 py-3 rounded-2xl border border-border-strong dark:border-border-strong-dark bg-surface dark:bg-surface-dark active:opacity-70"
               onPress={() => setShowCityPicker(true)}
               disabled={savingDiscovery}
             >
-              <Text className={cityName ? 'font-semibold text-gray-900 dark:text-slate-100' : 'font-semibold text-gray-400 dark:text-slate-500'}>
+              <Text className={cityName ? 'font-semibold text-ink dark:text-ink-dark' : 'font-semibold text-ink-faint dark:text-ink-faint-dark'}>
                 {cityName ?? t('clubLocationPlaceholder')}
               </Text>
               <Icon name="chevron-forward" size="sm" color="muted" />
             </Pressable>
-            <Text className="text-xs text-slate-400">{t('clubLocationHint')}</Text>
+            <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">{t('clubLocationHint')}</Text>
           </VStack>
 
           <VStack className="gap-1 mt-2">
             <HStack className="justify-between items-center">
-              <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('clubPrivateToggleLabel')}</Text>
+              <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('clubPrivateToggleLabel')}</Text>
               <Switch value={isPrivate} onValueChange={handleTogglePrivate} disabled={savingDiscovery} />
             </HStack>
-            <Text className="text-xs text-slate-400">{isPrivate ? t('clubPrivateJoinHint') : t('clubPublicJoinHint')}</Text>
+            <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">{isPrivate ? t('clubPrivateJoinHint') : t('clubPublicJoinHint')}</Text>
           </VStack>
 
           {discoveryError && <Text className="text-sm text-red-500">{discoveryError}</Text>}
 
-          <Box className="h-px bg-slate-200 dark:bg-slate-700 my-3" />
+          <Box className="h-px bg-surface-sunken dark:bg-surface-sunken-dark my-3" />
 
-          <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('clubBankAccountsTitle')}</Text>
+          <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('clubBankAccountsTitle')}</Text>
 
           {accounts.length === 0 ? (
-            <Text className="text-slate-500 dark:text-slate-400">{t('clubBankAccountsEmpty')}</Text>
+            <Text className="text-ink-muted dark:text-ink-muted-dark">{t('clubBankAccountsEmpty')}</Text>
           ) : (
             accounts.map((account) => (
-              <Box key={account.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-1">
+              <Box key={account.id} className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-1">
                 <HStack className="justify-between items-start">
                   <VStack className="gap-0.5" style={{ flex: 1 }}>
-                    <Text className="font-bold text-slate-900 dark:text-white">{account.bankName}</Text>
-                    <Text className="text-slate-500 dark:text-slate-400">{account.accountNumber}</Text>
-                    <Text className="text-slate-500 dark:text-slate-400 text-sm">{account.accountName}</Text>
+                    <Text className="font-bold text-ink dark:text-ink-dark">{account.bankName}</Text>
+                    <Text className="text-ink-muted dark:text-ink-muted-dark">{account.accountNumber}</Text>
+                    <Text className="text-ink-muted dark:text-ink-muted-dark text-sm">{account.accountName}</Text>
                   </VStack>
                   <HStack className="gap-1">
                     <Pressable className="p-2 active:opacity-60" onPress={() => openEdit(account)}>
@@ -264,16 +264,16 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
             ))
           )}
 
-          <Button action="secondary" variant="outline" size="lg" className="w-full rounded-2xl mt-1" onPress={openAdd}>
-            <ButtonText action="secondary" variant="outline">
+          <Button variant="outline" size="lg" className="w-full mt-1" onPress={openAdd}>
+            <ButtonText variant="outline">
               {t('clubBankAccountAdd')}
             </ButtonText>
           </Button>
 
-          <Box className="h-px bg-slate-200 dark:bg-slate-700 my-3" />
+          <Box className="h-px bg-surface-sunken dark:bg-surface-sunken-dark my-3" />
 
-          <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('clubDangerZoneTitle')}</Text>
-          <Button action="negative" variant="outline" size="lg" className="w-full rounded-2xl" isDisabled={deleting} onPress={handleDeleteClub}>
+          <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('clubDangerZoneTitle')}</Text>
+          <Button action="negative" variant="outline" size="lg" className="w-full" isDisabled={deleting} onPress={handleDeleteClub}>
             <ButtonText action="negative" variant="outline">
               {t('clubDeleteClub')}
             </ButtonText>
@@ -284,27 +284,27 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
       <Modal visible={modal !== null} transparent animationType="slide" onRequestClose={closeModal}>
         <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={closeModal}>
-            <Pressable className="bg-white dark:bg-slate-800 rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
-              <Box className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 self-center mb-1" />
-              <Text className="text-lg font-black text-slate-900 dark:text-white text-center mb-1">
+            <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
+              <Box className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center mb-1" />
+              <Text className="text-lg font-black text-ink dark:text-ink-dark text-center mb-1">
                 {modal === 'new' ? t('clubBankAccountAdd') : t('clubBankAccountEdit')}
               </Text>
 
               <VStack className="gap-3">
                 <VStack className="gap-1">
-                  <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('clubBankAccountBankNameLabel')}</Text>
+                  <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('clubBankAccountBankNameLabel')}</Text>
                   <Input>
                     <InputField value={bankName} onChangeText={setBankName} maxLength={80} autoFocus />
                   </Input>
                 </VStack>
                 <VStack className="gap-1">
-                  <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('clubBankAccountNumberLabel')}</Text>
+                  <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('clubBankAccountNumberLabel')}</Text>
                   <Input>
                     <InputField value={accountNumber} onChangeText={setAccountNumber} maxLength={40} keyboardType="number-pad" />
                   </Input>
                 </VStack>
                 <VStack className="gap-1">
-                  <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('clubBankAccountNameLabel')}</Text>
+                  <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('clubBankAccountNameLabel')}</Text>
                   <Input>
                     <InputField value={accountName} onChangeText={setAccountName} maxLength={80} />
                   </Input>
@@ -313,11 +313,11 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
 
               {error && <Text className="text-sm text-red-500">{error}</Text>}
 
-              <Button action="secondary" size="lg" className="w-full rounded-2xl" isDisabled={saving} onPress={handleSave}>
-                <ButtonText className="text-white">{t('clubBankAccountSave')}</ButtonText>
+              <Button size="lg" className="w-full" isDisabled={saving} onPress={handleSave}>
+                <ButtonText>{t('clubBankAccountSave')}</ButtonText>
               </Button>
               <Pressable className="items-center py-1 active:opacity-60" onPress={closeModal} disabled={saving}>
-                <Text className="text-slate-400 font-bold">{t('clubCancel')}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark font-bold">{t('clubCancel')}</Text>
               </Pressable>
             </Pressable>
           </Pressable>

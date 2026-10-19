@@ -57,10 +57,10 @@ export function NotificationBell({ onPress }: Props) {
       <Icon name={unread > 0 ? 'notifications' : 'notifications-outline'} size="lg" />
       {unread > 0 && (
         <View
-          className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 items-center justify-center"
+          className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-heat items-center justify-center"
           pointerEvents="none"
         >
-          <Typography variant="body" className="text-[10px] font-extrabold text-white">
+          <Typography variant="body" className="text-[10px] font-sans-bold text-on-heat">
             {unread > 9 ? '9+' : String(unread)}
           </Typography>
         </View>

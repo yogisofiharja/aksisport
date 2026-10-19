@@ -39,7 +39,7 @@ export function LoginScreen({ onNavigateToSignUp, onForgotPassword }: Props) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-8 pb-6 gap-6" keyboardShouldPersistTaps="handled">
           <VStack className="gap-1">
@@ -47,7 +47,7 @@ export function LoginScreen({ onNavigateToSignUp, onForgotPassword }: Props) {
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authUsernameOrEmail')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authUsernameOrEmail')}</Text>
             <Input>
               <InputField
                 autoCapitalize="none"
@@ -59,29 +59,28 @@ export function LoginScreen({ onNavigateToSignUp, onForgotPassword }: Props) {
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authPassword')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authPassword')}</Text>
             <PasswordField value={password} onChangeText={setPassword} onSubmitEditing={handleSubmit} />
             <Pressable className="self-end" onPress={onForgotPassword}>
-              <Text className="text-sm font-bold text-blue-600 dark:text-blue-400">{t('forgotPasswordLink')}</Text>
+              <Text className="text-sm font-bold text-heat-strong dark:text-heat-strong-dark">{t('forgotPasswordLink')}</Text>
             </Pressable>
           </VStack>
 
           {error && <Text className="text-sm text-red-500">{error}</Text>}
 
           <Button
-            action="secondary"
             size="xl"
             isDisabled={!canSubmit}
-            className="w-full rounded-2xl bg-blue-600"
+            className="w-full"
             onPress={handleSubmit}
           >
-            <ButtonText className="text-white text-xl">{t('authLogIn')}</ButtonText>
+            <ButtonText>{t('authLogIn')}</ButtonText>
           </Button>
 
           <Box className="items-center pt-2">
             <Pressable onPress={onNavigateToSignUp}>
-              <Text className="text-slate-500 dark:text-slate-400">
-                {t('authNoAccount')} <Text className="font-bold text-blue-600 dark:text-blue-400">{t('authCreateAccount')}</Text>
+              <Text className="text-ink-muted dark:text-ink-muted-dark">
+                {t('authNoAccount')} <Text className="font-bold text-heat-strong dark:text-heat-strong-dark">{t('authCreateAccount')}</Text>
               </Text>
             </Pressable>
           </Box>

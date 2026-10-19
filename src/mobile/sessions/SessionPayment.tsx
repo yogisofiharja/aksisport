@@ -114,30 +114,30 @@ export function SessionPayment({
   return (
     <VStack className="gap-5">
       {isFree ? (
-        <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4">
-          <Text className="text-slate-500 dark:text-slate-400">{t('sessionPaymentFreeNotice')}</Text>
+        <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4">
+          <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionPaymentFreeNotice')}</Text>
         </Box>
       ) : (
         <>
           {amountDue != null && (
-            <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4">
+            <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4">
               <HStack className="justify-between">
-                <Text className="text-slate-500 dark:text-slate-400">{t('sessionPaymentAmountDueLabel')}</Text>
-                <Text className="font-bold text-slate-900 dark:text-white">{formatIDR(amountDue)}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionPaymentAmountDueLabel')}</Text>
+                <Text className="font-bold text-ink dark:text-ink-dark">{formatIDR(amountDue)}</Text>
               </HStack>
             </Box>
           )}
 
           <VStack className="gap-2">
-            <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('clubBankAccountsTitle')}</Text>
+            <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('clubBankAccountsTitle')}</Text>
             {bankAccounts.length === 0 ? (
-              <Text className="text-slate-500 dark:text-slate-400 text-sm">{t('sessionPaymentNoBankAccounts')}</Text>
+              <Text className="text-ink-muted dark:text-ink-muted-dark text-sm">{t('sessionPaymentNoBankAccounts')}</Text>
             ) : (
               bankAccounts.map((account) => (
-                <Box key={account.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-0.5">
-                  <Text className="font-bold text-slate-900 dark:text-white">{account.bankName}</Text>
-                  <Text className="text-slate-500 dark:text-slate-400">{account.accountNumber}</Text>
-                  <Text className="text-slate-500 dark:text-slate-400 text-sm">{account.accountName}</Text>
+                <Box key={account.id} className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-0.5">
+                  <Text className="font-bold text-ink dark:text-ink-dark">{account.bankName}</Text>
+                  <Text className="text-ink-muted dark:text-ink-muted-dark">{account.accountNumber}</Text>
+                  <Text className="text-ink-muted dark:text-ink-muted-dark text-sm">{account.accountName}</Text>
                 </Box>
               ))
             )}
@@ -145,9 +145,9 @@ export function SessionPayment({
 
           {myParticipant && (isAwaitingPayment(myParticipant) || hasPaid(myParticipant)) && (
             <VStack className="gap-2">
-              <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('sessionPaymentYourPaymentTitle')}</Text>
-              <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
-                <Text className={hasPaid(myParticipant) ? 'text-green-600 font-bold' : 'text-yellow-700 dark:text-yellow-400 font-bold'}>
+              <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('sessionPaymentYourPaymentTitle')}</Text>
+              <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-3">
+                <Text className={hasPaid(myParticipant) ? 'text-success dark:text-success-dark font-bold' : 'text-heat-strong dark:text-heat-strong-dark font-bold'}>
                   {hasPaid(myParticipant) ? t('sessionPaymentStatusPaid') : t('sessionPaymentStatusAwaiting')}
                 </Text>
                 {myParticipant.hasReceipt && (
@@ -157,11 +157,11 @@ export function SessionPayment({
                     resizeMode="cover"
                   />
                 )}
-                <Button action="secondary" variant="outline" size="sm" className="self-start" isDisabled={uploading} onPress={handleUploadReceipt}>
+                <Button variant="outline" size="sm" className="self-start" isDisabled={uploading} onPress={handleUploadReceipt}>
                   {uploading ? (
                     <ActivityIndicator size="small" />
                   ) : (
-                    <ButtonText action="secondary" variant="outline">
+                    <ButtonText variant="outline">
                       {myParticipant.hasReceipt ? t('sessionPaymentReplaceReceipt') : t('sessionPaymentUploadReceipt')}
                     </ButtonText>
                   )}
@@ -175,15 +175,15 @@ export function SessionPayment({
 
       {payable.length > 0 && (
         <VStack className="gap-2">
-          <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('sessionPaymentStatusTitle')}</Text>
+          <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('sessionPaymentStatusTitle')}</Text>
           <VStack className="gap-2">
             {payable.map((p) => (
-              <Box key={p.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4">
+              <Box key={p.id} className="bg-surface dark:bg-surface-dark rounded-2xl p-4">
                 <HStack className="justify-between items-center gap-3">
-                  <Text className="font-bold text-slate-900 dark:text-white" style={{ flex: 1 }} numberOfLines={1}>
+                  <Text className="font-bold text-ink dark:text-ink-dark" style={{ flex: 1 }} numberOfLines={1}>
                     {participantName(p)}
                   </Text>
-                  <Text className={`text-sm font-bold ${hasPaid(p) ? 'text-green-600' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                  <Text className={`text-sm font-bold ${hasPaid(p) ? 'text-success dark:text-success-dark' : 'text-heat-strong dark:text-heat-strong-dark'}`}>
                     {hasPaid(p) ? t('sessionPaymentStatusPaid') : t('sessionPaymentStatusAwaiting')}
                   </Text>
                   {(isOwnerOrAdmin || p.userId === myParticipant?.userId) && p.hasReceipt && (
@@ -193,10 +193,10 @@ export function SessionPayment({
                   )}
                   {isOwnerOrAdmin && isAwaitingPayment(p) && p.userId && (
                     <Pressable
-                      className="px-3 py-1.5 rounded-full bg-blue-600 active:opacity-70"
+                      className="px-3 py-1.5 rounded-full bg-heat active:bg-heat-strong"
                       onPress={() => onConfirmPayment(p.userId!)}
                     >
-                      <Text className="text-white text-xs font-bold">{t('sessionPaymentConfirm')}</Text>
+                      <Text className="text-on-heat text-xs font-sans-bold">{t('sessionPaymentConfirm')}</Text>
                     </Pressable>
                   )}
                 </HStack>

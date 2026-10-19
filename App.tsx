@@ -1,5 +1,7 @@
 import { Platform, View } from 'react-native';
+import { useEffect } from 'react';
 import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './src/theme';
 import { LanguageProvider } from './src/i18n';
@@ -26,12 +28,22 @@ const FONTS = {
   'Saira-ExtraBoldItalic': require('./assets/fonts/Saira-ExtraBoldItalic.ttf'),
 };
 
+// The native splash stays up until the fonts are in, instead of a blank
+// frame. (A no-op on web.)
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function App() {
   // Nothing renders until the fonts are in (or failed to load, in which
   // case text falls back to the system font), so no text flashes in the
   // wrong face.
   const [fontsLoaded, fontError] = useFonts(FONTS);
-  if (!fontsLoaded && !fontError) return null;
+  const ready = fontsLoaded || !!fontError;
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
     <SafeAreaProvider>
@@ -39,7 +51,7 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             {Platform.OS === 'web' ? (
-              <View className="flex-1 bg-slate-200 dark:bg-black">
+              <View className="flex-1 bg-surface-sunken dark:bg-black">
                 <View className="flex-1 w-full self-center" style={{ maxWidth: WEB_MAX_WIDTH }}>
                   <RootNavigator />
                 </View>

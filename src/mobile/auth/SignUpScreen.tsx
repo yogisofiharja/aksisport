@@ -81,7 +81,7 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-8 pb-6 gap-6" keyboardShouldPersistTaps="handled">
           <VStack className="gap-1">
@@ -89,7 +89,7 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authUsername')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authUsername')}</Text>
             <Input>
               <InputField
                 autoCapitalize="none"
@@ -101,7 +101,7 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
               />
             </Input>
             {availability === 'checking' && (
-              <Text className="text-xs text-slate-400">{t('authUsernameChecking')}</Text>
+              <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">{t('authUsernameChecking')}</Text>
             )}
             {availability === 'available' && (
               <Text className="text-xs text-teal-600 dark:text-teal-400">{t('authUsernameAvailable')}</Text>
@@ -115,7 +115,7 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authEmail')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authEmail')}</Text>
             <Input>
               <InputField
                 autoCapitalize="none"
@@ -126,16 +126,16 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
                 onChangeText={setEmail}
               />
             </Input>
-            <Text className="text-xs text-slate-400">{t('authEmailHint')}</Text>
+            <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">{t('authEmailHint')}</Text>
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authPassword')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authPassword')}</Text>
             <PasswordField value={password} onChangeText={setPassword} />
           </VStack>
 
           <VStack className="gap-2">
-            <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authConfirmPassword')}</Text>
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authConfirmPassword')}</Text>
             <PasswordField value={confirmPassword} onChangeText={setConfirmPassword} />
             {confirmPassword.length > 0 && password !== confirmPassword && (
               <Text className="text-xs text-red-500">{t('authPasswordMismatch')}</Text>
@@ -145,19 +145,18 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
           {error && <Text className="text-sm text-red-500">{error}</Text>}
 
           <Button
-            action="secondary"
             size="xl"
             isDisabled={!canSubmit}
-            className="w-full rounded-2xl bg-blue-600"
+            className="w-full"
             onPress={handleSubmit}
           >
-            <ButtonText className="text-white text-xl">{t('authSignUp')}</ButtonText>
+            <ButtonText>{t('authSignUp')}</ButtonText>
           </Button>
 
           <Box className="items-center pt-2">
             <Pressable onPress={onNavigateToLogin}>
-              <Text className="text-slate-500 dark:text-slate-400">
-                {t('authHaveAccount')} <Text className="font-bold text-blue-600 dark:text-blue-400">{t('authLogInLink')}</Text>
+              <Text className="text-ink-muted dark:text-ink-muted-dark">
+                {t('authHaveAccount')} <Text className="font-bold text-heat-strong dark:text-heat-strong-dark">{t('authLogInLink')}</Text>
               </Text>
             </Pressable>
           </Box>

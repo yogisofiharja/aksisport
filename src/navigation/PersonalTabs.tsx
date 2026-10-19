@@ -80,7 +80,7 @@ export function PersonalTabs() {
         options={{
           tabBarLabel: t('tabInbox'),
           tabBarBadge: unreadMessages > 0 ? (unreadMessages > 99 ? '99+' : unreadMessages) : undefined,
-          tabBarBadgeStyle: { backgroundColor: palette.brand.secondary, color: '#ffffff', fontSize: 11 },
+          tabBarBadgeStyle: { backgroundColor: palette.heat, color: palette.onHeat, fontSize: 11 },
           tabBarIcon: ({ focused }) => <Icon name={focused ? 'mail' : 'mail-outline'} color={focused ? 'secondary' : 'muted'} />,
         }}
       >

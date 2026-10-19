@@ -101,9 +101,9 @@ function participantInitials(p: SessionParticipant): string {
 // pending), checked-out/cancelled/no-show (muted slate).
 function participantAvatarBorderClass(status: SessionParticipant['status']): string {
   if (status === 'checked_in') return 'border-teal-500';
-  if (status === 'registered') return 'border-blue-500';
-  if (status === 'requested' || status === 'waitlist') return 'border-yellow-500';
-  return 'border-slate-300 dark:border-slate-600';
+  if (status === 'registered') return 'border-info dark:border-info-dark';
+  if (status === 'requested' || status === 'waitlist') return 'border-heat';
+  return 'border-border-strong dark:border-border-strong-dark';
 }
 
 export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch, onEdit, onDiscarded, openContactWith, initialTab }: Props) {
@@ -702,13 +702,13 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           (myParticipant?.status === 'checked_in' ? (
             isSessionActive && (
               <Pressable className="items-center py-1 self-center active:opacity-60" onPress={handleCheckOut} disabled={busy}>
-                <Text className="text-slate-400 font-bold text-sm">{t('sessionCheckOut')}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark font-bold text-sm">{t('sessionCheckOut')}</Text>
               </Pressable>
             )
           ) : myParticipant?.status === 'requested' ? (
             <VStack className="gap-2">
-              <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
-                <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionRequestedNotice')}</Text>
+              <Box className="bg-surface-sunken dark:bg-surface-sunken-dark rounded-2xl p-4 items-center">
+                <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('sessionRequestedNotice')}</Text>
               </Box>
               <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
                 <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
@@ -716,8 +716,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             </VStack>
           ) : myParticipant?.status === 'waitlist' ? (
             <VStack className="gap-2">
-              <Box className="bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl p-4 items-center">
-                <Text className="text-sm text-yellow-800 dark:text-yellow-300">{t('sessionWaitlistedNotice')}</Text>
+              <Box className="bg-heat-tint dark:bg-heat-tint-dark rounded-2xl p-4 items-center">
+                <Text className="text-sm text-ink dark:text-ink-dark">{t('sessionWaitlistedNotice')}</Text>
               </Box>
               <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
                 <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
@@ -727,12 +727,12 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             isSessionActive && (
               <VStack className="gap-2">
                 {checkInWindowOpen ? (
-                  <Button action="secondary" size="xl" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handleCheckIn}>
-                    <ButtonText className="text-white text-lg">{t('sessionCheckIn')}</ButtonText>
+                  <Button size="xl" className="w-full" isDisabled={busy} onPress={handleCheckIn}>
+                    <ButtonText>{t('sessionCheckIn')}</ButtonText>
                   </Button>
                 ) : (
-                  <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 items-center">
-                    <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionCheckInWindowClosed')}</Text>
+                  <Box className="bg-surface-sunken dark:bg-surface-sunken-dark rounded-2xl p-4 items-center">
+                    <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('sessionCheckInWindowClosed')}</Text>
                   </Box>
                 )}
                 <Pressable className="items-center py-1 active:opacity-60" onPress={handleCancelMyParticipation} disabled={busy}>
@@ -747,13 +747,12 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             isSessionActive && (
               <VStack className="gap-2">
                 <Button
-                  action="secondary"
                   size="xl"
-                  className="w-full rounded-2xl bg-blue-600"
+                  className="w-full"
                   isDisabled={busy || strictLevelBlocked}
                   onPress={handleRequestToJoin}
                 >
-                  <ButtonText className="text-white text-lg">{t('sessionRequestToJoin')}</ButtonText>
+                  <ButtonText>{t('sessionRequestToJoin')}</ButtonText>
                 </Button>
                 {strictLevelBlocked && (
                   <Text className="text-sm text-red-500">
@@ -771,21 +770,21 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   if (!session && !loading && loadFailed) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
         <VStack className="px-5 pt-4 gap-4">
           <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
             <Icon name="arrow-back" size="lg" />
           </Pressable>
-          <Text className="text-2xl font-black text-slate-900 dark:text-white">{t('sessionLoadFailedTitle')}</Text>
-          <Text className="text-slate-500 dark:text-slate-400">{t('sessionLoadFailedDesc')}</Text>
+          <Text className="text-2xl font-black text-ink dark:text-ink-dark">{t('sessionLoadFailedTitle')}</Text>
+          <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionLoadFailedDesc')}</Text>
           <Pressable
-            className="self-start px-4 py-2 rounded-xl bg-blue-600 active:opacity-70"
+            className="self-start px-4 py-2 rounded-lg bg-heat active:bg-heat-strong"
             onPress={() => {
               setLoading(true);
               load();
             }}
           >
-            <Text className="font-bold text-white">{t('retry')}</Text>
+            <Text className="font-sans-semibold text-on-heat">{t('retry')}</Text>
           </Pressable>
         </VStack>
       </SafeAreaView>
@@ -794,7 +793,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   if (loading || !session) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark items-center justify-center">
         <ActivityIndicator size="large" />
       </SafeAreaView>
     );
@@ -847,9 +846,9 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             accessibilityLabel={isOwnerOrAdmin && p.userId ? t('playerProfileOpen') : undefined}
           >
             <Box
-              className={`w-16 h-16 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700 border-2 ${participantAvatarBorderClass(p.status)}`}
+              className={`w-16 h-16 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark border-2 ${participantAvatarBorderClass(p.status)}`}
             >
-              <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">{participantInitials(p)}</Text>
+              <Text className="text-base font-extrabold text-ink-muted dark:text-ink-muted-dark">{participantInitials(p)}</Text>
             </Box>
           </Pressable>
           {canRemove && (
@@ -857,9 +856,9 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
               onPress={() => handleDeleteParticipant(p)}
               disabled={busy}
               hitSlop={8}
-              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 items-center justify-center active:opacity-70"
+              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-danger dark:bg-danger-dark items-center justify-center active:opacity-70"
             >
-              <Icon name="close" size="xs" color="onBrand" />
+              <Icon name="close" size="xs" color="onDark" />
             </Pressable>
           )}
           {action && isOwnerOrAdmin && isSessionActive && (
@@ -867,13 +866,13 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
               onPress={action.onPress}
               disabled={busy}
               hitSlop={8}
-              className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-blue-600 items-center justify-center active:opacity-70"
+              className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-heat items-center justify-center active:opacity-70"
             >
               <Icon name={action.icon} size="xs" color="onBrand" />
             </Pressable>
           )}
         </Box>
-        <Text className="text-xs font-bold text-slate-900 dark:text-white text-center mt-1" numberOfLines={2}>
+        <Text className="text-xs font-bold text-ink dark:text-ink-dark text-center mt-1" numberOfLines={2}>
           {p.displayName || p.username || p.guestName}
           {p.userId === profile?.id ? ` (${t('sessionYou')})` : ''}
         </Text>
@@ -889,7 +888,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     if (list.length === 0) return null;
     return (
       <VStack className="gap-2">
-        <Text className="text-xs font-bold text-slate-400">{label}</Text>
+        <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark">{label}</Text>
         <HStack className="flex-wrap items-start" style={{ rowGap: 16, columnGap: 12 }}>
           {list.map((p) => renderParticipantCard(p, action?.(p)))}
         </HStack>
@@ -926,7 +925,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   const configSingleDeuce = session.defaultSingleDeuce ?? true;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       {/* Persistent header — name/date stay pinned above the tab body
           (outside the ScrollView) so switching tabs never loses which
           session you're looking at. */}
@@ -944,19 +943,19 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         <VStack className="gap-0.5">
           <Heading size="2xl" numberOfLines={1}>{session.name || session.sport}</Heading>
           {session.startsAt && (
-            <Text className="text-sm text-slate-500 dark:text-slate-400">{formatSessionDateTime(session.startsAt)}</Text>
+            <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{formatSessionDateTime(session.startsAt)}</Text>
           )}
         </VStack>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {tabs.map((tab) => (
             <Pressable
               key={tab.key}
-              className={`items-center px-4 py-3.5 rounded-xl ${activeTab === tab.key ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+              className={`items-center px-4 py-3.5 rounded-xl ${activeTab === tab.key ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'}`}
               onPress={() => setActiveTab(tab.key)}
               hitSlop={4}
             >
               <HStack className="items-center gap-1.5">
-                <Text className={`text-sm font-bold ${activeTab === tab.key ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+                <Text className={`text-sm font-bold ${activeTab === tab.key ? 'text-surface dark:text-surface-dark' : 'text-ink-muted dark:text-ink-muted-dark'}`}>
                   {tab.label}
                 </Text>
                 {tab.key === 'chat' && <UnreadCount count={chatUnread} />}
@@ -973,12 +972,12 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
               itself decides member (own thread) vs. organizer (thread
               list) view. */}
           <Pressable
-            className="flex-row items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700 active:opacity-70"
+            className="flex-row items-center justify-between px-5 py-3 border-b border-border dark:border-border-dark active:opacity-70"
             onPress={() => setContactVisible(true)}
           >
             <HStack className="items-center gap-2">
               <Icon name="mail-outline" size="sm" color="secondary" />
-              <Text className="font-bold text-slate-700 dark:text-slate-200">{t('sessionContactEntry')}</Text>
+              <Text className="font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionContactEntry')}</Text>
             </HStack>
             <Icon name="chevron-forward" size="sm" color="muted" />
           </Pressable>
@@ -993,34 +992,34 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           <VStack className="gap-5">
             <VStack className="gap-1">
               {club && (
-                <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">{club.name}</Text>
+                <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">{club.name}</Text>
               )}
               {recurringSchedule && (
                 <HStack className="items-center gap-1">
                   <Icon name="repeat-outline" size="xs" color="muted" />
-                  <Text className="text-slate-500 dark:text-slate-400">
+                  <Text className="text-ink-muted dark:text-ink-muted-dark">
                     {t('sessionRecurringEvery', weekdayLabel(recurringSchedule.recurrenceRule.weekday, t))}
                   </Text>
                 </HStack>
               )}
               {session.lifecycleStatus === 'draft' && (
                 <VStack className="gap-1.5 mb-1">
-                  <Box className="bg-blue-100 dark:bg-blue-900/30 rounded-full px-2.5 py-1 self-start">
-                    <Text className="text-xs font-extrabold text-blue-700 dark:text-blue-300 tracking-wide">
+                  <Box className="bg-info-tint dark:bg-info-tint-dark rounded-full px-2.5 py-1 self-start">
+                    <Text className="text-xs font-extrabold text-info dark:text-info-dark tracking-wide">
                       {t('sessionStatusDraft').toUpperCase()}
                     </Text>
                   </Box>
-                  <Text className="text-sm text-blue-800 dark:text-blue-300">{t('sessionDraftNotice')}</Text>
+                  <Text className="text-sm text-ink dark:text-ink-dark">{t('sessionDraftNotice')}</Text>
                 </VStack>
               )}
               {session.location && (
                 <HStack className="items-center gap-1">
                   <Icon name="location-outline" size="xs" color="muted" />
-                  <Text className="text-slate-500 dark:text-slate-400">{session.location}</Text>
+                  <Text className="text-ink-muted dark:text-ink-muted-dark">{session.location}</Text>
                 </HStack>
               )}
               {hasLevelRequirement && (
-                <Text className="text-sm font-bold text-blue-600">
+                <Text className="text-sm font-bold text-heat-strong dark:text-heat-strong-dark">
                   {(minLevel?.name ?? '?') + '–' + (maxLevel?.name ?? '?')} ·{' '}
                   {session.skillLevelEnforcement === 'strict' ? t('skillLevelEnforcementStrict') : t('skillLevelEnforcementGuidance')}
                 </Text>
@@ -1029,43 +1028,43 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
             {renderMyParticipation()}
 
-            <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
+            <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-3">
               <VStack className="gap-2">
                 <HStack className="justify-between">
-                  <Text className="text-slate-500 dark:text-slate-400">{t('sessionSportLabel')}</Text>
-                  <Text className="font-bold text-slate-900 dark:text-white">
+                  <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionSportLabel')}</Text>
+                  <Text className="font-bold text-ink dark:text-ink-dark">
                     {session.sport === 'tennis' ? t('sportTennis') : session.sport}
                   </Text>
                 </HStack>
                 {session.activityType && (
                   <HStack className="justify-between">
-                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionActivityTypeLabel')}</Text>
-                    <Text className="font-bold text-slate-900 dark:text-white">{activityTypeLabel(session.activityType, t)}</Text>
+                    <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionActivityTypeLabel')}</Text>
+                    <Text className="font-bold text-ink dark:text-ink-dark">{activityTypeLabel(session.activityType, t)}</Text>
                   </HStack>
                 )}
                 {session.startsAt && (
                   <HStack className="justify-between">
-                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionDateLabel')}</Text>
-                    <Text className="font-bold text-slate-900 dark:text-white">{formatSessionDateTime(session.startsAt)}</Text>
+                    <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionDateLabel')}</Text>
+                    <Text className="font-bold text-ink dark:text-ink-dark">{formatSessionDateTime(session.startsAt)}</Text>
                   </HStack>
                 )}
                 {session.durationMinutes != null && (
                   <HStack className="justify-between">
-                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionDurationLabel')}</Text>
-                    <Text className="font-bold text-slate-900 dark:text-white">
+                    <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionDurationLabel')}</Text>
+                    <Text className="font-bold text-ink dark:text-ink-dark">
                       {t('sessionDurationHours', Math.round(session.durationMinutes / 60))}
                     </Text>
                   </HStack>
                 )}
                 {session.priceModel === 'free' ? (
                   <HStack className="justify-between">
-                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionPriceLabel')}</Text>
-                    <Text className="font-bold text-slate-900 dark:text-white">{t('sessionPriceFreeDisplay')}</Text>
+                    <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionPriceLabel')}</Text>
+                    <Text className="font-bold text-ink dark:text-ink-dark">{t('sessionPriceFreeDisplay')}</Text>
                   </HStack>
                 ) : session.priceModel === 'per_person' ? (
                   <HStack className="justify-between">
-                    <Text className="text-slate-500 dark:text-slate-400">{t('sessionPriceLabel')}</Text>
-                    <Text className="font-bold text-slate-900 dark:text-white">
+                    <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionPriceLabel')}</Text>
+                    <Text className="font-bold text-ink dark:text-ink-dark">
                       {session.pricePerPerson != null ? t('sessionPricePerPersonDisplay', formatIDR(session.pricePerPerson)) : '—'}
                     </Text>
                   </HStack>
@@ -1073,14 +1072,14 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                   session.totalPrice != null && (
                     <>
                       <HStack className="justify-between">
-                        <Text className="text-slate-500 dark:text-slate-400">{t('sessionSplitBillTotalLabel')}</Text>
-                        <Text className="font-bold text-slate-900 dark:text-white">{formatIDR(session.totalPrice)}</Text>
+                        <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionSplitBillTotalLabel')}</Text>
+                        <Text className="font-bold text-ink dark:text-ink-dark">{formatIDR(session.totalPrice)}</Text>
                       </HStack>
                       <HStack className="justify-between">
-                        <Text className="text-slate-500 dark:text-slate-400">
+                        <Text className="text-ink-muted dark:text-ink-muted-dark">
                           {t('sessionSplitBillPerPersonLabel', session.joinedCount)}
                         </Text>
-                        <Text className="font-bold text-slate-900 dark:text-white">
+                        <Text className="font-bold text-ink dark:text-ink-dark">
                           {session.joinedCount > 0 ? formatIDR(Math.round(session.totalPrice / session.joinedCount)) : '—'}
                         </Text>
                       </HStack>
@@ -1092,10 +1091,10 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
             <Pressable
               onPress={() => setActiveTab('participants')}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-4 active:opacity-70"
+              className="bg-surface dark:bg-surface-dark rounded-2xl p-4 active:opacity-70"
             >
               <HStack className="justify-between items-center">
-                <Text className="font-bold text-slate-900 dark:text-white">
+                <Text className="font-bold text-ink dark:text-ink-dark">
                   {session.maxParticipants != null
                     ? t('sessionJoinedCountLineMax', session.joinedCount, session.maxParticipants)
                     : t('sessionJoinedCountLine', session.joinedCount)}
@@ -1105,11 +1104,11 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             </Pressable>
 
             {session.description && (
-              <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-1">
-                <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
+              <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-1">
+                <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">
                   {t('sessionDescriptionSectionTitle')}
                 </Text>
-                <Text className="text-slate-700 dark:text-slate-300">{session.description}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark">{session.description}</Text>
               </Box>
             )}
 
@@ -1122,8 +1121,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             {(session.lifecycleStatus === 'recruiting' ||
               session.lifecycleStatus === 'ready' ||
               session.lifecycleStatus === 'full') && (
-              <Box className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4">
-                <Text className="text-sm text-blue-800 dark:text-blue-300">
+              <Box className="bg-info-tint dark:bg-info-tint-dark rounded-xl p-4">
+                <Text className="text-sm text-ink dark:text-ink-dark">
                   {session.lifecycleStatus === 'recruiting'
                     ? t('sessionRecruitingNotice', session.joinedCount, minParticipants('single'))
                     : session.lifecycleStatus === 'ready'
@@ -1146,8 +1145,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             )}
 
             {session.lifecycleStatus === 'completed' && (
-              <Box className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4">
-                <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionCompletedNotice')}</Text>
+              <Box className="bg-surface-sunken dark:bg-surface-sunken-dark rounded-2xl p-4">
+                <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('sessionCompletedNotice')}</Text>
               </Box>
             )}
 
@@ -1158,15 +1157,15 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             )}
 
             <VStack className="gap-2">
-              <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">{t('sessionOrganizerTitle')}</Text>
+              <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">{t('sessionOrganizerTitle')}</Text>
               <HStack className="flex-wrap items-start" style={{ rowGap: 16, columnGap: 12 }}>
                 <VStack className="items-center" style={{ width: 76 }}>
-                  <Box className="w-16 h-16 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700 border-2 border-blue-500">
-                    <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">
+                  <Box className="w-16 h-16 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark border-2 border-border dark:border-border-dark">
+                    <Text className="text-base font-extrabold text-ink-muted dark:text-ink-muted-dark">
                       {initialsFromName(organizerName)}
                     </Text>
                   </Box>
-                  <Text className="text-xs font-bold text-slate-900 dark:text-white text-center mt-1" numberOfLines={2}>
+                  <Text className="text-xs font-bold text-ink dark:text-ink-dark text-center mt-1" numberOfLines={2}>
                     {organizerName}
                     {session.createdBy === profile?.id ? ` (${t('sessionYou')})` : ''}
                   </Text>
@@ -1185,11 +1184,11 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                 link rather than a full-width button. */}
             {isOwnerOrAdmin && session.lifecycleStatus === 'draft' && (
               <VStack className="gap-3">
-                <Button action="secondary" size="lg" className="w-full rounded-2xl bg-blue-600" isDisabled={busy} onPress={handlePublish}>
-                  <ButtonText className="text-white">{t('sessionPublish')}</ButtonText>
+                <Button size="lg" className="w-full" isDisabled={busy} onPress={handlePublish}>
+                  <ButtonText>{t('sessionPublish')}</ButtonText>
                 </Button>
 
-                <Box className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
+                <Box className="h-px bg-surface-sunken dark:bg-surface-sunken-dark my-1" />
 
                 <Pressable className="items-center py-2 active:opacity-60" onPress={handleDiscard} disabled={busy}>
                   <Text className="text-red-500 font-bold">{t('sessionDiscard')}</Text>
@@ -1222,26 +1221,26 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             screen, same editable window as Details' own Edit button. */}
         {activeTab === 'configuration' && (
           <VStack className="gap-5">
-            <Box className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
+            <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-3">
               <VStack className="gap-2">
                 <HStack className="justify-between">
-                  <Text className="text-slate-500 dark:text-slate-400">{t('matchFormat')}</Text>
-                  <Text className="font-bold text-slate-900 dark:text-white">{matchFormatSummary(configMatchFormat, t)}</Text>
+                  <Text className="text-ink-muted dark:text-ink-muted-dark">{t('matchFormat')}</Text>
+                  <Text className="font-bold text-ink dark:text-ink-dark">{matchFormatSummary(configMatchFormat, t)}</Text>
                 </HStack>
                 <HStack className="justify-between">
-                  <Text className="text-slate-500 dark:text-slate-400">{t('singleDeuce')}</Text>
-                  <Text className="font-bold text-slate-900 dark:text-white">
+                  <Text className="text-ink-muted dark:text-ink-muted-dark">{t('singleDeuce')}</Text>
+                  <Text className="font-bold text-ink dark:text-ink-dark">
                     {configSingleDeuce ? t('sessionConfigOn') : t('sessionConfigOff')}
                   </Text>
                 </HStack>
               </VStack>
             </Box>
 
-            <Text className="text-sm text-slate-500 dark:text-slate-400">{t('sessionConfigEditHint')}</Text>
+            <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('sessionConfigEditHint')}</Text>
 
             {canEditConfiguration && (
-              <Button variant="outline" action="secondary" size="lg" className="w-full rounded-2xl" isDisabled={busy} onPress={() => onEdit(sessionId)}>
-                <ButtonText variant="outline" action="secondary">
+              <Button variant="outline" size="lg" className="w-full" isDisabled={busy} onPress={() => onEdit(sessionId)}>
+                <ButtonText variant="outline">
                   {t('sessionEdit')}
                 </ButtonText>
               </Button>
@@ -1255,10 +1254,10 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
             <VStack className="gap-4">
               <HStack className="justify-between items-center">
-                <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
+                <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">
                   {t('sessionParticipantsTitle')}
                 </Text>
-                <Text className="text-sm font-extrabold text-slate-400">
+                <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark">
                   {session.maxParticipants != null ? `${session.joinedCount}/${session.maxParticipants}` : session.joinedCount}
                 </Text>
               </HStack>
@@ -1292,14 +1291,14 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                       {canAddParticipant ? (
                         <Pressable
                           onPress={openAddParticipant}
-                          className="w-16 h-16 rounded-full items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 active:opacity-70"
+                          className="w-16 h-16 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark border-2 border-dashed border-border-strong dark:border-border-strong-dark active:opacity-70"
                           accessibilityLabel={t('sessionAddParticipantTitle')}
                         >
                           <Icon name="add" size="md" color="muted" />
                         </Pressable>
                       ) : (
                         <Box
-                          className="w-16 h-16 rounded-full border-2 border-dashed border-slate-200 dark:border-slate-700"
+                          className="w-16 h-16 rounded-full border-2 border-dashed border-border dark:border-border-dark"
                           accessibilityLabel={t('sessionOpenSpot')}
                         />
                       )}
@@ -1314,28 +1313,28 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         {activeTab === 'matches' && (
           <VStack className="gap-2">
             {!isPublished ? (
-              <Text className="text-slate-500 dark:text-slate-400">{t('sessionMatchesUnavailableDraft')}</Text>
+              <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionMatchesUnavailableDraft')}</Text>
             ) : (
               <>
                 <HStack className="justify-between items-center mb-1">
-                  <Text className="text-sm font-extrabold text-slate-400 tracking-widest uppercase">
+                  <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">
                     {t('activityQueueTitle')}
                   </Text>
                   {isOwnerOrAdmin && isSessionActive && (
                     <HStack className="gap-1">
                       {canRegenerate && (
                         <Pressable onPress={handleRegenerate} className="px-3 py-2 active:opacity-60" disabled={busy} hitSlop={4}>
-                          <Text className="text-sm font-bold text-blue-600">{t('activityRegenerateMatches')}</Text>
+                          <Text className="text-sm font-bold text-heat-strong dark:text-heat-strong-dark">{t('activityRegenerateMatches')}</Text>
                         </Pressable>
                       )}
                       <Pressable onPress={() => onAddMatch(sessionId)} className="px-3 py-2 active:opacity-60" hitSlop={4}>
-                        <Text className="text-sm font-bold text-blue-600">{t('activityAdd')}</Text>
+                        <Text className="text-sm font-bold text-heat-strong dark:text-heat-strong-dark">{t('activityAdd')}</Text>
                       </Pressable>
                     </HStack>
                   )}
                 </HStack>
                 {activities.length === 0 ? (
-                  <Text className="text-slate-500 dark:text-slate-400">{t('activityEmptyQueue')}</Text>
+                  <Text className="text-ink-muted dark:text-ink-muted-dark">{t('activityEmptyQueue')}</Text>
                 ) : (
                   activities.map((a) => {
                     // A match's own checked-in players can start it themselves;
@@ -1364,11 +1363,11 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                         key={a.id}
                         disabled={!isFinished}
                         onPress={() => onOpenMatch(a.id)}
-                        className="bg-white dark:bg-slate-800 rounded-2xl p-4 active:opacity-70"
+                        className="bg-surface dark:bg-surface-dark rounded-2xl p-4 active:opacity-70"
                       >
                         <HStack className="justify-between items-center gap-3">
                           <VStack className="flex-1 gap-1">
-                            <Text className="font-bold text-slate-900 dark:text-white">{activityParticipantNames(a)}</Text>
+                            <Text className="font-bold text-ink dark:text-ink-dark">{activityParticipantNames(a)}</Text>
                             {a.status === 'live' ? (
                               <HStack className="items-center gap-1.5">
                                 <Box className="w-1.5 h-1.5 rounded-full bg-red-500" />
@@ -1377,7 +1376,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                                 </Text>
                               </HStack>
                             ) : (
-                              <Text className="text-xs text-slate-400">
+                              <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">
                                 {a.status === 'queued'
                                   ? t('activityStatusQueued')
                                   : finalScore
@@ -1387,13 +1386,13 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                             )}
                           </VStack>
                           {canStart && (
-                            <Button size="sm" className="rounded-xl bg-blue-600" onPress={() => onOpenMatch(a.id)}>
-                              <ButtonText className="text-white">{t('activityStart')}</ButtonText>
+                            <Button size="sm" onPress={() => onOpenMatch(a.id)}>
+                              <ButtonText>{t('activityStart')}</ButtonText>
                             </Button>
                           )}
                           {canWatch && (
-                            <Button size="sm" className="rounded-xl bg-red-600" onPress={() => onOpenMatch(a.id)}>
-                              <ButtonText className="text-white">{isLiveScorer ? t('activityResume') : t('activityWatch')}</ButtonText>
+                            <Button size="sm" className="bg-red-600" onPress={() => onOpenMatch(a.id)}>
+                              <ButtonText>{isLiveScorer ? t('activityResume') : t('activityWatch')}</ButtonText>
                             </Button>
                           )}
                           {isFinished && <Icon name="chevron-forward" size="sm" color="muted" />}
@@ -1413,46 +1412,44 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
       <Modal visible={addParticipantStep !== 'closed'} transparent animationType="slide" onRequestClose={closeAddParticipant}>
         <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={closeAddParticipant}>
-          <Pressable className="bg-white dark:bg-slate-800 rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
-            <Box className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 self-center mb-1" />
+          <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
+            <Box className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center mb-1" />
 
             {addParticipantStep === 'choose' && (
               <VStack className="gap-3">
-                <Text className="text-lg font-black text-slate-900 dark:text-white text-center mb-1">
+                <Text className="text-lg font-black text-ink dark:text-ink-dark text-center mb-1">
                   {t('sessionAddParticipantTitle')}
                 </Text>
                 <Button
-                  action="secondary"
                   size="lg"
-                  className="w-full rounded-2xl bg-blue-600"
+                  className="w-full"
                   onPress={() => setAddParticipantStep('member')}
                 >
-                  <ButtonText className="text-white">{t('sessionAddParticipantMemberOption')}</ButtonText>
+                  <ButtonText>{t('sessionAddParticipantMemberOption')}</ButtonText>
                 </Button>
                 <Button
                   variant="outline"
-                  action="secondary"
                   size="lg"
-                  className="w-full rounded-2xl"
+                  className="w-full"
                   onPress={() => setAddParticipantStep('guest')}
                 >
-                  <ButtonText variant="outline" action="secondary">
+                  <ButtonText variant="outline">
                     {t('sessionAddParticipantGuestOption')}
                   </ButtonText>
                 </Button>
                 <Pressable className="items-center py-1 active:opacity-60" onPress={closeAddParticipant}>
-                  <Text className="text-slate-400 font-bold">{t('clubCancel')}</Text>
+                  <Text className="text-ink-muted dark:text-ink-muted-dark font-bold">{t('clubCancel')}</Text>
                 </Pressable>
               </VStack>
             )}
 
             {addParticipantStep === 'member' && (
               <VStack className="gap-3">
-                <Text className="text-lg font-black text-slate-900 dark:text-white text-center mb-1">
+                <Text className="text-lg font-black text-ink dark:text-ink-dark text-center mb-1">
                   {t('sessionAddMemberLabel')}
                 </Text>
                 {addableMembers.length === 0 ? (
-                  <Text className="text-slate-500 dark:text-slate-400 text-center py-4">
+                  <Text className="text-ink-muted dark:text-ink-muted-dark text-center py-4">
                     {t('sessionAddParticipantNoMembers')}
                   </Text>
                 ) : (
@@ -1466,12 +1463,12 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                           className="items-center active:opacity-60"
                           style={{ width: 76 }}
                         >
-                          <Box className="w-16 h-16 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600">
-                            <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">
+                          <Box className="w-16 h-16 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark border-2 border-border-strong dark:border-border-strong-dark">
+                            <Text className="text-base font-extrabold text-ink-muted dark:text-ink-muted-dark">
                               {initialsFromName(m.displayName || m.username)}
                             </Text>
                           </Box>
-                          <Text className="text-xs font-bold text-slate-900 dark:text-white text-center mt-1" numberOfLines={2}>
+                          <Text className="text-xs font-bold text-ink dark:text-ink-dark text-center mt-1" numberOfLines={2}>
                             {m.displayName || m.username}
                           </Text>
                         </Pressable>
@@ -1481,14 +1478,14 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                 )}
                 {error && <Text className="text-sm text-red-500">{error}</Text>}
                 <Pressable className="items-center py-1 active:opacity-60" onPress={() => setAddParticipantStep('choose')}>
-                  <Text className="text-blue-600 font-bold">{t('back')}</Text>
+                  <Text className="text-heat-strong dark:text-heat-strong-dark font-bold">{t('back')}</Text>
                 </Pressable>
               </VStack>
             )}
 
             {addParticipantStep === 'guest' && (
               <VStack className="gap-3">
-                <Text className="text-lg font-black text-slate-900 dark:text-white text-center mb-1">{t('sessionAddGuest')}</Text>
+                <Text className="text-lg font-black text-ink dark:text-ink-dark text-center mb-1">{t('sessionAddGuest')}</Text>
                 <Input>
                   <InputField
                     placeholder={t('sessionAddGuestPlaceholder')}
@@ -1500,16 +1497,15 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                 </Input>
                 {error && <Text className="text-sm text-red-500">{error}</Text>}
                 <Button
-                  action="secondary"
                   size="lg"
-                  className="w-full rounded-2xl bg-blue-600"
+                  className="w-full"
                   isDisabled={busy || !guestName.trim()}
                   onPress={handleSubmitGuestFromModal}
                 >
-                  <ButtonText className="text-white">{t('sessionAdd')}</ButtonText>
+                  <ButtonText>{t('sessionAdd')}</ButtonText>
                 </Button>
                 <Pressable className="items-center py-1 active:opacity-60" onPress={() => setAddParticipantStep('choose')}>
-                  <Text className="text-blue-600 font-bold">{t('back')}</Text>
+                  <Text className="text-heat-strong dark:text-heat-strong-dark font-bold">{t('back')}</Text>
                 </Pressable>
               </VStack>
             )}

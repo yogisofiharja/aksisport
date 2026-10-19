@@ -272,7 +272,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
         <Icon name="arrow-back" size="lg" />
       </Pressable>
 
-      <Typography variant="display">{t('activityAddTitle')}</Typography>
+      <Typography variant="heading">{t('activityAddTitle')}</Typography>
 
       {generationEligible && (
         <HStack className="gap-2" space="sm">
@@ -284,10 +284,10 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
           ).map(([value, label]) => (
             <Pressable
               key={value}
-              className={`flex-1 py-2.5 rounded-xl items-center ${tab === value ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+              className={`flex-1 py-2.5 rounded-xl items-center ${tab === value ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'}`}
               onPress={() => setTab(value)}
             >
-              <Typography variant="label" className={tab === value ? 'text-white' : ''} color={tab === value ? 'default' : 'muted'}>
+              <Typography variant="label" className={tab === value ? 'text-surface dark:text-surface-dark' : ''} color={tab === value ? 'default' : 'muted'}>
                 {label}
               </Typography>
             </Pressable>
@@ -298,14 +298,14 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
       {tab === 'generateRound' && (
         <>
           <Card padding="none">
-            <Typography variant="caption" color="muted" className="px-5 pt-4 pb-2">
+            <Typography variant="overline" color="muted" className="px-5 pt-4 pb-2">
               {t('activityMatchCountLabel')}
             </Typography>
             <Divider />
             <VStack className="px-5 py-4" space="xs">
               {Platform.OS !== 'web' && (
                 <Pressable
-                  className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800"
+                  className="px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark"
                   onPress={() => setShowMatchCountPicker((shown) => !shown)}
                 >
                   <Typography variant="label">{t('activityMatchCountValue', matchCount)}</Typography>
@@ -334,7 +334,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
                   </Picker>
                   {Platform.OS === 'ios' && (
                     <Pressable className="self-end px-4 py-2" onPress={() => setShowMatchCountPicker(false)}>
-                      <Typography variant="label" className="text-blue-600">
+                      <Typography variant="label" className="text-heat-strong dark:text-heat-strong-dark">
                         {t('recurringScheduleTimeDone')}
                       </Typography>
                     </Pressable>
@@ -362,7 +362,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
           )}
 
           <Card padding="none">
-            <Typography variant="caption" color="muted" className="px-5 pt-4 pb-2">
+            <Typography variant="overline" color="muted" className="px-5 pt-4 pb-2">
               {t('activityGenerateMatchesPreviewTitle')}
             </Typography>
             <Divider />
@@ -392,7 +392,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
       {tab === 'custom' && (
         <>
           <Card padding="none">
-            <Typography variant="caption" color="muted" className="px-5 pt-4 pb-2">
+            <Typography variant="overline" color="muted" className="px-5 pt-4 pb-2">
               {t('matchType')}
             </Typography>
             <Divider />
@@ -403,11 +403,11 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
                   onPress={() => handleModeChange(m)}
                   className={`flex-1 py-4 rounded-xl items-center border-2 ${
                     customMode === m
-                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                      : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'
+                      ? 'bg-heat-tint dark:bg-heat-tint-dark border-heat'
+                      : 'bg-surface dark:bg-surface-dark border-border dark:border-border-dark'
                   }`}
                 >
-                  <Typography variant="label" className={customMode === m ? 'text-blue-600' : ''}>
+                  <Typography variant="label" className={customMode === m ? 'text-heat-strong dark:text-heat-strong-dark' : ''}>
                     {modeLabel(m)}
                   </Typography>
                 </Pressable>
@@ -417,7 +417,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
 
           <Card padding="none">
             <HStack className="px-5 pt-4 pb-2 justify-between items-center">
-              <Typography variant="caption" color="muted">
+              <Typography variant="overline" color="muted">
                 {t('activityPickParticipants')}
               </Typography>
               <Typography variant="label" color="muted">
@@ -444,13 +444,13 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
                       onPress={() => handleTap(p.id)}
                       className={`px-4 py-2.5 rounded-full border-[1.5px] ${
                         side === 'A'
-                          ? 'bg-blue-600 border-blue-600'
+                          ? 'bg-ink dark:bg-ink-dark border-ink dark:border-ink-dark'
                           : side === 'B'
                             ? 'bg-red-600 border-red-600'
-                            : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600'
+                            : 'bg-surface-sunken dark:bg-surface-sunken-dark border-border dark:border-border-dark'
                       }`}
                     >
-                      <Typography variant="label" className={side ? 'text-white' : ''}>
+                      <Typography variant="label" className={side ? 'text-surface dark:text-surface-dark' : ''}>
                         {participantLabel(p)}
                       </Typography>
                     </Pressable>
@@ -459,7 +459,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
               </HStack>
             )}
             {!isFull && assignedOrder.length > 0 && (
-              <Typography variant="body" className="px-5 pb-4 text-sm text-yellow-700 dark:text-yellow-400">
+              <Typography variant="body" className="px-5 pb-4 text-sm text-heat-strong dark:text-heat-strong-dark">
                 {t('activityNeedParticipants', maxAssigned, customMode, assignedOrder.length)}
               </Typography>
             )}
@@ -479,30 +479,28 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
           <Button
             size="xl"
             variant="outline"
-            action="secondary"
             isDisabled={round.length === 0 || submitting}
             className="flex-1"
             onPress={() => setShuffleSeed((s) => s + 1)}
           >
-            <ButtonText variant="outline" action="secondary">
+            <ButtonText variant="outline">
               {t('activityRegeneratePreview')}
             </ButtonText>
           </Button>
           <Button
             size="xl"
-            action="secondary"
             isDisabled={round.length === 0}
             loading={submitting}
             className="flex-1"
             onPress={handleGenerateRound}
           >
-            <ButtonText action="secondary">{t('activityApproveMatches')}</ButtonText>
+            <ButtonText>{t('activityApproveMatches')}</ButtonText>
           </Button>
         </HStack>
       )}
       {tab === 'custom' && (
-        <Button size="xl" action="secondary" isDisabled={!canCreateCustom} loading={submitting} className="w-full" onPress={handleSubmitCustom}>
-          <ButtonText action="secondary">{t('activityCreate')}</ButtonText>
+        <Button size="xl" isDisabled={!canCreateCustom} loading={submitting} className="w-full" onPress={handleSubmitCustom}>
+          <ButtonText>{t('activityCreate')}</ButtonText>
         </Button>
       )}
     </ScrollPage>

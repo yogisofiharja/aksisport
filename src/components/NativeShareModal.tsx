@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import { pickImageAsDataUrl } from '../imagePicker';
 import { appAlert } from '../design-system/feedback/appAlert';
+import { color } from '../design-system/foundation/colors';
 import { renderShareCard } from './shareCardCanvas';
 import { useTranslation } from '../i18n';
 
@@ -298,7 +299,7 @@ export function NativeShareModal({ data, onClose }: Props) {
             onPress={handleShare}
             disabled={isSharing || (Platform.OS === 'web' && !webFile && !webFailed)}
           >
-            <Ionicons name="share-outline" size={20} color="#ffffff" />
+            <Ionicons name="share-outline" size={20} color={color.onHeat.light} />
             <Text style={s.shareBtnText}>{isSharing || (Platform.OS === 'web' && !webFile && !webFailed) ? t('processing') : `${t('share')} →`}</Text>
           </TouchableOpacity>
 
@@ -321,11 +322,11 @@ export function NativeShareModal({ data, onClose }: Props) {
           <Text style={s.saveHint}>{t('shareSaveHint')}</Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <TouchableOpacity style={s.saveBtn} activeOpacity={0.85} onPress={downloadWebFile}>
-              <Ionicons name="download-outline" size={18} color="#ffffff" />
+              <Ionicons name="download-outline" size={18} color={color.onHeat.light} />
               <Text style={s.saveBtnText}>{t('shareDownload')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[s.saveBtn, s.saveBtnQuiet]} activeOpacity={0.85} onPress={() => setSavePreviewUrl(null)}>
-              <Text style={s.saveBtnText}>{t('close')}</Text>
+              <Text style={[s.saveBtnText, s.saveBtnQuietText]}>{t('close')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -473,8 +474,8 @@ const s = StyleSheet.create({
   },
 
   shareBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 16,
+    backgroundColor: color.heat.light,
+    borderRadius: 8,
     paddingVertical: 17,
     flexDirection: 'row',
     alignItems: 'center',
@@ -485,8 +486,8 @@ const s = StyleSheet.create({
   shareBtnDisabled: { opacity: 0.6 },
   shareBtnText: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#ffffff',
+    fontFamily: 'PlusJakartaSans-SemiBold',
+    color: color.onHeat.light,
   },
   saveOverlay: {
     position: 'absolute',
@@ -511,13 +512,14 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#2563eb',
-    borderRadius: 14,
+    backgroundColor: color.heat.light,
+    borderRadius: 8,
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  saveBtnQuiet: { backgroundColor: '#1e293b' },
-  saveBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
+  saveBtnQuiet: { backgroundColor: color.asphalt.dark },
+  saveBtnQuietText: { color: color.onAsphalt.dark },
+  saveBtnText: { color: color.onHeat.light, fontSize: 15, fontFamily: 'PlusJakartaSans-SemiBold' },
   closeLink: {
     alignItems: 'center',
     paddingVertical: 10,

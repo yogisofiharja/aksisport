@@ -152,21 +152,21 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
           {/* Tap to change — self-service only, this is always the caller's
               own profile picture. */}
           <Pressable onPress={handleChangeAvatar} disabled={uploadingAvatar} className="active:opacity-70">
-            <View className="w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-blue-500">
+            <View className="w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark border-2 border-border dark:border-border-dark">
               {profile?.hasAvatar ? (
                 <Image
                   source={{ uri: userAvatarUrl(profile.id), headers: imageHeaders }}
                   style={{ width: '100%', height: '100%' }}
                 />
               ) : (
-                <Typography variant="body" className="text-lg font-extrabold text-slate-600 dark:text-slate-300">
+                <Typography variant="body" className="text-lg font-extrabold text-ink-muted dark:text-ink-muted-dark">
                   {initialsFromName(profile?.displayName || profile?.username || '?')}
                 </Typography>
               )}
             </View>
           </Pressable>
           <VStack space="xs">
-            <Typography variant="display">{profile?.displayName || profile?.username}</Typography>
+            <Typography variant="heading">{profile?.displayName || profile?.username}</Typography>
             {profile?.displayName && (
               <Typography variant="body" color="muted">
                 @{profile.username}
@@ -182,7 +182,7 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
       </HStack>
 
       <VStack space="sm">
-        <Typography variant="caption" color="muted">
+        <Typography variant="overline" color="muted">
           {t('meAccountTitle')}
         </Typography>
         {!profile?.email && !reminderDismissed && (
@@ -212,7 +212,7 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
                 {profile?.displayName ?? t('meEmailNotSet')}
               </Typography>
             </VStack>
-            <Typography variant="body" className="font-bold text-blue-600 dark:text-blue-400">
+            <Typography variant="body" className="font-bold text-heat-strong dark:text-heat-strong-dark">
               {profile?.displayName ? t('meEmailChange') : t('meEmailAdd')}
             </Typography>
           </HStack>
@@ -260,7 +260,7 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
             <Pressable onPress={() => setShowCityPicker(true)} className="active:opacity-60 self-start">
               <HStack className="items-center" space="xs">
                 <Icon name="add" size="sm" color="secondary" />
-                <Typography variant="body" className="font-bold text-blue-600 dark:text-blue-400">
+                <Typography variant="body" className="font-bold text-heat-strong dark:text-heat-strong-dark">
                   {t('townsAdd')}
                 </Typography>
               </HStack>
@@ -282,7 +282,7 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
                 {profile?.email ?? t('meEmailNotSet')}
               </Typography>
             </VStack>
-            <Typography variant="body" className="font-bold text-blue-600 dark:text-blue-400">
+            <Typography variant="body" className="font-bold text-heat-strong dark:text-heat-strong-dark">
               {profile?.email ? t('meEmailChange') : t('meEmailAdd')}
             </Typography>
           </HStack>
@@ -290,7 +290,7 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
       </VStack>
 
       <VStack space="sm">
-        <Typography variant="caption" color="muted">
+        <Typography variant="overline" color="muted">
           {t('meSportsTitle')}
         </Typography>
         <VStack space="md">
@@ -319,10 +319,10 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
                           <Pressable
                             key={level.id}
                             disabled={busy}
-                            className={`px-3 py-2 rounded-full ${selected ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                            className={`px-3 py-2 rounded-full ${selected ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'}`}
                             onPress={() => handlePick(sport, level.id)}
                           >
-                            <Typography variant="body" className={selected ? 'text-white font-bold' : 'text-slate-600 dark:text-slate-300'}>
+                            <Typography variant="body" className={selected ? 'text-surface dark:text-surface-dark font-sans-bold' : 'text-ink-muted dark:text-ink-muted-dark'}>
                               {level.name}
                             </Typography>
                           </Pressable>

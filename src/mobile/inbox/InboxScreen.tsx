@@ -108,7 +108,7 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
   return (
     <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
       <HStack className="justify-between items-center">
-        <Typography variant="display">{t('inboxTitle')}</Typography>
+        <Typography variant="heading">{t('inboxTitle')}</Typography>
         <Pressable onPress={onNewChat} hitSlop={8} className="p-2 -mr-2 active:opacity-60" accessibilityLabel={t('newChat')}>
           <Icon name="create-outline" size="lg" color="secondary" />
         </Pressable>
@@ -121,7 +121,7 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
       ) : (
         <VStack space="md">
           {messageRows.length > 0 && (
-            <Typography variant="caption" color="muted">
+            <Typography variant="overline" color="muted">
               {t('inboxDirectTitle')}
             </Typography>
           )}
@@ -130,11 +130,11 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
               return (
                 <Pressable
                   key={group.conversationId}
-                  className="bg-white dark:bg-slate-800 rounded-2xl p-4 active:opacity-70"
+                  className="bg-surface dark:bg-surface-dark rounded-2xl p-4 active:opacity-70"
                   onPress={() => onOpenGroup(group.conversationId)}
                 >
                   <HStack className="items-center" space="md">
-                    <View className="w-10 h-10 rounded-full items-center justify-center bg-blue-100 dark:bg-blue-900">
+                    <View className="w-10 h-10 rounded-full items-center justify-center bg-heat-tint dark:bg-heat-tint-dark">
                       <Icon name="people" size="sm" color="secondary" />
                     </View>
                     <VStack space="xs" style={{ flex: 1 }}>
@@ -158,16 +158,16 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
             return (
               <Pressable
                 key={thread.otherUserId}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-4 active:opacity-70"
+                className="bg-surface dark:bg-surface-dark rounded-2xl p-4 active:opacity-70"
                 onPress={() => onOpenDirectMessage(thread.otherUserId)}
               >
                 <HStack className="items-center" space="md">
                   <View className={`rounded-full ${thread.otherIsOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
-                    <View className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700">
+                    <View className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark">
                       {thread.otherHasAvatar ? (
                         <Image source={{ uri: userAvatarUrl(thread.otherUserId), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
                       ) : (
-                        <Typography variant="body" className="text-sm font-extrabold text-slate-600 dark:text-slate-300">
+                        <Typography variant="body" className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark">
                           {initialsFromName(name)}
                         </Typography>
                       )}
@@ -187,14 +187,14 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
             );
           })}
           {messageRows.length > 0 && threads.length > 0 && (
-            <Typography variant="caption" color="muted">
+            <Typography variant="overline" color="muted">
               {t('inboxSessionThreadsTitle')}
             </Typography>
           )}
           {threads.map((thread) => (
             <Pressable
               key={`${thread.sessionId}:${thread.memberUserId}`}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-4 active:opacity-70"
+              className="bg-surface dark:bg-surface-dark rounded-2xl p-4 active:opacity-70"
               onPress={() => onOpenSession(thread.sessionId, thread.memberUserId)}
             >
               <HStack className="justify-between items-start" space="md">

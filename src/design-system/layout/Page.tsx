@@ -10,13 +10,9 @@ import { useColorScheme } from 'nativewind';
  * ScrollPage's concern, since it only matters where there's scrollable
  * form content).
  *
- * Background uses the literal `bg-slate-50 dark:bg-slate-900` NativeWind
- * classes, not foundation/colors.ts's JS token values — this is a
- * className-context consumer, and that pair is Tailwind's own default
- * palette (the same data colors.ts's Tier 2 imports from `tailwindcss/colors`
- * for JS contexts). Using the className directly avoids inline-style
- * recalculation and gets NativeWind's automatic dark-mode media query
- * switching for free, matching every existing screen's pattern exactly.
+ * Background is the `ground` token as classes (`bg-ground
+ * dark:bg-ground-dark`), not colors.ts's JS values: a className context,
+ * so NativeWind switches it with the theme for free.
  *
  * No horizontal padding by default — compose with Container for that.
  */
@@ -28,7 +24,7 @@ export const Page = forwardRef<View, PageProps>(function Page({ className = '', 
   const isDark = colorScheme === 'dark';
 
   return (
-    <View ref={ref} className={`flex-1 bg-slate-50 dark:bg-slate-900 ${className}`} style={style} {...props}>
+    <View ref={ref} className={`flex-1 bg-ground dark:bg-ground-dark ${className}`} style={style} {...props}>
       <SafeAreaView className="flex-1">
         <StatusBar style={isDark ? 'light' : 'dark'} />
         {children}

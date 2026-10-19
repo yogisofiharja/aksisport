@@ -82,7 +82,7 @@ export function NotificationsScreen({ onBack }: Props) {
   const hasUnread = items?.some((n) => !n.readAt) ?? false;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <VStack space="md" className="px-5 pt-4 pb-2">
         <HStack className="justify-between items-center">
           <Pressable className="p-2 -ml-2 active:opacity-60" onPress={onBack}>
@@ -90,13 +90,13 @@ export function NotificationsScreen({ onBack }: Props) {
           </Pressable>
           {hasUnread && (
             <Pressable onPress={markAll} hitSlop={8} className="active:opacity-60">
-              <Typography variant="body" className="text-sm font-bold text-blue-600 dark:text-blue-400">
+              <Typography variant="body" className="text-sm font-bold text-heat-strong dark:text-heat-strong-dark">
                 {t('notificationsMarkAllRead')}
               </Typography>
             </Pressable>
           )}
         </HStack>
-        <Typography variant="display">{t('notificationsTitle')}</Typography>
+        <Typography variant="heading">{t('notificationsTitle')}</Typography>
 
         {pushState === 'default' && (
           <Card>
@@ -107,7 +107,7 @@ export function NotificationsScreen({ onBack }: Props) {
               <Typography variant="body" color="muted">
                 {t('pushTurnOnDesc')}
               </Typography>
-              <Button action="secondary" size="lg" className="w-full" onPress={turnOnPush} isDisabled={enabling}>
+              <Button size="lg" className="w-full" onPress={turnOnPush} isDisabled={enabling}>
                 <ButtonText>{t('pushTurnOn')}</ButtonText>
               </Button>
             </VStack>
@@ -135,12 +135,12 @@ export function NotificationsScreen({ onBack }: Props) {
             return (
               <Pressable
                 onPress={() => open(item)}
-                className={`px-5 py-4 border-b border-slate-200 dark:border-slate-800 active:opacity-70 ${
-                  unread ? 'bg-blue-50 dark:bg-blue-950/40' : ''
+                className={`px-5 py-4 border-b border-border dark:border-border-dark active:opacity-70 ${
+                  unread ? 'bg-heat-tint dark:bg-heat-tint-dark' : ''
                 }`}
               >
                 <HStack space="md" className="items-start">
-                  <View className="w-9 h-9 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-800">
+                  <View className="w-9 h-9 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark">
                     <Icon name={notificationIcon(item.type)} size="sm" color={unread ? 'secondary' : 'muted'} />
                   </View>
                   <VStack space="xs" style={{ flex: 1 }}>
@@ -152,7 +152,7 @@ export function NotificationsScreen({ onBack }: Props) {
                     </Typography>
                   </VStack>
                   {unread && (
-                    <View className="w-2.5 h-2.5 rounded-full bg-blue-600 mt-2" accessibilityLabel={t('notificationsUnread')} />
+                    <View className="w-2.5 h-2.5 rounded-full bg-heat mt-2" accessibilityLabel={t('notificationsUnread')} />
                   )}
                 </HStack>
               </Pressable>

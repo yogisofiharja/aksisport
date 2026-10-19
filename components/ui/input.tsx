@@ -1,13 +1,14 @@
 import React from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps, type ViewProps } from 'react-native';
 import { useColorScheme } from 'nativewind';
+import { color } from '../../src/design-system/foundation/colors';
 
 type InputProps = ViewProps & { className?: string; variant?: 'outline' | 'rounded'; size?: 'sm' | 'md' | 'lg' | 'xl' };
 
 export function Input({ className = '', variant = 'outline', style, ...props }: InputProps) {
   const varClass = variant === 'rounded'
-    ? 'rounded-full border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800'
-    : 'rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800';
+    ? 'rounded-full border border-border-strong dark:border-border-strong-dark bg-surface dark:bg-surface-dark'
+    : 'rounded-2xl border border-border-strong dark:border-border-strong-dark bg-surface dark:bg-surface-dark';
   return (
     <View
       className={`${varClass} ${className}`}
@@ -33,9 +34,9 @@ export const InputField = React.forwardRef<TextInput, InputFieldProps>(
         // numberOfLines instead, top-aligned like a real textarea.
         textAlignVertical={multiline ? 'top' : 'center'}
         // Colour/weight only — sizing lives in the StyleSheet below.
-        className={`text-gray-900 dark:text-slate-100 font-semibold ${className}`}
+        className={`text-ink dark:text-ink-dark font-sans-medium ${className}`}
         style={[multiline ? s.fieldMultiline : s.field, style]}
-        placeholderTextColor={colorScheme === 'dark' ? '#64748b' : '#9ca3af'}
+        placeholderTextColor={color.inkFaint[colorScheme === 'dark' ? 'dark' : 'light']}
         // Android renders a native Material underline under an unstyled
         // TextInput, colored/prominent specifically while focused — this
         // box already has its own border (Input's wrapper View), so that

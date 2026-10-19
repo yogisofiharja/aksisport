@@ -6,7 +6,7 @@ import { View, Text } from 'react-native';
  * ClubCard's typography turned out to be. None of its five actions had any
  * dark-mode variant at all. Phase 6 gave `muted` its first real consumer
  * (SessionCard's status pill) and its real evidence: the original is
- * `bg-slate-100 dark:bg-slate-700` / `text-slate-600 dark:text-slate-300`,
+ * `bg-surface-sunken dark:bg-surface-sunken-dark` / `text-ink-muted dark:text-ink-muted-dark`,
  * not the gray-family, light-only colors this had. Fixed to match exactly.
  *
  * success/error gained dark-mode variants when SessionCard started
@@ -17,14 +17,16 @@ import { View, Text } from 'react-native';
  * banners.
  */
 
-type Action = 'success' | 'warning' | 'error' | 'info' | 'muted';
+type Action = 'success' | 'heat' | 'error' | 'info' | 'muted';
 
 const actionClasses: Record<Action, { bg: string; text: string }> = {
-  success: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400' },
-  warning: { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-300' },
-  error: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' },
-  info: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
-  muted: { bg: 'bg-slate-100 dark:bg-slate-700', text: 'text-slate-600 dark:text-slate-300' },
+  success: { bg: 'bg-success-tint dark:bg-success-tint-dark', text: 'text-success dark:text-success-dark' },
+  // Something to notice (a Draft, a full Session, a no-show): quiet brand.
+  // The palette has no warning colour.
+  heat: { bg: 'bg-heat-tint dark:bg-heat-tint-dark', text: 'text-heat-strong dark:text-heat-strong-dark' },
+  error: { bg: 'bg-danger-tint dark:bg-danger-tint-dark', text: 'text-danger dark:text-danger-dark' },
+  info: { bg: 'bg-info-tint dark:bg-info-tint-dark', text: 'text-info dark:text-info-dark' },
+  muted: { bg: 'bg-surface-sunken dark:bg-surface-sunken-dark', text: 'text-ink-muted dark:text-ink-muted-dark' },
 };
 
 export type BadgeAction = Action;
@@ -35,7 +37,7 @@ export function Badge({ action = 'muted', text, className = '' }: BadgeProps) {
   const { bg, text: textClass } = actionClasses[action];
   return (
     <View className={`${bg} rounded-full px-3 py-1 ${className}`}>
-      <Text className={`${textClass} text-xs font-bold`}>{text}</Text>
+      <Text className={`${textClass} text-xs font-sans-bold`}>{text}</Text>
     </View>
   );
 }

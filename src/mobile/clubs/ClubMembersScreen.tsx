@@ -246,8 +246,8 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                 overriding the other. */}
             <Box className={`rounded-full ${member.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
               <Box
-                className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 ${
-                  member.role === 'owner' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-600'
+                className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark border-2 ${
+                  member.role === 'owner' ? 'border-heat' : 'border-border-strong dark:border-border-strong-dark'
                 }`}
               >
                 {member.hasAvatar ? (
@@ -256,13 +256,13 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                     style={{ width: '100%', height: '100%' }}
                   />
                 ) : (
-                  <Text className="text-base font-extrabold text-slate-600 dark:text-slate-300">
+                  <Text className="text-base font-extrabold text-ink-muted dark:text-ink-muted-dark">
                     {initialsFromName(member.displayName || member.username)}
                   </Text>
                 )}
               </Box>
             </Box>
-            <Text className="text-xs font-bold text-slate-900 dark:text-white text-center mt-1" numberOfLines={2}>
+            <Text className="text-xs font-bold text-ink dark:text-ink-dark text-center mt-1" numberOfLines={2}>
               {member.displayName || member.username}
             </Text>
           </Pressable>
@@ -275,14 +275,14 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
     if (list.length === 0) return null;
     return (
       <VStack className="gap-2">
-        <Text className="text-xs font-bold text-slate-400 tracking-widest uppercase">{label}</Text>
+        <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">{label}</Text>
         {renderMemberGrid(list)}
       </VStack>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5">
         <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
           <Icon name="arrow-back" size="lg" />
@@ -299,30 +299,30 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
 
         {joinRequests.length > 0 && (
           <VStack className="gap-2">
-            <Text className="text-xs font-bold text-slate-400 tracking-widest uppercase">
+            <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">
               {t('clubJoinRequestsTitle', joinRequests.length)}
             </Text>
             {joinRequests.map((request) => (
-              <Box key={request.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4 gap-3">
+              <Box key={request.id} className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-3">
                 <Pressable
                   onPress={() => setProfileRequest(request)}
                   className="flex-row items-center gap-3 active:opacity-70"
                   accessibilityLabel={t('playerProfileOpen')}
                 >
-                  <Box className="w-11 h-11 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700">
+                  <Box className="w-11 h-11 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark">
                     {request.hasAvatar ? (
                       <Image source={{ uri: userAvatarUrl(request.userId), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
                     ) : (
-                      <Text className="font-extrabold text-slate-600 dark:text-slate-300">
+                      <Text className="font-extrabold text-ink-muted dark:text-ink-muted-dark">
                         {initialsFromName(request.displayName || request.username)}
                       </Text>
                     )}
                   </Box>
                   <VStack style={{ flex: 1 }}>
-                    <Text className="font-bold text-slate-900 dark:text-white" numberOfLines={1}>
+                    <Text className="font-bold text-ink dark:text-ink-dark" numberOfLines={1}>
                       {request.displayName || request.username}
                     </Text>
-                    <Text className="text-sm text-slate-500 dark:text-slate-400" numberOfLines={1}>
+                    <Text className="text-sm text-ink-muted dark:text-ink-muted-dark" numberOfLines={1}>
                       @{request.username} · {t('playerProfileView')}
                     </Text>
                   </VStack>
@@ -330,25 +330,23 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                 </Pressable>
                 <HStack className="gap-2">
                   <Button
-                    action="secondary"
                     variant="outline"
                     size="md"
-                    className="flex-1 rounded-xl"
+                    className="flex-1"
                     isDisabled={decidingRequestId !== null}
                     onPress={() => handleDecide(request, 'decline')}
                   >
-                    <ButtonText action="secondary" variant="outline">
+                    <ButtonText variant="outline">
                       {t('clubJoinRequestDecline')}
                     </ButtonText>
                   </Button>
                   <Button
-                    action="secondary"
                     size="md"
-                    className="flex-1 rounded-xl bg-blue-600"
+                    className="flex-1"
                     isDisabled={decidingRequestId !== null}
                     onPress={() => handleDecide(request, 'approve')}
                   >
-                    <ButtonText className="text-white">{t('clubJoinRequestApprove')}</ButtonText>
+                    <ButtonText>{t('clubJoinRequestApprove')}</ButtonText>
                   </Button>
                 </HStack>
               </Box>
@@ -371,7 +369,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
             <ActivityIndicator size="large" />
           </Box>
         ) : filteredMembers.length === 0 ? (
-          <Text className="text-slate-500 dark:text-slate-400 text-center py-6">{t('clubMembersEmpty')}</Text>
+          <Text className="text-ink-muted dark:text-ink-muted-dark text-center py-6">{t('clubMembersEmpty')}</Text>
         ) : (
           <VStack className="gap-5">
             {renderMemberSection(t('clubMembersSectionOrganizers'), organizerMembers)}
@@ -383,8 +381,8 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
       {/* Member detail — promote/demote/remove/leave live here now. */}
       <Modal visible={selectedMember !== null} transparent animationType="slide" onRequestClose={closeMemberDetail}>
         <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={closeMemberDetail}>
-          <Pressable className="bg-white dark:bg-slate-800 rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
-            <Box className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 self-center mb-1" />
+          <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
+            <Box className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center mb-1" />
 
             {selectedMember && (() => {
               const isSelf = selectedMember.userId === profile?.id;
@@ -400,8 +398,8 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                 <VStack className="gap-4 items-center">
                   <Box className={`rounded-full ${selectedMember.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
                     <Box
-                      className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 ${
-                        selectedMember.role === 'owner' ? 'border-blue-500' : 'border-slate-300 dark:border-slate-600'
+                      className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark border-2 ${
+                        selectedMember.role === 'owner' ? 'border-heat' : 'border-border-strong dark:border-border-strong-dark'
                       }`}
                     >
                       {selectedMember.hasAvatar ? (
@@ -410,19 +408,19 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                           style={{ width: '100%', height: '100%' }}
                         />
                       ) : (
-                        <Text className="text-lg font-extrabold text-slate-600 dark:text-slate-300">
+                        <Text className="text-lg font-extrabold text-ink-muted dark:text-ink-muted-dark">
                           {initialsFromName(selectedMember.displayName || selectedMember.username)}
                         </Text>
                       )}
                     </Box>
                   </Box>
                   <VStack className="items-center gap-1">
-                    <Text className="text-lg font-black text-slate-900 dark:text-white">
+                    <Text className="text-lg font-black text-ink dark:text-ink-dark">
                       {selectedMember.displayName || selectedMember.username}
                     </Text>
-                    <Text className="text-sm text-slate-400">{roleLabel(selectedMember.role, t)}</Text>
+                    <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{roleLabel(selectedMember.role, t)}</Text>
                     {selectedMember.isOnline && (
-                      <Text className="text-xs font-bold text-green-600 dark:text-green-400">{t('memberOnline')}</Text>
+                      <Text className="text-xs font-bold text-success dark:text-success-dark dark:text-green-400">{t('memberOnline')}</Text>
                     )}
                   </VStack>
 
@@ -433,15 +431,14 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                       {canManage && (
                         <Button
                           variant="outline"
-                          action="secondary"
                           size="lg"
-                          className="w-full rounded-2xl"
+                          className="w-full"
                           isDisabled={busyUserId === selectedMember.userId}
                           onPress={() =>
                             handleChangeRole(selectedMember, selectedMember.role === 'admin' ? 'member' : 'admin')
                           }
                         >
-                          <ButtonText variant="outline" action="secondary">
+                          <ButtonText variant="outline">
                             {selectedMember.role === 'admin' ? t('clubDemote') : t('clubPromote')}
                           </ButtonText>
                         </Button>
@@ -451,7 +448,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                           variant="outline"
                           action="negative"
                           size="lg"
-                          className="w-full rounded-2xl"
+                          className="w-full"
                           isDisabled={busyUserId === selectedMember.userId}
                           onPress={() => handleRemove(selectedMember)}
                         >
@@ -464,7 +461,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                   )}
 
                   <Pressable className="items-center py-1 active:opacity-60" onPress={closeMemberDetail}>
-                    <Text className="text-slate-400 font-bold">{t('clubCancel')}</Text>
+                    <Text className="text-ink-muted dark:text-ink-muted-dark font-bold">{t('clubCancel')}</Text>
                   </Pressable>
                 </VStack>
               );
@@ -478,9 +475,9 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
       <Modal visible={showAddMember} transparent animationType="slide" onRequestClose={closeAddMember}>
         <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={closeAddMember}>
-            <Pressable className="bg-white dark:bg-slate-800 rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
-              <Box className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 self-center mb-1" />
-              <Text className="text-lg font-black text-slate-900 dark:text-white text-center mb-1">
+            <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
+              <Box className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center mb-1" />
+              <Text className="text-lg font-black text-ink dark:text-ink-dark text-center mb-1">
                 {t('clubAddMember')}
               </Text>
               <Input>
@@ -501,9 +498,9 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                   <ActivityIndicator />
                 </Box>
               ) : userQuery.trim().length < 2 ? (
-                <Text className="text-sm text-slate-400 text-center py-2">{t('clubAddMemberSearchHint')}</Text>
+                <Text className="text-sm text-ink-muted dark:text-ink-muted-dark text-center py-2">{t('clubAddMemberSearchHint')}</Text>
               ) : addableResults.length === 0 ? (
-                <Text className="text-sm text-slate-400 text-center py-2">{t('clubAddMemberNoResults')}</Text>
+                <Text className="text-sm text-ink-muted dark:text-ink-muted-dark text-center py-2">{t('clubAddMemberNoResults')}</Text>
               ) : (
                 <ScrollView style={{ maxHeight: 320 }}>
                   <VStack className="gap-2">
@@ -512,20 +509,20 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
                         key={u.id}
                         onPress={() => handleAddUser(u)}
                         disabled={addingUserId === u.id}
-                        className="flex-row items-center gap-3 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 active:opacity-60"
+                        className="flex-row items-center gap-3 px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark active:opacity-60"
                       >
                         <Box className={`rounded-full ${u.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
-                          <Box className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600">
+                          <Box className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-surface dark:bg-surface-dark border border-border-strong dark:border-border-strong-dark">
                             {u.hasAvatar ? (
                               <Image source={{ uri: userAvatarUrl(u.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
                             ) : (
-                              <Text className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
+                              <Text className="text-xs font-extrabold text-ink-muted dark:text-ink-muted-dark">
                                 {initialsFromName(u.displayName || u.username)}
                               </Text>
                             )}
                           </Box>
                         </Box>
-                        <Text className="font-bold text-slate-900 dark:text-white flex-1">
+                        <Text className="font-bold text-ink dark:text-ink-dark flex-1">
                           {u.displayName || u.username}
                         </Text>
                         {addingUserId === u.id && <ActivityIndicator size="small" />}
@@ -536,7 +533,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
               )}
 
               <Pressable className="items-center py-1 active:opacity-60" onPress={closeAddMember}>
-                <Text className="text-slate-400 font-bold">{t('clubCancel')}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark font-bold">{t('clubCancel')}</Text>
               </Pressable>
             </Pressable>
           </Pressable>

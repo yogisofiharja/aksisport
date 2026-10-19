@@ -67,11 +67,10 @@ export function Dialog({
             <HStack space="md" style={{ width: '100%' }}>
               <Button
                 variant="outline"
-                action="secondary"
                 className="flex-1"
                 onPress={onCancel}
               >
-                <ButtonText variant="outline" action="secondary">
+                <ButtonText variant="outline">
                   {cancelLabel}
                 </ButtonText>
               </Button>

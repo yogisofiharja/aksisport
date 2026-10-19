@@ -76,7 +76,7 @@ export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function Scrol
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <StatusBar style={isDark ? 'light' : 'dark'} />
       {keyboardAvoiding ? (
         <KeyboardAvoidingView className="flex-1" behavior="padding">

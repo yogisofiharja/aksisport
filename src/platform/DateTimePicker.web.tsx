@@ -67,21 +67,21 @@ function DateField({ value, onChange }: Props) {
     <View className="gap-2">
       <Pressable
         onPress={toggle}
-        className="flex-row items-center justify-between px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 active:opacity-70"
+        className="flex-row items-center justify-between px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark active:opacity-70"
       >
-        <Text className="text-base font-bold text-slate-900 dark:text-slate-100">
+        <Text className="text-base font-bold text-ink dark:text-ink-dark">
           {value.toLocaleDateString(lang, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
         </Text>
         <Icon name="calendar-outline" size="sm" color="muted" />
       </Pressable>
 
       {open && (
-        <View className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 gap-2">
+        <View className="rounded-2xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark p-3 gap-2">
           <View className="flex-row items-center justify-between">
             <Pressable className="p-2 active:opacity-60" onPress={() => setShown(new Date(year, month - 1, 1))} hitSlop={6}>
               <Icon name="chevron-back" size="sm" />
             </Pressable>
-            <Text className="text-base font-extrabold text-slate-900 dark:text-white">
+            <Text className="text-base font-extrabold text-ink dark:text-ink-dark">
               {shown.toLocaleDateString(lang, { month: 'long', year: 'numeric' })}
             </Text>
             <Pressable className="p-2 active:opacity-60" onPress={() => setShown(new Date(year, month + 1, 1))} hitSlop={6}>
@@ -91,7 +91,7 @@ function DateField({ value, onChange }: Props) {
 
           <View className="flex-row">
             {weekdayLabels.map((label, i) => (
-              <Text key={i} className="flex-1 text-center text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">
+              <Text key={i} className="flex-1 text-center text-xs font-bold text-ink-faint dark:text-ink-faint-dark uppercase">
                 {label}
               </Text>
             ))}
@@ -108,12 +108,12 @@ function DateField({ value, onChange }: Props) {
                   <Pressable
                     onPress={() => pick(day)}
                     className={`w-9 h-9 rounded-full items-center justify-center active:opacity-70 ${
-                      selected ? 'bg-blue-600' : isToday ? 'border border-blue-500' : ''
+                      selected ? 'bg-heat' : isToday ? 'border border-heat' : ''
                     }`}
                   >
                     <Text
                       className={`text-sm ${
-                        selected ? 'font-extrabold text-white' : 'font-semibold text-slate-900 dark:text-slate-100'
+                        selected ? 'font-sans-bold text-on-heat' : 'font-semibold text-ink dark:text-ink-dark'
                       }`}
                     >
                       {day}
@@ -159,7 +159,7 @@ function TimeField({ value, themeVariant, onChange }: Props) {
           ))}
         </Picker>
       </View>
-      <Text className="text-base font-extrabold text-slate-500 dark:text-slate-400">:</Text>
+      <Text className="text-base font-extrabold text-ink-muted dark:text-ink-muted-dark">:</Text>
       <View className="flex-1">
         <Picker selectedValue={value.getMinutes()} onValueChange={(m) => set(value.getHours(), Number(m))} style={webSelectStyle(isDark)}>
           {minutes.map((m) => (

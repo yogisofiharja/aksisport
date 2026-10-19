@@ -33,7 +33,7 @@ export function SettingsScreen({ onBack, onOpenBlocked, onOpenNotifications }: P
         <Icon name="arrow-back" size="lg" />
       </Pressable>
 
-      <Typography variant="display">{t('settingsTitle')}</Typography>
+      <Typography variant="heading">{t('settingsTitle')}</Typography>
 
       <VStack space="sm">
         <Typography variant="label" color="muted">
@@ -45,10 +45,9 @@ export function SettingsScreen({ onBack, onOpenBlocked, onOpenNotifications }: P
               key={l}
               className="flex-1"
               variant={lang === l ? 'solid' : 'outline'}
-              action="secondary"
               onPress={() => setLang(l)}
             >
-              <ButtonText variant={lang === l ? 'solid' : 'outline'} action="secondary">
+              <ButtonText variant={lang === l ? 'solid' : 'outline'}>
                 {l === 'en' ? t('english') : t('indonesian')}
               </ButtonText>
             </Button>
@@ -110,7 +109,7 @@ export function SettingsScreen({ onBack, onOpenBlocked, onOpenNotifications }: P
       </VStack>
 
       <Button action="negative" variant="outline" size="xl" className="w-full" onPress={signOut}>
-        <ButtonText action="negative" variant="outline" className="text-lg">
+        <ButtonText action="negative" variant="outline">
           {t('logout')}
         </ButtonText>
       </Button>

@@ -20,7 +20,7 @@ export function AccountEmailScreen({ onBack }: Props) {
   const { profile } = useAuth();
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-6" keyboardShouldPersistTaps="handled">
           <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
@@ -28,7 +28,7 @@ export function AccountEmailScreen({ onBack }: Props) {
           </Pressable>
           <VStack className="gap-2">
             <Heading size="2xl">{t(profile?.email ? 'emailChangeTitle' : 'emailAddTitle')}</Heading>
-            <Text className="text-slate-500 dark:text-slate-400">
+            <Text className="text-ink-muted dark:text-ink-muted-dark">
               {profile?.email ? t('emailChangeDesc', profile.email) : t('emailAddDesc')}
             </Text>
           </VStack>

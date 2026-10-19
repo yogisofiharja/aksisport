@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { Icon } from '../../design-system/ui/Icon';
+import { color } from '../../design-system/foundation/colors';
 import { Box, HStack, VStack } from '../../../components/ui/box';
 import { Text } from '../../../components/ui/text';
 import { Input, InputField } from '../../../components/ui/input';
@@ -287,7 +288,7 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
         {messages.length === 0 && !loading ? (
           <VStack className="items-center py-16 gap-3">
             <Icon name="chatbubbles-outline" size="xl" color="muted" />
-            <Text className="text-slate-500 dark:text-slate-400 text-center">{emptyText}</Text>
+            <Text className="text-ink-muted dark:text-ink-muted-dark text-center">{emptyText}</Text>
           </VStack>
         ) : (
           messages.map((m) => {
@@ -298,19 +299,19 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
               <VStack key={m.id} className={`gap-0.5 ${isMine ? 'items-end' : 'items-start'}`}>
                 <HStack className="items-baseline gap-2" style={{ maxWidth: '85%' }}>
                   {!isMine && (
-                    <Text className="text-xs font-bold text-slate-500 dark:text-slate-400" numberOfLines={1} style={{ flexShrink: 1 }}>
+                    <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark" numberOfLines={1} style={{ flexShrink: 1 }}>
                       {messageAuthorName(m)}
                     </Text>
                   )}
-                  <Text className="text-xs text-slate-400 dark:text-slate-500">
+                  <Text className="text-xs text-ink-faint dark:text-ink-faint-dark">
                     {m.edited && !m.deleted && !m.removed ? `${t('chatEdited')} · ` : ''}
                     {formatMessageTime(m.createdAt)}
                   </Text>
                 </HStack>
                 {m.removed || m.deleted ? (
                   <Pressable onLongPress={() => handleMessageLongPress(m)} delayLongPress={400} style={{ maxWidth: '85%' }}>
-                    <Box className="rounded-2xl px-4 py-2.5 border border-slate-200 dark:border-slate-700">
-                      <Text className="italic text-slate-500 dark:text-slate-400">
+                    <Box className="rounded-2xl px-4 py-2.5 border border-border dark:border-border-dark">
+                      <Text className="italic text-ink-muted dark:text-ink-muted-dark">
                         {m.removed ? t('chatMessageRemoved') : isMine ? t('chatYouDeleted') : t('chatMessageDeleted')}
                       </Text>
                     </Box>
@@ -319,7 +320,7 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
                   <Pressable onLongPress={() => handleMessageLongPress(m)} delayLongPress={400} style={{ maxWidth: '85%' }}>
                     <Box
                       className={`rounded-2xl overflow-hidden ${isMine ? 'rounded-br-md' : 'rounded-bl-md'} ${
-                        isMine ? 'bg-blue-600' : 'bg-white dark:bg-slate-800'
+                        isMine ? 'bg-heat-tint dark:bg-heat-tint-dark' : 'bg-surface dark:bg-surface-dark border border-border dark:border-border-dark'
                       } ${m.body ? 'px-4 py-2.5' : m.hasImage ? 'p-1' : 'px-4 py-2.5'}`}
                     >
                       {m.hasImage && (
@@ -329,7 +330,7 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
                           resizeMode="cover"
                         />
                       )}
-                      {m.body ? <Text className={isMine ? 'text-white' : 'text-slate-900 dark:text-white'}>{m.body}</Text> : null}
+                      {m.body ? <Text className="text-ink dark:text-ink-dark">{m.body}</Text> : null}
                     </Box>
                   </Pressable>
                 )}
@@ -338,19 +339,19 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
           })
         )}
         {seenLabel && (
-          <Text className="text-xs text-slate-400 dark:text-slate-500 self-end -mt-2">{seenLabel}</Text>
+          <Text className="text-xs text-ink-faint dark:text-ink-faint-dark self-end -mt-2">{seenLabel}</Text>
         )}
-        {typingLabel && <Text className="text-xs italic text-slate-500 dark:text-slate-400">{typingLabel}</Text>}
+        {typingLabel && <Text className="text-xs italic text-ink-muted dark:text-ink-muted-dark">{typingLabel}</Text>}
       </ScrollView>
 
       {canPost ? (
-        <VStack className="border-t border-slate-200 dark:border-slate-700">
+        <VStack className="border-t border-border dark:border-border-dark">
           {editing && (
             <HStack className="px-5 pt-3 items-center gap-2">
               <Icon name="create-outline" size="sm" color="secondary" />
               <VStack className="flex-1">
-                <Text className="text-xs font-bold text-blue-600">{t('chatEditing')}</Text>
-                <Text className="text-xs text-slate-500 dark:text-slate-400" numberOfLines={1}>
+                <Text className="text-xs font-bold text-heat-strong dark:text-heat-strong-dark">{t('chatEditing')}</Text>
+                <Text className="text-xs text-ink-muted dark:text-ink-muted-dark" numberOfLines={1}>
                   {editing.body}
                 </Text>
               </VStack>
@@ -371,7 +372,7 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
           )}
           <HStack className="px-5 py-3 gap-2 items-end">
             <Pressable
-              className={`w-11 h-11 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-800 ${editing ? 'opacity-40' : ''}`}
+              className={`w-11 h-11 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark ${editing ? 'opacity-40' : ''}`}
               onPress={handleAttach}
               disabled={!!editing}
             >
@@ -400,20 +401,20 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
             </Input>
             <Pressable
               className={`w-11 h-11 rounded-full items-center justify-center ${
-                draft.trim() || pendingImage ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'
+                draft.trim() || pendingImage ? 'bg-heat' : 'bg-surface-sunken dark:bg-surface-sunken-dark'
               }`}
               onPress={handleSend}
               disabled={(!draft.trim() && !pendingImage) || sending}
             >
-              {sending ? <ActivityIndicator size="small" color="#ffffff" /> : (
+              {sending ? <ActivityIndicator size="small" color={color.onHeat.light} /> : (
                 <Icon name="send" size="md" color={draft.trim() || pendingImage ? 'onBrand' : 'muted'} />
               )}
             </Pressable>
           </HStack>
         </VStack>
       ) : (
-        <Box className="px-5 py-3 border-t border-slate-200 dark:border-slate-700">
-          <Text className="text-sm text-slate-500 dark:text-slate-400 text-center">{closedNotice}</Text>
+        <Box className="px-5 py-3 border-t border-border dark:border-border-dark">
+          <Text className="text-sm text-ink-muted dark:text-ink-muted-dark text-center">{closedNotice}</Text>
         </Box>
       )}
       <ReportSheet target={reportTarget} onClose={() => setReportTarget(null)} />

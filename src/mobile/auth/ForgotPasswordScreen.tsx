@@ -66,7 +66,7 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-6" keyboardShouldPersistTaps="handled">
           <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBackToLogin}>
@@ -77,10 +77,10 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
             <>
               <VStack className="gap-2">
                 <Heading size="2xl">{t('forgotPasswordTitle')}</Heading>
-                <Text className="text-slate-500 dark:text-slate-400">{t('forgotPasswordDesc')}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark">{t('forgotPasswordDesc')}</Text>
               </VStack>
               <VStack className="gap-2">
-                <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authUsernameOrEmail')}</Text>
+                <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authUsernameOrEmail')}</Text>
                 <Input>
                   <InputField
                     autoCapitalize="none"
@@ -93,13 +93,12 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
               </VStack>
               {error && <Text className="text-sm text-red-500">{error}</Text>}
               <Button
-                action="secondary"
                 size="xl"
                 isDisabled={busy || !identifier.trim()}
-                className="w-full rounded-2xl bg-blue-600"
+                className="w-full"
                 onPress={request}
               >
-                <ButtonText className="text-white text-xl">{t('emailSendCode')}</ButtonText>
+                <ButtonText>{t('emailSendCode')}</ButtonText>
               </Button>
             </>
           )}
@@ -108,10 +107,10 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
             <>
               <VStack className="gap-2">
                 <Heading size="2xl">{t('forgotPasswordResetTitle')}</Heading>
-                <Text className="text-slate-500 dark:text-slate-400">{t('forgotPasswordCodeSent')}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark">{t('forgotPasswordCodeSent')}</Text>
               </VStack>
               <VStack className="gap-2">
-                <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('emailCodeLabel')}</Text>
+                <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('emailCodeLabel')}</Text>
                 <Input>
                   <InputField
                     keyboardType="number-pad"
@@ -123,11 +122,11 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
                 </Input>
               </VStack>
               <VStack className="gap-2">
-                <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('forgotPasswordNew')}</Text>
+                <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('forgotPasswordNew')}</Text>
                 <PasswordField value={password} onChangeText={setPassword} />
               </VStack>
               <VStack className="gap-2">
-                <Text className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('authConfirmPassword')}</Text>
+                <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authConfirmPassword')}</Text>
                 <PasswordField value={confirmPassword} onChangeText={setConfirmPassword} onSubmitEditing={reset} />
                 {confirmPassword.length > 0 && password !== confirmPassword && (
                   <Text className="text-xs text-red-500">{t('authPasswordMismatch')}</Text>
@@ -135,19 +134,18 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
               </VStack>
               {error && <Text className="text-sm text-red-500">{error}</Text>}
               <Button
-                action="secondary"
                 size="xl"
                 isDisabled={!canReset}
-                className="w-full rounded-2xl bg-blue-600"
+                className="w-full"
                 onPress={reset}
               >
-                <ButtonText className="text-white text-xl">{t('forgotPasswordSubmit')}</ButtonText>
+                <ButtonText>{t('forgotPasswordSubmit')}</ButtonText>
               </Button>
               {resendIn > 0 ? (
-                <Text className="self-center font-bold text-slate-400 dark:text-slate-500">{t('emailResendIn', resendIn)}</Text>
+                <Text className="self-center font-bold text-ink-faint dark:text-ink-faint-dark">{t('emailResendIn', resendIn)}</Text>
               ) : (
                 <Pressable className="self-center" onPress={request} disabled={busy}>
-                  <Text className="font-bold text-blue-600 dark:text-blue-400">{t('emailResendCode')}</Text>
+                  <Text className="font-bold text-heat-strong dark:text-heat-strong-dark">{t('emailResendCode')}</Text>
                 </Pressable>
               )}
             </>
@@ -157,10 +155,10 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
             <>
               <VStack className="gap-2">
                 <Heading size="2xl">{t('forgotPasswordDoneTitle')}</Heading>
-                <Text className="text-slate-500 dark:text-slate-400">{t('forgotPasswordDoneDesc')}</Text>
+                <Text className="text-ink-muted dark:text-ink-muted-dark">{t('forgotPasswordDoneDesc')}</Text>
               </VStack>
-              <Button action="secondary" size="xl" className="w-full rounded-2xl bg-blue-600" onPress={onBackToLogin}>
-                <ButtonText className="text-white text-xl">{t('authLogIn')}</ButtonText>
+              <Button size="xl" className="w-full" onPress={onBackToLogin}>
+                <ButtonText>{t('authLogIn')}</ButtonText>
               </Button>
             </>
           )}

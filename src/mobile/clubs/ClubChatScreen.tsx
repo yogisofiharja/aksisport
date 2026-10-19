@@ -65,7 +65,7 @@ export function ClubChatScreen({ clubId, onBack }: Props) {
     <ChatRoom
       onBack={onBack}
       avatar={
-        <View className="w-9 h-9 rounded-full items-center justify-center bg-blue-100 dark:bg-blue-900">
+        <View className="w-9 h-9 rounded-full items-center justify-center bg-heat-tint dark:bg-heat-tint-dark">
           <Icon name="chatbubbles" size="sm" color="secondary" />
         </View>
       }

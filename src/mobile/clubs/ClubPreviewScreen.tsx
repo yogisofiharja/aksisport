@@ -92,16 +92,16 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
       </HStack>
 
       <VStack space="md" style={{ alignItems: 'center' }}>
-        <View className="w-24 h-24 rounded-full items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-blue-500">
+        <View className="w-24 h-24 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark border-2 border-border dark:border-border-dark">
           {club.hasAvatar ? (
             <Image source={{ uri: clubAvatarUrl(club.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
           ) : (
-            <Typography variant="body" className="text-2xl font-extrabold text-slate-600 dark:text-slate-300">
+            <Typography variant="body" className="text-2xl font-extrabold text-ink-muted dark:text-ink-muted-dark">
               {initialsFromName(club.name)}
             </Typography>
           )}
         </View>
-        <Typography variant="display" style={{ textAlign: 'center' }}>
+        <Typography variant="heading" style={{ textAlign: 'center' }}>
           {club.name}
         </Typography>
         <Badge action="muted" text={isPrivate ? t('clubPrivateBadge') : t('clubPublicBadge')} />
@@ -146,16 +146,16 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
               </Typography>
             </VStack>
           </Card>
-          <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={handleCancelRequest} isDisabled={busy}>
-            <ButtonText action="secondary" variant="outline" className="text-lg">
+          <Button variant="outline" size="xl" className="w-full" onPress={handleCancelRequest} isDisabled={busy}>
+            <ButtonText variant="outline">
               {t('clubCancelRequest')}
             </ButtonText>
           </Button>
         </VStack>
       ) : (
         <VStack space="sm">
-          <Button action="secondary" size="xl" className="w-full" onPress={handleJoin} isDisabled={busy}>
-            <ButtonText className="text-lg">{isPrivate ? t('clubRequestToJoin') : t('clubJoin')}</ButtonText>
+          <Button size="xl" className="w-full" onPress={handleJoin} isDisabled={busy}>
+            <ButtonText>{isPrivate ? t('clubRequestToJoin') : t('clubJoin')}</ButtonText>
           </Button>
           <Typography variant="body" color="muted" className="text-sm" style={{ textAlign: 'center' }}>
             {isPrivate ? t('clubPrivateJoinHint') : t('clubPublicJoinHint')}

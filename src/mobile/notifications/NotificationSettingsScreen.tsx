@@ -6,6 +6,7 @@ import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
 import { Card } from '../../design-system/ui/Card';
+import { color } from '../../design-system/foundation/colors';
 import { Loading } from '../../design-system/feedback/Loading';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { useTranslation } from '../../i18n';
@@ -59,7 +60,7 @@ export function NotificationSettingsScreen({ onBack }: Props) {
         <Icon name="arrow-back" size="lg" />
       </Pressable>
       <VStack space="xs">
-        <Typography variant="display">{t('notificationSettingsTitle')}</Typography>
+        <Typography variant="heading">{t('notificationSettingsTitle')}</Typography>
         <Typography variant="body" color="muted">
           {t('notificationSettingsExplainer')}
         </Typography>
@@ -83,7 +84,7 @@ export function NotificationSettingsScreen({ onBack }: Props) {
                 <Switch
                   value={settings[kind.category]}
                   onValueChange={(value) => toggle(kind.category, value)}
-                  trackColor={{ true: '#2563eb', false: undefined }}
+                  trackColor={{ true: color.heat.light, false: undefined }}
                   accessibilityLabel={t(kind.label)}
                 />
               </HStack>

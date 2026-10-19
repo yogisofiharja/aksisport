@@ -137,7 +137,7 @@ export function RecurringScheduleDetailScreen({ clubId, scheduleId, onBack, onEd
       </Pressable>
 
       <VStack space="xs">
-        <Typography variant="display">{schedule.name || schedule.sport}</Typography>
+        <Typography variant="heading">{schedule.name || schedule.sport}</Typography>
         <Typography variant="body" color="muted">
           {weekdayLabel(schedule.recurrenceRule.weekday, t)} {schedule.recurrenceRule.time}
           {schedule.location ? ` · ${schedule.location}` : ''}
@@ -148,14 +148,14 @@ export function RecurringScheduleDetailScreen({ clubId, scheduleId, onBack, onEd
         />
       </VStack>
 
-      <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={onEdit} isDisabled={busy}>
-        <ButtonText action="secondary" variant="outline" className="text-lg">
+      <Button variant="outline" size="xl" className="w-full" onPress={onEdit} isDisabled={busy}>
+        <ButtonText variant="outline">
           {t('recurringScheduleEdit')}
         </ButtonText>
       </Button>
 
-      <Button action="secondary" variant="outline" size="xl" className="w-full" onPress={handleTogglePause} isDisabled={busy}>
-        <ButtonText action="secondary" variant="outline" className="text-lg">
+      <Button variant="outline" size="xl" className="w-full" onPress={handleTogglePause} isDisabled={busy}>
+        <ButtonText variant="outline">
           {schedule.status === 'paused' ? t('recurringScheduleResume') : t('recurringSchedulePause')}
         </ButtonText>
       </Button>

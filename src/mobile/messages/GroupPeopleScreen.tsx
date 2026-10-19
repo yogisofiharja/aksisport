@@ -104,8 +104,8 @@ export function GroupPeopleScreen({ groupId, onBack, onDone, onDirect }: Props) 
   const saveLabel = groupId ? t('groupAdd') : selectedCount >= 2 ? t('groupCreate') : t('newChatStart');
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
-      <HStack className="items-center px-4 pt-3 pb-3 border-b border-slate-200 dark:border-slate-800" space="sm">
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <HStack className="items-center px-4 pt-3 pb-3 border-b border-border dark:border-border-dark" space="sm">
         <Pressable className="p-2 -ml-2 active:opacity-60" onPress={onBack}>
           <Icon name="arrow-back" size="lg" />
         </Pressable>
@@ -145,7 +145,7 @@ export function GroupPeopleScreen({ groupId, onBack, onDone, onDirect }: Props) 
                 key={p.userId}
                 disabled={already}
                 onPress={() => toggle(p)}
-                className={`flex-row items-center gap-3 rounded-2xl p-3 bg-white dark:bg-slate-800 active:opacity-70 ${already ? 'opacity-50' : ''}`}
+                className={`flex-row items-center gap-3 rounded-2xl p-3 bg-surface dark:bg-surface-dark active:opacity-70 ${already ? 'opacity-50' : ''}`}
               >
                 <PersonAvatar userId={p.userId} name={name} hasAvatar={p.hasAvatar} headers={imageHeaders} />
                 <VStack style={{ flex: 1 }}>
@@ -158,7 +158,7 @@ export function GroupPeopleScreen({ groupId, onBack, onDone, onDirect }: Props) 
                 </VStack>
                 <View
                   className={`w-6 h-6 rounded-full items-center justify-center border-2 ${
-                    isSelected ? 'bg-blue-600 border-blue-600' : 'border-slate-300 dark:border-slate-600'
+                    isSelected ? 'bg-heat border-heat' : 'border-border-strong dark:border-border-strong-dark'
                   }`}
                 >
                   {isSelected && <Icon name="checkmark" size="xs" color="onBrand" />}
@@ -169,13 +169,9 @@ export function GroupPeopleScreen({ groupId, onBack, onDone, onDirect }: Props) 
         )}
       </ScrollView>
 
-      <View className="px-5 py-3 border-t border-slate-200 dark:border-slate-800">
-        <Button action="secondary" size="xl" className="w-full" onPress={handleSave} disabled={!canSave || saving}>
-          {saving ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <ButtonText className="text-lg">{saveLabel}</ButtonText>
-          )}
+      <View className="px-5 py-3 border-t border-border dark:border-border-dark">
+        <Button size="xl" className="w-full" onPress={handleSave} disabled={!canSave} loading={saving}>
+          <ButtonText>{saveLabel}</ButtonText>
         </Button>
       </View>
     </SafeAreaView>

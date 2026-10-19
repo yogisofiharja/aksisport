@@ -381,9 +381,9 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark items-center justify-center">
         <ActivityIndicator size="large" />
-        <Text className="mt-4 text-slate-500 dark:text-slate-400">{t('activityLoading')}</Text>
+        <Text className="mt-4 text-ink-muted dark:text-ink-muted-dark">{t('activityLoading')}</Text>
       </SafeAreaView>
     );
   }
@@ -394,7 +394,7 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
 
   if (error || !matchState) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900 items-center justify-center px-6">
+      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark items-center justify-center px-6">
         <Text className="text-red-500 text-center mb-4">{error ?? t('activityLoadError')}</Text>
         <Button onPress={onDone}><ButtonText>{t('back')}</ButtonText></Button>
       </SafeAreaView>
