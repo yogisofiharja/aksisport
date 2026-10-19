@@ -28,7 +28,10 @@ const groups = [
   ['Aksi Sport', readmeFirst(dir('docs/design-system'))],
 ];
 
-const titleOverrides = { 'docs/request-features.md': 'Feature Requests' };
+const titleOverrides = {
+  'docs/request-features.md': 'Feature Requests',
+  'docs/design-system/components.md': 'Aksi Sport components',
+};
 
 const docs = [];
 for (const [group, paths] of groups) {

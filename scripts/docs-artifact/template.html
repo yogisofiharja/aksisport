@@ -1,50 +1,53 @@
 <title>AKSI Docs</title>
 <style>
+  @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Saira:ital,wght@0,700;0,800;1,800&display=swap");
   /* Layout: three columns — doc library (left), reading column (centre), on-this-page outline (right).
-     Palette and type follow AKSI's own design tokens: slate neutrals, amber brand accent. */
+     Palette and type follow the Aksi Sport design system: warm ground, ink, Urban Heat accent, Saira + Plus Jakarta Sans. */
   :root {
-    --bg: #f8fafc;
+    --bg: #faf8f6;
     --surface: #ffffff;
-    --surface-2: #f1f5f9;
-    --border: #e2e8f0;
-    --text: #0f172a;
-    --text-muted: #64748b;
-    --text-faint: #94a3b8;
-    --accent: #b45309;
-    --accent-soft: #fffbeb;
-    --accent-soft-border: #fde8c7;
-    --secondary: #2563eb;
-    --secondary-soft: rgba(37, 99, 235, 0.07);
-    --success: #0f766e;
-    --success-soft: #f0fdfa;
-    --danger: #dc2626;
-    --danger-soft: #fef2f2;
-    --mark: #fde68a;
-    --radius: 14px;
-    --radius-sm: 9px;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", "SF Pro Text", Roboto, Helvetica, Arial, sans-serif;
+    --surface-2: #f2efec;
+    --border: #e4dfda;
+    --text: #131315;
+    --text-muted: #5f5a55;
+    --text-faint: #6f6a64;
+    --accent: #c2330a;
+    --heat: #f9440e;
+    --accent-soft: #ffe9e0;
+    --accent-soft-border: #ffcdb8;
+    --secondary: #c2330a;
+    --secondary-soft: #ffe9e0;
+    --success: #0e7c4a;
+    --success-soft: #e3f4ea;
+    --danger: #b42318;
+    --danger-soft: #fde8e6;
+    --mark: #dcf23a;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --display: "Saira", "Plus Jakarta Sans", system-ui, sans-serif;
+    --sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0f172a; --surface: #1e293b; --surface-2: #17233a; --border: #334155;
-      --text: #f1f5f9; --text-muted: #94a3b8; --text-faint: #64748b;
-      --accent: #f59e0b; --accent-soft: rgba(217, 119, 6, 0.16); --accent-soft-border: rgba(217, 119, 6, 0.35);
-      --secondary: #60a5fa; --secondary-soft: rgba(96, 165, 250, 0.1);
-      --success: #2dd4bf; --success-soft: rgba(13, 148, 136, 0.14);
-      --danger: #f87171; --danger-soft: rgba(220, 38, 38, 0.14);
-      --mark: rgba(245, 158, 11, 0.35);
+      --bg: #0e0e10; --surface: #18181b; --surface-2: #222226; --border: #2e2e33;
+      --text: #f4f2ef; --text-muted: #a19c96; --text-faint: #8f8a84;
+      --accent: #ff6a3d; --accent-soft: #3a1a0e; --accent-soft-border: #5a2a16;
+      --secondary: #ff6a3d; --secondary-soft: #3a1a0e;
+      --success: #34d399; --success-soft: #0f2a1e;
+      --danger: #f87171; --danger-soft: #3a1414;
+      --mark: rgba(220, 242, 58, 0.35);
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0f172a; --surface: #1e293b; --surface-2: #17233a; --border: #334155;
-    --text: #f1f5f9; --text-muted: #94a3b8; --text-faint: #64748b;
-    --accent: #f59e0b; --accent-soft: rgba(217, 119, 6, 0.16); --accent-soft-border: rgba(217, 119, 6, 0.35);
-    --secondary: #60a5fa; --secondary-soft: rgba(96, 165, 250, 0.1);
-    --success: #2dd4bf; --success-soft: rgba(13, 148, 136, 0.14);
-    --danger: #f87171; --danger-soft: rgba(220, 38, 38, 0.14);
-    --mark: rgba(245, 158, 11, 0.35);
+    --bg: #0e0e10; --surface: #18181b; --surface-2: #222226; --border: #2e2e33;
+    --text: #f4f2ef; --text-muted: #a19c96; --text-faint: #8f8a84;
+    --accent: #ff6a3d; --accent-soft: #3a1a0e; --accent-soft-border: #5a2a16;
+    --secondary: #ff6a3d; --secondary-soft: #3a1a0e;
+    --success: #34d399; --success-soft: #0f2a1e;
+    --danger: #f87171; --danger-soft: #3a1414;
+    --mark: rgba(220, 242, 58, 0.35);
     color-scheme: dark;
   }
 
@@ -94,7 +97,8 @@
   main { padding-block: 30px 120px; padding-inline: clamp(16px, 4vw, 52px); min-width: 0; }
 
   .brand { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
-  .brand .mark-word { font-weight: 900; font-size: 20px; letter-spacing: -0.02em; }
+  .brand .mark-word { font-family: var(--display); font-style: italic; font-weight: 800; font-size: 22px; letter-spacing: -0.01em; }
+  .brand .mark-word::before { content: ""; display: inline-block; width: 10px; height: 14px; margin-right: 7px; background: var(--heat); transform: skewX(-20deg); }
   .brand .tag { font-size: 11px; color: var(--text-faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
   .sidebar-sub { font-size: 12.5px; color: var(--text-muted); margin: 0 0 14px; }
 
@@ -171,12 +175,12 @@
   /* ---------- Reading column ---------- */
   .doc-head { padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 26px; }
   .kicker { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--accent); margin: 0 0 6px; }
-  .doc-head h1 { font-size: clamp(25px, 3.4vw, 33px); font-weight: 900; letter-spacing: -0.025em; line-height: 1.15; margin: 0 0 8px; text-wrap: balance; }
+  .doc-head h1 { font-family: var(--display); font-size: clamp(25px, 3.4vw, 33px); font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; margin: 0 0 8px; text-wrap: balance; }
   .doc-head .lede { color: var(--text-muted); max-width: 66ch; margin: 0; }
   .doc-path { font-family: var(--mono); font-size: 12.5px; color: var(--text-faint); margin: 0; overflow-wrap: anywhere; }
 
-  .prose h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.2; margin: 44px 0 10px; text-wrap: balance; }
-  .prose h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; margin: 38px 0 8px; padding-top: 14px; border-top: 1px solid var(--border); text-wrap: balance; }
+  .prose h1 { font-family: var(--display); font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; margin: 44px 0 10px; text-wrap: balance; }
+  .prose h2 { font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; margin: 38px 0 8px; padding-top: 14px; border-top: 1px solid var(--border); text-wrap: balance; }
   .prose h3 { font-size: 16.5px; font-weight: 800; margin: 28px 0 6px; }
   .prose h4, .prose h5 { font-size: 14.5px; font-weight: 800; margin: 22px 0 4px; }
   .prose > :first-child { margin-top: 0; border-top: none; padding-top: 0; }
@@ -214,7 +218,7 @@
   .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin: 0 0 8px; overflow: hidden; }
   .fact { padding: 14px 18px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; }
   .fact dt { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); }
-  .fact dd { margin: 3px 0 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .fact dd { margin: 3px 0 0; font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
   .fact dd small { display: block; font-size: 12.5px; font-weight: 400; color: var(--text-muted); letter-spacing: 0; }
 
   .callout { border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 11px 16px; font-size: 14px; margin: 16px 0; max-width: 72ch; }
@@ -253,6 +257,8 @@
       </dl>
 
       <div class="prose">
+        <div class="callout"><b class="cap">Design system</b>The app now uses Aksi Sport: Urban Heat orange, ink, Saira and Plus Jakarta Sans. Tokens and fonts (step 1) and the existing components and screens (step 2) are applied; the new components (step 3) are in progress, and the cards and app bar wait for the new page designs. Read <a href="#design-system-readme">the brand book</a>, <a href="#design-system-codebase">where each part lands in the code</a>, <a href="#design-system-components">the component specs</a>, or open the <a href="https://claude.ai/artifact/YSa2PzfDcgixW3tStAbBzW" target="_blank" rel="noopener">live design system</a>.</div>
+
         <h2>Milestones</h2>
         <div class="table-wrap"><table>
           <thead><tr><th>#</th><th>Milestone</th><th>Status</th><th>Notes</th></tr></thead>
@@ -323,7 +329,7 @@
 
       </div>
 
-      <footer class="page-foot">This overview was written by hand on __SYNCED__. The documents in the library are verbatim copies of the Markdown files, so the files in the repository stay the source of truth.</footer>
+      <footer class="page-foot">This overview was written by hand on __SYNCED__. The documents in the library are verbatim copies of the Markdown files, so the files in the repository stay the source of truth. The Aksi Sport design system documents are kept in the repository under <code>docs/design-system/</code>.</footer>
     </article>
 
     <article id="view-doc" hidden>
