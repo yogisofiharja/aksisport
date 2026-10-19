@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.26.0
+Version: 0.27.0
 
 Status: Living Document
 
@@ -1081,14 +1081,14 @@ Approved
 ### Decision
 
 Surfaces DP-002's existing manual payment-confirm step (Waitlist →
-Registered) as its own Session-owned Payment tab, instead of a small
-inline action buried in the Participants tab. Two new pieces on top of
-what DP-002/DP-010 already defined:
+Registered) in the Session's **Players** tab (DP-024): each player's row
+shows Paid / Awaiting, and organizers confirm payment there. Two pieces
+on top of what DP-002/DP-010 already defined:
 
 - **Club bank accounts** — a Club owner can list one or more bank
   accounts (bank name, account number, account holder name), shown to
-  every member on a priced Session's Payment tab so they know where to
-  send money. Plain display fields, no payment processor integration.
+  every member at the top of a priced Session's Players tab so they know
+  where to send money. Plain display fields, no payment processor integration.
 - **Payment receipts** — a participant can attach one receipt image
   (photo/screenshot of a transfer) to their own row on a priced
   Session, as proof for the organizer to review before confirming.
@@ -1098,7 +1098,7 @@ what DP-002/DP-010 already defined:
 
 **Visibility, explicitly**: every participant can see everyone else's
 paid/awaiting status (the existing `registered`/`waitlist` distinction,
-just framed plainly as "Paid"/"Awaiting" on this tab) — but a receipt
+just framed plainly as "Paid"/"Awaiting" on each player's row) — but a receipt
 **image** is visible only to the uploading participant themselves and
 the Club's owner/admin. No other participant can ever view someone
 else's receipt, even though they can see that person's payment status.
@@ -1106,17 +1106,17 @@ This is enforced server-side (the receipt-serving endpoint checks
 identity, not just "can view this Session"), not just hidden in the
 UI.
 
-A Free Session has no Payment tab (v0.24.0): approving a request to join
-it registers the member straight away (DP-002), so there is no payment to
-confirm. Paid Sessions keep the tab, with its bank accounts, receipts and
-"Confirm".
+A Free Session shows no payment status, bank accounts or receipts
+(v0.24.0): approving a request to join it registers the member straight
+away (DP-002), so there is no payment to confirm. Paid Sessions show
+them in Players, with "Confirm" on each row.
 
 ### Scope
 
 Still no payment gateway, no automated charge, no tracking of *how
 much* has been paid vs. owed beyond the existing Price computation
 (DP-010). This remains an organizer trusting a receipt and manually
-confirming, exactly as DP-002 already worked — just given its own
+confirming, exactly as DP-002 already worked — just given a clear
 place to happen, with a receipt to look at instead of no evidence at
 all.
 
@@ -1479,7 +1479,7 @@ When someone asks to join, the people deciding should be able to see
 who they are. An owner or admin can open a **player profile** for:
 
 - anyone who asked to join a Session in their Community — and any other
-  participant of it — from the Session's Participants tab;
+  participant of it — from the Session's Players tab;
 - anyone who asked to join their private Community, from the join
   requests on the Members screen.
 
@@ -1664,7 +1664,8 @@ sees a start screen first:
   button to switch them.
 - **First server:** pick the player who serves first, or let the app pick
   one at random.
-- **Start match** begins scoring; that person becomes the scorer.
+- **Start match** begins scoring. Only the Session's umpire (DP-023)
+  starts and scores matches.
 
 Sides are fixed once the match starts: there is no switching during play.
 
@@ -1691,24 +1692,113 @@ Approved
 
 ### Decision
 
-Every match has an **umpire**: the one person who scores it.
+Every Session has **one umpire** at a time: the person who scores all of
+its matches.
 
-- **Default:** the Session's creator (the host) is the umpire of every
-  match in it.
-- **Assign:** the Community's owner or an admin can make any **checked-in
-  player** of the Session the umpire of a match — including one of the
-  players in that match — before it starts or while it is being played.
-- **Reclaim:** an owner or admin can take the umpire role of a match back
-  for themselves at any time.
-- Only the match's umpire starts it (on the start screen, DP-022) and
-  scores it. When the umpire changes during a match, scoring moves to the
-  new umpire's device from the current score; the previous umpire's device
-  becomes a spectator view.
+- **Default:** the Session's creator (the host).
+- **Hand over:** the Community's owner or an admin can make any
+  **checked-in player** of the Session the umpire, including someone
+  playing. From then on that person umpires **every match** of the
+  Session, until an owner or admin changes it again or takes it back.
+- **Mid-match:** the umpire can be changed while a match is being played.
+  Scoring moves to the new umpire's device from the current score; the
+  previous umpire's device becomes a spectator view.
+- **Reclaim:** an owner or admin can take the umpire role back for
+  themselves at any time.
+- The umpire is the only one who starts matches (on the start screen,
+  DP-022) and scores them. The start screen shows who the umpire is;
+  owners and admins can change it there.
+- The current umpire cannot hand the role on themselves; they ask an
+  owner or admin (the app tells them so).
 
 ### Scope
 
-- Per match, not per Session.
+- Per Session, not per match.
+- Only owners and admins assign or reclaim.
 - No umpire requests or acceptance step: assigning takes effect at once.
+
+---
+
+## DP-024 — Session Screen Follows the Lifecycle
+
+Status
+
+Approved
+
+### Decision
+
+The Session screen adapts to where the Session is in its lifecycle
+(DP-001), so the thing people need is always on top.
+
+- **Four tabs** that always fit on a phone: **Details · Players ·
+  Matches · Chat**.
+  - **Configuration** leaves the tab row and becomes "Match setup" in the
+    organizer's ⋯ menu, next to Edit, Share and Cancel session.
+  - **Payment** (DP-012) moves into **Players**: each player's row shows
+    Paid / Awaiting; organizers confirm there; a priced Session shows its
+    bank accounts at the top of Players. DP-012's receipt visibility rules
+    are unchanged.
+- **Opening tab follows the lifecycle:** Draft / Recruiting / Ready /
+  Full → Details; In Progress → Matches; Completed → Matches, labelled
+  **Results**.
+- **Tab order while In Progress:** Matches · Players · Chat · Details.
+- **Live strip:** while In Progress, a strip under the header on every
+  tab shows the player's own next step (e.g. "You're up next on Court
+  2"), or for organizers the court counts (playing / waiting / courts
+  free). Tapping it opens Matches.
+- **One bottom action** that follows the viewer's state: Request to join
+  → Pay → Check in → Start my match; organizers: Generate matches.
+
+### Scope
+
+- No change to lifecycle rules, payments, or who can do what — only where
+  things live.
+- Updates DP-012 (Payment tab → Players).
+
+---
+
+## DP-025 — Match Result Confirmation
+
+Status
+
+Approved
+
+### Decision
+
+- When the final point is scored, the umpire sees **Match finished** with
+  the result and two actions: **Confirm result** and **Undo last point**.
+- **Undo last point** returns to scoring with that point removed.
+- **Confirm result** completes the match and shows **Result saved** with:
+  **Share result**, **Set up next match** (opens the next match on that
+  court on the start screen, DP-022) and **Back to session**.
+- Until confirmed, the match is not complete and the score can still be
+  corrected.
+
+### Scope
+
+- Replaces completing the match automatically on the final point.
+
+---
+
+## DP-026 — Sharing Match Results
+
+Status
+
+Approved
+
+### Decision
+
+- **Anyone who can see the Session can share any finished match**, at any
+  time — not only its players, and not only right after it ends.
+- Share is offered in three places: after **Confirm result** (DP-025), on
+  every finished match in the Session's **Results** list, and on a
+  finished match's detail.
+- **One share card everywhere**, keeping today's layout (story size,
+  optional photo, players, score, the Aksi logo). The card shows only the
+  players, the score and the logo — no Session name or format line.
+- The **Results** list shows **all matches** by default, with a **"My
+  matches only"** switch.
+
 ---
 
 # Planning
@@ -1821,8 +1911,8 @@ Planning item; no payment gateway, provider, or automated charge exists.
 **Direction once a gateway exists** (product owner, 2026-10-14): paying
 becomes part of asking to join a Session — the player pays in the same
 flow as their join request, rather than as a separate later step. The
-Session's Payment tab (DP-012: manual receipts and organizer
-confirmation) is then deprecated. Until that is decided in detail and
+Session's manual payment step (DP-012: receipts and organizer
+confirmation in Players) is then deprecated. Until that is decided in detail and
 approved, DP-002 and DP-012 stay as they are.
 
 ---

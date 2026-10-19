@@ -1,6 +1,6 @@
 # AKSI_INFORMATION_ARCHITECTURE.md
 
-Version: 1.0.0
+Version: 1.1.0
 
 Status: Living Document
 
@@ -122,13 +122,19 @@ Responsibilities:
 
 ## Community Navigation
 
-Responsibilities:
+Tabs:
 
 - Home
 - Sessions
-- Communication
+- Chat
+- Members
 
-Members and Settings are accessed contextually rather than occupying permanent navigation.
+The Members tab is the same for every role; organizer-only actions
+(approve, add, promote, remove) appear inside it. Join requests also stay
+visible on Community Home as a callout for owners and admins.
+
+Settings is accessed contextually (the Community's ⋯ menu) rather than
+occupying permanent navigation.
 
 ---
 
@@ -207,6 +213,7 @@ Community owns:
 - Home
 - Sessions
 - Communication
+- Members
 
 Session owns:
 

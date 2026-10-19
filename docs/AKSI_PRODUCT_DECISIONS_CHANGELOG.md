@@ -6,6 +6,37 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.27.0
+
+From the design sessions on the "Aksi app redesign" canvas (2026-10-19).
+
+- DP-023: the umpire is per Session, not per match (decided 2026-10-19
+  from hosting experience). The host by default; an owner or admin can
+  hand it to any checked-in player, who then umpires every match of the
+  Session until it is changed or taken back; it can change mid-match; the
+  umpire cannot hand it on themselves. Replaces "per match".
+- New DP-024: Session Screen Follows the Lifecycle — four tabs (Details ·
+  Players · Matches · Chat); Configuration becomes "Match setup" in the
+  organizer's ⋯ menu; Payment moves into Players; the opening tab and tab
+  order follow the lifecycle; a live strip while In Progress; one bottom
+  action that follows the viewer's state.
+- DP-012: payment status, confirmation and bank accounts live in the
+  Players tab instead of a Payment tab (DP-024); receipt visibility is
+  unchanged.
+- New DP-025: Match Result Confirmation — the umpire confirms the result
+  (or undoes the last point) instead of the match completing on the final
+  point; then Share result, Set up next match, Back to session.
+- New DP-026: Sharing Match Results — anyone who can see the Session can
+  share any finished match, from three places, with one share card
+  (players, score, logo); Results shows all matches with a "My matches
+  only" switch.
+- DP-019 and DP-022 wording follows: the Players tab; only the umpire
+  starts and scores matches.
+- Information Architecture v1.1.0: Members becomes a Community tab (see
+  `AKSI_INFORMATION_ARCHITECTURE_CHANGELOG.md`).
+
+---
+
 ## v0.26.0
 
 - New DP-023: Match Umpire — every match has one umpire who scores it;
