@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, Switch } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useColorScheme } from 'nativewind';
 import { Page } from '../../design-system/layout/Page';
@@ -22,6 +22,7 @@ import { firstCheckedInPolicy } from '../../core/sessions/scheduler';
 import { availableToPlay, generateFairRound, suggestedMatchCount, type GeneratedMatch } from '../../core/sessions/matchGenerator';
 import { buildGeneratedMatchPayload, participantLabel } from '../../core/activities/buildGeneratedMatchPayload';
 import { webSelectStyle } from '../../platform/webSelectStyle';
+import { Switch } from '../../design-system/ui/Switch';
 
 type Props = {
   sessionId: string;

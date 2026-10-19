@@ -16,6 +16,7 @@ import { SettingsScreen } from '../mobile/me/SettingsScreen';
 import { AccountEmailScreen } from '../mobile/me/AccountEmailScreen';
 import { NotificationsScreen } from '../mobile/notifications/NotificationsScreen';
 import { NotificationSettingsScreen } from '../mobile/notifications/NotificationSettingsScreen';
+import { ComponentGalleryScreen } from '../mobile/dev/ComponentGalleryScreen';
 import type { SessionTabLink } from '../mobile/sessions/SessionDetailScreen';
 import { DirectMessageScreen } from '../mobile/messages/DirectMessageScreen';
 import { PlayerSportScreen } from '../mobile/profiles/PlayerSportScreen';
@@ -31,6 +32,7 @@ export type MainStackParamList = {
   Personal: undefined;
   Settings: undefined;
   NotificationSettings: undefined;
+  DevComponents: undefined;
   BlockedPlayers: undefined;
   AccountEmail: undefined;
   Notifications: undefined;
@@ -81,6 +83,13 @@ export function MainStack() {
       <Stack.Screen name="NotificationSettings">
         {({ navigation }) => <NotificationSettingsScreen onBack={() => navigation.goBack()} />}
       </Stack.Screen>
+
+      {/* Development only: the design-system component gallery. */}
+      {__DEV__ && (
+        <Stack.Screen name="DevComponents">
+          {({ navigation }) => <ComponentGalleryScreen onBack={() => navigation.goBack()} />}
+        </Stack.Screen>
+      )}
 
       <Stack.Screen name="BlockedPlayers">
         {({ navigation }) => <BlockedPlayersScreen onBack={() => navigation.goBack()} />}

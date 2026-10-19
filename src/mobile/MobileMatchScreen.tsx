@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
-import { Animated, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { TeamNames, TeamASide } from '../appTypes';
@@ -11,6 +11,7 @@ import { getPointLabel, getServerTeam, MatchState, Team } from '../sports/tennis
 import { storageGet, storageSave } from '../storage';
 import { useTranslation } from '../i18n';
 import { color } from '../design-system/foundation/colors';
+import { Dialog } from '../design-system/feedback/Dialog';
 
 // Team sides (Aksi Sport): left in heat with ink text, right in asphalt
 // with light text — the same in both themes, like a broadcast scoreboard.
@@ -604,28 +605,18 @@ export function MobileMatchScreen({
       {focus ? renderFocus() : renderNormal()}
 
       {/* End match confirmation */}
-      <Modal visible={showEndConfirm} transparent animationType="fade" supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']} onRequestClose={() => setShowEndConfirm(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ backgroundColor: color.asphalt.dark, borderRadius: 20, padding: 28, width: '88%', maxWidth: 360, gap: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: '900', color: color.onAsphalt.light, textAlign: 'center' }}>{t('endMatchTitle')}</Text>
-            <Text style={{ fontSize: 15, color: color.inkMuted.dark, textAlign: 'center', lineHeight: 22 }}>{t('endMatchConfirm')}</Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
-              <Pressable
-                onPress={() => setShowEndConfirm(false)}
-                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: color.border.dark, alignItems: 'center' }}
-              >
-                <Text style={{ fontSize: 16, fontWeight: '700', color: color.inkMuted.dark }}>{t('cancel')}</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => { setShowEndConfirm(false); onEndMatch(); }}
-                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: color.danger.light, alignItems: 'center' }}
-              >
-                <Text style={{ fontSize: 16, fontWeight: '900', color: color.onAsphalt.light }}>{t('endMatchShort')}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <Dialog
+        visible={showEndConfirm}
+        title={t('endMatchTitle')}
+        description={t('endMatchConfirm')}
+        cancelLabel={t('cancel')}
+        confirmLabel={t('endMatchShort')}
+        onCancel={() => setShowEndConfirm(false)}
+        onConfirm={() => {
+          setShowEndConfirm(false);
+          onEndMatch();
+        }}
+      />
 
       {/* Point log panel */}
       {showPointLog && (

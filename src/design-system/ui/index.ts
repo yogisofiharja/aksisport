@@ -5,3 +5,6 @@ export * from './Card';
 export * from './Badge';
 export * from './Divider';
 export * from './Input';
+export * from './Chip';
+export * from './Segmented';
+export * from './Switch';

@@ -93,6 +93,27 @@ marks the one main action on a screen, so:
 - **Card:** surface, hairline border, 12px corners, no shadow.
 - **Links and active icons:** heat-strong, never plain heat (too light on
   ground and surface).
+- **Badge:** lifecycle StatusPills with a dot — `draft`, `recruiting`,
+  `ready`, `full`, `live` (heat, pulsing dot), `completed`, `cancelled` —
+  plus plain tags (`success`, `heat`, `error`, `info`, `muted`).
+- **Input:** 48px, `rounded-lg`, 16px text; heat outline on focus, danger
+  when `isInvalid`. **Switch:** heat track on, `border-strong` off.
+- **Chip** (filter chip or static tag), **CountBadge**, **Segmented**,
+  **Progress**, **ActionBar** (bottom action on detail screens) and the
+  custom bottom **TabBar**.
+- **Overlays:** `Dialog` only for destructive confirms (safe left, danger
+  right); `Sheet` for everything else (closes on swipe, scrim tap, back;
+  the dismiss button says "Close"); toasts are asphalt at the bottom.
+  `appAlert` keeps `Alert.alert`'s signature and picks among the three: a
+  plain message is a toast, one destructive action a Dialog, anything else
+  a Sheet. `toast()` shows a toast with at most one action.
+- **EmptyState** takes an `illustration` (the nine Aksi Sport spot
+  illustrations, `feedback/Illustration.tsx`, drawn with react-native-svg
+  from theme colours).
+
+In development, `/dev/components` shows every component in the current
+theme (`src/mobile/dev/ComponentGalleryScreen.tsx`, registered only under
+`__DEV__`).
 
 ---
 

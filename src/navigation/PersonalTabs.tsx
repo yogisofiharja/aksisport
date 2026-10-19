@@ -1,9 +1,8 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useColorScheme } from 'nativewind';
 import { Icon } from '../design-system/ui/Icon';
-import { theme } from '../design-system/foundation/theme';
+import { TabBar } from '../design-system/layout/TabBar';
 import { useTranslation } from '../i18n';
 import { HomeScreen } from '../mobile/home/HomeScreen';
 import { ExploreScreen } from '../mobile/explore/ExploreScreen';
@@ -24,9 +23,6 @@ const Tab = createBottomTabNavigator<PersonalTabParamList>();
 
 export function PersonalTabs() {
   const { t } = useTranslation();
-  const { colorScheme } = useColorScheme();
-  const mode = colorScheme === 'dark' ? 'dark' : 'light';
-  const palette = theme[mode];
   // Home/Me push onto the parent stack (Community entry, CreateClub,
   // Settings) — those routes don't exist on this tab navigator, so use the
   // parent stack's navigation directly rather than each tab screen's own
@@ -37,22 +33,12 @@ export function PersonalTabs() {
   const unreadMessages = useUnreadMessageCount(profile?.id);
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        // Blue (brand.secondary), not amber (brand.primary) — matches the
-        // accent already used by Create/Join buttons, Create Session, and
-        // selected skill-level chips throughout the app.
-        tabBarActiveTintColor: palette.brand.secondary,
-        tabBarInactiveTintColor: palette.text.muted,
-        tabBarStyle: { backgroundColor: palette.surface, borderTopColor: palette.border },
-      }}
-    >
+    <Tab.Navigator tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tab.Screen
         name="Home"
         options={{
           tabBarLabel: t('tabHome'),
-          tabBarIcon: ({ focused }) => <Icon name={focused ? 'home' : 'home-outline'} color={focused ? 'secondary' : 'muted'} />,
+          tabBarIcon: ({ focused }) => <Icon name="home-outline" color={focused ? 'secondary' : 'muted'} />,
         }}
       >
         {() => (
@@ -69,7 +55,7 @@ export function PersonalTabs() {
         name="Explore"
         options={{
           tabBarLabel: t('tabExplore'),
-          tabBarIcon: ({ focused }) => <Icon name={focused ? 'compass' : 'compass-outline'} color={focused ? 'secondary' : 'muted'} />,
+          tabBarIcon: ({ focused }) => <Icon name="compass-outline" color={focused ? 'secondary' : 'muted'} />,
         }}
       >
         {() => <ExploreScreen onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })} />}
@@ -79,9 +65,8 @@ export function PersonalTabs() {
         name="Inbox"
         options={{
           tabBarLabel: t('tabInbox'),
-          tabBarBadge: unreadMessages > 0 ? (unreadMessages > 99 ? '99+' : unreadMessages) : undefined,
-          tabBarBadgeStyle: { backgroundColor: palette.heat, color: palette.onHeat, fontSize: 11 },
-          tabBarIcon: ({ focused }) => <Icon name={focused ? 'mail' : 'mail-outline'} color={focused ? 'secondary' : 'muted'} />,
+          tabBarBadge: unreadMessages > 0 ? unreadMessages : undefined,
+          tabBarIcon: ({ focused }) => <Icon name="mail-outline" color={focused ? 'secondary' : 'muted'} />,
         }}
       >
         {() => (
@@ -101,7 +86,7 @@ export function PersonalTabs() {
         options={{
           tabBarLabel: t('tabMe'),
           tabBarIcon: ({ focused }) => (
-            <Icon name={focused ? 'person-circle' : 'person-circle-outline'} color={focused ? 'secondary' : 'muted'} />
+            <Icon name="person-circle-outline" color={focused ? 'secondary' : 'muted'} />
           ),
         }}
       >

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Switch, ActivityIndicator } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '../../platform/DateTimePicker';
@@ -30,6 +30,7 @@ import { listSportIds, getSportModule } from '../../sports/registry';
 import { weekdayLabel } from '../recurringSchedules/weekday';
 import { SkillLevelRangePicker, type SkillLevelRangeValue } from '../skillLevels/SkillLevelRangePicker';
 import { webSelectStyle } from '../../platform/webSelectStyle';
+import { Switch } from '../../design-system/ui/Switch';
 
 type Props = {
   clubId: string;

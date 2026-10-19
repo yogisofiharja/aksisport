@@ -1,30 +1,21 @@
 import type { ReactNode } from 'react';
-import { Modal, View } from 'react-native';
-import { Card } from '../ui/Card';
+import { Modal, Pressable, View } from 'react-native';
 import { Button, ButtonText } from '../ui/Button';
 import { Typography } from '../ui/Typography';
 import { Stack } from '../layout/Stack';
 import { HStack } from '../layout/HStack';
 
 /**
- * Unifies three different confirm-dialog implementations found in the app,
- * all doing the same job (destructive/confirm decision, cancel or confirm):
- * - `Alert.alert` (ClubDetailScreen's delete-club, ClubMembersScreen's
- *   remove/leave)
- * - a plain absolute-positioned overlay View (MobileFinalScreen's end
- *   session confirm)
- * - React Native's real `Modal` component (MobileMatchScreen's end-match
- *   confirm, mid-live-scoring)
+ * Confirms one destructive or irreversible action (Aksi Sport › Dialog):
+ * Cancel session, Remove member, Delete for everyone, Block, End match.
+ * Everything else is a Sheet.
  *
- * Built on RN's `Modal` (transparent, fade) — the more robust of the three
- * existing approaches (handles the Android back button, proper stacking),
- * matching MobileMatchScreen's implementation rather than the ad hoc
- * overlay View. Declarative (`visible`/`onCancel`/`onConfirm`), matching
- * how both non-Alert call sites already manage dialog state today.
- *
- * Deliberately scoped to the one shape every real call site actually uses
- * — title, optional description, cancel, confirm. Not a generic modal
- * wrapper.
+ * Title is the question; the description says the consequence. Two
+ * buttons side by side: the safe choice (outline) left, the destructive
+ * verb (solid danger) right — labels repeat the verb, never "Yes / No".
+ * Centred, at most 340px, 20px corners, over the scrim. Built on React
+ * Native's `Modal`, so Android back and Escape on web act as the safe
+ * choice.
  */
 
 type DialogProps = {
@@ -34,6 +25,7 @@ type DialogProps = {
   icon?: ReactNode;
   cancelLabel?: string;
   confirmLabel?: string;
+  /** Default true: dialogs are for destructive confirms. */
   destructive?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -46,44 +38,44 @@ export function Dialog({
   icon,
   cancelLabel = 'Cancel',
   confirmLabel = 'Confirm',
-  destructive = false,
+  destructive = true,
   onCancel,
   onConfirm,
 }: DialogProps) {
+  const action = destructive ? 'negative' : 'primary';
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View className="flex-1 items-center justify-center bg-black/55 px-6">
-        <Card className="w-full max-w-[320px]" padding="xl">
-          <Stack space="md" style={{ alignItems: 'center' }}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+      // Also over the landscape scoring court on iOS.
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+    >
+      <View className="flex-1 items-center justify-center px-6">
+        <Pressable className="absolute inset-0 bg-black/55" onPress={onCancel} accessibilityLabel={cancelLabel} />
+        <View
+          className="w-full max-w-[340px] bg-surface dark:bg-surface-dark rounded-[20px] p-6"
+          accessibilityRole="alert"
+        >
+          <Stack space="md">
             {icon}
-            <Typography variant="title" style={{ textAlign: 'center' }}>
-              {title}
-            </Typography>
-            {description && (
-              <Typography variant="body" color="muted" style={{ textAlign: 'center' }}>
+            <Typography variant="title">{title}</Typography>
+            {description ? (
+              <Typography variant="body" color="muted">
                 {description}
               </Typography>
-            )}
-            <HStack space="md" style={{ width: '100%' }}>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onPress={onCancel}
-              >
-                <ButtonText variant="outline">
-                  {cancelLabel}
-                </ButtonText>
+            ) : null}
+            <HStack space="sm" style={{ width: '100%', marginTop: 8 }}>
+              <Button variant="outline" className="flex-1" onPress={onCancel}>
+                <ButtonText>{cancelLabel}</ButtonText>
               </Button>
-              <Button
-                action={destructive ? 'negative' : 'primary'}
-                className="flex-1"
-                onPress={onConfirm}
-              >
-                <ButtonText action={destructive ? 'negative' : 'primary'}>{confirmLabel}</ButtonText>
+              <Button action={action} className="flex-1" onPress={onConfirm}>
+                <ButtonText>{confirmLabel}</ButtonText>
               </Button>
             </HStack>
           </Stack>
-        </Card>
+        </View>
       </View>
     </Modal>
   );

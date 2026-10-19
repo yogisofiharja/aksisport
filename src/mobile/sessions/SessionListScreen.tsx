@@ -40,16 +40,15 @@ export function statusLabel(status: Session['lifecycleStatus'], t: (key: string)
   return t('sessionStatusFull');
 }
 
-// Distinct colors per lifecycle status so the list is scannable without
-// reading every pill's text.
+// One StatusPill per lifecycle status (Aksi Sport): heat only for Live.
 export function sessionStatusColor(status: Session['lifecycleStatus']): BadgeAction {
-  if (status === 'draft') return 'heat';
-  if (status === 'cancelled') return 'error';
-  if (status === 'in_progress') return 'success';
-  if (status === 'completed') return 'muted';
-  if (status === 'recruiting') return 'info';
-  if (status === 'ready') return 'success';
-  return 'heat'; // full
+  if (status === 'draft') return 'draft';
+  if (status === 'cancelled') return 'cancelled';
+  if (status === 'in_progress') return 'live';
+  if (status === 'completed') return 'completed';
+  if (status === 'recruiting') return 'recruiting';
+  if (status === 'ready') return 'ready';
+  return 'full';
 }
 
 function byStartsAtAsc(a: Session, b: Session) {

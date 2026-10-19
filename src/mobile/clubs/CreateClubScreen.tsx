@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, ScrollView, Switch } from 'react-native';
+import { KeyboardAvoidingView, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../../components/ui/button';
@@ -11,6 +11,7 @@ import { useTranslation } from '../../i18n';
 import { createClub } from '../../core/clubs/api';
 import type { City, Club } from '../../core/api/types';
 import { CityPickerModal } from '../locations/CityPickerModal';
+import { Switch } from '../../design-system/ui/Switch';
 
 type Props = {
   onBack: () => void;

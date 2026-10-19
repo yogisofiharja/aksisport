@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, Switch } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -23,6 +23,7 @@ import {
 import { ApiRequestError } from '../../core/api/client';
 import type { ClubBankAccount } from '../../core/api/types';
 import { CityPickerModal } from '../locations/CityPickerModal';
+import { Switch } from '../../design-system/ui/Switch';
 
 type Props = {
   clubId: string;
