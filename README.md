@@ -17,6 +17,10 @@ cp .env.example .env   # Firebase web config and EXPO_PUBLIC_API_BASE_URL
 npm run web            # or: npm start, then press i / a for a simulator
 ```
 
+In development, a local `EXPO_PUBLIC_API_BASE_URL` (localhost or a
+private-network address, e.g. `http://localhost:8080`) follows the host the
+app was loaded from, so a new Wi-Fi address needs no `.env` change.
+
 ## API
 
 Needs Go and a Postgres database.

@@ -1,7 +1,19 @@
 import { auth } from '../../firebase';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import type { ApiError, PlayerProfile, PlayerSportActivity, SessionContactThread, UserProfile, UserSummary } from './types';
+import { withDevHost } from './devHost';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+// See devHost.ts: in development a local API URL follows the host the app
+// was loaded from, so a new network address needs no .env change.
+function devHost(): string | null {
+  if (!__DEV__) return null;
+  if (Platform.OS === 'web') return typeof window !== 'undefined' ? window.location.hostname : null;
+  return Constants.expoConfig?.hostUri?.split(':')[0] ?? null;
+}
+
+const CONFIGURED_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+const BASE_URL = CONFIGURED_URL ? withDevHost(CONFIGURED_URL, devHost()) : CONFIGURED_URL;
 
 export class ApiRequestError extends Error {
   status: number;
