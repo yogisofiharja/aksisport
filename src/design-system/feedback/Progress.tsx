@@ -2,22 +2,23 @@ import { Text, View } from 'react-native';
 
 /**
  * Progress bar (Aksi Sport › Progress): how full or how paid a Session is.
- * An 8px bar on `surface-sunken` — `heat` for spots filled, `success` for
- * paid — always with a label and a tabular count above it, so the bar is
- * never the only signal.
+ * An 8px bar on `surface-sunken`, filled in ink by default (heat is for the
+ * one Live thing on a screen, so a bar is heat only with `tone="live"`),
+ * `success` for paid — always with a label and a tabular count above it, so
+ * the bar is never the only signal.
  */
 
 type ProgressProps = {
   label: string;
   value: number;
   max: number;
-  tone?: 'heat' | 'success';
+  tone?: 'ink' | 'live' | 'success';
   /** Text on the right; defaults to "value/max". */
   countLabel?: string;
   className?: string;
 };
 
-export function Progress({ label, value, max, tone = 'heat', countLabel, className = '' }: ProgressProps) {
+export function Progress({ label, value, max, tone = 'ink', countLabel, className = '' }: ProgressProps) {
   const ratio = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
   return (
     <View className={className}>
@@ -33,7 +34,9 @@ export function Progress({ label, value, max, tone = 'heat', countLabel, classNa
         accessibilityValue={{ min: 0, max, now: value }}
       >
         <View
-          className={`h-2 rounded-full ${tone === 'success' ? 'bg-success dark:bg-success-dark' : 'bg-heat'}`}
+          className={`h-2 rounded-full ${
+            tone === 'success' ? 'bg-success dark:bg-success-dark' : tone === 'live' ? 'bg-heat' : 'bg-ink dark:bg-ink-dark'
+          }`}
           style={{ width: `${ratio * 100}%` }}
         />
       </View>

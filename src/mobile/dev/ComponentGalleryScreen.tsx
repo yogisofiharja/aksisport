@@ -445,6 +445,7 @@ export function ComponentGalleryScreen({ onBack }: { onBack: () => void }) {
 
         <Section title="Progress">
           <Progress label="Spots filled" value={6} max={8} />
+          <Progress label="Matches played (live)" value={3} max={8} tone="live" />
           <Progress label="Paid" value={4} max={6} tone="success" />
         </Section>
 
