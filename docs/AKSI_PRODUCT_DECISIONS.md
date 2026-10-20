@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.28.0
+Version: 0.29.0
 
 Status: Living Document
 
@@ -1125,6 +1125,11 @@ A Free Session shows no payment status, bank accounts or receipts
 away (DP-002), so there is no payment to confirm. Paid Sessions show
 them in Players, with "Confirm" on each row.
 
+**The host and guests have no payment status** (v0.29.0): their places
+are organizer-initiated and skip approval and payment (DP-002), so their
+rows show no Paid / Awaiting, and any count of who has paid leaves them
+out. Only members who go through the payment step have one.
+
 ### Scope
 
 Still no payment gateway, no automated charge, no tracking of *how
@@ -1767,6 +1772,11 @@ The Session screen adapts to where the Session is in its lifecycle
   free). Tapping it opens Matches.
 - **One bottom action** that follows the viewer's state: Request to join
   → Pay → Check in → Start my match; organizers: Generate matches.
+- **Organizers join from the ⋯ menu** (v0.29.0): an owner/admin who
+  isn't a player in the Session gets **Join as player** in the ⋯ menu,
+  through the same join flow as Request to join. It is hidden once they
+  are a player, and when the Session is Full, Completed or Cancelled.
+  Their bottom action stays Generate matches.
 
 ### Scope
 
@@ -1989,6 +1999,16 @@ Potential future capabilities:
 - Court assignment
 - Court booking
 - Court availability
+
+---
+
+## Courts on Matches
+
+Matches carry no court today, so the Session screen counts free courts
+(court count minus live matches) but cannot name one — "You're up next",
+not "You're up next on Court 2". Showing court numbers needs a decision
+on how a match gets its court (assigned when generated, picked when
+started, or something else).
 
 ---
 

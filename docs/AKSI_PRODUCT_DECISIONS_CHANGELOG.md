@@ -6,6 +6,22 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.29.0
+
+Approved by Yogi, 2026-10-21.
+
+- DP-012: the host and guests have no payment status — no Paid /
+  Awaiting on their rows, and any paid count leaves them out; only
+  members who go through the payment step have one.
+- DP-024: an organizer (owner/admin) who isn't a player gets **Join as
+  player** in the ⋯ menu, using the same join flow as Request to join;
+  hidden once they play and when the Session is Full, Completed or
+  Cancelled. Their bottom action stays Generate matches.
+- Planning: new "Courts on Matches" — matches carry no court, so court
+  numbers need a decision on how a match gets its court.
+
+---
+
 ## v0.28.0
 
 - DP-007: creating a Recurring Schedule shows a **Check your schedule**
