@@ -38,6 +38,7 @@ import { appAlert } from '../../design-system/feedback/appAlert';
 import { NativeShareModal } from '../../components/NativeShareModal';
 import type { NativeShareData } from '../../components/NativeShareModal';
 import { useTranslation } from '../../i18n';
+import { buildMatchShareData } from '../../core/activities/shareData';
 
 type Props = {
   activityId: string;
@@ -377,23 +378,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
 
   function handleShare() {
     if (!matchState) return;
-    const hasSets = matchState.sets.A > 0 || matchState.sets.B > 0;
-    const mainScore = hasSets ? `${matchState.sets.A} - ${matchState.sets.B}` : `${matchState.games.A} - ${matchState.games.B}`;
-    const breakdown = hasSets ? matchState.completedSets.map((s) => `${s.A}–${s.B}`).join('  ·  ') : undefined;
-    const winnerName = matchState.winner === 'A' ? teamNames.A : matchState.winner === 'B' ? teamNames.B : undefined;
-    setNativeShareData({
-      matchup: `${teamNames.A} vs ${teamNames.B}`,
-      score: mainScore,
-      breakdown,
-      message: [
-        '🎾 Aksi',
-        `${teamNames.A} vs ${teamNames.B}`,
-        mainScore,
-        breakdown ?? '',
-        winnerName ? `${winnerName} menang` : '',
-      ].filter(Boolean).join('\n'),
-      winnerName,
-    });
+    setNativeShareData(buildMatchShareData(matchState, teamNames));
   }
 
   // Leaving a confirmed match. Its result is saved on the server, so the
