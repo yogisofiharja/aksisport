@@ -86,7 +86,9 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   │                              design-system/* components, matching newer
 │   │   │                              screens like SessionListScreen — was on the
 │   │   │                              legacy components/ui/* set before), ActivityMatchScreen,
-│   │   │                              MatchResultScreen (a finished match: Next match, Share)
+│   │   │                              MatchFinishedScreen (Confirm result / Undo, DP-025),
+│   │   │                              ResultSavedScreen (after confirming), MatchResultScreen
+│   │   │                              (a finished match opened later: Share)
 │   │   ├── recurringSchedules/          RecurringScheduleListScreen,
 │   │   │                              RecurringScheduleDetailScreen, weekday.ts
 │   │   └── skillLevels/                 SkillLevelRangePicker.tsx — shared by

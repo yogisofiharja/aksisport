@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { MatchCard, MatchWatchLink } from '../../../design-system/domain-ui/MatchCard';
+import { Switch } from '../../../design-system/ui/Switch';
 import { HStack, VStack } from '../../../../components/ui/box';
 import { Text } from '../../../../components/ui/text';
 import { Button, ButtonText } from '../../../../components/ui/button';
@@ -23,6 +25,8 @@ type Props = {
   onRegenerate: () => void;
   onAddMatch: () => void;
   onOpenMatch: (activityId: string) => void;
+  /** Share a finished match's card (DP-026). */
+  onShareMatch: (activity: ActivityDetail) => void;
 };
 
 export function activityParticipantNames(activity: ActivityDetail): string {
@@ -53,8 +57,15 @@ export function MatchesTab({
   onRegenerate,
   onAddMatch,
   onOpenMatch,
+  onShareMatch,
 }: Props) {
   const { t } = useTranslation();
+  // DP-026: every match by default; "My matches only" narrows the list.
+  // A filter for this visit only — not saved.
+  const [mineOnly, setMineOnly] = useState(false);
+  const isMineMatch = (a: ActivityDetail) => a.participants.some((p) => p.userId === myUserId);
+  const hasMine = activities.some(isMineMatch);
+  const shown = mineOnly ? activities.filter(isMineMatch) : activities;
   const queuedActivities = activities.filter((a) => a.status === 'queued');
   // Only the viewer's next match is "YOUR MATCH"; their later ones are
   // ordinary queued rows with their name in bold.
@@ -85,10 +96,16 @@ export function MatchesTab({
           </HStack>
         )}
       </HStack>
+      {hasMine && (
+        <HStack className="justify-between items-center min-h-[44px] mb-1">
+          <Text className="text-sm font-bold text-ink dark:text-ink-dark">{t('myMatchesOnly')}</Text>
+          <Switch value={mineOnly} onValueChange={setMineOnly} accessibilityLabel={t('myMatchesOnly')} />
+        </HStack>
+      )}
       {activities.length === 0 ? (
         <Text className="text-ink-muted dark:text-ink-muted-dark">{t('activityEmptyQueue')}</Text>
       ) : (
-        activities.map((a) => {
+        shown.map((a) => {
           // Owner/admin can start any queued match administratively, once
           // matches are open (DP-022). A player starts their own from the
           // screen's bottom action, Start my match (DP-024).
@@ -143,6 +160,7 @@ export function MatchesTab({
                       : t('activityStatusCompleted')
               }
               onPress={isFinished ? () => onOpenMatch(a.id) : undefined}
+              onShare={isFinished ? () => onShareMatch(a) : undefined}
               action={
                 canStart ? (
                   <Button size="sm" onPress={() => onOpenMatch(a.id)}>

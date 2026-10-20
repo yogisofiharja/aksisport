@@ -91,11 +91,14 @@ point_log), completed_at=now() WHERE id=$1 AND status='live'` — same
 request body (400 if empty); `pointLog` is optional and, if omitted,
 leaves the column at its default `'[]'`.
 
-`ActivityMatchScreen` calls this once, from `finalizeActivity`, guarded
-by a `completedRef` so it can't fire twice for the same screen
-instance. On failure it only `console.error`s — there is no retry and
-no user-facing error if the complete call fails after the match has
-already ended locally.
+`ActivityMatchScreen` calls this only from **Confirm result** (DP-025),
+never on the final point: a match that ends on the court shows **Match
+finished** to its scorer (Confirm result / Undo last point) and stays
+`live` until confirmed, its finished state kept in the live copy, so
+reopening the match shows Match finished again. A `completedRef` keeps
+it from firing twice; a failed call shows an error and can be retried.
+The live payload's `confirmed` flag tells spectators, who see the final
+score with "Waiting for the umpire to confirm" until then.
 
 **Not implemented**: no automatic top-up/regeneration of the next
 queued activity on completion (mentioned in earlier planning, no code

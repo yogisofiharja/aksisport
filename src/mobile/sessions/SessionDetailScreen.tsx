@@ -48,6 +48,8 @@ import { MatchesTab } from './tabs/MatchesTab';
 import { MatchSetup } from './tabs/MatchSetup';
 import { ChatTab } from './tabs/ChatTab';
 import { LiveStrip } from './LiveStrip';
+import { NativeShareModal, type NativeShareData } from '../../components/NativeShareModal';
+import { buildMatchShareData, teamNamesFromState } from '../../core/activities/shareData';
 import { ActionBar } from '../../design-system/layout/ActionBar';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { playerStep } from '../../core/sessions/liveStrip';
@@ -57,7 +59,7 @@ import { SessionMenuSheet } from './SessionMenuSheet';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { IconButton } from '../../design-system/ui/IconButton';
 import { sessionLink, shareLink } from '../../platform/shareLink';
-import type { MatchFormat, MatchMode } from '../../sports/tennis/scoringEngine';
+import type { MatchFormat, MatchMode, MatchState } from '../../sports/tennis/scoringEngine';
 import { minParticipants } from '../../sports/tennis/rules';
 import type {
   ActivityDetail,
@@ -618,6 +620,14 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // inline — both are easy to misclick in the same scroll flow as
   // everything else; handleCancel still asks to confirm.
   const [menuVisible, setMenuVisible] = useState(false);
+  // DP-026: the share card for a finished match in the list.
+  const [shareData, setShareData] = useState<NativeShareData | null>(null);
+
+  function handleShareMatch(a: ActivityDetail) {
+    const result = a.result as MatchState | undefined;
+    if (!result?.config) return;
+    setShareData(buildMatchShareData(result, teamNamesFromState(result)));
+  }
   const [matchSetupVisible, setMatchSetupVisible] = useState(false);
 
   async function handleShareSession() {
@@ -908,6 +918,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             onRegenerate={handleRegenerate}
             onAddMatch={() => onAddMatch(sessionId)}
             onOpenMatch={onOpenMatch}
+            onShareMatch={handleShareMatch}
           />
         )}
       </ScrollView>
@@ -980,6 +991,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         onConfirmPayment={handleConfirmPayment}
         onRemove={handleDeleteParticipant}
       />
+
+      <NativeShareModal data={shareData} onClose={() => setShareData(null)} />
 
       <AddParticipantSheet
         step={addParticipantStep}

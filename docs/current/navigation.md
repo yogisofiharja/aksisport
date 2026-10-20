@@ -190,12 +190,14 @@ Personal (initial) — see PersonalTabs below
               ├─→ CreateSession { clubId }   → replaces with SessionDetail on success
               └─→ SessionDetail { sessionId }
                     ├─→ AddMatch { sessionId }        → goBack() on success
-                    ├─→ ActivityMatch { activityId }  → "Next match" on the result: goBack()
-                    │                                   to the Matches tab if that's where it came
-                    │                                   from, else replace with SessionDetail
-                    │                                   { tab: 'matches' }. Finished matches in the
-                    │                                   list show their score and open their result
-                    │                                   (Share, back arrow) at any time.
+                    ├─→ ActivityMatch { activityId }  → Result saved (DP-025): "Back to session"
+                    │                                   goBack()s to the Matches tab if that's where
+                    │                                   it came from, else replaces with SessionDetail
+                    │                                   { tab: 'matches' }; "Set up next match"
+                    │                                   replaces with ActivityMatch for the next
+                    │                                   queued match. Finished matches in the list
+                    │                                   show their score and a Share button (DP-026),
+                    │                                   and open their result (Share, back) at any time.
                     └─→ EditSession { sessionId }     → goBack() on save (Milestone 2,
                                                           Draft only — see lifecycle-session.md)
 ```

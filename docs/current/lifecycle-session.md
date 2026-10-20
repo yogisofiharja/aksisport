@@ -557,7 +557,10 @@ Players, `matches` opens Matches.
   sub-sections of `PlayerCard` rows (see below) and the empty-slot
   placeholders.
 - **Matches**: the queue (`MatchCard`s; Regenerate / Add links for
-  owner/admin). Owner/admin can Start any queued match from its row; a
+  owner/admin), all matches by default with a **My matches only** switch
+  at the top when the viewer has any (a filter for that visit, not
+  saved). Every finished row has a Share button opening the share card
+  (`buildMatchShareData`, DP-026), and opens the match's result. Owner/admin can Start any queued match from its row; a
   player starts their own from the bottom action. Shows
   `sessionMatchesUnavailableDraft` while Draft.
 - **Chat** (DP-011, was a placeholder): a real, persisted chat, one per

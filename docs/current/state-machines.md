@@ -59,11 +59,21 @@ render branches on (loading, pendingConfig, error, matchState.isEnded):
   loading            → spinner + "activityLoading" text
   pendingConfig      → MatchStartScreen
   error || !matchState → error text + back button
-  matchState.isEnded  → MatchResultScreen: winner, score and "Share". Right after the
-                        match ends: "Next match" (scorer clears the live copy; back to
-                        the Session's Matches tab — goBack if that's the previous
-                        screen, else replace with SessionDetail { tab: 'matches' }).
-                        Opened later from the Matches list: a back arrow instead.
+  matchState.isEnded, not confirmed (DP-025)
+                      → MatchFinishedScreen: winner and score. Scorer: "Confirm result"
+                        (completeActivity with the state and point log) or "Undo last
+                        point" (back to scoring). Others: "Waiting for the umpire to
+                        confirm". The live copy keeps the finished state, with
+                        confirmed=false, until then.
+  matchState.isEnded, confirmed
+                      → scorer, just confirmed: ResultSavedScreen — "Share result",
+                        "Set up next match" (the Session's first queued match, replacing
+                        this screen with its start screen; hidden if none is queued),
+                        "Back to session" (goBack to the Matches tab if that's the
+                        previous screen, else replace with SessionDetail { tab:
+                        'matches' }). Both clear the live copy.
+                      → otherwise (opened later, or watched to the end):
+                        MatchResultScreen — winner, score, "Share result", back.
   else                → MobileMatchScreen (live scoring UI)
 ```
 
