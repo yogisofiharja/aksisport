@@ -7,7 +7,8 @@ import { Pressable, Text, View } from 'react-native';
  *   selected flips to an ink fill with surface text. Put a row of them in a
  *   horizontal ScrollView; never wrap them to a fixed width.
  * - `Chip` without `onPress`: a tag — a static label such as a skill level
- *   or a role (Admin, Owner). Not tappable.
+ *   or a role (Admin, Owner). Not tappable. `strong` fills it with ink, for
+ *   the one role that outranks the rest (Owner).
  * - `CountBadge`: an unread count, heat with ink numerals (`muted` for a
  *   plain total), capped at 99+.
  *
@@ -17,15 +18,27 @@ import { Pressable, Text, View } from 'react-native';
 type ChipProps = {
   label: string;
   selected?: boolean;
+  /** Tag only: ink fill (Owner). */
+  strong?: boolean;
   onPress?: () => void;
   className?: string;
 };
 
-export function Chip({ label, selected = false, onPress, className = '' }: ChipProps) {
+export function Chip({ label, selected = false, strong = false, onPress, className = '' }: ChipProps) {
   if (!onPress) {
     return (
-      <View className={`self-start rounded-md bg-surface-sunken dark:bg-surface-sunken-dark px-2 py-0.5 ${className}`}>
-        <Text className="text-xs font-sans-semibold text-ink-muted dark:text-ink-muted-dark">{label}</Text>
+      <View
+        className={`self-start rounded-md px-2 py-0.5 ${
+          strong ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'
+        } ${className}`}
+      >
+        <Text
+          className={`text-xs font-sans-semibold ${
+            strong ? 'text-surface dark:text-surface-dark' : 'text-ink-muted dark:text-ink-muted-dark'
+          }`}
+        >
+          {label}
+        </Text>
       </View>
     );
   }
