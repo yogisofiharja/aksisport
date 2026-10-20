@@ -506,84 +506,57 @@ well before the window.
 
 ## Mobile UI reflection
 
-**Tabs** (Milestone 2, revised; Configuration added DP-005, Payment
-added DP-012/Milestone 5): `SessionDetailScreen.tsx` is split into
-six tabs — **Details**, **Participants**, **Payment**, **Configuration**, **Matches**, **Chat** — with
-the Session's name and start date/time pinned in a header above the tab
-bar, outside the scrolling tab body, so switching tabs never loses which
-Session you're looking at. `activeTab` is plain local state
-(`'details' | 'payment' | 'configuration' | 'participants' | 'matches' | 'chat'`); nothing about it is
-persisted or deep-linkable yet (opening a Session always lands on
-Details). This replaced the previous single long `ScrollView` containing
-every section top to bottom. At six tabs, the tab bar itself became a
-horizontally-scrolling `ScrollView` instead of evenly-dividing the
-screen width per tab (`flex-1` per Pressable) — the earlier fixed-width
-approach was already at its practical limit for tap-target size at five
-tabs; scrolling lets every tab keep a comfortable `text-sm` label
-instead of shrinking further. Section-to-tab mapping:
+**Tabs** (DP-024, v0.28): `SessionDetailScreen.tsx` holds the state and
+actions; each tab is its own component under `src/mobile/sessions/tabs/`
+(`DetailsTab`, `PlayersTab`, `MatchesTab`, `ChatTab`, plus
+`MyParticipation` — the viewer's own join/check-in area, shown on Details
+and Players — and `MatchSetup`). Four tabs on a `Segmented` control that
+fits at 390px: **Details · Players · Matches · Chat**, with the Session's
+name and start date/time pinned above it. While In Progress the order is
+**Matches · Players · Chat · Details**; once Completed, Matches reads
+**Results**. Until the viewer picks a tab, the tab follows the
+lifecycle: Draft / Recruiting / Ready / Full → Details, In Progress and
+Completed → Matches. A link's `?tab=` wins (`initialTab`):
+`participants` and `payment` (the values notifications use) both open
+Players, `matches` opens Matches.
 
-- **Details**: the Club name (fetched via `getClub(session.clubId)`,
-  new — this screen previously never loaded the parent Club at all) and,
-  only if `session.recurringScheduleId` is set, an "Every &lt;weekday&gt;"
-  line (fetched via `getRecurringSchedule`, reading
-  `recurrenceRule.weekday` through the same `weekdayLabel` helper
-  `CreateSessionScreen` already uses) — both at the very top; the Draft
-  badge/notice, location, Skill Level requirement summary, the sport/
-  activity type/date/duration card, plus a Price row in that same card
-  (DP-010) — "Free"; "&lt;amount&gt; per person" for `per_person`; for
-  `split_bill`, two rows instead of one ("Total Bill" and "Per Person
-  (N joined)", the latter computed client-side as
-  `totalPrice / joinedCount`, "—" if nobody's joined yet to avoid a
-  divide-by-zero); a tappable "X/Y joined" row (or "X
-  joined" if uncapped) that switches to the Participants tab —
-  `session.joinedCount`/`maxParticipants` were already computed, this
-  just surfaces them as a shortcut instead of requiring a tab switch to
-  see them; Description (if set), the lifecycle framing notice for the
-  current stage, the Organizer identity card (see below — it's about
-  identity, not participation, hence Details rather than Participants),
-  and the session-management actions (Publish/Edit/Discard while Draft,
-  Cancel once published).
-- **Payment** (DP-012, Milestone 5, new — `SessionPayment.tsx`, always
-  present even on a Free Session, since Waitlist→Registered approval
-  happens regardless of price): the caller's own amount due (mirrors
-  Details' Price computation) and the Club's bank accounts (`GET
-  .../bank-accounts`, one Club can list more than one), hidden entirely
-  when `priceModel === 'free'`; a "Your Payment" card for the caller's
-  own row (status text, an inline receipt thumbnail if one's already
-  uploaded, an Upload/Replace Receipt button — Camera or Library via
-  the same `pickImageAsDataUrl` helper DP-011 Chat images and the
-  legacy share-card flow both already use); a "Payment Status" list of
-  every `waitlist`/`registered`/`checked_in`/`checked_out` participant
-  (i.e. everyone past organizer approval) showing Paid/Awaiting —
-  visible to **every** Club member, not just the organizer, per an
-  explicit product decision that payment status is shared roster
-  information even though the receipt image itself isn't (see
-  `permissions.md`'s "Payment receipt visibility" section). Confirm
-  Payment (`confirmParticipantPayment`, DP-002, unchanged mechanically)
-  moved here from a small badge on the Participants tab's Waitlist
-  section — `handleConfirmPayment` still lives in
-  `SessionDetailScreen.tsx`, just passed down as a prop instead of
-  wired to a badge `onPress` inline. A "View Receipt" toggle next to a
-  participant's status is shown only when the viewer is owner/admin or
-  the receipt's own uploader — matching the server's own access rule,
-  not just hiding a button (the endpoint 403s anyone else regardless).
-- **Configuration** (DP-005, new — own tab, not nested in Details): a
-  read-only summary of Match Setup — `session.defaultMatchFormat`'s type
-  and relevant sub-fields (via the shared `matchFormatSummary` helper,
-  `core/sessions/matchFormatSummary.ts`) and `session.defaultSingleDeuce`
-  (On/Off) — plus an Edit button, same `onEdit(sessionId)` navigation and
-  same editable window as Details' own Edit button (draft, or published-
-  not-yet-started). See "Match Setup" under Match scheduling below for
-  what these fields mean and where they're actually edited.
-- **Participants**: the caller's own self-service action area (Request
-  to Join / Check In / Cancel my spot / Check Out — see below), the
-  participant count, every status sub-section, and the empty-slot
+- **Live strip** (In Progress only, `LiveStrip.tsx`, logic in
+  `core/sessions/liveStrip.ts`): an asphalt strip between the header and
+  the tabs, on every tab; tapping it opens Matches. A player sees their
+  own step — "You're playing now", "You're up next" (their first queued
+  match fits a free court), "Waiting for a court"; organizers, and
+  players with no match, see "N playing · N waiting · N courts free"
+  (players in live matches, checked-in players not in one, court count
+  minus live matches). Matches carry no court number, so courts are
+  counted, never named.
+- **One bottom action** (`ActionBar`, not on Chat, which has its own
+  compose bar): Request to join (not yet a player and not ruled out by a
+  Strict Skill Level; shows the price and spots left) → Pay (waitlisted
+  on a priced Session; opens Players) → Check in (registered, inside the
+  Check-In Window) → Start my match (checked in, matches open, a queued
+  match of theirs and none live). An owner/admin with no step of their
+  own gets Generate matches (opens AddMatch on its Generate tab). Nothing
+  shows when no action applies.
+- **⋯ menu** (owner/admin, `SessionMenuSheet.tsx`): Edit session (the
+  editable window: draft, or published and not started), Match setup (a
+  Sheet with the read-only Match Setup summary and Edit — see "Match
+  Setup" below), Share session link (`sessionLink()`), and Cancel session
+  last in its own group, opening the confirm Dialog.
+- **Details**: the Community name, the "Every &lt;weekday&gt;" line for a
+  generated Session, the Draft notice, location, Skill Level summary,
+  `MyParticipation`, the sport/activity type/date/duration/price card
+  (split bill shows the total and the per-person share), the "X/Y joined"
+  row that opens Players, Description, the lifecycle notice, the
+  Organizer card, and Publish / Discard while Draft.
+- **Players**: on a priced Session, `PaymentSummary` at the top (amount
+  due, the Community's bank accounts, the viewer's own payment with
+  receipt upload); then `MyParticipation`, the count, the status
+  sub-sections of `PlayerCard` rows (see below) and the empty-slot
   placeholders.
-- **Matches**: the activity queue (Regenerate/Add links, each match's
-  Start/Watch). Shows `sessionMatchesUnavailableDraft` instead while
-  still Draft, rather than silently omitting the tab's content with no
-  explanation — matches don't exist as a concept yet, but the tab itself
-  stays reachable.
+- **Matches**: the queue (`MatchCard`s; Regenerate / Add links for
+  owner/admin). Owner/admin can Start any queued match from its row; a
+  player starts their own from the bottom action. Shows
+  `sessionMatchesUnavailableDraft` while Draft.
 - **Chat** (DP-011, was a placeholder): a real, persisted chat, one per
   Session — `SessionChat.tsx`, rendered as a sibling of the tab body's
   shared `ScrollView` rather than nested inside it (it needs its own
@@ -633,33 +606,33 @@ instead of shrinking further. Section-to-tab mapping:
   thread-list mode. See `docs/current/api.md`'s "Conversations"
   subsection for the full endpoint shape.
 
-`SessionDetailScreen.tsx`'s self-service action area (v0.10.0, revised
-Milestone 2; `renderMyParticipation()`, shown both on the Details tab —
-where a Session opens — and on the Participants tab, so asking to join
-never depends on finding the right tab) branches on
-`myParticipant?.status`:
+The self-service area (`tabs/MyParticipation.tsx`, shown on Details and
+Players) branches on `myParticipant?.status`. Its two actions, Request
+to join and Check in, are the screen's bottom action (DP-024, see "Tabs"
+above); this area keeps the notices and the ways to give up a spot:
 
-- No row yet, or `cancelled` (they gave up their spot and may ask again) → "Request to Join" button (Strict Skill Level block and the
-  Guidance-mode confirm dialog both live here now, moved from the old
-  Check In button — requesting is the actual "joining" moment now).
+- No row yet, or `cancelled` (they gave up their spot and may ask
+  again) → nothing here, unless a Strict Skill Level rules them out,
+  which is explained here (Request to join itself is the bottom action;
+  the Guidance-mode confirm dialog opens from it).
 - `requested` → a muted notice ("waiting for organizer approval") plus a
   "Cancel my spot" link.
 - `waitlist` → a yellow notice ("approved — complete payment to claim
   your spot") plus a "Cancel my spot" link.
-- `registered` → the Check In button, if within the Check-In Window
-  (otherwise the "check-in opens/closes" notice), plus a "Cancel my
-  spot" link.
+- `registered` → the "check-in opens/closes" notice outside the
+  Check-In Window (inside it, Check in is the bottom action), plus a
+  "Cancel my spot" link.
 - `checked_in` → a small "Check Out" link (Milestone 2 revised again —
   see "Self-service Checkout/Cancel" below; no longer literally nothing,
   though still no repeated "Checked In" banner, since that status is
-  already visible on the caller's own avatar in the Participants grid).
+  already visible on the caller's own row in Players).
 
 **Organizer section** (Milestone 2, new — shown in the Details tab,
 always, any lifecycle stage): a single avatar card for `session.createdBy`
 (looked up in `members`, falling back to the generic "Host" label if
 not found), name only. This is about identity, not
 participation — if the organizer is also playing (`hostPlaying`),
-they *additionally* appear in the Participants tab's Confirmed/Checked
+they *additionally* appear in the Players tab's Confirmed/Checked
 In sub-section, same as any other participant; the Organizer card itself
 never has Remove or any other action.
 
@@ -674,14 +647,14 @@ only renders when it has at least one participant. Each participant is a `Player
 (no `avatarUrl` on `SessionParticipant` yet; a guest's avatar is dashed),
 the name ("(You)" for the viewer), and a subline with the status, plus
 "Host" for the organizer and "Guest" for a guest. On a paid Session the
-row carries the Payment tab's Paid / Awaiting pill (`hasPaid` /
-`isAwaitingPayment` from `SessionPayment.tsx`). Owner/admin, while the
-Session is active, also get the section's action as a small button —
-**Check in** on Confirmed (inside the Check-In Window), **Approve** on
-Requested — and a ✕ Remove. Waitlist rows carry no action (Milestone 5,
-DP-012): Confirm Payment lives on the Payment tab, alongside the receipt
-an organizer needs to look at first. (A free Session never has Waitlist
-rows or a Payment tab: approval registers the member directly, v0.24.0.)
+row carries a Paid / Awaiting pill (`hasPaid` / `isAwaitingPayment` from
+`SessionPayment.tsx`). Owner/admin, while the Session is active, also get
+the section's action as a small button — **Check in** on Confirmed
+(inside the Check-In Window), **Approve** on Requested — and a ⋯ that
+opens `PlayerRowSheet`: the player's payment (`ParticipantPayment`: the
+receipt and **Confirm payment** while awaited) and **Remove**. (A free
+Session never has Waitlist rows or payment pills: approval registers the
+member directly, v0.24.0.)
 Organizers tap a row to open the player's profile (DP-019). The section
 header shows `joinedCount`/`maxParticipants` next to the "Participants"
 title. Open spots below the rows are still the placeholder circles.
@@ -840,7 +813,7 @@ copy of these fields; only the Mode/single-vs-double pill remains
 Custom-Match-specific, since a one-off match may deliberately differ from
 the Session's own mode). Editing Match Setup after creation happens
 through the same Edit Session form (`onEdit`) as everything else, or via
-the Configuration tab's own Edit button (see "Tabs" above) — not inline
+the Match setup sheet's Edit button (⋯ menu, see "Tabs" above) — not inline
 in `AddMatchScreen`, which now only ever *reads* it.
 
 This is DP-006's check-in-driven loop in practice: checking a player in

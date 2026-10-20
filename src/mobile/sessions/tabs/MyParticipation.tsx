@@ -1,6 +1,5 @@
 import { Box, VStack } from '../../../../components/ui/box';
 import { Text } from '../../../../components/ui/text';
-import { Button, ButtonText } from '../../../../components/ui/button';
 import { Pressable } from '../../../../components/ui/pressable';
 import { useTranslation } from '../../../i18n';
 import type { Session, SessionParticipant } from '../../../core/api/types';
@@ -17,16 +16,15 @@ type Props = {
   hasMyLevel: boolean;
   minLevelName?: string;
   maxLevelName?: string;
-  onRequestToJoin: () => void;
-  onCheckIn: () => void;
   onCancelMyParticipation: () => void;
   onCheckOut: () => void;
 };
 
 // The caller's own place in this Session — ask to join, the state of
 // their request, check in, or give up their spot. Shown on the Details
-// tab (where the Session opens) and on Participants, so joining never
-// depends on finding the right tab.
+// tab and on Players. Its actions (Request to join, Check in) are the
+// screen's one bottom action (DP-024); this area keeps the state notices
+// and the ways to give up a spot.
 //
 // DP-002 Join Approval: requested -> waitlist (needs payment) ->
 // registered (approved) -> checked_in. Only 'registered', within
@@ -50,8 +48,6 @@ export function MyParticipation({
   hasMyLevel,
   minLevelName,
   maxLevelName,
-  onRequestToJoin,
-  onCheckIn,
   onCancelMyParticipation,
   onCheckOut,
 }: Props) {
@@ -84,11 +80,7 @@ export function MyParticipation({
   ) : myParticipant?.status === 'registered' ? (
     isSessionActive ? (
       <VStack className="gap-2">
-        {checkInWindowOpen ? (
-          <Button size="xl" className="w-full" isDisabled={busy} onPress={onCheckIn}>
-            <ButtonText>{t('sessionCheckIn')}</ButtonText>
-          </Button>
-        ) : (
+        {!checkInWindowOpen && (
           <Box className="bg-surface-sunken dark:bg-surface-sunken-dark rounded-2xl p-4 items-center">
             <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('sessionCheckInWindowClosed')}</Text>
           </Box>
@@ -99,19 +91,13 @@ export function MyParticipation({
       </VStack>
     ) : null
   ) : // Never joined, or cancelled their own spot earlier — either way they
-  // can ask (again).
-  (!myParticipant || myParticipant.status === 'cancelled') && isSessionActive ? (
-    <VStack className="gap-2">
-      <Button size="xl" className="w-full" isDisabled={busy || strictLevelBlocked} onPress={onRequestToJoin}>
-        <ButtonText>{t('sessionRequestToJoin')}</ButtonText>
-      </Button>
-      {strictLevelBlocked && (
-        <Text className="text-sm text-red-500">
-          {hasMyLevel
-            ? t('skillLevelStrictBlockedOutOfRange', minLevelName ?? '', maxLevelName ?? '')
-            : t('skillLevelStrictBlockedNotSet', session.sport)}
-        </Text>
-      )}
-    </VStack>
+  // can ask (again) — from the bottom action; a Strict Skill Level that
+  // rules them out is explained here instead.
+  (!myParticipant || myParticipant.status === 'cancelled') && isSessionActive && strictLevelBlocked ? (
+    <Text className="text-sm text-red-500">
+      {hasMyLevel
+        ? t('skillLevelStrictBlockedOutOfRange', minLevelName ?? '', maxLevelName ?? '')
+        : t('skillLevelStrictBlockedNotSet', session.sport)}
+    </Text>
   ) : null;
 }

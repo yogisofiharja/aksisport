@@ -68,7 +68,7 @@ join requests, a card with their count that opens Members.
 Approve / Decline; tapping a request opens the requester's player profile
 (`PlayerProfileSheet`, DP-019: picture, name, username, online, joined
 date, skill level per sport) with the same two actions. On a Session's
-Participants tab, owner/admins tap any member's circle for the same
+Players tab, owner/admins tap any player's row for the same
 sheet — the Session's sport first, a within/outside-range badge when the
 Session has a level range, and Approve/Decline for a pending request. `CreateClubScreen` asks for a location and a "Private
 community" switch; `ClubSettingsScreen` (owner) edits both under "Finding
@@ -92,7 +92,7 @@ after joining or asking to join a Community, or asking to join a Session
 (`/settings/notifications`): four switches (Community join requests,
 Session join requests, Payments, Session reminders), saved as they're
 flipped. A notification about a Session opens it on the tab it concerns
-(`?tab=participants|payment|matches` → `SessionDetail`'s `initialTab`). On the phone apps push reports itself
+(`?tab=participants|payment|matches` → `SessionDetail`'s `initialTab`; `participants` and `payment` both open Players). On the phone apps push reports itself
 unsupported until expo-notifications is set up (`src/platform/push.ts`).
 
 **Player profile, sport page, direct messages** (DP-019, DP-020).
@@ -244,7 +244,7 @@ Club's owner (`isOwner`, not `isOwnerOrAdmin`; matches every other
 Club-level setting's permission). `ClubSettingsScreen.tsx` holds two
 sections: **Bank Accounts** (a plain list-plus-modal-form, mirrors
 `ClubMembersScreen`'s Add Member modal shape — a Club can list more
-than one; every priced Session's Payment tab reads this same list),
+than one; every priced Session's Players tab reads this same list),
 and a **Danger Zone** at the bottom with Delete Community — moved off
 `ClubDetailScreen`'s own home page deliberately, so it's no longer a
 low-friction text link sitting at the bottom of the screen an owner

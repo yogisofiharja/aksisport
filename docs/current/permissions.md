@@ -80,7 +80,7 @@ and previewable like a public one — only joining is gated.
 | Complete an activity | **not role-based** — see below |
 | Manage Club bank accounts (create/update/delete) | `owner` only |
 | List Club bank accounts | any member |
-| Confirm payment (Milestone 5, moved from the badge to the Payment tab) | `owner` or `admin` |
+| Confirm payment (a player's row ⋯ on Players, DP-024) | `owner` or `admin` |
 | Upload a payment receipt | self only — no organizer-uploads-for-someone-else path |
 | View a payment receipt image | **not role-based alone** — see below |
 

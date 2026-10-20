@@ -83,13 +83,10 @@ export function MatchesTab({
         <Text className="text-ink-muted dark:text-ink-muted-dark">{t('activityEmptyQueue')}</Text>
       ) : (
         activities.map((a) => {
-          // A match's own checked-in players can start it themselves;
-          // owner/admin can start any queued match administratively. Either
-          // way, only once matches are open (DP-022).
-          const canStart =
-            matchesOpen &&
-            a.status === 'queued' &&
-            (isOwnerOrAdmin || (myParticipant?.status === 'checked_in' && a.participants.some((p) => p.userId === myUserId)));
+          // Owner/admin can start any queued match administratively, once
+          // matches are open (DP-022). A player starts their own from the
+          // screen's bottom action, Start my match (DP-024).
+          const canStart = matchesOpen && a.status === 'queued' && isOwnerOrAdmin;
           // Any checked-in participant of the session can watch.
           const canWatch = isSessionActive && a.status === 'live' && myParticipant?.status === 'checked_in';
           const isLiveScorer = a.status === 'live' && a.scorerUserId === myUserId;

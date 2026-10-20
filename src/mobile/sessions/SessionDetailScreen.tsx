@@ -47,6 +47,12 @@ import { PlayersTab } from './tabs/PlayersTab';
 import { MatchesTab } from './tabs/MatchesTab';
 import { MatchSetup } from './tabs/MatchSetup';
 import { ChatTab } from './tabs/ChatTab';
+import { LiveStrip } from './LiveStrip';
+import { ActionBar } from '../../design-system/layout/ActionBar';
+import { Button, ButtonText } from '../../design-system/ui/Button';
+import { playerStep } from '../../core/sessions/liveStrip';
+import { priceLabel } from './sessionDisplay';
+import { formatIDR } from '../../core/currency';
 import { SessionMenuSheet } from './SessionMenuSheet';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { IconButton } from '../../design-system/ui/IconButton';
@@ -726,8 +732,6 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
       hasMyLevel={Boolean(myLevel)}
       minLevelName={minLevel?.name}
       maxLevelName={maxLevel?.name}
-      onRequestToJoin={handleRequestToJoin}
-      onCheckIn={handleCheckIn}
       onCancelMyParticipation={handleCancelMyParticipation}
       onCheckOut={handleCheckOut}
     />
@@ -747,6 +751,39 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     matches: { value: 'matches', label: session.lifecycleStatus === 'completed' ? t('sessionTabResults') : t('sessionTabMatches') },
     chat: { value: 'chat', label: t('sessionTabChat'), count: chatUnread },
   };
+  // One bottom action (DP-024) that follows the viewer's state: Request to
+  // join → Pay → Check in → Start my match; organizers with no step of
+  // their own get Generate matches. Nothing when no action applies — never
+  // a disabled button.
+  const myStep = playerStep({ activities, participants, courtCount: session.courtCount, myUserId: profile?.id });
+  const spotsLeft = session.maxParticipants != null ? Math.max(0, session.maxParticipants - session.joinedCount) : undefined;
+  // The bottom bar's fact is short: the amount alone ("IDR50.000"), or
+  // "Free" / "Split bill".
+  const priceText =
+    session.priceModel === 'per_person' && session.pricePerPerson != null ? formatIDR(session.pricePerPerson) : priceLabel(session, t);
+  let bottomAction: { label: string; onPress: () => void; fact?: { label: string; value: string } } | undefined;
+  if (isSessionActive && isPublished) {
+    const status = myParticipant?.status;
+    if ((!myParticipant || status === 'cancelled') && !strictLevelBlocked && !isOwnerOrAdmin) {
+      bottomAction = {
+        label: t('sessionRequestToJoin'),
+        onPress: handleRequestToJoin,
+        fact: priceText ? { label: spotsLeft != null ? t('sessionSpotsLeft', spotsLeft) : '', value: priceText } : undefined,
+      };
+    } else if (status === 'waitlist' && !isFree) {
+      // Pay = upload the receipt; the transfer details are at the top of
+      // Players.
+      bottomAction = { label: t('sessionPay'), onPress: () => setActiveTab('players') };
+    } else if (status === 'registered' && checkInWindowOpen) {
+      bottomAction = { label: t('sessionCheckIn'), onPress: handleCheckIn };
+    } else if (status === 'checked_in' && matchesOpen && (myStep?.kind === 'upNext' || myStep?.kind === 'waiting')) {
+      const activityId = myStep.activityId;
+      bottomAction = { label: t('sessionStartMyMatch'), onPress: () => onOpenMatch(activityId) };
+    } else if (isOwnerOrAdmin && generationEligible) {
+      bottomAction = { label: t('sessionGenerateMatches'), onPress: () => onAddMatch(sessionId) };
+    }
+  }
+
   const tabOrder: SessionTab[] =
     session.lifecycleStatus === 'in_progress' ? ['matches', 'players', 'chat', 'details'] : ['details', 'players', 'matches', 'chat'];
 
@@ -760,7 +797,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
       {/* Persistent header — name/date stay pinned above the tab body
           (outside the ScrollView) so switching tabs never loses which
           session you're looking at. */}
-      <VStack className="px-5 pt-4 pb-4 gap-3">
+      <VStack className="px-5 pt-4 pb-3 gap-3">
         <HStack className="justify-between items-center">
           <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
             <Icon name="arrow-back" size="lg" />
@@ -775,6 +812,18 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{formatSessionDateTime(session.startsAt)}</Text>
           )}
         </VStack>
+      </VStack>
+      {session.lifecycleStatus === 'in_progress' && (
+        <LiveStrip
+          activities={activities}
+          participants={participants}
+          courtCount={session.courtCount}
+          myUserId={profile?.id}
+          isOrganizer={isOwnerOrAdmin}
+          onPress={() => setActiveTab('matches')}
+        />
+      )}
+      <VStack className="px-5 pt-3 pb-4">
         <Segmented options={tabOrder.map((key) => tabOptions[key])} value={activeTab} onChange={setActiveTab} />
       </VStack>
 
@@ -846,6 +895,16 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           />
         )}
       </ScrollView>
+      )}
+
+      {/* One bottom action (DP-024), following the viewer's state. Not on
+          Chat, which has its own compose bar at the bottom. */}
+      {bottomAction && activeTab !== 'chat' && (
+        <ActionBar fact={bottomAction.fact}>
+          <Button size="lg" isDisabled={busy} onPress={bottomAction.onPress}>
+            <ButtonText>{bottomAction.label}</ButtonText>
+          </Button>
+        </ActionBar>
       )}
 
       <SessionMenuSheet

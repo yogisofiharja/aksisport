@@ -9,6 +9,7 @@ import { Button, ButtonText } from '../../../../components/ui/button';
 import { Pressable } from '../../../../components/ui/pressable';
 import { useTranslation } from '../../../i18n';
 import { hasPaid, isAwaitingPayment } from '../SessionPayment';
+import { initialsFromName } from '../../../core/initials';
 import type { Session, SessionParticipant } from '../../../core/api/types';
 
 type RowAction = { label: string; onPress: () => void };
@@ -113,6 +114,7 @@ export function PlayersTab({
       >
         <PlayerCard
           name={`${p.displayName || p.username || p.guestName}${p.userId === myUserId ? ` (${t('sessionYou')})` : ''}`}
+          initials={initialsFromName(p.displayName || p.username || p.guestName || '?')}
           subtitle={subtitle}
           isGuest={isGuest}
           trailing={

@@ -25,6 +25,8 @@ import { Typography } from '../ui/Typography';
 
 type PlayerCardProps = {
   name: string;
+  /** When the shown name carries extra text ("Yogi (You)"). */
+  initials?: string;
   subtitle?: string; // "@username" or check-in status
   avatarSource?: ImageSourcePropType;
   isOnline?: boolean;
@@ -35,6 +37,7 @@ type PlayerCardProps = {
 
 export function PlayerCard({
   name,
+  initials,
   subtitle,
   avatarSource,
   isOnline = false,
@@ -58,7 +61,7 @@ export function PlayerCard({
             <Image source={avatarSource} style={{ width: '100%', height: '100%' }} accessibilityIgnoresInvertColors />
           ) : (
             <Typography variant="label" className={`font-sans-bold ${isGuest ? 'text-ink-muted dark:text-ink-muted-dark' : ''}`}>
-              {isGuest ? 'G' : initialsFromName(name)}
+              {isGuest ? 'G' : (initials ?? initialsFromName(name))}
             </Typography>
           )}
         </View>
