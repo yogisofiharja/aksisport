@@ -433,7 +433,7 @@ const en: Dict = {
   sessionContactEmpty: "No messages yet — ask the organizer anything about this session.",
   sessionContactPlaceholder: 'Message the organizer…',
   sessionContactThreadsEmpty: 'No one has messaged you about this session yet.',
-  sessionSectionCheckedIn: 'Checked In',
+  sessionSectionCheckedIn: 'Checked in',
   sessionSectionConfirmed: 'Confirmed',
   sessionSectionWaitlist: 'Waitlist',
   sessionSectionRequested: 'Requested',

@@ -849,13 +849,16 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             ? t('sessionPaymentStatusAwaiting')
             : undefined
         : undefined;
+    // "Checked in · host": what follows the status is lowercase.
     const subtitle = [
       participantStatusLabel(p.status),
-      p.userId && p.userId === session?.createdBy ? t('sessionHostLabel') : undefined,
-      isGuest ? t('sessionAddParticipantGuestOption') : undefined,
-    ]
-      .filter(Boolean)
-      .join(' · ');
+      ...[
+        p.userId && p.userId === session?.createdBy ? t('sessionHostLabel') : undefined,
+        isGuest ? t('sessionAddParticipantGuestOption') : undefined,
+      ]
+        .filter(Boolean)
+        .map((part) => part!.toLocaleLowerCase(lang)),
+    ].join(' · ');
     return (
       // Organizers tap a member to see who they are (DP-019) — what they
       // need when deciding on a request to join.
