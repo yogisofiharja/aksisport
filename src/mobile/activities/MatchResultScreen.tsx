@@ -14,16 +14,13 @@ type Props = {
   matchState: MatchState;
   teamNames: TeamNames;
   onShare: () => void;
-  // Right after finishing: back to the Session's matches, where the next
-  // one is picked. Absent when an earlier match is opened from the list.
-  onNextMatch?: () => void;
-  // Opened from the list later: a back arrow instead.
   onBack?: () => void;
 };
 
-// A finished Session match: who won, the score, and Share (any time) —
-// plus "Next match" right after it ends.
-export function MatchResultScreen({ matchState, teamNames, onShare, onNextMatch, onBack }: Props) {
+// A finished Session match opened from its Session (or watched to the
+// end): who won, the score, and Share, at any time (DP-026). Right after
+// the umpire confirms, ResultSavedScreen shows instead (DP-025).
+export function MatchResultScreen({ matchState, teamNames, onShare, onBack }: Props) {
   const { t } = useTranslation();
 
   const winner = matchState.winner;
@@ -64,27 +61,12 @@ export function MatchResultScreen({ matchState, teamNames, onShare, onNextMatch,
         <ScoreRow name={teamNames.B} team="B" matchState={matchState} />
       </Card>
 
-      <VStack space="md">
-        {onNextMatch && (
-          <Button size="xl" className="w-full" onPress={onNextMatch}>
-            <HStack space="sm" className="items-center">
-              <ButtonText>
-                {t('nextMatch')}
-              </ButtonText>
-              <Icon name="arrow-forward" size="sm" color="onBrand" />
-            </HStack>
-          </Button>
-        )}
-        {/* Share is the main action when there's no "Next match" */}
-        <Button variant={onNextMatch ? 'outline' : 'solid'} size="xl" className="w-full" onPress={onShare}>
-          <HStack space="sm" className="items-center">
-            <Icon name="share-social-outline" size="sm" color={onNextMatch ? 'default' : 'onBrand'} />
-            <ButtonText variant={onNextMatch ? 'outline' : 'solid'}>
-              {t('shareResult')}
-            </ButtonText>
-          </HStack>
-        </Button>
-      </VStack>
+      <Button size="xl" className="w-full" onPress={onShare}>
+        <HStack space="sm" className="items-center">
+          <Icon name="share-outline" size="sm" color="onBrand" />
+          <ButtonText>{t('shareResultAction')}</ButtonText>
+        </HStack>
+      </Button>
     </ScrollPage>
   );
 }

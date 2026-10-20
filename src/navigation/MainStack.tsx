@@ -345,9 +345,10 @@ export function MainStack() {
           <ActivityMatchScreen
             activityId={route.params.activityId}
             onDone={() => navigation.goBack()}
+            onOpenMatch={(nextActivityId) => navigation.replace('ActivityMatch', { activityId: nextActivityId })}
             // Normally the match was opened from its Session's Matches tab:
             // go back there. Opened from a link, open that tab instead.
-            onNextMatch={(sessionId) => {
+            onBackToSession={(sessionId) => {
               const routes = navigation.getState().routes;
               const previous = routes[routes.length - 2];
               const cameFromSession =

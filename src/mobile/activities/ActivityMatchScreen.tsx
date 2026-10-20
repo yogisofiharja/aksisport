@@ -15,7 +15,7 @@ import {
 } from '../../sports/tennis/scoringEngine';
 import type { TeamASide, TeamNames } from '../../appTypes';
 import type { ActivityParticipant } from '../../core/api/types';
-import { getActivity, startActivity, completeActivity } from '../../core/activities/api';
+import { getActivity, startActivity, completeActivity, listActivities } from '../../core/activities/api';
 import { ApiRequestError } from '../../core/api/client';
 import { useAuth } from '../../core/auth/AuthContext';
 import { prefetchAudio, initAudio, playApplause } from '../../audio';
@@ -31,6 +31,7 @@ import { isFirebaseReady } from '../../firebase';
 import { MobileMatchScreen } from '../MobileMatchScreen';
 import { MatchResultScreen } from './MatchResultScreen';
 import { MatchFinishedScreen } from './MatchFinishedScreen';
+import { ResultSavedScreen } from './ResultSavedScreen';
 import { MatchStartScreen } from './MatchStartScreen';
 import { buildServiceOrder } from '../../core/activities/buildGeneratedMatchPayload';
 import { appAlert } from '../../design-system/feedback/appAlert';
@@ -41,9 +42,10 @@ import { useTranslation } from '../../i18n';
 type Props = {
   activityId: string;
   onDone: () => void;
-  // After a finished match: back to its Session's matches, to pick the
-  // next one.
-  onNextMatch: (sessionId: string) => void;
+  // Result saved → Back to session: the Session's Matches / Results tab.
+  onBackToSession: (sessionId: string) => void;
+  // Result saved → Set up next match: that match's start screen (DP-022).
+  onOpenMatch: (activityId: string) => void;
 };
 
 function cloneState(state: MatchState): MatchState {
@@ -60,7 +62,7 @@ function normalizeSide(side: string | undefined): TeamASide {
   return side === 'right' ? 'right' : 'left';
 }
 
-export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) {
+export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpenMatch }: Props) {
   const { t } = useTranslation();
   const { firebaseUser, profile } = useAuth();
   const [matchState, setMatchState] = useState<MatchState | null>(null);
@@ -85,6 +87,8 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
   // Confirm result (scorer) or the live copy's `confirmed` (spectators).
   const [confirmed, setConfirmed] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  // The Session's next queued match, offered on Result saved.
+  const [nextQueuedId, setNextQueuedId] = useState<string | null>(null);
 
   const startedRef = useRef(false);
   const completedRef = useRef(false);
@@ -253,6 +257,10 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
       await completeActivity(activityId, matchState, history);
       completedRef.current = true;
       setConfirmed(true);
+      if (sessionId) {
+        const acts = await listActivities(sessionId).catch(() => []);
+        setNextQueuedId(acts.find((a) => a.status === 'queued')?.id ?? null);
+      }
     } catch (err) {
       console.error('Failed to complete activity', err);
       appAlert(t('confirmResultFailed'), undefined, [{ text: t('ok') }]);
@@ -388,12 +396,18 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
     });
   }
 
-  // Leaving a finished match for the next one. Its result is saved on the
-  // server, so the scorer clears the live copy spectators were following.
-  function handleNextMatch() {
+  // Leaving a confirmed match. Its result is saved on the server, so the
+  // scorer clears the live copy spectators were following.
+  function handleBackToSession() {
     if (isScorer) deleteLiveMatch(activityId);
-    if (sessionId) onNextMatch(sessionId);
+    if (sessionId) onBackToSession(sessionId);
     else onDone();
+  }
+
+  function handleSetUpNextMatch() {
+    if (!nextQueuedId) return;
+    if (isScorer) deleteLiveMatch(activityId);
+    onOpenMatch(nextQueuedId);
   }
 
   if (loading) {
@@ -433,13 +447,20 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
   if (matchState.isEnded) {
     return (
       <>
-        <MatchResultScreen
-          matchState={matchState}
-          teamNames={teamNames}
-          onShare={handleShare}
-          onNextMatch={openedFinished ? undefined : handleNextMatch}
-          onBack={openedFinished ? onDone : undefined}
-        />
+        {isScorer && !openedFinished ? (
+          // Just confirmed here (DP-025).
+          <ResultSavedScreen
+            matchState={matchState}
+            teamNames={teamNames}
+            onShare={handleShare}
+            onSetUpNextMatch={nextQueuedId ? handleSetUpNextMatch : undefined}
+            onBackToSession={handleBackToSession}
+          />
+        ) : (
+          // A finished match opened later, or watched to the end: its
+          // result with Share (DP-026).
+          <MatchResultScreen matchState={matchState} teamNames={teamNames} onShare={handleShare} onBack={onDone} />
+        )}
         <NativeShareModal data={nativeShareData} onClose={() => setNativeShareData(null)} />
       </>
     );
