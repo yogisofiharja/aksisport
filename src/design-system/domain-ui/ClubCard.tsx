@@ -91,7 +91,7 @@ export function ClubCard({
             {name}
           </Text>
           {subline ? (
-            <Typography variant="caption" color="muted" className="font-sans leading-4" numberOfLines={1}>
+            <Typography variant="caption" color="muted" className="font-sans leading-4" numberOfLines={2}>
               {subline}
             </Typography>
           ) : null}
@@ -118,7 +118,7 @@ export function ClubCard({
           {name}
         </Text>
         {subline ? (
-          <Typography variant="body" color="muted" className="text-[13px] leading-[18px]" numberOfLines={1}>
+          <Typography variant="body" color="muted" className="text-[13px] leading-[18px]" numberOfLines={2}>
             {subline}
           </Typography>
         ) : null}
