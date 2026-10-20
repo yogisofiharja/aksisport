@@ -10,7 +10,7 @@ import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Card } from '../../design-system/ui/Card';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
-import { SessionCard } from '../../design-system/domain-ui/SessionCard';
+import { LegacySessionCard as SessionCard } from '../../design-system/domain-ui/legacy/LegacySessionCard';
 import type { BadgeAction } from '../../design-system/ui/Badge';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';

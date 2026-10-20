@@ -11,7 +11,7 @@ import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
-import { SessionCard } from '../../design-system/domain-ui/SessionCard';
+import { LegacySessionCard as SessionCard } from '../../design-system/domain-ui/legacy/LegacySessionCard';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';

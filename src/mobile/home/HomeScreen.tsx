@@ -9,7 +9,7 @@ import { Typography } from '../../design-system/ui/Typography';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { Icon } from '../../design-system/ui/Icon';
-import { SessionCard } from '../../design-system/domain-ui/SessionCard';
+import { LegacySessionCard as SessionCard } from '../../design-system/domain-ui/legacy/LegacySessionCard';
 import { useTranslation } from '../../i18n';
 import { authHeader } from '../../core/api/client';
 import { listClubs, clubAvatarUrl } from '../../core/clubs/api';

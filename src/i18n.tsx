@@ -715,6 +715,17 @@ const en: Dict = {
   // Me (Milestone 1)
   meSportsTitle: 'Sports',
   logout: 'Log Out',
+
+  // Domain cards and app bar (design system)
+  cardPlayers: (count: number) => `${count} ${count === 1 ? 'player' : 'players'}`,
+  cardOpenMatches: 'Open matches',
+  cardPrivate: 'private',
+  cardRepeatsWeekly: 'Repeats weekly',
+  cardCourt: (n: number) => `Court ${n}`,
+  cardYourMatch: 'Your match',
+  cardServing: 'Serving',
+  cardWinner: 'Winner',
+  appBarMore: 'More',
 };
 
 const id: Dict = {
@@ -1426,6 +1437,17 @@ const id: Dict = {
   // Me (Milestone 1)
   meSportsTitle: 'Olahraga',
   logout: 'Keluar',
+
+  // Domain cards and app bar (design system)
+  cardPlayers: (count: number) => `${count} pemain`,
+  cardOpenMatches: 'Buka match',
+  cardPrivate: 'privat',
+  cardRepeatsWeekly: 'Berulang tiap minggu',
+  cardCourt: (n: number) => `Lapangan ${n}`,
+  cardYourMatch: 'Match kamu',
+  cardServing: 'Servis',
+  cardWinner: 'Pemenang',
+  appBarMore: 'Lainnya',
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

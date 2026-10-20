@@ -12,6 +12,11 @@ import { AccessibilityInfo, Animated, Text, View } from 'react-native';
  *
  * The plain tones (success, heat, error, info, muted) are tags without a
  * dot: Joined, Private, Won, In range.
+ *
+ * `caps` is the card pill (Aksi redesign › Cards): 22px tall, 11px bold
+ * uppercase, as on SessionCard, RecurringScheduleCard and a PlayerCard's
+ * Paid / Awaiting. In it Full carries a ball dot, and Completed is a muted
+ * pill rather than an outline, since cards already have a border.
  */
 
 export type LifecycleStatus = 'draft' | 'recruiting' | 'ready' | 'full' | 'live' | 'completed' | 'cancelled';
@@ -55,6 +60,11 @@ const actionClasses: Record<Action, { bg: string; text: string; dot?: string }> 
 
 export type BadgeAction = Action;
 
+const capsOverrides: Partial<Record<Action, { bg: string; text: string; dot?: string }>> = {
+  full: { bg: 'bg-asphalt dark:bg-asphalt-dark', text: 'text-on-asphalt', dot: 'bg-ball' },
+  completed: actionClasses.draft,
+};
+
 // The Live dot breathes; it holds still when the person asks for reduced
 // motion.
 function PulsingDot({ className }: { className: string }) {
@@ -87,14 +97,16 @@ function PulsingDot({ className }: { className: string }) {
   );
 }
 
-type BadgeProps = { action?: Action; text: string; className?: string };
+type BadgeProps = { action?: Action; text: string; caps?: boolean; className?: string };
 
-export function Badge({ action = 'muted', text, className = '' }: BadgeProps) {
-  const { bg, text: textClass, dot } = actionClasses[action];
+export function Badge({ action = 'muted', text, caps = false, className = '' }: BadgeProps) {
+  const { bg, text: textClass, dot } = (caps && capsOverrides[action]) || actionClasses[action];
+  const shape = caps ? 'h-[22px] gap-1 px-2' : 'gap-1.5 px-2.5 py-1';
+  const type = caps ? 'text-[11px] leading-4 tracking-[0.9px] uppercase' : 'text-xs';
   return (
-    <View className={`${bg} flex-row items-center gap-1.5 self-start rounded-full px-2.5 py-1 ${className}`}>
+    <View className={`${bg} flex-row items-center self-start rounded-full ${shape} ${className}`}>
       {dot && (action === 'live' ? <PulsingDot className={dot} /> : <View className={`w-1.5 h-1.5 rounded-full ${dot}`} />)}
-      <Text className={`${textClass} text-xs font-sans-bold`}>{text}</Text>
+      <Text className={`${textClass} ${type} font-sans-bold`}>{text}</Text>
     </View>
   );
 }

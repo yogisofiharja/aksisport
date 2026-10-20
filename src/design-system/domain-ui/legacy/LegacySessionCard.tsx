@@ -1,8 +1,12 @@
-import { Card } from '../ui/Card';
-import { Badge, type BadgeAction } from '../ui/Badge';
-import { Typography } from '../ui/Typography';
-import { HStack } from '../layout/HStack';
-import { VStack } from '../layout/VStack';
+// Legacy: the pre-redesign card, kept so screens look unchanged while the
+// redesigned card (../SessionCard) waits for review in the Component Gallery.
+// Removed when the screens swap to the new card.
+
+import { Card } from '../../ui/Card';
+import { Badge, type BadgeAction } from '../../ui/Badge';
+import { Typography } from '../../ui/Typography';
+import { HStack } from '../../layout/HStack';
+import { VStack } from '../../layout/VStack';
 
 /**
  * Matches SessionListScreen's existing session row (title, optional
@@ -32,7 +36,7 @@ type SessionCardProps = {
   className?: string;
 };
 
-export function SessionCard({
+export function LegacySessionCard({
   title,
   subtitle,
   dateTime,
