@@ -6,6 +6,28 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.28.0
+
+- DP-007: creating a Recurring Schedule shows a **Check your schedule**
+  screen after the form (Create schedule / Discard with confirmation; no
+  draft; Back keeps the form). Flow only — what a schedule owns,
+  generation and editing are unchanged.
+- New DP-027: Unfinished Matches When a Session Ends — when a Session
+  auto-completes, queued matches become Not played; a live match keeps
+  going and the umpire confirms it as usual, or after a 1-hour grace
+  period it is saved as Unfinished with its last score (no win/loss, not
+  shareable). Existing Sessions in this state are cleaned up once.
+- Copy only, no decision change (create-session and recurring forms):
+  "Generate how many days before?" → "Open days ahead", with the hint
+  "Each session is published this many days before it starts, so players
+  can join."; the recurring form's button "Create" → "Continue" (to the
+  check screen, whose button is "Create schedule"); the Discard dialog's
+  dismiss "Cancel" → "Keep editing"; the recurring form notes the first
+  Session and when it opens ("First session: Sat 24 Oct, 07:00. It opens
+  on Wed 21 Oct.", computed from weekday, time and days ahead).
+
+---
+
 ## v0.27.1
 
 - DP-017: city and regency names drop the "Kota Administrasi",

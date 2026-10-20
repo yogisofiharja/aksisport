@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.27.1
+Version: 0.28.0
 
 Status: Living Document
 
@@ -737,6 +737,20 @@ The Template consists of the Organizer Preferences defined in DP-004. It is not 
 Each point in time defined by the Recurrence Rule is an occurrence. An occurrence generates at most one Session.
 
 Occurrence tracking is an internal implementation detail. It is not required to become a first-class domain object.
+
+### Creating a Schedule: Check Screen
+
+- Creating a Recurring Schedule shows a check screen, **Check your
+  schedule**, after the form — like the ad-hoc Session preview.
+- It shows: name, Activity Type, weekday and time–end time, venue, how
+  many days ahead each Session opens, the first Session's date, players /
+  host playing, match format, skill level, price.
+- Actions: **Create schedule** and **Discard** (Discard asks to confirm).
+  There is no "Save as draft": a schedule has no draft, and its generated
+  Sessions are published automatically (unchanged).
+- Back returns to the form with everything kept.
+- Scope: the creation flow only. No change to what a schedule owns,
+  generation, or editing rules.
 
 ### Schedule Editing
 
@@ -1803,6 +1817,42 @@ Approved
   players, the score and the logo — no Session name or format line.
 - The **Results** list shows **all matches** by default, with a **"My
   matches only"** switch.
+
+---
+
+## DP-027 — Unfinished Matches When a Session Ends
+
+Status
+
+Approved
+
+Fills a gap in DP-001 and DP-009: the auto-transition completes the
+Session but leaves its matches live or queued forever.
+
+### Decision
+
+When a Session's Duration elapses and it moves to Completed (DP-009,
+unchanged):
+
+- **Queued matches become Not played.** They are kept, never started, and
+  never count in results or stats. The Results list (DP-026) shows them
+  collapsed at the end as "3 matches not played".
+- **A live match keeps going.** The umpire keeps scoring on the Completed
+  Session and confirms the result as usual (DP-025). Watch keeps working
+  for everyone.
+- **Grace period: 1 hour after the Session's end.** A live match not
+  confirmed by then is saved as **Unfinished** with its last score. It
+  shows in Results with that score and an "Unfinished" label, does not
+  count as a win or loss, and cannot be shared (DP-026 covers finished
+  matches only).
+- Nothing new can start on a Completed Session (unchanged).
+
+### Scope
+
+- No change to when a Session completes.
+- Applies to ad-hoc and generated Sessions.
+- Existing Sessions already in this state are cleaned up once, by the
+  same rules.
 
 ---
 
