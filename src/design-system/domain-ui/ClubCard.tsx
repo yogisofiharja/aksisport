@@ -1,43 +1,135 @@
-import { Card } from '../ui/Card';
+import { Image, Pressable, Text, View, type ImageSourcePropType } from 'react-native';
+import { initialsFromName } from '../../core/initials';
+import { useTranslation } from '../../i18n';
+import { Icon } from '../ui/Icon';
 import { Typography } from '../ui/Typography';
-import { VStack } from '../layout/VStack';
 
 /**
- * Matches ClubListScreen's existing club row (name + role label, pressable).
- * DOMAIN_UI.md: renders only, never fetches or navigates — `onPress` is a
- * plain callback, the screen decides what happens.
+ * A Community (Aksi redesign › ClubCard), two layouts from the same props:
  *
- * Typography here uses `className` overrides on top of `variant="body"`,
- * not `title`/`label` — checked against the literal migration source
- * during Phase 6: the original name is `text-lg font-bold` (18px/700), not
- * `title`'s `text-2xl font-black` (24px/900); the subtitle is
- * `text-sm text-ink-muted dark:text-ink-muted-dark` (regular weight), not `label`'s
- * `text-sm font-bold`. An earlier version of this component used those
- * variants directly, based on what sounded semantically right rather than
- * a check against the actual classes — caught here, before this component
- * was used in a real screen for the first time.
+ * - `tile` (Home): 150px wide, avatar over the name and "Owner · Jakarta
+ *   Selatan" (`roleLabel` · `cityName`).
+ * - `row` (Explore): avatar, name, "Jakarta Pusat · 42 members", plus
+ *   "· private" for a private Community. Trailing: "Joined" when the viewer
+ *   has a role, "Requested" while their request is pending, otherwise a
+ *   chevron. Tapping opens the Community page; Join lives there, never on
+ *   the row.
+ *
+ * The avatar is the Community's image when `hasAvatar` and the screen
+ * passes `avatarSource` (it needs auth headers, which only the screen
+ * knows), otherwise initials on heat-tint. 44px, radius 12.
+ *
+ * Renders only (DOMAIN_UI.md): `onPress` is a plain callback.
  */
 
 type ClubCardProps = {
   name: string;
-  subtitle?: string; // role label, e.g. "Owner" / "Admin" / "Member"
+  variant?: 'tile' | 'row';
+  hasAvatar?: boolean;
+  avatarSource?: ImageSourcePropType;
+  /** Translated role, e.g. "Owner" (tile). */
+  roleLabel?: string;
+  cityName?: string;
+  /** Row only. */
+  memberCount?: number;
+  isPrivate?: boolean;
+  /** Row only: the viewer is a member. */
+  viewerRole?: string;
+  /** Row only: the viewer asked to join and is waiting. */
+  viewerRequestPending?: boolean;
   onPress?: () => void;
   className?: string;
 };
 
-export function ClubCard({ name, subtitle, onPress, className = '' }: ClubCardProps) {
+// Plain Text, not Typography's `title`: its 26px line height would win over
+// a className override.
+const NAME = 'font-display text-[17px] leading-[22px] text-ink dark:text-ink-dark';
+
+function ClubAvatar({ name, hasAvatar, source }: { name: string; hasAvatar?: boolean; source?: ImageSourcePropType }) {
   return (
-    <Card pressable={Boolean(onPress)} onPress={onPress} className={className}>
-      <VStack space="xs">
-        <Typography variant="body" color="default" className="text-lg font-bold" numberOfLines={1}>
+    <View className="w-11 h-11 rounded-xl overflow-hidden items-center justify-center bg-heat-tint dark:bg-heat-tint-dark">
+      {hasAvatar && source ? (
+        <Image source={source} style={{ width: '100%', height: '100%' }} accessibilityIgnoresInvertColors />
+      ) : (
+        <Text className="font-display text-lg leading-[22px] text-heat-strong dark:text-heat-strong-dark">{initialsFromName(name)}</Text>
+      )}
+    </View>
+  );
+}
+
+export function ClubCard({
+  name,
+  variant = 'row',
+  hasAvatar,
+  avatarSource,
+  roleLabel,
+  cityName,
+  memberCount,
+  isPrivate = false,
+  viewerRole,
+  viewerRequestPending = false,
+  onPress,
+  className = '',
+}: ClubCardProps) {
+  const { t } = useTranslation();
+  const frame = `bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl ${
+    onPress ? 'active:opacity-70' : ''
+  }`;
+
+  if (variant === 'tile') {
+    const subline = [roleLabel, cityName].filter(Boolean).join(' · ');
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={!onPress}
+        accessibilityRole={onPress ? 'button' : undefined}
+        className={`w-[150px] p-3.5 gap-2.5 ${frame} ${className}`}
+      >
+        <ClubAvatar name={name} hasAvatar={hasAvatar} source={avatarSource} />
+        <View>
+          <Text className={NAME} numberOfLines={2}>
+            {name}
+          </Text>
+          {subline ? (
+            <Typography variant="caption" color="muted" className="font-sans leading-4" numberOfLines={1}>
+              {subline}
+            </Typography>
+          ) : null}
+        </View>
+      </Pressable>
+    );
+  }
+
+  const subline = [cityName, memberCount != null ? t('clubMemberCount', memberCount) : undefined, isPrivate ? t('cardPrivate') : undefined]
+    .filter(Boolean)
+    .join(' · ');
+  const trailing = viewerRole ? t('clubJoinedBadge') : viewerRequestPending ? t('clubRequestedBadge') : null;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      className={`flex-row items-center gap-3 px-3.5 py-3 ${frame} ${className}`}
+    >
+      <ClubAvatar name={name} hasAvatar={hasAvatar} source={avatarSource} />
+      <View className="flex-1 min-w-0">
+        <Text className={NAME} numberOfLines={1}>
           {name}
-        </Typography>
-        {subtitle && (
-          <Typography variant="body" color="muted" className="text-sm">
-            {subtitle}
+        </Text>
+        {subline ? (
+          <Typography variant="body" color="muted" className="text-[13px] leading-[18px]" numberOfLines={1}>
+            {subline}
           </Typography>
-        )}
-      </VStack>
-    </Card>
+        ) : null}
+      </View>
+      {trailing ? (
+        <Typography variant="body" color="muted" className="text-[13px] font-semibold">
+          {trailing}
+        </Typography>
+      ) : (
+        <Icon name="chevron-forward" size="md" color="muted" />
+      )}
+    </Pressable>
   );
 }
