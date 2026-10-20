@@ -46,6 +46,10 @@ import { PlayersTab } from './tabs/PlayersTab';
 import { MatchesTab } from './tabs/MatchesTab';
 import { MatchSetup } from './tabs/MatchSetup';
 import { ChatTab } from './tabs/ChatTab';
+import { SessionMenuSheet } from './SessionMenuSheet';
+import { Sheet } from '../../design-system/feedback/Sheet';
+import { IconButton } from '../../design-system/ui/IconButton';
+import { sessionLink, shareLink } from '../../platform/shareLink';
 import type { MatchFormat, MatchMode } from '../../sports/tennis/scoringEngine';
 import { minParticipants } from '../../sports/tennis/rules';
 import type {
@@ -600,21 +604,17 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     ]);
   }
 
-  // Edit/Cancel deliberately live behind a top-right "⋮" menu, not as
-  // always-visible buttons on the Details tab — both are easy to
-  // misclick when sitting in the same scroll flow as everything else,
-  // Cancel especially. Publish/Discard stay inline (Draft-only, and
-  // Publish is the primary action while reviewing a Draft, not
-  // something to bury). handleCancel above still shows its own confirm
-  // dialog once selected here — this menu is a first tap, not the
-  // final confirmation.
-  function handleSessionMenu() {
-    if (busy) return;
-    const options: Array<{ text: string; style?: 'default' | 'cancel' | 'destructive'; onPress?: () => void }> = [];
-    if (canEditConfiguration) options.push({ text: t('sessionEdit'), onPress: () => onEdit(sessionId) });
-    if (isOwnerOrAdmin && isSessionActive && isPublished) options.push({ text: t('sessionCancel'), style: 'destructive', onPress: handleCancel });
-    options.push({ text: t('clubCancel'), style: 'cancel' });
-    appAlert(t('sessionMenuTitle'), undefined, options);
+  // The organizer's ⋯ menu (DP-024): Edit, Match setup, Share, and Cancel
+  // session last in its own group. Edit and Cancel live here rather than
+  // inline — both are easy to misclick in the same scroll flow as
+  // everything else; handleCancel still asks to confirm.
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [matchSetupVisible, setMatchSetupVisible] = useState(false);
+
+  async function handleShareSession() {
+    if (!session) return;
+    const outcome = await shareLink(sessionLink(sessionId), session.name || session.sport);
+    if (outcome === 'copied') appAlert(t('sessionLinkCopiedTitle'), t('sessionLinkCopiedDesc'));
   }
 
   async function handleAddGuest(): Promise<boolean> {
@@ -762,10 +762,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
             <Icon name="arrow-back" size="lg" />
           </Pressable>
-          {(canEditConfiguration || (isOwnerOrAdmin && isSessionActive && isPublished)) && (
-            <Pressable className="p-2 -mr-2 active:opacity-60" onPress={handleSessionMenu} hitSlop={4}>
-              <Icon name="ellipsis-vertical" size="lg" />
-            </Pressable>
+          {isOwnerOrAdmin && (
+            <IconButton icon="ellipsis-horizontal" label={t('sessionMenuTitle')} onPress={() => setMenuVisible(true)} className="-mr-2" />
           )}
         </HStack>
         <VStack className="gap-0.5">
@@ -817,10 +815,6 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           />
         )}
 
-        {activeTab === 'details' && isOwnerOrAdmin && (
-          <MatchSetup session={session} canEdit={canEditConfiguration} busy={busy} onEdit={() => onEdit(sessionId)} />
-        )}
-
         {activeTab === 'players' && (
           <PlayersTab
             session={session}
@@ -859,6 +853,48 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         )}
       </ScrollView>
       )}
+
+      <SessionMenuSheet
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        items={[
+          ...(canEditConfiguration
+            ? [{ key: 'edit', icon: 'create-outline' as const, label: t('sessionEdit'), opensMore: true, onPress: () => onEdit(sessionId) }]
+            : []),
+          {
+            key: 'setup',
+            icon: 'options-outline' as const,
+            label: t('sessionMatchSetup'),
+            hint: t('sessionMatchSetupHint'),
+            opensMore: true,
+            onPress: () => setMatchSetupVisible(true),
+          },
+          { key: 'share', icon: 'share-outline' as const, label: t('sessionShareLink'), onPress: handleShareSession },
+          ...(isSessionActive && isPublished
+            ? [
+                {
+                  key: 'cancel',
+                  icon: 'close-circle-outline' as const,
+                  label: t('sessionCancel'),
+                  hint: t('sessionCancelHint'),
+                  destructive: true,
+                  onPress: handleCancel,
+                },
+              ]
+            : []),
+        ]}
+      />
+      <Sheet visible={matchSetupVisible} onClose={() => setMatchSetupVisible(false)} title={t('sessionMatchSetup')}>
+        <MatchSetup
+          session={session}
+          canEdit={canEditConfiguration}
+          busy={busy}
+          onEdit={() => {
+            setMatchSetupVisible(false);
+            onEdit(sessionId);
+          }}
+        />
+      </Sheet>
 
       <AddParticipantSheet
         step={addParticipantStep}

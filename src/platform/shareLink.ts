@@ -15,6 +15,12 @@ export function clubLink(clubId: string): string {
   return `${appOrigin()}/clubs/${clubId}`;
 }
 
+// The link a Session is shared by. The path matches the SessionDetail
+// route in navigation/linking.ts.
+export function sessionLink(sessionId: string): string {
+  return `${appOrigin()}/sessions/${sessionId}`;
+}
+
 export type ShareOutcome = 'shared' | 'copied' | 'failed';
 
 // Hands a link to the platform's own share sheet where there is one
