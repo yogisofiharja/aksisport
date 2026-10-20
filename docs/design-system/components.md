@@ -97,7 +97,7 @@ The app bar sits at the top of every screen: back, title, up to two actions.
 - Large (`ak-appbar--large`): root tab screens (Home, Explore, Inbox, Me). Title in the display face at 30px, actions above it on the right.
 - Background `ground` with a `border` hairline; it stays put while content scrolls.
 - Overflow actions (Edit, Duplicate, Cancel session) go behind the "more" button into an action Sheet, not a dropdown.
-- Pad the top by `useSafeAreaInsets().top`. In code: the React Navigation header in `navigation/MainStack.tsx`, styled to this spec, or a custom `header` component.
+- Pad the top by `useSafeAreaInsets().top`. In code: `layout/AppBar.tsx` (`root`, `stack`, `form`; `tone="dark"` for live scoring). The redesign canvas sets the root title at 34px Saira italic and puts a form screen's ✕ Close on the left.
 
 ### TabBar
 
@@ -177,7 +177,7 @@ A session card summarizes one Session in a list: sport, status, name, when, wher
 
 The consumer provides the data and one action that fits the viewer's state (Join, Pay, Check in, Open matches).
 
-In code: `domain-ui/SessionCard.tsx` on the `ui/Card.tsx` shell.
+In code: `domain-ui/SessionCard.tsx`, following the redesign canvas (eyebrow date · time, footer price and capacity with an ink bar; see `codebase.md`).
 
 ### ListItem
 

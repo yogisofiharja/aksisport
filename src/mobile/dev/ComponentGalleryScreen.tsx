@@ -16,12 +16,22 @@ import { Progress } from '../../design-system/feedback/Progress';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { appAlert, toast } from '../../design-system/feedback/appAlert';
 import { ActionBar } from '../../design-system/layout/ActionBar';
+import { AppBar } from '../../design-system/layout/AppBar';
+import { IconButton } from '../../design-system/ui/IconButton';
+import { SessionCard } from '../../design-system/domain-ui/SessionCard';
+import { ClubCard } from '../../design-system/domain-ui/ClubCard';
+import { RecurringScheduleCard } from '../../design-system/domain-ui/RecurringScheduleCard';
+import { PlayerCard } from '../../design-system/domain-ui/PlayerCard';
+import { MatchCard, MatchWatchLink } from '../../design-system/domain-ui/MatchCard';
 
 // Development only (registered in MainStack under __DEV__, at
 // /dev/components): every design-system component on one page, in the
 // current theme, for review and screenshots. Not translated on purpose.
 
 const STATUSES: BadgeAction[] = ['draft', 'recruiting', 'ready', 'full', 'live', 'completed', 'cancelled'];
+const LOGO = require('../../../assets/icon.png');
+const noop = () => {};
+
 const TAGS: BadgeAction[] = ['success', 'heat', 'error', 'info', 'muted'];
 const ART: IllustrationName[] = [
   'no-sessions',
@@ -34,6 +44,14 @@ const ART: IllustrationName[] = [
   'match-won',
   'no-members',
 ];
+
+function Caption({ children }: { children: string }) {
+  return (
+    <Typography variant="caption" color="muted" className="-mb-1">
+      {children}
+    </Typography>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -87,6 +105,272 @@ export function ComponentGalleryScreen({ onBack }: { onBack: () => void }) {
           </View>
         </Section>
 
+        <Section title="SessionCard">
+          <Caption>In progress</Caption>
+          <SessionCard
+            title="Sabtu Pagi Doubles"
+            dateTime="Today · 07:00–09:00"
+            status="Live"
+            statusAction="live"
+            sport="Tennis"
+            activityType="Doubles"
+            subtitle="Lapangan Tenis Senayan"
+            joinedCount={8}
+            maxParticipants={12}
+            onPress={noop}
+          />
+          <Caption>Recruiting · recurring · per person</Caption>
+          <SessionCard
+            title="Rabu Malam Social"
+            dateTime="Wed 22 Oct · 19:00"
+            isRecurring
+            status="Recruiting"
+            statusAction="recruiting"
+            sport="Tennis"
+            activityType="Doubles"
+            subtitle="Senayan"
+            priceLabel="Rp 50.000 per person"
+            joinedCount={6}
+            maxParticipants={12}
+            onPress={noop}
+          />
+          <Caption>Ready · free</Caption>
+          <SessionCard
+            title="Sabtu Pagi Doubles"
+            dateTime="Sat 25 Oct · 07:00"
+            isRecurring
+            status="Ready"
+            statusAction="ready"
+            sport="Tennis"
+            activityType="Doubles"
+            subtitle="Senayan"
+            priceLabel="Free"
+            joinedCount={8}
+            maxParticipants={12}
+            onPress={noop}
+          />
+          <Caption>Full · split bill</Caption>
+          <SessionCard
+            title="Minggu Sore Singles"
+            dateTime="Sun 26 Oct · 16:00"
+            status="Full"
+            statusAction="full"
+            sport="Tennis"
+            activityType="Singles"
+            subtitle="Senayan"
+            priceLabel="Split bill"
+            joinedCount={4}
+            maxParticipants={4}
+            onPress={noop}
+          />
+          <Caption>No player limit</Caption>
+          <SessionCard
+            title="Morning drills"
+            dateTime="Thu 23 Oct · 06:00"
+            status="Recruiting"
+            statusAction="recruiting"
+            sport="Tennis"
+            activityType="Class"
+            subtitle="Senayan"
+            priceLabel="Free"
+            joinedCount={5}
+            onPress={noop}
+          />
+          <Caption>Draft</Caption>
+          <SessionCard
+            title="Turnamen kecil"
+            dateTime="Sat 1 Nov · 07:00"
+            status="Draft"
+            statusAction="draft"
+            sport="Tennis"
+            activityType="Doubles"
+            subtitle="Senayan"
+            priceLabel="Free"
+            joinedCount={0}
+            maxParticipants={8}
+            onPress={noop}
+          />
+          <Caption>Completed</Caption>
+          <SessionCard
+            title="Sabtu Pagi Doubles"
+            dateTime="Sat 18 Oct · 07:00"
+            status="Completed"
+            statusAction="completed"
+            sport="Tennis"
+            activityType="Doubles"
+            subtitle="Senayan"
+            joinedCount={10}
+            maxParticipants={12}
+            onPress={noop}
+          />
+          <Caption>Cancelled</Caption>
+          <SessionCard
+            title="Rabu Malam Social"
+            dateTime="Wed 15 Oct · 19:00"
+            status="Cancelled"
+            statusAction="cancelled"
+            sport="Tennis"
+            activityType="Doubles"
+            subtitle="Senayan"
+            onPress={noop}
+          />
+        </Section>
+
+        <Section title="ClubCard">
+          <Caption>Tile (Home): image, initials</Caption>
+          <View className="flex-row gap-2.5">
+            <ClubCard variant="tile" name="AKSI" hasAvatar avatarSource={LOGO} roleLabel="Owner" cityName="Jakarta Selatan" onPress={noop} />
+            <ClubCard variant="tile" name="Senayan Tennis Club" roleLabel="Member" cityName="Jakarta Pusat" onPress={noop} />
+          </View>
+          <Caption>Row (Explore): open, requested, joined</Caption>
+          <ClubCard name="Senayan Tennis Club" cityName="Jakarta Pusat" memberCount={42} onPress={noop} />
+          <ClubCard
+            name="Bintaro Tennis"
+            cityName="Tangerang Selatan"
+            memberCount={18}
+            isPrivate
+            viewerRequestPending
+            onPress={noop}
+          />
+          <ClubCard name="AKSI" hasAvatar avatarSource={LOGO} cityName="Jakarta Selatan" memberCount={24} viewerRole="owner" onPress={noop} />
+        </Section>
+
+        <Section title="RecurringScheduleCard">
+          <RecurringScheduleCard title="Sabtu Pagi Doubles" subtitle="Every Sat · 07:00–09:00" statusLabel="Active" isPaused={false} onPress={noop} />
+          <RecurringScheduleCard title="Rabu Malam Social" subtitle="Every Wed · 19:00–21:00" statusLabel="Paused" isPaused onPress={noop} />
+        </Section>
+
+        <Section title="PlayerCard">
+          <Caption>Members tab</Caption>
+          <PlayerCard name="Yogi Harja" subtitle="@yogiharja" isOnline trailing={<Chip label="Owner" strong />} />
+          <PlayerCard
+            name="Dimas Arya"
+            subtitle="@dimas"
+            trailing={
+              <View className="flex-row items-center">
+                <Chip label="Admin" className="self-center" />
+                <IconButton icon="ellipsis-horizontal" label="More" size="md" onPress={noop} />
+              </View>
+            }
+          />
+          <PlayerCard
+            name="Rina Sari"
+            subtitle="@rinasari · asked to join"
+            isOnline
+            trailing={
+              <Button size="sm">
+                <ButtonText>Approve</ButtonText>
+              </Button>
+            }
+          />
+          <Caption>Players tab (session)</Caption>
+          <PlayerCard name="Yogi Harja" subtitle="Checked in · host" isOnline trailing={<Badge action="ready" text="Paid" caps />} />
+          <PlayerCard
+            name="Budi Wijaya"
+            subtitle="Registered"
+            trailing={
+              <View className="flex-row items-center">
+                <Badge action="draft" text="Awaiting" caps className="self-center" />
+                <IconButton icon="ellipsis-horizontal" label="More" size="md" onPress={noop} />
+              </View>
+            }
+          />
+          <PlayerCard name="Andre (guest)" subtitle="Guest · checked in" isGuest trailing={<Badge action="ready" text="Paid" caps />} />
+        </Section>
+
+        <Section title="MatchCard">
+          <Caption>Queued</Caption>
+          <MatchCard
+            status="queued"
+            queueNumber={2}
+            court={2}
+            matchup="Budi & Sari vs Andi & Tomi"
+            statusLabel="queued"
+            action={
+              <Button size="sm">
+                <ButtonText>Start match</ButtonText>
+              </Button>
+            }
+          />
+          <Caption>Queued, without a court</Caption>
+          <MatchCard status="queued" queueNumber={3} matchup="Dimas & Rani vs Kevin & Lia" statusLabel="Queued" />
+          <Caption>Your match</Caption>
+          <MatchCard
+            status="queued"
+            isMine
+            court={2}
+            matchup="You & Kevin vs Dimas & Rani"
+            sides={[{ names: 'You & Kevin' }, { names: 'Dimas & Rani' }]}
+            statusLabel="Queued"
+          />
+          <Caption>Live</Caption>
+          <MatchCard
+            status="live"
+            court={1}
+            statusLabel="Race to 4"
+            matchup="Budi / Andi vs Sari / Tomi"
+            sides={[
+              { names: 'Budi / Andi', games: 3, points: 30, serving: true },
+              { names: 'Sari / Tomi', games: 2, points: 15 },
+            ]}
+            action={<MatchWatchLink label="Watch" onPress={noop} />}
+          />
+          <Caption>Live, no score loaded</Caption>
+          <MatchCard
+            status="live"
+            statusLabel="Race to 4"
+            matchup="Budi / Andi vs Sari / Tomi"
+            action={<MatchWatchLink label="Watch" onPress={noop} />}
+          />
+          <Caption>Finished</Caption>
+          <MatchCard
+            status="completed"
+            court={1}
+            statusLabel="07:42"
+            matchup="Budi / Andi vs Sari / Tomi"
+            sides={[
+              { names: 'Budi / Andi', games: 4, winner: true },
+              { names: 'Sari / Tomi', games: 2 },
+            ]}
+            onShare={noop}
+            onPress={noop}
+          />
+        </Section>
+
+        <Section title="AppBar">
+          <Caption>Root</Caption>
+          <View className="rounded-xl overflow-hidden border border-border dark:border-border-dark">
+            <AppBar
+              variant="root"
+              dateLine="Monday 20 Oct"
+              title="Hi, Yogi"
+              actions={[{ icon: 'notifications-outline', label: 'Notifications', onPress: noop }]}
+            />
+          </View>
+          <Caption>Stack</Caption>
+          <View className="rounded-xl overflow-hidden border border-border dark:border-border-dark">
+            <AppBar
+              title="Sabtu Pagi Doubles"
+              context="Senayan Tennis Club"
+              onBack={noop}
+              actions={[{ icon: 'share-outline', label: 'Share', onPress: noop }]}
+              onMore={noop}
+            />
+          </View>
+          <Caption>Stack, large title (community tabs)</Caption>
+          <View className="rounded-xl overflow-hidden border border-border dark:border-border-dark">
+            <AppBar onBack={noop} onMore={noop} largeTitle="Sessions" />
+          </View>
+          <Caption>Form</Caption>
+          <View className="rounded-xl overflow-hidden border border-border dark:border-border-dark">
+            <AppBar variant="form" title="New session" context="Senayan Tennis Club" onClose={noop} />
+          </View>
+          <Caption>Dark (live scoring)</Caption>
+          <View className="rounded-xl overflow-hidden">
+            <AppBar tone="dark" title="Court 1" context="Race to 4 · you are umpire" onBack={noop} onMore={noop} />
+          </View>
+        </Section>
+
         <Section title="Chips and counts">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {['all', 'tennis', 'padel', 'pickleball'].map((f) => (
@@ -95,7 +379,7 @@ export function ComponentGalleryScreen({ onBack }: { onBack: () => void }) {
           </ScrollView>
           <View className="flex-row items-center gap-3">
             <Chip label="Intermediate" />
-            <Chip label="Admin" />
+            <Chip label="Admin" className="self-center" />
             <CountBadge count={3} />
             <CountBadge count={128} />
             <CountBadge count={12} muted />
@@ -242,7 +526,7 @@ export function ComponentGalleryScreen({ onBack }: { onBack: () => void }) {
         onCancel={() => setDialog(false)}
         onConfirm={() => setDialog(false)}
       />
-      <Sheet visible={sheet} onClose={() => setSheet(false)} title="Session" description="Choose what to do with this Session.">
+      <Sheet visible={sheet} onClose={() => setSheet(false)} title="Session options" description="Choose what to do with this Session.">
         <Button variant="outline" size="lg" className="w-full" onPress={() => setSheet(false)}>
           <ButtonText>Edit</ButtonText>
         </Button>
