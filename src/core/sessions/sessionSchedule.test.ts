@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sessionDateBucket } from './sessionSchedule';
+import { formatSessionWhen, sessionDateBucket } from './sessionSchedule';
 import type { Session } from '../api/types';
 
 function session(overrides: Partial<Session>): Session {
@@ -67,5 +67,23 @@ describe('sessionDateBucket', () => {
 
   it('buckets a past-dated open Session as past', () => {
     expect(sessionDateBucket(session({ status: 'open', startsAt: PAST_STARTS_AT }), NOW)).toBe('past');
+  });
+});
+
+describe('formatSessionWhen', () => {
+  const at = (h: number, m = 0) => new Date(2026, 9, 22, h, m).toISOString(); // Thu 22 Oct 2026, local time
+
+  it('shows weekday, date and 24-hour start time', () => {
+    expect(formatSessionWhen({ startsAt: at(19), lifecycleStatus: 'recruiting' }, 'en', 'Today')).toBe('Thu 22 Oct · 19:00');
+  });
+
+  it('shows the time range under the caller’s "Today" while in progress', () => {
+    expect(
+      formatSessionWhen({ startsAt: at(7), durationMinutes: 120, lifecycleStatus: 'in_progress' }, 'en', 'Today')
+    ).toBe('Today · 07:00–09:00');
+  });
+
+  it('is undefined without a start time', () => {
+    expect(formatSessionWhen({ lifecycleStatus: 'draft' }, 'en', 'Today')).toBeUndefined();
   });
 });

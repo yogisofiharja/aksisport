@@ -64,7 +64,7 @@ location under the name, a "Leave Community" link at the bottom for every
 member except the owner (with a confirmation saying what leaving means;
 the owner can only delete the Community, in Club Settings), and, to owner/admins of a Community with pending
 join requests, a card with their count that opens Members.
-`ClubMembersScreen` lists those requests above the member grid with
+`ClubMembersScreen` lists those requests above the member list with
 Approve / Decline; tapping a request opens the requester's player profile
 (`PlayerProfileSheet`, DP-019: picture, name, username, online, joined
 date, skill level per sport) with the same two actions. On a Session's
@@ -257,10 +257,9 @@ belongs to `ClubSettingsScreen`.
 The app's Personal Context — always the post-auth entry point
 (`MainStack`'s `Personal` route). Four tabs:
 
-- **Home** (`HomeScreen`) — leads with "My Communities": a circle-avatar
-  grid (club picture if set, else initials, name below — same 4-per-row
-  convention as `ClubMembersScreen`'s member grid, UX-015 consistency),
-  ending in a "New Community" tile (dashed circle with a +) that pushes
+- **Home** (`HomeScreen`) — leads with "My Communities": a horizontal
+  row of `ClubCard` tiles (club picture if set, else initials; name; the
+  user's role · city), ending in a dashed "New Community" tile that pushes
   `CreateClub` — shown even with no Communities yet, under a message
   pointing to it and to Explore. Joining a Community is done from Explore or a shared link
   (DP-017, see below), not from here. Below that,

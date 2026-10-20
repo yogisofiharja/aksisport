@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
@@ -9,14 +9,14 @@ import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Card } from '../../design-system/ui/Card';
-import { Badge } from '../../design-system/ui/Badge';
+import { ClubCard } from '../../design-system/domain-ui/ClubCard';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader, updateMe } from '../../core/api/client';
 import { CityPickerModal } from '../locations/CityPickerModal';
 import { clubAvatarUrl, listClubsInMyCity, searchClubs } from '../../core/clubs/api';
-import { initialsFromName } from '../../core/initials';
+import { shortCityName } from '../../core/locations/cityName';
 import type { ClubPreview } from '../../core/api/types';
 
 type Props = {
@@ -25,12 +25,6 @@ type Props = {
 
 const MIN_QUERY_LENGTH = 2;
 
-// "Kota Bukittinggi, Sumatera Barat" -> "Kota Bukittinggi": enough for a
-// chip; the province is only needed to tell same-named places apart in a
-// list, and nobody keeps two of those.
-function shortCityName(name: string): string {
-  return name.split(', ')[0];
-}
 
 // Explore (DP-017): find a Community.
 //
@@ -128,41 +122,18 @@ export function ExploreScreen({ onOpenClub }: Props) {
 
   function renderClub(club: ClubPreview) {
     return (
-      <Card key={club.id} pressable onPress={() => onOpenClub(club.id)}>
-        <HStack space="md" className="items-center">
-          <View className="w-12 h-12 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark">
-            {club.hasAvatar ? (
-              <Image source={{ uri: clubAvatarUrl(club.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
-            ) : (
-              <Typography variant="body" className="font-extrabold text-ink-muted dark:text-ink-muted-dark">
-                {initialsFromName(club.name)}
-              </Typography>
-            )}
-          </View>
-          <VStack space="xs" style={{ flex: 1 }}>
-            <Typography variant="body" className="text-lg font-bold" numberOfLines={1}>
-              {club.name}
-            </Typography>
-            <HStack space="xs" className="items-center">
-              <Icon name="location-outline" size="xs" color="muted" />
-              <Typography variant="body" color="muted" className="text-sm" numberOfLines={1} style={{ flex: 1 }}>
-                {club.cityName ?? t('clubLocationNotSet')}
-              </Typography>
-            </HStack>
-            <Typography variant="body" color="muted" className="text-sm">
-              {t('clubMemberCount', club.memberCount)}
-            </Typography>
-          </VStack>
-          <VStack space="xs" style={{ alignItems: 'flex-end' }}>
-            {club.viewerRole ? (
-              <Badge action="success" text={t('clubJoinedBadge')} />
-            ) : club.viewerRequestPending ? (
-              <Badge action="muted" text={t('clubRequestedBadge')} />
-            ) : null}
-            {club.visibility === 'private' && <Badge action="muted" text={t('clubPrivateBadge')} />}
-          </VStack>
-        </HStack>
-      </Card>
+      <ClubCard
+        key={club.id}
+        name={club.name}
+        hasAvatar={club.hasAvatar}
+        avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id), headers: imageHeaders } : undefined}
+        cityName={club.cityName ? shortCityName(club.cityName) : undefined}
+        memberCount={club.memberCount}
+        isPrivate={club.visibility === 'private'}
+        viewerRole={club.viewerRole}
+        viewerRequestPending={club.viewerRequestPending}
+        onPress={() => onOpenClub(club.id)}
+      />
     );
   }
 

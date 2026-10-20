@@ -34,6 +34,29 @@ export function formatSessionDateTime(startsAt?: string): string | undefined {
   return `${date} · ${time}`;
 }
 
+// A Session card's eyebrow (redesign canvas): "Wed 22 Oct · 19:00", in the
+// app's language, 24-hour time. A Session in progress reads as the day and
+// its time range instead, "Today · 07:00–09:00", using the caller's
+// translated "Today". Undefined without a start time (legacy Sessions).
+export function formatSessionWhen(
+  session: Pick<Session, 'startsAt' | 'durationMinutes' | 'lifecycleStatus'>,
+  lang: 'en' | 'id',
+  todayLabel: string
+): string | undefined {
+  if (!session.startsAt) return undefined;
+  const start = new Date(session.startsAt);
+  const time = (d: Date) => d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (session.lifecycleStatus === 'in_progress') {
+    const end =
+      session.durationMinutes != null ? new Date(start.getTime() + session.durationMinutes * 60 * 1000) : undefined;
+    return `${todayLabel} · ${time(start)}${end ? `–${time(end)}` : ''}`;
+  }
+  const date = start
+    .toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    .replace(',', '');
+  return `${date} · ${time(start)}`;
+}
+
 // Check-in (self, host-initiated, or adding a guest) is only allowed from
 // 1 hour before the Session starts until it ends — an explicit product
 // rule, mirrored server-side (checkInWindowOpen in sessions_handler.go)

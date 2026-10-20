@@ -11,7 +11,7 @@ import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
-import { LegacySessionCard as SessionCard } from '../../design-system/domain-ui/legacy/LegacySessionCard';
+import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';
@@ -23,11 +23,10 @@ import { UnreadCount } from '../messages/UnreadCount';
 import { clubLink, shareLink } from '../../platform/shareLink';
 import { Card } from '../../design-system/ui/Card';
 import { listSessions } from '../../core/sessions/api';
-import { formatSessionDateTime } from '../../core/sessions/sessionSchedule';
 import { currentFocusSessions } from '../../core/sessions/currentFocus';
 import { initialsFromName } from '../../core/initials';
 import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
-import { statusLabel, sessionStatusColor } from '../sessions/SessionListScreen';
+import { sessionCardProps } from '../sessions/sessionDisplay';
 import type { Club, Session } from '../../core/api/types';
 
 type Props = {
@@ -56,7 +55,7 @@ export function ClubDetailScreen({
   onOpenChat,
   onLeft,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const { profile } = useAuth();
   const [club, setClub] = useState<Club | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -269,18 +268,9 @@ export function ClubDetailScreen({
         {focus.length === 0 ? (
           <EmptyState message={isOwnerOrAdmin ? t('clubCurrentFocusEmptyOrganizer') : t('clubCurrentFocusEmpty')} />
         ) : (
-          <VStack space="md">
+          <VStack space="sm">
             {focus.map((session) => (
-              <SessionCard
-                key={session.id}
-                title={session.name ?? club.name}
-                dateTime={formatSessionDateTime(session.startsAt)}
-                status={statusLabel(session.lifecycleStatus, t)}
-                statusAction={sessionStatusColor(session.lifecycleStatus)}
-                joinedCount={session.status === 'draft' ? undefined : session.joinedCount}
-                maxParticipants={session.maxParticipants}
-                onPress={() => onOpenSession(session.id)}
-              />
+              <SessionCard key={session.id} {...sessionCardProps(session, t, lang)} onPress={() => onOpenSession(session.id)} />
             ))}
           </VStack>
         )}

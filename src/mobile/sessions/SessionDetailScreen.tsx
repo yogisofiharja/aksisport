@@ -40,13 +40,16 @@ import { formatIDR } from '../../core/currency';
 import { matchFormatSummary } from '../../core/sessions/matchFormatSummary';
 import { initialsFromName } from '../../core/initials';
 import { SessionChat } from './SessionChat';
-import { getSportModule } from '../../sports/registry';
 import { offerPush } from '../../core/notifications/offerPush';
 import { useSessionChatUnread } from '../../core/messages/useSessionChatUnread';
 import { UnreadCount } from '../messages/UnreadCount';
 import { SessionContactOrganizer } from './SessionContactOrganizer';
-import { SessionPayment } from './SessionPayment';
-import type { MatchFormat, MatchMode } from '../../sports/tennis/scoringEngine';
+import { SessionPayment, hasPaid, isAwaitingPayment } from './SessionPayment';
+import { PlayerCard } from '../../design-system/domain-ui/PlayerCard';
+import { MatchCard, MatchWatchLink } from '../../design-system/domain-ui/MatchCard';
+import { Badge } from '../../design-system/ui/Badge';
+import { IconButton } from '../../design-system/ui/IconButton';
+import type { MatchConfig, MatchFormat, MatchMode, MatchState } from '../../sports/tennis/scoringEngine';
 import { minParticipants } from '../../sports/tennis/rules';
 import { weekdayLabel } from '../recurringSchedules/weekday';
 import type {
@@ -93,18 +96,12 @@ function activityTypeLabel(id: string, t: (key: string) => string): string {
   return id;
 }
 
-function participantInitials(p: SessionParticipant): string {
-  return initialsFromName(p.displayName || p.username || p.guestName || '?');
-}
-
-// Border color mirrors the status's meaning, not a text-color pairing —
-// checked-in (teal), registered (blue), requested/waitlist (amber, still
-// pending), checked-out/cancelled/no-show (muted slate).
-function participantAvatarBorderClass(status: SessionParticipant['status']): string {
-  if (status === 'checked_in') return 'border-teal-500';
-  if (status === 'registered') return 'border-info dark:border-info-dark';
-  if (status === 'requested' || status === 'waitlist') return 'border-heat';
-  return 'border-border-strong dark:border-border-strong-dark';
+// A live match's format, short enough for its card's eyebrow:
+// "Race To 4", "Fixed Games 6"; other formats use the full summary.
+function matchFormatShort(format: MatchFormat, t: (key: string, ...args: any[]) => string): string {
+  if (format.type === 'race-to') return `${t('formatRaceTo')} ${format.raceTo}`;
+  if (format.type === 'fixed-games') return `${t('formatFixedGames')} ${format.totalGames}`;
+  return matchFormatSummary(format, t);
 }
 
 export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch, onEdit, onDiscarded, openContactWith, initialTab }: Props) {
@@ -826,73 +823,85 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // values — shown here rather than silently dropped if they ever occur.
   const otherParticipants = participants.filter((p) => p.status === 'checked_out' || p.status === 'no_show');
 
-  // One line of text under the circle (name only) — a participant's status
-  // is already conveyed by which sub-section it's in and the avatar's
-  // border color, not a second/third text line. `items-start` on the
-  // wrapping HStack (not the Box.tsx HStack default of `items-center`) is
-  // what keeps every circle aligned to the same row position regardless of
-  // how many lines its own name wraps to, or whether a neighboring slot is
-  // a shorter placeholder.
-  function renderParticipantCard(p: SessionParticipant, action?: { icon: 'checkmark'; onPress: () => void }) {
+  // One PlayerCard row per participant: initials (dashed for a guest), the
+  // name, and a subline with their status (and "Host" for the organizer).
+  // On a paid Session the Payment tab's Paid / Awaiting pill sits on the
+  // right; organizers also get the section's action (Check in, Approve) and
+  // Remove there.
+  function participantStatusLabel(status: SessionParticipant['status']): string {
+    if (status === 'checked_in') return t('sessionSectionCheckedIn');
+    if (status === 'registered') return t('sessionSectionConfirmed');
+    if (status === 'waitlist') return t('sessionSectionWaitlist');
+    if (status === 'requested') return t('sessionSectionRequested');
+    if (status === 'cancelled') return t('sessionSectionCancelled');
+    return t('sessionSectionOther');
+  }
+
+  function renderParticipantCard(p: SessionParticipant, action?: { label: string; onPress: () => void }) {
     const canRemove = isOwnerOrAdmin && isSessionActive;
+    const canAct = action && isOwnerOrAdmin && isSessionActive;
+    const isGuest = !p.userId;
+    const payment =
+      session && session.priceModel !== 'free'
+        ? hasPaid(p)
+          ? t('sessionPaymentStatusPaid')
+          : isAwaitingPayment(p)
+            ? t('sessionPaymentStatusAwaiting')
+            : undefined
+        : undefined;
+    const subtitle = [
+      participantStatusLabel(p.status),
+      p.userId && p.userId === session?.createdBy ? t('sessionHostLabel') : undefined,
+      isGuest ? t('sessionAddParticipantGuestOption') : undefined,
+    ]
+      .filter(Boolean)
+      .join(' · ');
     return (
-      <VStack key={p.id} className="items-center" style={{ width: 76 }}>
-        <Box style={{ position: 'relative' }}>
-          {/* Organizers tap a member to see who they are (DP-019) —
-              what they need when deciding on a request to join. */}
-          <Pressable
-            disabled={!(isOwnerOrAdmin && p.userId)}
-            onPress={() => setProfileParticipant(p)}
-            className="active:opacity-70"
-            accessibilityLabel={isOwnerOrAdmin && p.userId ? t('playerProfileOpen') : undefined}
-          >
-            <Box
-              className={`w-16 h-16 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark border-2 ${participantAvatarBorderClass(p.status)}`}
-            >
-              <Text className="text-base font-extrabold text-ink-muted dark:text-ink-muted-dark">{participantInitials(p)}</Text>
-            </Box>
-          </Pressable>
-          {canRemove && (
-            <Pressable
-              onPress={() => handleDeleteParticipant(p)}
-              disabled={busy}
-              hitSlop={8}
-              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-danger dark:bg-danger-dark items-center justify-center active:opacity-70"
-            >
-              <Icon name="close" size="xs" color="onDark" />
-            </Pressable>
-          )}
-          {action && isOwnerOrAdmin && isSessionActive && (
-            <Pressable
-              onPress={action.onPress}
-              disabled={busy}
-              hitSlop={8}
-              className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-heat items-center justify-center active:opacity-70"
-            >
-              <Icon name={action.icon} size="xs" color="onBrand" />
-            </Pressable>
-          )}
-        </Box>
-        <Text className="text-xs font-bold text-ink dark:text-ink-dark text-center mt-1" numberOfLines={2}>
-          {p.displayName || p.username || p.guestName}
-          {p.userId === profile?.id ? ` (${t('sessionYou')})` : ''}
-        </Text>
-      </VStack>
+      // Organizers tap a member to see who they are (DP-019) — what they
+      // need when deciding on a request to join.
+      <Pressable
+        key={p.id}
+        disabled={!(isOwnerOrAdmin && p.userId)}
+        onPress={() => setProfileParticipant(p)}
+        className="active:opacity-70"
+        accessibilityLabel={isOwnerOrAdmin && p.userId ? t('playerProfileOpen') : undefined}
+      >
+        <PlayerCard
+          name={`${p.displayName || p.username || p.guestName}${p.userId === profile?.id ? ` (${t('sessionYou')})` : ''}`}
+          subtitle={subtitle}
+          isGuest={isGuest}
+          trailing={
+            payment || canAct || canRemove ? (
+              <HStack className="items-center gap-1">
+                {payment && (
+                  <Badge action={hasPaid(p) ? 'ready' : 'draft'} text={payment} caps className="self-center" />
+                )}
+                {canAct && (
+                  <Button size="sm" isDisabled={busy} onPress={action.onPress}>
+                    <ButtonText>{action.label}</ButtonText>
+                  </Button>
+                )}
+                {canRemove && (
+                  <IconButton icon="close" size="md" label={t('sessionRemoveParticipant')} onPress={() => handleDeleteParticipant(p)} />
+                )}
+              </HStack>
+            ) : undefined
+          }
+        />
+      </Pressable>
     );
   }
 
   function renderParticipantSection(
     label: string,
     list: SessionParticipant[],
-    action?: (p: SessionParticipant) => { icon: 'checkmark'; onPress: () => void }
+    action?: (p: SessionParticipant) => { label: string; onPress: () => void }
   ) {
     if (list.length === 0) return null;
     return (
       <VStack className="gap-2">
         <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark">{label}</Text>
-        <HStack className="flex-wrap items-start" style={{ rowGap: 16, columnGap: 12 }}>
-          {list.map((p) => renderParticipantCard(p, action?.(p)))}
-        </HStack>
+        <VStack className="gap-2">{list.map((p) => renderParticipantCard(p, action?.(p)))}</VStack>
       </VStack>
     );
   }
@@ -1267,14 +1276,14 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
               {renderParticipantSection(
                 t('sessionSectionConfirmed'),
                 confirmedParticipants,
-                checkInWindowOpen ? (p) => ({ icon: 'checkmark', onPress: () => handleCheckInParticipant(p.id) }) : undefined
+                checkInWindowOpen ? (p) => ({ label: t('sessionCheckIn'), onPress: () => handleCheckInParticipant(p.id) }) : undefined
               )}
               {/* No confirm-payment action here (Milestone 5) — moved to
                   its own Payment tab, alongside the receipt an organizer
                   actually needs to look at before confirming. */}
               {renderParticipantSection(t('sessionSectionWaitlist'), waitlistParticipants)}
               {renderParticipantSection(t('sessionSectionRequested'), requestedParticipants, (p) => ({
-                icon: 'checkmark',
+                label: t('sessionApprove'),
                 onPress: () => handleApprove(p.userId!),
               }))}
               {renderParticipantSection(t('sessionSectionCancelled'), cancelledParticipants)}
@@ -1356,49 +1365,65 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
                     const canWatch = isSessionActive && a.status === 'live' && myParticipant?.status === 'checked_in';
                     const isLiveScorer = a.status === 'live' && a.scorerUserId === profile?.id;
                     // A finished match opens its result (score, Share) at any
-                    // time; its final score shows on the row, team A first.
+                    // time; the row shows each side's score, winner in bold.
+                    // The result is the tennis MatchState (the only Sport
+                    // Module today): set scores, or games when no set was
+                    // completed.
                     const isFinished = a.status === 'completed';
-                    const finalScore = isFinished ? getSportModule(a.sport)?.formatResult?.(a.result, 'A') : undefined;
+                    const isMine = a.participants.some((p) => p.userId === profile?.id);
+                    const teamNames = (team: 'A' | 'B') =>
+                      a.participants
+                        .filter((p) => p.team === team)
+                        .map((p) => p.displayName || p.username || p.guestName)
+                        .join(' / ');
+                    const result = isFinished ? (a.result as Partial<MatchState> | undefined) : undefined;
+                    const sideScore = (team: 'A' | 'B') =>
+                      result?.completedSets?.length
+                        ? result.completedSets.map((set) => set[team]).join(' ')
+                        : result?.games?.[team];
+                    const config = a.config as Partial<MatchConfig> | undefined;
                     return (
-                      <Pressable
+                      <MatchCard
                         key={a.id}
-                        disabled={!isFinished}
-                        onPress={() => onOpenMatch(a.id)}
-                        className="bg-surface dark:bg-surface-dark rounded-2xl p-4 active:opacity-70"
-                      >
-                        <HStack className="justify-between items-center gap-3">
-                          <VStack className="flex-1 gap-1">
-                            <Text className="font-bold text-ink dark:text-ink-dark">{activityParticipantNames(a)}</Text>
-                            {a.status === 'live' ? (
-                              <HStack className="items-center gap-1.5">
-                                <Box className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                <Text className="text-xs font-extrabold text-red-500 tracking-wide">
-                                  {t('activityStatusLive').toUpperCase()}
-                                </Text>
-                              </HStack>
-                            ) : (
-                              <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">
-                                {a.status === 'queued'
-                                  ? t('activityStatusQueued')
-                                  : finalScore
-                                    ? `${t('activityStatusCompleted')} · ${finalScore}`
-                                    : t('activityStatusCompleted')}
-                              </Text>
-                            )}
-                          </VStack>
-                          {canStart && (
+                        status={a.status}
+                        matchup={activityParticipantNames(a)}
+                        queueNumber={a.status === 'queued' ? queuedActivities.indexOf(a) + 1 : undefined}
+                        isMine={isMine}
+                        // No live score is loaded here (it streams to the
+                        // match screen only), so a live card shows the matchup.
+                        sides={
+                          a.status === 'live'
+                            ? undefined
+                            : [
+                                { names: teamNames('A'), games: sideScore('A'), winner: result?.winner === 'A' },
+                                { names: teamNames('B'), games: sideScore('B'), winner: result?.winner === 'B' },
+                              ]
+                        }
+                        statusLabel={
+                          a.status === 'queued'
+                            ? t('activityStatusQueued')
+                            : a.status === 'live'
+                              ? config?.matchFormat
+                                ? matchFormatShort(config.matchFormat, t)
+                                : t('activityStatusLive')
+                              : a.completedAt
+                                ? new Date(a.completedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
+                                : t('activityStatusCompleted')
+                        }
+                        onPress={isFinished ? () => onOpenMatch(a.id) : undefined}
+                        action={
+                          canStart ? (
                             <Button size="sm" onPress={() => onOpenMatch(a.id)}>
                               <ButtonText>{t('activityStart')}</ButtonText>
                             </Button>
-                          )}
-                          {canWatch && (
-                            <Button size="sm" className="bg-red-600" onPress={() => onOpenMatch(a.id)}>
-                              <ButtonText>{isLiveScorer ? t('activityResume') : t('activityWatch')}</ButtonText>
-                            </Button>
-                          )}
-                          {isFinished && <Icon name="chevron-forward" size="sm" color="muted" />}
-                        </HStack>
-                      </Pressable>
+                          ) : canWatch ? (
+                            <MatchWatchLink
+                              label={isLiveScorer ? t('activityResume') : t('activityWatch')}
+                              onPress={() => onOpenMatch(a.id)}
+                            />
+                          ) : undefined
+                        }
+                      />
                     );
                   })
                 )}

@@ -33,10 +33,10 @@ function participantName(p: SessionParticipant) {
 // claimed, i.e. "paid" in this domain's terms. 'requested' participants
 // haven't been approved yet at all, so they have no payment status —
 // excluded entirely, not shown as either.
-function isAwaitingPayment(p: SessionParticipant) {
+export function isAwaitingPayment(p: SessionParticipant) {
   return p.status === 'waitlist';
 }
-function hasPaid(p: SessionParticipant) {
+export function hasPaid(p: SessionParticipant) {
   return p.status === 'registered' || p.status === 'checked_in' || p.status === 'checked_out';
 }
 

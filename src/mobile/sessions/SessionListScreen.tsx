@@ -10,13 +10,13 @@ import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Card } from '../../design-system/ui/Card';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
-import { LegacySessionCard as SessionCard } from '../../design-system/domain-ui/legacy/LegacySessionCard';
-import type { BadgeAction } from '../../design-system/ui/Badge';
+import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { listSessions } from '../../core/sessions/api';
 import { listMembers } from '../../core/clubs/api';
-import { formatSessionDateTime, sessionDateBucket } from '../../core/sessions/sessionSchedule';
+import { sessionDateBucket } from '../../core/sessions/sessionSchedule';
+import { sessionCardProps } from './sessionDisplay';
 import type { Session } from '../../core/api/types';
 
 type Props = {
@@ -27,36 +27,12 @@ type Props = {
   onOpenHistory: () => void;
 };
 
-// Milestone 2: branches on the server-resolved lifecycleStatus, not raw
-// status — 'open' no longer collapses into a single "Open" label,
-// Recruiting/Ready/Full (DP-001's derived sub-states) get their own copy.
-export function statusLabel(status: Session['lifecycleStatus'], t: (key: string) => string) {
-  if (status === 'draft') return t('sessionStatusDraft');
-  if (status === 'cancelled') return t('sessionStatusCancelled');
-  if (status === 'in_progress') return t('sessionStatusInProgress');
-  if (status === 'completed') return t('sessionStatusCompleted');
-  if (status === 'recruiting') return t('sessionStatusRecruiting');
-  if (status === 'ready') return t('sessionStatusReady');
-  return t('sessionStatusFull');
-}
-
-// One StatusPill per lifecycle status (Aksi Sport): heat only for Live.
-export function sessionStatusColor(status: Session['lifecycleStatus']): BadgeAction {
-  if (status === 'draft') return 'draft';
-  if (status === 'cancelled') return 'cancelled';
-  if (status === 'in_progress') return 'live';
-  if (status === 'completed') return 'completed';
-  if (status === 'recruiting') return 'recruiting';
-  if (status === 'ready') return 'ready';
-  return 'full';
-}
-
 function byStartsAtAsc(a: Session, b: Session) {
   return (a.startsAt ?? '').localeCompare(b.startsAt ?? '');
 }
 
 export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSession, onOpenHistory }: Props) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const { profile } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,17 +78,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
 
   function renderCard(session: Session) {
     return (
-      <SessionCard
-        key={session.id}
-        title={session.name || session.sport}
-        subtitle={session.location}
-        dateTime={formatSessionDateTime(session.startsAt)}
-        status={statusLabel(session.lifecycleStatus, t)}
-        statusAction={sessionStatusColor(session.lifecycleStatus)}
-        joinedCount={session.joinedCount}
-        maxParticipants={session.maxParticipants}
-        onPress={() => onOpenSession(session.id)}
-      />
+      <SessionCard key={session.id} {...sessionCardProps(session, t, lang)} onPress={() => onOpenSession(session.id)} />
     );
   }
 
@@ -135,7 +101,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
               <Typography variant="overline" color="muted">
                 {t('sessionSectionToday')}
               </Typography>
-              <VStack space="md">{todaySessions.map(renderCard)}</VStack>
+              <VStack space="sm">{todaySessions.map(renderCard)}</VStack>
             </VStack>
           )}
           {upcomingSessions.length > 0 && (
@@ -143,7 +109,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
               <Typography variant="overline" color="muted">
                 {t('sessionSectionUpcoming')}
               </Typography>
-              <VStack space="md">{upcomingSessions.map(renderCard)}</VStack>
+              <VStack space="sm">{upcomingSessions.map(renderCard)}</VStack>
             </VStack>
           )}
         </>

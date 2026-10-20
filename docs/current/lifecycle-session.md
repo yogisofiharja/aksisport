@@ -670,34 +670,21 @@ avatar grid): **Checked In** (`checked_in`) → **Confirmed**
 (`requested`) → **Cancelled** (`cancelled`) → **Other**
 (`checked_out`/`no_show`, no dedicated action anywhere in this screen
 today but shown rather than silently dropped). Each section header
-only renders when it has at least one participant. Every card is now
-exactly an avatar circle (initials — no `avatarUrl` on
-`SessionParticipant` yet, swap in a real image there once one exists,
-border colored by status) plus **one line of text**, the name — the
-old second/third lines (a redundant "Host" label, a redundant status
-caption, and inline "Approve"/"Confirm Payment" text links) are gone,
-since the sub-section itself and the avatar's border color already
-convey status, and organizer identity now lives in its own section
-above. Owner/admin still get a small red "×" corner badge (top-right,
-`isSessionActive`) for Remove on every card, and — Requested cards
-only — a small blue checkmark corner badge (top-left) that triggers
-Approve directly from the card, replacing the old text link. Waitlist
-cards no longer carry an action badge at all (Milestone 5, DP-012) —
-Confirm Payment moved to its own Payment tab, alongside the receipt an
-organizer actually needs to look at first; Waitlist here is purely
-informational now, matching Cancelled/Other. (A free Session never has Waitlist
-cards or a Payment tab: approval registers the member directly, v0.24.0.) The section header shows `joinedCount`/`maxParticipants`
-next to the "Participants" title, same as before (moved off the
-Details card in an earlier pass of this milestone).
-
-Every participant HStack (each sub-section's row, and the placeholder
-row below) uses `items-start` instead of `Box.tsx`'s `HStack` default
-of `items-center` — otherwise a short single-line card (a placeholder,
-or any now-simplified one-line participant card) drifts to the
-vertical center of whatever the tallest item in that wrapped row is,
-misaligning circles against each other. `items-start` keeps every
-circle pinned to the same row position regardless of content height,
-including when a long name wraps to two lines.
+only renders when it has at least one participant. Each participant is a `PlayerCard` row (redesign, v0.27.0): initials
+(no `avatarUrl` on `SessionParticipant` yet; a guest's avatar is dashed),
+the name ("(You)" for the viewer), and a subline with the status, plus
+"Host" for the organizer and "Guest" for a guest. On a paid Session the
+row carries the Payment tab's Paid / Awaiting pill (`hasPaid` /
+`isAwaitingPayment` from `SessionPayment.tsx`). Owner/admin, while the
+Session is active, also get the section's action as a small button —
+**Check in** on Confirmed (inside the Check-In Window), **Approve** on
+Requested — and a ✕ Remove. Waitlist rows carry no action (Milestone 5,
+DP-012): Confirm Payment lives on the Payment tab, alongside the receipt
+an organizer needs to look at first. (A free Session never has Waitlist
+rows or a Payment tab: approval registers the member directly, v0.24.0.)
+Organizers tap a row to open the player's profile (DP-019). The section
+header shows `joinedCount`/`maxParticipants` next to the "Participants"
+title. Open spots below the rows are still the placeholder circles.
 
 **Empty-slot placeholders** (Milestone 2, revised): once published *and*
 still active (`isPublished && isSessionActive` — none show once

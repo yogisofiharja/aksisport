@@ -4,6 +4,8 @@ import { appAlert } from '../../design-system/feedback/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Icon } from '../../design-system/ui/Icon';
+import { Chip } from '../../design-system/ui/Chip';
+import { PlayerCard } from '../../design-system/domain-ui/PlayerCard';
 import { Button, ButtonText } from '../../../components/ui/button';
 import { Box, HStack, VStack } from '../../../components/ui/box';
 import { Heading, Text } from '../../../components/ui/text';
@@ -226,49 +228,33 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
   const organizerMembers = filteredMembers.filter((m) => m.role === 'owner' || m.role === 'admin');
   const regularMembers = filteredMembers.filter((m) => m.role === 'member');
 
-  // Same avatar-circle grid as Session's Participants — a fixed 4-per-row
-  // grid (w-1/4 per tile, not the wrap-by-available-width tiles Session
-  // uses) rather than a flat row list. Horizontal spacing comes from each
-  // tile's own padding, not a columnGap on the wrapper — a columnGap
-  // alongside four exact 25%-wide tiles would push the row past 100% and
-  // break the "exactly 4 per row" layout.
-  function renderMemberGrid(list: ClubMember[]) {
+  // One PlayerCard row per member: avatar with the online dot (DP-014),
+  // name, @username, and the role as a tag (Owner in ink, Admin sunken).
+  // Tapping a row opens the member's detail, where the role actions live.
+  function renderMemberList(list: ClubMember[]) {
     return (
-      <HStack className="flex-wrap" style={{ rowGap: 20 }}>
+      <VStack className="gap-2">
         {list.map((member) => (
           <Pressable
             key={member.userId}
-            className="w-1/4 items-center px-1 active:opacity-70"
             onPress={() => openMemberDetail(member)}
+            className="active:opacity-70"
+            accessibilityRole="button"
           >
-            {/* Online indicator: a green outline ring around the circle,
-                separate from the role-color border inside it — a small
-                gap (p-0.5) keeps both visually distinct rather than one
-                overriding the other. */}
-            <Box className={`rounded-full ${member.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
-              <Box
-                className={`w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark border-2 ${
-                  member.role === 'owner' ? 'border-heat' : 'border-border-strong dark:border-border-strong-dark'
-                }`}
-              >
-                {member.hasAvatar ? (
-                  <Image
-                    source={{ uri: userAvatarUrl(member.userId), headers: imageHeaders }}
-                    style={{ width: '100%', height: '100%' }}
-                  />
-                ) : (
-                  <Text className="text-base font-extrabold text-ink-muted dark:text-ink-muted-dark">
-                    {initialsFromName(member.displayName || member.username)}
-                  </Text>
-                )}
-              </Box>
-            </Box>
-            <Text className="text-xs font-bold text-ink dark:text-ink-dark text-center mt-1" numberOfLines={2}>
-              {member.displayName || member.username}
-            </Text>
+            <PlayerCard
+              name={member.displayName || member.username}
+              subtitle={`@${member.username}`}
+              avatarSource={member.hasAvatar ? { uri: userAvatarUrl(member.userId), headers: imageHeaders } : undefined}
+              isOnline={member.isOnline}
+              trailing={
+                member.role === 'member' ? undefined : (
+                  <Chip label={roleLabel(member.role, t)} strong={member.role === 'owner'} />
+                )
+              }
+            />
           </Pressable>
         ))}
-      </HStack>
+      </VStack>
     );
   }
 
@@ -277,7 +263,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
     return (
       <VStack className="gap-2">
         <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">{label}</Text>
-        {renderMemberGrid(list)}
+        {renderMemberList(list)}
       </VStack>
     );
   }
@@ -304,53 +290,33 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
               {t('clubJoinRequestsTitle', joinRequests.length)}
             </Text>
             {joinRequests.map((request) => (
-              <Box key={request.id} className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-3">
-                <Pressable
-                  onPress={() => setProfileRequest(request)}
-                  className="flex-row items-center gap-3 active:opacity-70"
-                  accessibilityLabel={t('playerProfileOpen')}
-                >
-                  <Box className="w-11 h-11 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark">
-                    {request.hasAvatar ? (
-                      <Image source={{ uri: userAvatarUrl(request.userId), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
-                    ) : (
-                      <Text className="font-extrabold text-ink-muted dark:text-ink-muted-dark">
-                        {initialsFromName(request.displayName || request.username)}
-                      </Text>
-                    )}
-                  </Box>
-                  <VStack style={{ flex: 1 }}>
-                    <Text className="font-bold text-ink dark:text-ink-dark" numberOfLines={1}>
-                      {request.displayName || request.username}
-                    </Text>
-                    <Text className="text-sm text-ink-muted dark:text-ink-muted-dark" numberOfLines={1}>
-                      @{request.username} · {t('playerProfileView')}
-                    </Text>
-                  </VStack>
-                  <Icon name="chevron-forward" size="sm" color="muted" />
-                </Pressable>
-                <HStack className="gap-2">
-                  <Button
-                    variant="outline"
-                    size="md"
-                    className="flex-1"
-                    isDisabled={decidingRequestId !== null}
-                    onPress={() => handleDecide(request, 'decline')}
-                  >
-                    <ButtonText variant="outline">
-                      {t('clubJoinRequestDecline')}
-                    </ButtonText>
-                  </Button>
-                  <Button
-                    size="md"
-                    className="flex-1"
-                    isDisabled={decidingRequestId !== null}
-                    onPress={() => handleDecide(request, 'approve')}
-                  >
-                    <ButtonText>{t('clubJoinRequestApprove')}</ButtonText>
-                  </Button>
-                </HStack>
-              </Box>
+              <Pressable
+                key={request.id}
+                onPress={() => setProfileRequest(request)}
+                className="active:opacity-70"
+                accessibilityLabel={t('playerProfileOpen')}
+              >
+                <PlayerCard
+                  name={request.displayName || request.username}
+                  subtitle={`@${request.username}`}
+                  avatarSource={request.hasAvatar ? { uri: userAvatarUrl(request.userId), headers: imageHeaders } : undefined}
+                  trailing={
+                    <HStack className="gap-2 items-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        isDisabled={decidingRequestId !== null}
+                        onPress={() => handleDecide(request, 'decline')}
+                      >
+                        <ButtonText variant="outline">{t('clubJoinRequestDecline')}</ButtonText>
+                      </Button>
+                      <Button size="sm" isDisabled={decidingRequestId !== null} onPress={() => handleDecide(request, 'approve')}>
+                        <ButtonText>{t('clubJoinRequestApprove')}</ButtonText>
+                      </Button>
+                    </HStack>
+                  }
+                />
+              </Pressable>
             ))}
             {requestError && <Text className="text-sm text-red-500">{requestError}</Text>}
           </VStack>
