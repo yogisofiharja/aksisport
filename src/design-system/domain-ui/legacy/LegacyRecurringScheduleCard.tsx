@@ -1,8 +1,12 @@
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { Typography } from '../ui/Typography';
-import { HStack } from '../layout/HStack';
-import { VStack } from '../layout/VStack';
+// Legacy: the pre-redesign card, kept so screens look unchanged while the
+// redesigned card (../RecurringScheduleCard) waits for review in the Component Gallery.
+// Removed when the screens swap to the new card.
+
+import { Card } from '../../ui/Card';
+import { Badge } from '../../ui/Badge';
+import { Typography } from '../../ui/Typography';
+import { HStack } from '../../layout/HStack';
+import { VStack } from '../../layout/VStack';
 
 type RecurringScheduleCardProps = {
   title: string;
@@ -13,7 +17,7 @@ type RecurringScheduleCardProps = {
   className?: string;
 };
 
-export function RecurringScheduleCard({
+export function LegacyRecurringScheduleCard({
   title,
   subtitle,
   statusLabel,

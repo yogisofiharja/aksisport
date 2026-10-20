@@ -8,7 +8,7 @@ import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
-import { RecurringScheduleCard } from '../../design-system/domain-ui/RecurringScheduleCard';
+import { LegacyRecurringScheduleCard as RecurringScheduleCard } from '../../design-system/domain-ui/legacy/LegacyRecurringScheduleCard';
 import { useTranslation } from '../../i18n';
 import { listRecurringSchedules } from '../../core/recurringSchedules/api';
 import type { RecurringSchedule } from '../../core/api/types';
