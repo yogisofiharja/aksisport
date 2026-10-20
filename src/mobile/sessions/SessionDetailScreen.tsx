@@ -36,7 +36,7 @@ import { buildGeneratedMatchPayload } from '../../core/activities/buildGenerated
 import { formatSessionDateTime, isWithinCheckInWindow } from '../../core/sessions/sessionSchedule';
 import { offerPush } from '../../core/notifications/offerPush';
 import { useSessionChatUnread } from '../../core/messages/useSessionChatUnread';
-import { UnreadCount } from '../messages/UnreadCount';
+import { Segmented } from '../../design-system/ui/Segmented';
 import { SessionContactOrganizer } from './SessionContactOrganizer';
 import { SessionPayment } from './SessionPayment';
 import { AddParticipantSheet, type AddParticipantStep } from './AddParticipantSheet';
@@ -74,9 +74,24 @@ type Props = {
   initialTab?: SessionTabLink;
 };
 
-// Tabs a link can open a Session on (`?tab=`).
+// Tabs a link can open a Session on (`?tab=`). 'participants' and
+// 'payment' are the names notifications have always used; both now open
+// Players, where payments live (DP-024).
 export type SessionTabLink = 'participants' | 'payment' | 'matches';
-const LINKABLE_TABS: SessionTabLink[] = ['participants', 'payment', 'matches'];
+
+type SessionTab = 'details' | 'players' | 'matches' | 'chat';
+
+function tabFromLink(link?: SessionTabLink): SessionTab | null {
+  if (link === 'participants' || link === 'payment') return 'players';
+  if (link === 'matches') return 'matches';
+  return null;
+}
+
+// DP-024: the Session opens where people need it — Details before it
+// starts, Matches once it is under way, Results (the Matches tab) after.
+function defaultTabFor(status: Session['lifecycleStatus']): SessionTab {
+  return status === 'in_progress' || status === 'completed' ? 'matches' : 'details';
+}
 
 export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch, onEdit, onDiscarded, openContactWith, initialTab }: Props) {
   const { t, lang } = useTranslation();
@@ -100,18 +115,13 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // myLevel is the caller's own level for the session's sport (if set).
   const [sportLevels, setSportLevels] = useState<SkillLevel[]>([]);
   const [myLevel, setMyLevel] = useState<UserSkillLevel | undefined>(undefined);
-  // Details/Participants/Matches/Chat — the session name and date stay
-  // pinned in the header outside the tab body, so switching tabs never
-  // loses which session you're looking at.
-  const [activeTab, setActiveTab] = useState<'details' | 'payment' | 'configuration' | 'participants' | 'matches' | 'chat'>(
-    initialTab && LINKABLE_TABS.includes(initialTab) ? initialTab : 'details'
-  );
+  // Details · Players · Matches · Chat (DP-024) — the session name and date
+  // stay pinned in the header outside the tab body, so switching tabs
+  // never loses which session you're looking at. Until someone picks a tab
+  // (or a link names one), the tab follows the lifecycle.
+  const [chosenTab, setActiveTab] = useState<SessionTab | null>(() => tabFromLink(initialTab));
+  const activeTab: SessionTab = chosenTab ?? (session ? defaultTabFor(session.lifecycleStatus) : 'details');
   const [now, setNow] = useState(() => Date.now());
-  // Opened on the Payment tab (e.g. from a link) for a free Session, which
-  // has none: show Details instead.
-  useEffect(() => {
-    if (session?.priceModel === 'free' && activeTab === 'payment') setActiveTab('details');
-  }, [session?.priceModel, activeTab]);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
@@ -723,17 +733,19 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   const organizerMember = members.find((m) => m.userId === session.createdBy);
   const organizerName = organizerMember?.displayName || organizerMember?.username || t('sessionHostLabel');
 
-  // A free Session has nothing to pay or confirm (DP-002 v0.24.0): no
-  // Payment tab.
+  // A free Session has nothing to pay or confirm (DP-002 v0.24.0).
   const isFree = session.priceModel === 'free';
-  const tabs: Array<{ key: typeof activeTab; label: string }> = [
-    { key: 'details', label: t('sessionTabDetails') },
-    { key: 'participants', label: t('sessionTabParticipants') },
-    ...(isFree ? [] : [{ key: 'payment' as const, label: t('sessionTabPayment') }]),
-    { key: 'configuration', label: t('sessionTabConfiguration') },
-    { key: 'matches', label: t('sessionTabMatches') },
-    { key: 'chat', label: t('sessionTabChat') },
-  ];
+  // Four tabs that always fit on a phone (DP-024). While In Progress the
+  // Session is about its matches, so they lead; after it, Matches reads
+  // as Results.
+  const tabOptions: Record<SessionTab, { value: SessionTab; label: string; count?: number }> = {
+    details: { value: 'details', label: t('sessionTabDetails') },
+    players: { value: 'players', label: t('sessionTabParticipants') },
+    matches: { value: 'matches', label: session.lifecycleStatus === 'completed' ? t('sessionTabResults') : t('sessionTabMatches') },
+    chat: { value: 'chat', label: t('sessionTabChat'), count: chatUnread },
+  };
+  const tabOrder: SessionTab[] =
+    session.lifecycleStatus === 'in_progress' ? ['matches', 'players', 'chat', 'details'] : ['details', 'players', 'matches', 'chat'];
 
   // Match Setup — same editable window as the rest of the Edit Session
   // form (draft, or published-not-yet-started): matches "Editing, Draft or
@@ -762,23 +774,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{formatSessionDateTime(session.startsAt)}</Text>
           )}
         </VStack>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          {tabs.map((tab) => (
-            <Pressable
-              key={tab.key}
-              className={`items-center px-4 py-3.5 rounded-xl ${activeTab === tab.key ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'}`}
-              onPress={() => setActiveTab(tab.key)}
-              hitSlop={4}
-            >
-              <HStack className="items-center gap-1.5">
-                <Text className={`text-sm font-bold ${activeTab === tab.key ? 'text-surface dark:text-surface-dark' : 'text-ink-muted dark:text-ink-muted-dark'}`}>
-                  {tab.label}
-                </Text>
-                {tab.key === 'chat' && <UnreadCount count={chatUnread} />}
-              </HStack>
-            </Pressable>
-          ))}
-        </ScrollView>
+        <Segmented options={tabOrder.map((key) => tabOptions[key])} value={activeTab} onChange={setActiveTab} />
       </VStack>
 
       {activeTab === 'chat' ? (
@@ -801,14 +797,15 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             isOwnerOrAdmin={isOwnerOrAdmin}
             busy={busy}
             myParticipation={myParticipation}
-            onOpenPlayers={() => setActiveTab('participants')}
+            onOpenPlayers={() => setActiveTab('players')}
             onPublish={handlePublish}
             onDiscard={handleDiscard}
           />
         )}
 
-        {/* Payment (Milestone 5) — bank accounts + receipt upload/status. */}
-        {activeTab === 'payment' && (
+        {/* Payment (Milestone 5) — bank accounts + receipt upload/status,
+            at the top of Players (DP-024). */}
+        {activeTab === 'players' && !isFree && (
           <SessionPayment
             sessionId={sessionId}
             session={session}
@@ -820,11 +817,11 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           />
         )}
 
-        {activeTab === 'configuration' && (
+        {activeTab === 'details' && isOwnerOrAdmin && (
           <MatchSetup session={session} canEdit={canEditConfiguration} busy={busy} onEdit={() => onEdit(sessionId)} />
         )}
 
-        {activeTab === 'participants' && (
+        {activeTab === 'players' && (
           <PlayersTab
             session={session}
             participants={participants}

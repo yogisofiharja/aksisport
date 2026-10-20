@@ -1,13 +1,16 @@
 import { Pressable, Text, View } from 'react-native';
+import { CountBadge } from './Chip';
 
 /**
  * Segmented control (Aksi Sport › Tabs › Segmented): 2–4 equal options
  * that filter one list (Upcoming / Past / Drafts) or pick a mode
- * (Singles / Doubles). The track is `surface-sunken`; the selected segment
- * is raised on `surface`.
+ * (Singles / Doubles), or switches the views of one screen (a Session's
+ * four tabs). The track is `surface-sunken`; the selected segment is
+ * raised on `surface`. An option's `count` adds an unread CountBadge after
+ * its label.
  */
 
-type Option<T extends string> = { value: T; label: string };
+type Option<T extends string> = { value: T; label: string; count?: number };
 
 type SegmentedProps<T extends string> = {
   options: Option<T>[];
@@ -30,18 +33,19 @@ export function Segmented<T extends string>({ options, value, onChange, classNam
             onPress={() => onChange(option.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            className={`flex-1 h-9 rounded-md items-center justify-center ${
+            className={`flex-1 h-9 rounded-md flex-row gap-1 px-1 items-center justify-center ${
               selected ? 'bg-surface dark:bg-surface-dark border border-border dark:border-border-dark' : 'active:opacity-60'
             }`}
           >
             <Text
               numberOfLines={1}
-              className={`text-sm ${
+              className={`text-sm flex-shrink ${
                 selected ? 'font-sans-semibold text-ink dark:text-ink-dark' : 'font-sans-medium text-ink-muted dark:text-ink-muted-dark'
               }`}
             >
               {option.label}
             </Text>
+            {option.count ? <CountBadge count={option.count} /> : null}
           </Pressable>
         );
       })}
