@@ -188,6 +188,13 @@ export function ComponentGalleryScreen({ onBack }: { onBack: () => void }) {
             >
               <ButtonText>Alert as sheet</ButtonText>
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={() => appAlert('Copy this link to share the community', 'https://app.aksisport.com/c/09bd7307', [{ text: 'OK' }])}
+            >
+              <ButtonText>Notice</ButtonText>
+            </Button>
           </View>
         </Section>
 

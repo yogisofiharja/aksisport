@@ -24,6 +24,7 @@ import { initialsFromName } from '../../core/initials';
 import type { ClubJoinRequest, ClubMember, UserSummary } from '../../core/api/types';
 import { ApiRequestError } from '../../core/api/client';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
+import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
 
 type Props = {
   clubId: string;
@@ -380,6 +381,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
 
       {/* Member detail — promote/demote/remove/leave live here now. */}
       <Modal visible={selectedMember !== null} transparent animationType="slide" onRequestClose={closeMemberDetail}>
+        <CloseOnBack onClose={closeMemberDetail} />
         <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={closeMemberDetail}>
           <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
             <Box className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center mb-1" />
@@ -473,6 +475,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
       {/* Add Member — owner only, search any app user, existing members
           filtered out client-side (already have that list loaded). */}
       <Modal visible={showAddMember} transparent animationType="slide" onRequestClose={closeAddMember}>
+        <CloseOnBack onClose={closeAddMember} />
         <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={closeAddMember}>
             <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>

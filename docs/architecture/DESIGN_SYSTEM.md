@@ -104,9 +104,16 @@ marks the one main action on a screen, so:
 - **Overlays:** `Dialog` only for destructive confirms (safe left, danger
   right); `Sheet` for everything else (closes on swipe, scrim tap, back;
   the dismiss button says "Close"); toasts are asphalt at the bottom.
-  `appAlert` keeps `Alert.alert`'s signature and picks among the three: a
-  plain message is a toast, one destructive action a Dialog, anything else
-  a Sheet. `toast()` shows a toast with at most one action.
+  `appAlert` keeps `Alert.alert`'s signature and picks among them: a
+  message with no buttons is a toast (confirmations, errors the person can
+  simply retry); a message with one button (`[{ text: t('ok') }]`) is a
+  Sheet the person closes, for anything they must read and act on (a
+  blocking error, a link to copy); one destructive action is a Dialog;
+  anything else a Sheet. `toast()` shows a toast with at most one action.
+- **Back closes overlays.** On web every open Sheet, Dialog or sheet-style
+  `Modal` is a history step: the browser's back button or Android's back
+  gesture closes it instead of leaving the screen (`useBackToClose`, or
+  `<CloseOnBack onClose={…} />` inside a `Modal`). New modals need it too.
 - **EmptyState** takes an `illustration` (the nine Aksi Sport spot
   illustrations, `feedback/Illustration.tsx`, drawn with react-native-svg
   from theme colours).

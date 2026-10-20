@@ -18,6 +18,7 @@ import { appAlert } from '../../design-system/feedback/appAlert';
 import { blockUser, unblockUser } from '../../core/safety/api';
 import { ReportSheet, type ReportTarget } from '../safety/ReportSheet';
 import type { PlayerProfile, SkillLevel } from '../../core/api/types';
+import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
 
 export type ProfileSheetAction = {
   label: string;
@@ -105,6 +106,7 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
 
   return (
     <Modal visible={userId !== null} transparent animationType="slide" onRequestClose={onClose}>
+      <CloseOnBack onClose={onClose} />
       <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={onClose}>
         <Pressable
           className="w-full self-center bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-5"

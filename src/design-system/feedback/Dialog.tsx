@@ -4,6 +4,7 @@ import { Button, ButtonText } from '../ui/Button';
 import { Typography } from '../ui/Typography';
 import { Stack } from '../layout/Stack';
 import { HStack } from '../layout/HStack';
+import { CloseOnBack } from './useBackToClose';
 
 /**
  * Confirms one destructive or irreversible action (Aksi Sport › Dialog):
@@ -52,6 +53,7 @@ export function Dialog({
       // Also over the landscape scoring court on iOS.
       supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
+      <CloseOnBack onClose={onCancel} />
       <View className="flex-1 items-center justify-center px-6">
         <Pressable className="absolute inset-0 bg-black/55" onPress={onCancel} accessibilityLabel={cancelLabel} />
         <View

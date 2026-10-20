@@ -12,8 +12,12 @@ import { Sheet } from './Sheet';
  * are, and `AppAlertHost` (mounted once at the app root) shows each request
  * the Aksi Sport way, on every platform:
  *
- * - a plain message (no buttons, or a single OK) → a **Toast**: asphalt,
- *   at the bottom, gone after about 4 seconds;
+ * - a plain message (no buttons) → a **Toast**: asphalt, at the bottom,
+ *   gone after about 4 seconds — for confirmations and errors the person
+ *   can simply retry;
+ * - a message with a single button (`[{ text: t('ok') }]`) → a **Sheet**
+ *   the person closes themselves — for anything they must read and act
+ *   on, such as an error that blocks them or a link to copy;
  * - one destructive action and a way out → a **Dialog**: safe choice left,
  *   the destructive verb right;
  * - anything else (choices, action menus, a non-destructive confirm) → a
@@ -62,12 +66,9 @@ export function toast(
 
 export function appAlert(title: string, message?: string, buttons?: AppAlertButton[]) {
   const list = buttons ?? [];
-  const only = list.length === 1 ? list[0] : null;
-  // A message with nothing to decide is a toast; a lone OK runs its
-  // follow-up straight away.
-  if (list.length === 0 || (only && only.style !== 'destructive' && isAcknowledge(only.text))) {
+  // Nothing to decide or acknowledge: a toast.
+  if (list.length === 0) {
     toast(title, { detail: message });
-    only?.onPress?.();
     return;
   }
   if (!presentPrompt) {
@@ -75,10 +76,6 @@ export function appAlert(title: string, message?: string, buttons?: AppAlertButt
     return;
   }
   presentPrompt({ title, message, buttons: list });
-}
-
-function isAcknowledge(text: string) {
-  return /^(ok|okay|oke|got it|mengerti)$/i.test(text.trim());
 }
 
 export function AppAlertHost() {
@@ -107,8 +104,14 @@ export function AppAlertHost() {
     const cancel = prompt.buttons.find((b) => b.style === 'cancel');
     const actions = prompt.buttons.filter((b) => b.style !== 'cancel');
     const genericCancel = !cancel || cancel.text === t('cancel') || cancel.text === t('clubCancel');
+    const lone = prompt.buttons.length === 1 && prompt.buttons[0].style !== 'destructive' ? prompt.buttons[0] : null;
 
-    if (actions.length === 1 && actions[0].style === 'destructive') {
+    if (lone) {
+      // A notice to acknowledge: its one button closes it.
+      overlay = (
+        <Sheet visible title={prompt.title} description={prompt.message} closeLabel={lone.text} onClose={() => choose(lone)} />
+      );
+    } else if (actions.length === 1 && actions[0].style === 'destructive') {
       overlay = (
         <Dialog
           visible

@@ -9,6 +9,7 @@ import { Icon } from '../../design-system/ui/Icon';
 import { useTranslation } from '../../i18n';
 import { getLocations, type Locations } from '../../core/locations/api';
 import type { City, Province } from '../../core/api/types';
+import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
 
 type Props = {
   visible: boolean;
@@ -105,6 +106,7 @@ export function CityPickerModal({ visible, title, selectedCode, onSelect, onClos
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <CloseOnBack onClose={onClose} />
       {/* Same centred column as the app itself on a wide browser window. */}
       <View className="flex-1 bg-slate-200 dark:bg-black">
         <SafeAreaView className="flex-1 w-full self-center bg-ground dark:bg-ground-dark" style={{ maxWidth: 520 }}>

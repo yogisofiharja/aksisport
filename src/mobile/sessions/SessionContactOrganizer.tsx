@@ -11,6 +11,7 @@ import { ConversationThread } from './ConversationThread';
 import { UnreadCount } from '../messages/UnreadCount';
 import { usePollInterval, useLiveEvents } from '../../core/live/live';
 import type { ConversationMessage, Session, SessionContactThread } from '../../core/api/types';
+import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
 
 type Props = {
   visible: boolean;
@@ -109,6 +110,7 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <CloseOnBack onClose={onClose} />
       <VStack className="flex-1 bg-ground dark:bg-ground-dark">
         <HStack className="px-5 pt-4 pb-3 items-center justify-between border-b border-border dark:border-border-dark">
           <Pressable

@@ -201,9 +201,9 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
         setMatchState(createInitialState(pendingConfig));
         setPendingConfig(null);
         watchAsSpectator();
-        appAlert(t('matchStartedElsewhere'));
+        appAlert(t('matchStartedElsewhere'), undefined, [{ text: t('ok') }]);
       } else {
-        appAlert(t('activityLoadError'));
+        appAlert(t('activityLoadError'), undefined, [{ text: t('ok') }]);
       }
     } finally {
       setStarting(false);

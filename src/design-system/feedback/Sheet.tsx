@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { Button, ButtonText } from '../ui/Button';
 import { Typography } from '../ui/Typography';
+import { CloseOnBack } from './useBackToClose';
 
 /**
  * Bottom sheet (Aksi Sport › Sheet), the default overlay on mobile: action
@@ -66,6 +67,7 @@ export function Sheet({ visible, onClose, title, description, children, closeLab
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <CloseOnBack onClose={onClose} />
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-0 bg-black/50" onPress={onClose} accessibilityLabel={dismiss || t('close')} />
         {/* Classes on a plain View inside: Animated.View doesn't take NativeWind classes. */}
@@ -82,7 +84,7 @@ export function Sheet({ visible, onClose, title, description, children, closeLab
               <View className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center mb-3" />
               {title ? <Typography variant="title">{title}</Typography> : null}
               {description ? (
-                <Typography variant="body" color="muted" className="mt-1">
+                <Typography variant="body" color="muted" className="mt-1" selectable>
                   {description}
                 </Typography>
               ) : null}

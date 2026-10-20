@@ -24,6 +24,7 @@ import { ApiRequestError } from '../../core/api/client';
 import type { ClubBankAccount } from '../../core/api/types';
 import { CityPickerModal } from '../locations/CityPickerModal';
 import { Switch } from '../../design-system/ui/Switch';
+import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
 
 type Props = {
   clubId: string;
@@ -283,6 +284,7 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
       )}
 
       <Modal visible={modal !== null} transparent animationType="slide" onRequestClose={closeModal}>
+        <CloseOnBack onClose={closeModal} />
         <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={closeModal}>
             <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>

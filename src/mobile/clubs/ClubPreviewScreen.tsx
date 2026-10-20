@@ -77,7 +77,7 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
   async function handleShare() {
     const outcome = await shareLink(clubLink(club.id), club.name);
     if (outcome === 'copied') appAlert(t('clubLinkCopiedTitle'), t('clubLinkCopiedDesc'));
-    else if (outcome === 'failed') appAlert(t('clubLinkShareFailed'), clubLink(club.id));
+    else if (outcome === 'failed') appAlert(t('clubLinkShareFailed'), clubLink(club.id), [{ text: t('ok') }]);
   }
 
   return (

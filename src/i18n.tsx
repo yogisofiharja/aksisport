@@ -83,6 +83,7 @@ const en: Dict = {
   matchStartedElsewhere: 'Someone else already started this match. You are watching their scoring.',
   cancel: 'Cancel',
   close: 'Close',
+  ok: 'OK',
 
   // Share / image picker
   shareResultTitle: 'Share Result',
@@ -794,6 +795,7 @@ const id: Dict = {
   matchStartedElsewhere: 'Orang lain sudah memulai pertandingan ini. Kamu menonton skornya.',
   cancel: 'Batal',
   close: 'Tutup',
+  ok: 'Oke',
 
   // Share / image picker
   shareResultTitle: 'Bagikan Hasil',

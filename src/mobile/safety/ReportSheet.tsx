@@ -8,6 +8,7 @@ import { Button, ButtonText } from '../../design-system/ui/Button';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { useTranslation } from '../../i18n';
 import { reportMessage, reportUser } from '../../core/safety/api';
+import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
 
 export type ReportTarget = { kind: 'user'; userId: string; name: string } | { kind: 'message'; messageId: string; name: string };
 
@@ -47,6 +48,7 @@ export function ReportSheet({ target, onClose }: Props) {
 
   return (
     <Modal visible={target !== null} transparent animationType="slide" onRequestClose={onClose}>
+      <CloseOnBack onClose={onClose} />
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={onClose}>
           <Pressable

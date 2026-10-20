@@ -21,6 +21,7 @@ import { appAlert } from '../design-system/feedback/appAlert';
 import { color } from '../design-system/foundation/colors';
 import { renderShareCard } from './shareCardCanvas';
 import { useTranslation } from '../i18n';
+import { CloseOnBack } from '../design-system/feedback/useBackToClose';
 
 export type NativeShareData = {
   matchup: string;
@@ -209,6 +210,7 @@ export function NativeShareModal({ data, onClose }: Props) {
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <CloseOnBack onClose={onClose} />
       <View style={s.overlay}>
         <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
         <SafeAreaView edges={['bottom']} style={s.sheet}>

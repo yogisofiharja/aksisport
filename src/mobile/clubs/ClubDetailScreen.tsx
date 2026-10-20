@@ -148,7 +148,7 @@ export function ClubDetailScreen({
     if (!club) return;
     const outcome = await shareLink(clubLink(clubId), club.name);
     if (outcome === 'copied') appAlert(t('clubLinkCopiedTitle'), t('clubLinkCopiedDesc'));
-    else if (outcome === 'failed') appAlert(t('clubLinkShareFailed'), clubLink(clubId));
+    else if (outcome === 'failed') appAlert(t('clubLinkShareFailed'), clubLink(clubId), [{ text: t('ok') }]);
   }
 
   // Any member but the owner can leave, from here — the Community's own
@@ -167,7 +167,7 @@ export function ClubDetailScreen({
             await removeMember(clubId, profile.id);
             onLeft();
           } catch (err) {
-            appAlert(t('clubLeaveClub'), err instanceof Error ? err.message : t('authGenericError'));
+            appAlert(t('clubLeaveClub'), err instanceof Error ? err.message : t('authGenericError'), [{ text: t('ok') }]);
           }
         },
       },
