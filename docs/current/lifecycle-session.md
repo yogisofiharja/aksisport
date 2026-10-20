@@ -537,7 +537,10 @@ Players, `matches` opens Matches.
   match of theirs and none live). An owner/admin with no step of their
   own gets Generate matches (opens AddMatch on its Generate tab). Nothing
   shows when no action applies.
-- **⋯ menu** (owner/admin, `SessionMenuSheet.tsx`): Edit session (the
+- **⋯ menu** (owner/admin, `SessionMenuSheet.tsx`): Join as player (an
+  organizer with no place in the Session — the same flow as Request to
+  join; hidden once they play, while Draft, when a Strict Skill Level
+  rules them out, and when Full, Completed or Cancelled), Edit session (the
   editable window: draft, or published and not started), Match setup (a
   Sheet with the read-only Match Setup summary and Edit — see "Match
   Setup" below), Share session link (`sessionLink()`), and Cancel session

@@ -784,6 +784,20 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     }
   }
 
+  // DP-024 (v0.29.0): an organizer who isn't a player joins from the ⋯
+  // menu, through the same flow as Request to join — their bottom action
+  // stays Generate matches. Not once they play, nor when the Session is
+  // Full, Completed or Cancelled (or still a Draft, or a Strict Skill
+  // Level rules them out, where Request to join can't succeed either).
+  const canJoinAsPlayer =
+    isOwnerOrAdmin &&
+    isPublished &&
+    (!myParticipant || myParticipant.status === 'cancelled') &&
+    !strictLevelBlocked &&
+    session.lifecycleStatus !== 'full' &&
+    session.lifecycleStatus !== 'completed' &&
+    session.lifecycleStatus !== 'cancelled';
+
   const tabOrder: SessionTab[] =
     session.lifecycleStatus === 'in_progress' ? ['matches', 'players', 'chat', 'details'] : ['details', 'players', 'matches', 'chat'];
 
@@ -913,6 +927,9 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
         items={[
+          ...(canJoinAsPlayer
+            ? [{ key: 'join', icon: 'person-add-outline' as const, label: t('sessionJoinAsPlayer'), onPress: handleRequestToJoin }]
+            : []),
           ...(canEditConfiguration
             ? [{ key: 'edit', icon: 'create-outline' as const, label: t('sessionEdit'), opensMore: true, onPress: () => onEdit(sessionId) }]
             : []),
