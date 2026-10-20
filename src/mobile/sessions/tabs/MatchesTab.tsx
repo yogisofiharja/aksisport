@@ -13,6 +13,8 @@ type Props = {
   isPublished: boolean;
   isOwnerOrAdmin: boolean;
   isSessionActive: boolean;
+  /** Completed: the tab is Results. */
+  isCompleted: boolean;
   matchesOpen: boolean;
   canRegenerate: boolean;
   busy: boolean;
@@ -42,6 +44,7 @@ export function MatchesTab({
   isPublished,
   isOwnerOrAdmin,
   isSessionActive,
+  isCompleted,
   matchesOpen,
   canRegenerate,
   busy,
@@ -53,6 +56,9 @@ export function MatchesTab({
 }: Props) {
   const { t } = useTranslation();
   const queuedActivities = activities.filter((a) => a.status === 'queued');
+  // Only the viewer's next match is "YOUR MATCH"; their later ones are
+  // ordinary queued rows with their name in bold.
+  const myNextMatchId = queuedActivities.find((a) => a.participants.some((p) => p.userId === myUserId))?.id;
 
   if (!isPublished) {
     return (
@@ -65,7 +71,7 @@ export function MatchesTab({
   return (
     <VStack className="gap-2">
       <HStack className="justify-between items-center mb-1">
-        <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">{t('activityQueueTitle')}</Text>
+        <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">{isCompleted ? t('sessionTabResults') : t('activityQueueTitle')}</Text>
         {isOwnerOrAdmin && isSessionActive && (
           <HStack className="gap-1">
             {canRegenerate && (
@@ -95,7 +101,9 @@ export function MatchesTab({
           // the tennis MatchState (the only Sport Module today): set
           // scores, or games when no set was completed.
           const isFinished = a.status === 'completed';
-          const isMine = a.participants.some((p) => p.userId === myUserId);
+          const isMine = a.id === myNextMatchId;
+          const me = a.participants.find((p) => p.userId === myUserId);
+          const myName = me ? me.displayName || me.username || undefined : undefined;
           const teamNames = (team: 'A' | 'B') =>
             a.participants
               .filter((p) => p.team === team)
@@ -112,6 +120,7 @@ export function MatchesTab({
               matchup={activityParticipantNames(a)}
               queueNumber={a.status === 'queued' ? queuedActivities.indexOf(a) + 1 : undefined}
               isMine={isMine}
+              emphasis={a.status === 'queued' && !isMine ? myName : undefined}
               // No live score is loaded here (it streams to the match screen
               // only), so a live card shows the matchup.
               sides={

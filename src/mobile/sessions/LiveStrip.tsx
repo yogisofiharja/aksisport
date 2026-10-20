@@ -16,7 +16,9 @@ type Props = {
 
 // DP-024: while a Session is In Progress, a strip under the header on every
 // tab — the player's own next step, or for organizers (and players with
-// no match) the courts at a glance. Tapping it opens Matches.
+// no match) the courts at a glance. Tapping it opens Matches. Matches have
+// no court number yet, so the strip says "You're up next", never "on
+// Court 2".
 export function LiveStrip({ activities, participants, courtCount, myUserId, isOrganizer, onPress }: Props) {
   const { t } = useTranslation();
   const input = { activities, participants, courtCount, myUserId };
@@ -24,6 +26,7 @@ export function LiveStrip({ activities, participants, courtCount, myUserId, isOr
   let line: string;
   if (step?.kind === 'playing') line = t('liveStripPlaying');
   else if (step?.kind === 'upNext') line = t('liveStripUpNext');
+  else if (step?.kind === 'upNextNoCourt') line = t('liveStripUpNextNoCourt');
   else if (step?.kind === 'waiting') line = t('liveStripWaiting');
   else {
     const counts = courtCounts(input);

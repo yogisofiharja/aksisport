@@ -45,6 +45,8 @@ type MatchCardProps = {
   court?: number;
   queueNumber?: number;
   isMine?: boolean;
+  /** A name to set in bold inside a queued row's matchup (the viewer's). */
+  emphasis?: string;
   sides?: MatchSide[];
   onShare?: () => void;
   onPress?: () => void;
@@ -79,6 +81,7 @@ export function MatchCard({
   court,
   queueNumber,
   isMine = false,
+  emphasis,
   sides,
   onShare,
   onPress,
@@ -225,7 +228,7 @@ export function MatchCard({
       ) : null}
       <View className="flex-1 min-w-0">
         <Typography variant="body" className="font-semibold" numberOfLines={2}>
-          {pair ? `${pair[0].names} ${t('activityVersus')} ${pair[1].names}` : matchup}
+          {withEmphasis(pair ? `${pair[0].names} ${t('activityVersus')} ${pair[1].names}` : matchup, emphasis)}
         </Typography>
         <Typography variant="body" color="muted" className="text-[13px] leading-[18px]" numberOfLines={1}>
           {[courtLabel, statusLabel].filter(Boolean).join(' · ')}
@@ -233,6 +236,21 @@ export function MatchCard({
       </View>
       {action}
     </Pressable>
+  );
+}
+
+// Sets each occurrence of `emphasis` in bold, the rest as is.
+function withEmphasis(text: string, emphasis?: string): ReactNode {
+  if (!emphasis || !text.includes(emphasis)) return text;
+  return text.split(emphasis).flatMap((part, i) =>
+    i === 0
+      ? [part]
+      : [
+          <Text key={i} className="font-sans-bold">
+            {emphasis}
+          </Text>,
+          part,
+        ]
   );
 }
 

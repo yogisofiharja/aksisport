@@ -24,7 +24,12 @@ describe('playerStep', () => {
     expect(playerStep({ activities, participants: [], courtCount: 2, myUserId: 'me' })).toEqual({ kind: 'upNext', activityId: 'b' });
   });
 
-  it('is waiting when the courts are taken or matches are ahead', () => {
+  it('is up next without a court when theirs is first but every court is busy', () => {
+    const activities = [match('a', 'live', ['x', 'y']), match('b', 'queued', ['me', 'z'])];
+    expect(playerStep({ activities, participants: [], courtCount: 1, myUserId: 'me' })).toEqual({ kind: 'upNextNoCourt', activityId: 'b' });
+  });
+
+  it('is waiting when other matches are ahead', () => {
     const activities = [match('a', 'live', ['x', 'y']), match('b', 'queued', ['p', 'q']), match('c', 'queued', ['me', 'z'])];
     expect(playerStep({ activities, participants: [], courtCount: 2, myUserId: 'me' })).toEqual({ kind: 'waiting', activityId: 'c' });
   });

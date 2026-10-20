@@ -12,6 +12,8 @@ export type PlayerStep =
   | { kind: 'playing' }
   // The next queued match that fits a free court is theirs.
   | { kind: 'upNext'; activityId: string }
+  // Theirs is first in the queue, but every court is busy.
+  | { kind: 'upNextNoCourt'; activityId: string }
   // Queued, but courts are busy or other matches are ahead.
   | { kind: 'waiting'; activityId: string };
 
@@ -45,7 +47,10 @@ export function playerStep({ activities, courtCount, myUserId }: Input): PlayerS
   const index = queued.findIndex(mine);
   if (index < 0) return undefined;
   const free = courtsFree(activities, courtCount);
-  return index < free ? { kind: 'upNext', activityId: queued[index].id } : { kind: 'waiting', activityId: queued[index].id };
+  const activityId = queued[index].id;
+  if (index < free) return { kind: 'upNext', activityId };
+  if (index === 0) return { kind: 'upNextNoCourt', activityId };
+  return { kind: 'waiting', activityId };
 }
 
 // A member by their account; a guest (no account) by name, the only thing

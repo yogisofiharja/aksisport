@@ -5,7 +5,6 @@ import { Text } from '../../../../components/ui/text';
 import { Button, ButtonText } from '../../../../components/ui/button';
 import { Pressable } from '../../../../components/ui/pressable';
 import { useTranslation } from '../../../i18n';
-import { formatSessionDateTime } from '../../../core/sessions/sessionSchedule';
 import { formatIDR } from '../../../core/currency';
 import { initialsFromName } from '../../../core/initials';
 import { minParticipants } from '../../../sports/tennis/rules';
@@ -22,6 +21,8 @@ type Props = {
   hasLevelRequirement: boolean;
   organizerName: string;
   isMeOrganizer: boolean;
+  /** "Thu 22 Oct · 19:00", as on the cards. */
+  dateText?: string;
   isOwnerOrAdmin: boolean;
   busy: boolean;
   /** The caller's own join / check-in area (MyParticipation). */
@@ -40,6 +41,7 @@ export function DetailsTab({
   hasLevelRequirement,
   organizerName,
   isMeOrganizer,
+  dateText,
   isOwnerOrAdmin,
   busy,
   myParticipation,
@@ -100,10 +102,10 @@ export function DetailsTab({
               <Text className="font-bold text-ink dark:text-ink-dark">{activityTypeLabel(session.activityType, t)}</Text>
             </HStack>
           )}
-          {session.startsAt && (
+          {dateText && (
             <HStack className="justify-between">
               <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionDateLabel')}</Text>
-              <Text className="font-bold text-ink dark:text-ink-dark">{formatSessionDateTime(session.startsAt)}</Text>
+              <Text className="font-bold text-ink dark:text-ink-dark">{dateText}</Text>
             </HStack>
           )}
           {session.durationMinutes != null && (
@@ -173,7 +175,10 @@ export function DetailsTab({
             {session.lifecycleStatus === 'recruiting'
               ? t('sessionRecruitingNotice', session.joinedCount, minParticipants('single'))
               : session.lifecycleStatus === 'ready'
-                ? t('sessionReadyNotice')
+                ? // "Start whenever you're ready" is the organizer's call.
+                  isOwnerOrAdmin
+                  ? t('sessionReadyNotice')
+                  : t('sessionReadyNoticePlayer')
                 : t('sessionFullNotice')}
           </Text>
         </Box>

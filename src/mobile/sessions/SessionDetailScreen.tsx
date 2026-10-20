@@ -33,7 +33,7 @@ import { createActivity, deleteActivity, listActivities } from '../../core/activ
 import { listMySkillLevels, listSkillLevels } from '../../core/skillLevels/api';
 import { availableToPlay, generateFairRound } from '../../core/sessions/matchGenerator';
 import { buildGeneratedMatchPayload } from '../../core/activities/buildGeneratedMatchPayload';
-import { formatSessionDateTime, isWithinCheckInWindow } from '../../core/sessions/sessionSchedule';
+import { formatSessionWhen, isWithinCheckInWindow } from '../../core/sessions/sessionSchedule';
 import { offerPush } from '../../core/notifications/offerPush';
 import { useSessionChatUnread } from '../../core/messages/useSessionChatUnread';
 import { Segmented } from '../../design-system/ui/Segmented';
@@ -757,7 +757,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // a disabled button.
   const myStep = playerStep({ activities, participants, courtCount: session.courtCount, myUserId: profile?.id });
   const spotsLeft = session.maxParticipants != null ? Math.max(0, session.maxParticipants - session.joinedCount) : undefined;
-  // The bottom bar's fact is short: the amount alone ("IDR50.000"), or
+  // The bottom bar's fact is short: the amount alone ("Rp 50.000"), or
   // "Free" / "Split bill".
   const priceText =
     session.priceModel === 'per_person' && session.pricePerPerson != null ? formatIDR(session.pricePerPerson) : priceLabel(session, t);
@@ -776,7 +776,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
       bottomAction = { label: t('sessionPay'), onPress: () => setActiveTab('players') };
     } else if (status === 'registered' && checkInWindowOpen) {
       bottomAction = { label: t('sessionCheckIn'), onPress: handleCheckIn };
-    } else if (status === 'checked_in' && matchesOpen && (myStep?.kind === 'upNext' || myStep?.kind === 'waiting')) {
+    } else if (status === 'checked_in' && matchesOpen && (myStep?.kind === 'upNext' || myStep?.kind === 'upNextNoCourt' || myStep?.kind === 'waiting')) {
       const activityId = myStep.activityId;
       bottomAction = { label: t('sessionStartMyMatch'), onPress: () => onOpenMatch(activityId) };
     } else if (isOwnerOrAdmin && generationEligible) {
@@ -809,7 +809,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         <VStack className="gap-0.5">
           <Heading size="2xl" numberOfLines={1}>{session.name || session.sport}</Heading>
           {session.startsAt && (
-            <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{formatSessionDateTime(session.startsAt)}</Text>
+            <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{formatSessionWhen(session, lang, t('sessionSectionToday'))}</Text>
           )}
         </VStack>
       </VStack>
@@ -844,6 +844,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             hasLevelRequirement={hasLevelRequirement}
             organizerName={organizerName}
             isMeOrganizer={session.createdBy === profile?.id}
+            dateText={formatSessionWhen(session, lang, t('sessionSectionToday'))}
             isOwnerOrAdmin={isOwnerOrAdmin}
             busy={busy}
             myParticipation={myParticipation}
@@ -884,6 +885,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             isPublished={isPublished}
             isOwnerOrAdmin={isOwnerOrAdmin}
             isSessionActive={isSessionActive}
+            isCompleted={session.lifecycleStatus === 'completed'}
             matchesOpen={matchesOpen}
             canRegenerate={canRegenerate}
             busy={busy}

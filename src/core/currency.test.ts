@@ -32,6 +32,6 @@ describe('digitsOnly', () => {
 
 describe('formatIDR', () => {
   it('matches the separator the inputs use', () => {
-    expect(formatIDR(150000)).toBe(`IDR${formatThousands('150000')}`);
+    expect(formatIDR(150000)).toBe(`Rp ${formatThousands('150000')}`);
   });
 });
