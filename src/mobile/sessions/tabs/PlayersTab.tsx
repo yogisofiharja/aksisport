@@ -25,8 +25,11 @@ type Props = {
   busy: boolean;
   /** The caller's own join / check-in area (MyParticipation). */
   myParticipation: ReactNode;
+  /** Priced Session: amount, bank accounts and the viewer's payment. */
+  paymentSummary?: ReactNode;
   onOpenProfile: (p: SessionParticipant) => void;
-  onRemove: (p: SessionParticipant) => void;
+  /** An organizer's ⋯ on a row: payment and Remove. */
+  onOpenRowMenu: (p: SessionParticipant) => void;
   onCheckInParticipant: (participantId: string) => void;
   onApprove: (userId: string) => void;
   onAddParticipant: () => void;
@@ -43,8 +46,9 @@ export function PlayersTab({
   placeholderCount,
   busy,
   myParticipation,
+  paymentSummary,
   onOpenProfile,
-  onRemove,
+  onOpenRowMenu,
   onCheckInParticipant,
   onApprove,
   onAddParticipant,
@@ -72,11 +76,14 @@ export function PlayersTab({
 
   // One PlayerCard row per participant: initials (dashed for a guest), the
   // name, and a subline with their status (and "host" for the organizer).
-  // On a paid Session the Paid / Awaiting pill sits on the right;
-  // organizers also get the section's action (Check in, Approve) and
-  // Remove there.
+  // On a priced Session the Paid / Awaiting pill sits on the right (DP-024,
+  // DP-012); organizers also get the section's action (Check in, Approve)
+  // and a ⋯ that opens the row sheet — the receipt, Confirm payment and
+  // Remove.
   function renderParticipantCard(p: SessionParticipant, action?: RowAction) {
     const canRemove = isOwnerOrAdmin && isSessionActive;
+    const hasPayment = session.priceModel !== 'free' && (hasPaid(p) || isAwaitingPayment(p));
+    const hasRowMenu = isOwnerOrAdmin && (canRemove || hasPayment);
     const canAct = action && isOwnerOrAdmin && isSessionActive;
     const isGuest = !p.userId;
     const payment =
@@ -109,7 +116,7 @@ export function PlayersTab({
           subtitle={subtitle}
           isGuest={isGuest}
           trailing={
-            payment || canAct || canRemove ? (
+            payment || canAct || hasRowMenu ? (
               <HStack className="items-center gap-1">
                 {payment && <Badge action={hasPaid(p) ? 'ready' : 'draft'} text={payment} caps className="self-center" />}
                 {canAct && (
@@ -117,7 +124,7 @@ export function PlayersTab({
                     <ButtonText>{action.label}</ButtonText>
                   </Button>
                 )}
-                {canRemove && <IconButton icon="close" size="md" label={t('sessionRemoveParticipant')} onPress={() => onRemove(p)} />}
+                {hasRowMenu && <IconButton icon="ellipsis-horizontal" size="md" label={t('appBarMore')} onPress={() => onOpenRowMenu(p)} />}
               </HStack>
             ) : undefined
           }
@@ -138,6 +145,8 @@ export function PlayersTab({
 
   return (
     <VStack className="gap-5">
+      {paymentSummary}
+
       {myParticipation}
 
       <VStack className="gap-4">

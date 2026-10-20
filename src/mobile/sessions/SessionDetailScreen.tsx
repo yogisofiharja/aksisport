@@ -38,7 +38,8 @@ import { offerPush } from '../../core/notifications/offerPush';
 import { useSessionChatUnread } from '../../core/messages/useSessionChatUnread';
 import { Segmented } from '../../design-system/ui/Segmented';
 import { SessionContactOrganizer } from './SessionContactOrganizer';
-import { SessionPayment } from './SessionPayment';
+import { PaymentSummary } from './SessionPayment';
+import { PlayerRowSheet } from './PlayerRowSheet';
 import { AddParticipantSheet, type AddParticipantStep } from './AddParticipantSheet';
 import { MyParticipation } from './tabs/MyParticipation';
 import { DetailsTab } from './tabs/DetailsTab';
@@ -111,6 +112,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   const [loadFailed, setLoadFailed] = useState(false);
   // DP-019: the participant whose profile an organizer has opened.
   const [profileParticipant, setProfileParticipant] = useState<SessionParticipant | null>(null);
+  // The row whose ⋯ an organizer opened on Players (payment, Remove).
+  const [rowMenuParticipant, setRowMenuParticipant] = useState<SessionParticipant | null>(null);
   const [guestName, setGuestName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -801,20 +804,6 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           />
         )}
 
-        {/* Payment (Milestone 5) — bank accounts + receipt upload/status,
-            at the top of Players (DP-024). */}
-        {activeTab === 'players' && !isFree && (
-          <SessionPayment
-            sessionId={sessionId}
-            session={session}
-            participants={participants}
-            myParticipant={myParticipant}
-            isOwnerOrAdmin={isOwnerOrAdmin}
-            onConfirmPayment={handleConfirmPayment}
-            onParticipantsChanged={load}
-          />
-        )}
-
         {activeTab === 'players' && (
           <PlayersTab
             session={session}
@@ -827,8 +816,13 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             placeholderCount={placeholderCount}
             busy={busy}
             myParticipation={myParticipation}
+            paymentSummary={
+              isFree ? undefined : (
+                <PaymentSummary sessionId={sessionId} session={session} myParticipant={myParticipant} onParticipantsChanged={load} />
+              )
+            }
             onOpenProfile={setProfileParticipant}
-            onRemove={handleDeleteParticipant}
+            onOpenRowMenu={setRowMenuParticipant}
             onCheckInParticipant={handleCheckInParticipant}
             onApprove={handleApprove}
             onAddParticipant={openAddParticipant}
@@ -895,6 +889,19 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           }}
         />
       </Sheet>
+
+      <PlayerRowSheet
+        sessionId={sessionId}
+        session={session}
+        participant={rowMenuParticipant}
+        isOwnerOrAdmin={isOwnerOrAdmin}
+        canRemove={isOwnerOrAdmin && isSessionActive}
+        myUserId={profile?.id}
+        busy={busy}
+        onClose={() => setRowMenuParticipant(null)}
+        onConfirmPayment={handleConfirmPayment}
+        onRemove={handleDeleteParticipant}
+      />
 
       <AddParticipantSheet
         step={addParticipantStep}
