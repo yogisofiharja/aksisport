@@ -29,7 +29,7 @@ module.exports = {
   borderStrong: { light: '#9a948e', dark: '#77716b' },
   ball: { light: '#dcf23a', dark: '#dcf23a' },
   success: { light: '#0e7c4a', dark: '#34d399' },
-  successTint: { light: '#e3f4ea', dark: '#0f2a1e' },
+  successTint: { light: '#e3f3ea', dark: '#0f2a1e' },
   info: { light: '#1d4ed8', dark: '#93c5fd' },
   infoTint: { light: '#e6eefd', dark: '#14213d' },
   danger: { light: '#b42318', dark: '#f87171' },
