@@ -15,8 +15,9 @@ import { AccessibilityInfo, Animated, Text, View } from 'react-native';
  *
  * `caps` is the card pill (Aksi redesign › Cards): 22px tall, 11px bold
  * uppercase, as on SessionCard, RecurringScheduleCard and a PlayerCard's
- * Paid / Awaiting. In it Full carries a ball dot, and Completed is a muted
- * pill rather than an outline, since cards already have a border.
+ * Paid / Awaiting. In it Full is an ink pill (light in dark mode) with a
+ * ball dot, and Completed is a muted pill rather than an outline, since
+ * cards already have a border.
  */
 
 export type LifecycleStatus = 'draft' | 'recruiting' | 'ready' | 'full' | 'live' | 'completed' | 'cancelled';
@@ -61,7 +62,8 @@ const actionClasses: Record<Action, { bg: string; text: string; dot?: string }> 
 export type BadgeAction = Action;
 
 const capsOverrides: Partial<Record<Action, { bg: string; text: string; dot?: string }>> = {
-  full: { bg: 'bg-asphalt dark:bg-asphalt-dark', text: 'text-on-asphalt', dot: 'bg-ball' },
+  // Inverted in dark, like the Owner tag: an ink pill reads as ink in both themes.
+  full: { bg: 'bg-asphalt dark:bg-ink-dark', text: 'text-on-asphalt dark:text-surface-dark', dot: 'bg-ball' },
   completed: actionClasses.draft,
 };
 
