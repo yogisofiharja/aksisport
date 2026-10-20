@@ -6,3 +6,4 @@ export * from './VStack';
 export * from './Section';
 export * from './Container';
 export * from './ActionBar';
+export * from './AppBar';
