@@ -49,8 +49,9 @@ export type ApiError = {
 };
 
 // Reference data (DP-017): Indonesia's provinces and their cities/
-// regencies. "City" means a kota or a kabupaten — `name` says which
-// ("Kota Bandung", "Kabupaten Bandung"). Codes are official region codes.
+// regencies. "City" means a kota or a kabupaten; `name` has no prefix
+// ("Bukittinggi") except where a kota and a kabupaten in one province share
+// a name ("Kota Bandung", "Kabupaten Bandung"). Codes are official region codes.
 export type Province = { code: string; name: string };
 export type City = { code: string; provinceCode: string; name: string };
 

@@ -2,8 +2,10 @@ package models
 
 // Province and City are reference data (DP-017): Indonesia's provinces
 // and their cities/regencies, seeded by migration 0027. "City" means a
-// kota or a kabupaten — Name says which ("Kota Bandung", "Kabupaten
-// Bandung"). Codes are the official region codes.
+// kota or a kabupaten. Since migration 0038 Name has no "Kota"/"Kabupaten"
+// prefix ("Bukittinggi") except where a kota and a kabupaten in one
+// province share a name ("Kota Bandung", "Kabupaten Bandung"). Codes are
+// the official region codes.
 type Province struct {
 	Code string `json:"code"`
 	Name string `json:"name"`

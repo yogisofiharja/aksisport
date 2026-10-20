@@ -6,6 +6,15 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.27.1
+
+- DP-017: city and regency names drop the "Kota Administrasi",
+  "Kabupaten Administrasi", "Kota" and "Kabupaten" prefixes (longest
+  first), except the 25 kota/kabupaten pairs in one province that would
+  otherwise share a name (decided 2026-10-20). Migration 0038.
+
+---
+
 ## v0.27.0
 
 From the design sessions on the "Aksi app redesign" canvas (2026-10-19).

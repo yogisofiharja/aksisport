@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.27.0
+Version: 0.27.1
 
 Status: Living Document
 
@@ -1336,8 +1336,8 @@ or by picking a province and then a city within it.
   or sign up first, then lands on it.
 
 **Communities in the User's town.** A User keeps one or more **towns**,
-each picked from the same list — for example where they live (Kota
-Administrasi Jakarta Selatan) and their hometown (Kota Bukittinggi).
+each picked from the same list — for example where they live (Jakarta
+Selatan) and their hometown (Bukittinggi).
 Exactly one of them is **active** at a time. Before anything is typed in
 the search box, Explore lists the Communities in the active town that the
 User has not joined yet.
@@ -1390,6 +1390,11 @@ members only.
 - A location is a city or regency, not an address or a point on a map
   (see Planning, Map-Based Venue Selection). A Session's own venue is
   still free text.
+- City and regency names drop their administrative prefix ("Kota
+  Administrasi", "Kabupaten Administrasi", "Kota", "Kabupaten"): "Jakarta
+  Selatan", "Bukittinggi", "Badung". Where a kota and a kabupaten in the
+  same province share a name, both keep the prefix so they can be told
+  apart ("Kota Bandung", "Kabupaten Bandung").
 - The list covers Indonesia only.
 - A User keeps at most 10 towns.
 - The active town is the User's own choice. The app does not switch it

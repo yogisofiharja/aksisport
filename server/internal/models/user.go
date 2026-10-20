@@ -41,7 +41,7 @@ type User struct {
 }
 
 // UserCity is one of a User's saved towns, with its display name
-// ("Kota Bukittinggi, Sumatera Barat").
+// ("Bukittinggi, Sumatera Barat").
 type UserCity struct {
 	Code string `json:"code"`
 	Name string `json:"name"`
