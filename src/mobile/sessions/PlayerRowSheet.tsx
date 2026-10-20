@@ -38,6 +38,7 @@ export function PlayerRowSheet({
       {p && session.priceModel !== 'free' && (
         <ParticipantPayment
           sessionId={sessionId}
+          session={session}
           participant={p}
           isOwnerOrAdmin={isOwnerOrAdmin}
           myUserId={myUserId}

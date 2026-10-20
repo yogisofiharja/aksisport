@@ -8,7 +8,7 @@ import { Text } from '../../../../components/ui/text';
 import { Button, ButtonText } from '../../../../components/ui/button';
 import { Pressable } from '../../../../components/ui/pressable';
 import { useTranslation } from '../../../i18n';
-import { hasPaid, isAwaitingPayment } from '../SessionPayment';
+import { paymentStatus } from '../SessionPayment';
 import { initialsFromName } from '../../../core/initials';
 import type { Session, SessionParticipant } from '../../../core/api/types';
 
@@ -77,24 +77,20 @@ export function PlayersTab({
 
   // One PlayerCard row per participant: initials (dashed for a guest), the
   // name, and a subline with their status (and "host" for the organizer).
-  // On a priced Session the Paid / Awaiting pill sits on the right (DP-024,
-  // DP-012); organizers also get the section's action (Check in, Approve)
+  // On a priced Session a member who went through the payment step has a
+  // Paid / Awaiting pill on the right — never the host or a guest (DP-012
+  // v0.29.0, see paymentStatus); organizers also get the section's action (Check in, Approve)
   // and a ⋯ that opens the row sheet — the receipt, Confirm payment and
   // Remove.
   function renderParticipantCard(p: SessionParticipant, action?: RowAction) {
     const canRemove = isOwnerOrAdmin && isSessionActive;
-    const hasPayment = session.priceModel !== 'free' && (hasPaid(p) || isAwaitingPayment(p));
+    const status = paymentStatus(p, session);
+    const hasPayment = status !== undefined;
     const hasRowMenu = isOwnerOrAdmin && (canRemove || hasPayment);
     const canAct = action && isOwnerOrAdmin && isSessionActive;
     const isGuest = !p.userId;
     const payment =
-      session.priceModel !== 'free'
-        ? hasPaid(p)
-          ? t('sessionPaymentStatusPaid')
-          : isAwaitingPayment(p)
-            ? t('sessionPaymentStatusAwaiting')
-            : undefined
-        : undefined;
+      status === 'paid' ? t('sessionPaymentStatusPaid') : status === 'awaiting' ? t('sessionPaymentStatusAwaiting') : undefined;
     // "Checked in · host": what follows the status is lowercase.
     const subtitle = [
       participantStatusLabel(p.status),
@@ -120,7 +116,7 @@ export function PlayersTab({
           trailing={
             payment || canAct || hasRowMenu ? (
               <HStack className="items-center gap-1">
-                {payment && <Badge action={hasPaid(p) ? 'ready' : 'draft'} text={payment} caps className="self-center" />}
+                {payment && <Badge action={status === 'paid' ? 'ready' : 'draft'} text={payment} caps className="self-center" />}
                 {canAct && (
                   <Button size="sm" isDisabled={busy} onPress={action.onPress}>
                     <ButtonText>{action.label}</ButtonText>

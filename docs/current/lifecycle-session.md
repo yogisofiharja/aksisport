@@ -647,8 +647,11 @@ only renders when it has at least one participant. Each participant is a `Player
 (no `avatarUrl` on `SessionParticipant` yet; a guest's avatar is dashed),
 the name ("(You)" for the viewer), and a subline with the status, plus
 "Host" for the organizer and "Guest" for a guest. On a paid Session the
-row carries a Paid / Awaiting pill (`hasPaid` / `isAwaitingPayment` from
-`SessionPayment.tsx`). Owner/admin, while the Session is active, also get
+row of a member who went through the payment step carries a Paid /
+Awaiting pill (`paymentStatus`, `core/sessions/paymentStatus.ts`); the
+host and guests never have one, since organizer-initiated places skip
+approval and payment (DP-012 v0.29.0), and the viewer's own "Your
+payment" card follows the same rule. Owner/admin, while the Session is active, also get
 the section's action as a small button — **Check in** on Confirmed
 (inside the Check-In Window), **Approve** on Requested — and a ⋯ that
 opens `PlayerRowSheet`: the player's payment (`ParticipantPayment`: the

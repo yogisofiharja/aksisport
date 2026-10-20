@@ -19,17 +19,8 @@ import type { ClubBankAccount, Session, SessionParticipant } from '../../core/ap
 // receipt and confirm. Receipt visibility is unchanged: an image is only
 // ever fetched by its uploader or an owner/admin (the server checks too).
 
-// Milestone 5 — waitlist (approved, payment not yet confirmed) reads as
-// "awaiting"; registered/checked_in/checked_out all mean the slot is
-// claimed, i.e. "paid" in this domain's terms. 'requested' participants
-// haven't been approved yet at all, so they have no payment status —
-// excluded entirely, not shown as either.
-export function isAwaitingPayment(p: SessionParticipant) {
-  return p.status === 'waitlist';
-}
-export function hasPaid(p: SessionParticipant) {
-  return p.status === 'registered' || p.status === 'checked_in' || p.status === 'checked_out';
-}
+export { hasPaid, isAwaitingPayment, paymentStatus } from '../../core/sessions/paymentStatus';
+import { hasPaid, isAwaitingPayment, paymentStatus } from '../../core/sessions/paymentStatus';
 
 // GET .../participants/:id/receipt is behind the same auth as every
 // other route, plus a narrower server-side access check (self or
@@ -127,7 +118,7 @@ export function PaymentSummary({ sessionId, session, myParticipant, onParticipan
         )}
       </VStack>
 
-      {myParticipant && (isAwaitingPayment(myParticipant) || hasPaid(myParticipant)) && (
+      {myParticipant && paymentStatus(myParticipant, session) && (
         <VStack className="gap-2">
           <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('sessionPaymentYourPaymentTitle')}</Text>
           <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-3">
@@ -158,6 +149,7 @@ export function PaymentSummary({ sessionId, session, myParticipant, onParticipan
 
 type ParticipantPaymentProps = {
   sessionId: string;
+  session: Pick<Session, 'priceModel' | 'createdBy'>;
   participant: SessionParticipant;
   isOwnerOrAdmin: boolean;
   myUserId?: string;
@@ -168,11 +160,11 @@ type ParticipantPaymentProps = {
 // One player's payment, in their row sheet on Players: Paid / Awaiting,
 // the receipt (organizers, or the player themselves), and Confirm payment
 // for organizers while it is awaited. Nothing for a player with no payment
-// status ('requested' — not approved yet).
-export function ParticipantPayment({ sessionId, participant: p, isOwnerOrAdmin, myUserId, busy, onConfirmPayment }: ParticipantPaymentProps) {
+// status (see paymentStatus).
+export function ParticipantPayment({ sessionId, session, participant: p, isOwnerOrAdmin, myUserId, busy, onConfirmPayment }: ParticipantPaymentProps) {
   const { t } = useTranslation();
   const imageHeaders = useImageHeaders();
-  if (!isAwaitingPayment(p) && !hasPaid(p)) return null;
+  if (!paymentStatus(p, session)) return null;
   const canSeeReceipt = (isOwnerOrAdmin || (p.userId != null && p.userId === myUserId)) && p.hasReceipt;
   return (
     <VStack className="gap-3">
