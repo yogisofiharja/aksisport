@@ -91,7 +91,7 @@ export function MatchResultScreen({ matchState, teamNames, onShare, onNextMatch,
 
 // One side's line: name, then sets won and each set's games (or, for a
 // match with no completed set, the games of the set in progress).
-function ScoreRow({ name, team, matchState }: { name: string; team: Team; matchState: MatchState }) {
+export function ScoreRow({ name, team, matchState }: { name: string; team: Team; matchState: MatchState }) {
   const other: Team = team === 'A' ? 'B' : 'A';
   const sets = matchState.completedSets ?? [];
   const isWinner = matchState.winner === team;

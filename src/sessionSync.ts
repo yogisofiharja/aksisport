@@ -14,6 +14,10 @@ export type LiveMatchPayload = {
   updatedAt: number;
   activityId: string;
   scorerUid?: string;
+  // DP-025: the match is over on the court but its result is saved only
+  // when the umpire confirms. False/absent while finished-but-unconfirmed,
+  // so spectators keep seeing "Waiting for the umpire to confirm".
+  confirmed?: boolean;
 };
 
 // Keyed by activityId under `sessions/` — the only path the RTDB security

@@ -30,6 +30,7 @@ import {
 import { isFirebaseReady } from '../../firebase';
 import { MobileMatchScreen } from '../MobileMatchScreen';
 import { MatchResultScreen } from './MatchResultScreen';
+import { MatchFinishedScreen } from './MatchFinishedScreen';
 import { MatchStartScreen } from './MatchStartScreen';
 import { buildServiceOrder } from '../../core/activities/buildGeneratedMatchPayload';
 import { appAlert } from '../../design-system/feedback/appAlert';
@@ -79,6 +80,11 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
   const [pendingConfig, setPendingConfig] = useState<MatchConfig | null>(null);
   const [starting, setStarting] = useState(false);
   const [teamASide, setTeamASide] = useState<TeamASide>('left');
+  // DP-025: a match that ended on the court is complete only once the
+  // umpire confirms it. True for a match opened already completed; set by
+  // Confirm result (scorer) or the live copy's `confirmed` (spectators).
+  const [confirmed, setConfirmed] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const startedRef = useRef(false);
   const completedRef = useRef(false);
@@ -104,6 +110,7 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
         if (detail.status === 'completed') {
           completedRef.current = true;
           setOpenedFinished(true);
+          setConfirmed(true);
           const scorerUserId = detail.scorerUserId ?? null;
           setIsScorer(scorerUserId != null && scorerUserId === profile?.id);
           setScorerName(resolveScorerName(detail.participants, scorerUserId));
@@ -128,7 +135,9 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
 
         if (iAmScorer) {
           // Reopening a match in progress: carry on from the live copy
-          // rather than restarting at 0–0 (and overwriting it).
+          // rather than restarting at 0–0 (and overwriting it). A match
+          // that ended but was never confirmed reopens on Match finished
+          // (DP-025): nothing lost, nothing saved.
           const saved = await readLiveMatch(activityId);
           if (saved?.matchState) {
             setMatchState(saved.matchState);
@@ -169,6 +178,7 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
       if (payload.matchState) setMatchState(payload.matchState);
       if (payload.history) setHistory(payload.history);
       setTeamASide(normalizeSide(payload.teamASide));
+      setConfirmed(Boolean(payload.confirmed));
     });
   }
 
@@ -220,9 +230,10 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
       updatedAt: Date.now(),
       activityId,
       scorerUid: firebaseUser?.uid,
+      confirmed,
     };
     pushLiveMatchState(activityId, payload);
-  }, [isScorer, matchState, history, teamASide]);
+  }, [isScorer, matchState, history, teamASide, confirmed]);
 
   const teamNames: TeamNames = useMemo(() => {
     if (!matchState) return { A: '', B: '' };
@@ -232,13 +243,21 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
     };
   }, [matchState]);
 
-  async function finalizeActivity(ended: MatchState, log: MatchState[]) {
-    if (completedRef.current) return;
-    completedRef.current = true;
+  // DP-025: Confirm result — the only path that completes the match.
+  // Until it succeeds the match stays live, with the finished state in the
+  // live copy, so a failed save can simply be retried.
+  async function handleConfirmResult() {
+    if (!isScorer || !matchState?.isEnded || confirming || completedRef.current) return;
+    setConfirming(true);
     try {
-      await completeActivity(activityId, ended, log);
+      await completeActivity(activityId, matchState, history);
+      completedRef.current = true;
+      setConfirmed(true);
     } catch (err) {
       console.error('Failed to complete activity', err);
+      appAlert(t('confirmResultFailed'), undefined, [{ text: t('ok') }]);
+    } finally {
+      setConfirming(false);
     }
   }
 
@@ -326,10 +345,9 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
     setHistory(nextHistory);
     setMatchState(next);
     if (!next.isEnded && voiceEnabled) speakScore(prev, next);
-    if (next.isEnded) {
-      announceFinalResult(next);
-      finalizeActivity(next, nextHistory);
-    }
+    // The match ends on the court; the umpire confirms it on Match
+    // finished (DP-025).
+    if (next.isEnded) announceFinalResult(next);
   }
 
   function handleUndo() {
@@ -347,7 +365,6 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
     setHistory(nextHistory);
     setMatchState(ended);
     announceFinalResult(ended);
-    finalizeActivity(ended, nextHistory);
   }
 
   function handleShare() {
@@ -398,6 +415,18 @@ export function ActivityMatchScreen({ activityId, onDone, onNextMatch }: Props) 
         <Text className="text-red-500 text-center mb-4">{error ?? t('activityLoadError')}</Text>
         <Button onPress={onDone}><ButtonText>{t('back')}</ButtonText></Button>
       </SafeAreaView>
+    );
+  }
+
+  // Ended on the court, not confirmed yet (DP-025): the umpire confirms or
+  // undoes the last point; everyone else waits on the final score.
+  if (matchState.isEnded && !confirmed) {
+    return (
+      <MatchFinishedScreen
+        matchState={matchState}
+        teamNames={teamNames}
+        scorer={isScorer ? { confirming, onConfirm: handleConfirmResult, onUndo: handleUndo } : undefined}
+      />
     );
   }
 
