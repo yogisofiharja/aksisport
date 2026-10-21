@@ -35,6 +35,8 @@ import { MatchResultScreen } from './MatchResultScreen';
 import { MatchFinishedScreen } from './MatchFinishedScreen';
 import { ResultSavedScreen } from './ResultSavedScreen';
 import { MatchStartScreen } from './MatchStartScreen';
+import { MatchOptionsSheet } from './MatchOptionsSheet';
+import { UmpireSheet } from '../sessions/UmpireSheet';
 import { buildServiceOrder } from '../../core/activities/buildGeneratedMatchPayload';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { NativeShareModal } from '../../components/NativeShareModal';
@@ -97,6 +99,8 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
   const [session, setSession] = useState<Session | null>(null);
   const [organizers, setOrganizers] = useState<ClubMember[]>([]);
   const [reclaiming, setReclaiming] = useState(false);
+  const [umpireSheetVisible, setUmpireSheetVisible] = useState(false);
+  const [optionsVisible, setOptionsVisible] = useState(false);
   const isOrganizer = organizers.some((m) => m.userId === profile?.id);
 
   async function loadSession(id: string) {
@@ -437,15 +441,28 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
   if (pendingConfig) {
     const umpireIsMe = session?.umpireUserId === profile?.id;
     return (
-      <MatchStartScreen
-        players={pendingConfig.players}
-        starting={starting}
-        umpire={session ? { name: session.umpireName ?? '', isMe: umpireIsMe } : undefined}
-        onMakeMeUmpire={isOrganizer && !umpireIsMe ? handleMakeMeUmpire : undefined}
-        reclaiming={reclaiming}
-        onBack={onDone}
-        onStart={handleStart}
-      />
+      <>
+        <MatchStartScreen
+          players={pendingConfig.players}
+          starting={starting}
+          umpire={session ? { name: session.umpireName ?? '', isMe: umpireIsMe } : undefined}
+          onChangeUmpire={isOrganizer ? () => setUmpireSheetVisible(true) : undefined}
+          onMakeMeUmpire={isOrganizer && !umpireIsMe ? handleMakeMeUmpire : undefined}
+          reclaiming={reclaiming}
+          onBack={onDone}
+          onStart={handleStart}
+        />
+        {session && profile && isOrganizer && (
+          <UmpireSheet
+            visible={umpireSheetVisible}
+            session={session}
+            myUserId={profile.id}
+            myName={profile.displayName || profile.username}
+            onClose={() => setUmpireSheetVisible(false)}
+            onChanged={setSession}
+          />
+        )}
+      </>
     );
   }
 
@@ -513,6 +530,12 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
         onUndo={handleUndo}
         onEndMatch={handleEndMatch}
         onToggleVoice={() => setVoiceEnabled((v) => !v)}
+        onOpenOptions={isScorer && !isOrganizer ? () => setOptionsVisible(true) : undefined}
+      />
+      <MatchOptionsSheet
+        visible={optionsVisible}
+        onClose={() => setOptionsVisible(false)}
+        askOrganizers={isOrganizer ? undefined : organizers.map((m) => m.displayName || m.username)}
       />
     </View>
   );

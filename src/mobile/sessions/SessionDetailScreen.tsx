@@ -55,6 +55,7 @@ import { umpireStart } from '../../core/sessions/umpire';
 import { priceLabel } from './sessionDisplay';
 import { formatIDR } from '../../core/currency';
 import { SessionMenuSheet } from './SessionMenuSheet';
+import { UmpireSheet } from './UmpireSheet';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { IconButton } from '../../design-system/ui/IconButton';
 import { sessionLink, shareLink } from '../../platform/shareLink';
@@ -614,8 +615,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     ]);
   }
 
-  // The organizer's ⋯ menu (DP-024): Edit, Match setup, Share, and Cancel
-  // session last in its own group. Edit and Cancel live here rather than
+  // The organizer's ⋯ menu (DP-024): Edit, Match setup, Umpire (DP-023),
+  // Share, and Cancel session last in its own group. Edit and Cancel live here rather than
   // inline — both are easy to misclick in the same scroll flow as
   // everything else; handleCancel still asks to confirm.
   const [menuVisible, setMenuVisible] = useState(false);
@@ -628,6 +629,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     setShareData(buildMatchShareData(result, teamNamesFromState(result)));
   }
   const [matchSetupVisible, setMatchSetupVisible] = useState(false);
+  // DP-023: who umpires the Session (owners/admins).
+  const [umpireSheetVisible, setUmpireSheetVisible] = useState(false);
 
   async function handleShareSession() {
     if (!session) return;
@@ -955,6 +958,18 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             opensMore: true,
             onPress: () => setMatchSetupVisible(true),
           },
+          ...(isSessionActive && isPublished
+            ? [
+                {
+                  key: 'umpire',
+                  icon: 'flag-outline' as const,
+                  label: t('umpire'),
+                  hint: session.umpireName,
+                  opensMore: true,
+                  onPress: () => setUmpireSheetVisible(true),
+                },
+              ]
+            : []),
           { key: 'share', icon: 'share-outline' as const, label: t('sessionShareLink'), onPress: handleShareSession },
           ...(isSessionActive && isPublished
             ? [
@@ -981,6 +996,20 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           }}
         />
       </Sheet>
+
+      {isOwnerOrAdmin && profile && (
+        <UmpireSheet
+          visible={umpireSheetVisible}
+          session={session}
+          myUserId={profile.id}
+          myName={profile.displayName || profile.username}
+          onClose={() => setUmpireSheetVisible(false)}
+          onChanged={(updated) => {
+            setSession(updated);
+            load();
+          }}
+        />
+      )}
 
       <PlayerRowSheet
         sessionId={sessionId}

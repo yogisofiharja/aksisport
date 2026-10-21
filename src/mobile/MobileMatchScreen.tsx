@@ -62,6 +62,8 @@ type Props = {
   onUndo: () => void;
   onEndMatch: () => void;
   onToggleVoice: () => void;
+  /** The umpire's Match options (DP-023); no button when absent. */
+  onOpenOptions?: () => void;
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -134,6 +136,7 @@ export function MobileMatchScreen({
   onUndo,
   onEndMatch,
   onToggleVoice,
+  onOpenOptions,
 }: Props) {
   const [focus, setFocus] = useState(false);
   const [showPointLog, setShowPointLog] = useState(false);
@@ -430,6 +433,7 @@ export function MobileMatchScreen({
             <View pointerEvents="box-none" style={{ position: 'absolute', top: 6, left: '50%', marginLeft: scoreBoxHalfW + 10, flexDirection: 'row', gap: 8 }}>
               {!readOnly && iconButton('megaphone-outline', onToggleVoice, voiceEnabled ? color.success.dark : color.inkFaint.dark, t('scoringVoice'))}
               {iconButton('list-outline', () => setShowPointLog(true), color.inkMuted.dark, t('pointLog'))}
+              {!readOnly && onOpenOptions && iconButton('ellipsis-horizontal', onOpenOptions, color.inkMuted.dark, t('matchOptions'))}
             </View>
           )}
 
@@ -555,6 +559,7 @@ export function MobileMatchScreen({
               {!readOnly && iconButton('megaphone-outline', onToggleVoice, voiceEnabled ? color.success[mode] : toolColor, t('scoringVoice'), toolBg)}
               {iconButton('list-outline', () => setShowPointLog(true), toolColor, t('pointLog'), toolBg)}
               {FOCUS_SUPPORTED && iconButton('expand-outline', toggleFocus, toolColor, t('scoringFocusMode'), toolBg)}
+              {!readOnly && onOpenOptions && iconButton('ellipsis-horizontal', onOpenOptions, toolColor, t('matchOptions'), toolBg)}
             </View>
           </View>
 
