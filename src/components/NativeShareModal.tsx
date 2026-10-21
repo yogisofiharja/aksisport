@@ -217,8 +217,9 @@ export function NativeShareModal({ data, onClose }: Props) {
 
           <View style={s.header}>
             <Text style={s.headerTitle}>{t('shareResultTitle')}</Text>
-            <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.7}>
-              <Ionicons name="close" size={22} color="#64748b" />
+            {/* One way out: "Close" as text, top right (as every Aksi sheet). */}
+            <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.7} accessibilityRole="button" hitSlop={8}>
+              <Text style={s.closeText}>{t('close')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -305,10 +306,6 @@ export function NativeShareModal({ data, onClose }: Props) {
             <Text style={s.shareBtnText}>{isSharing || (Platform.OS === 'web' && !webFile && !webFailed) ? t('processing') : `${t('share')} →`}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.closeLink} onPress={onClose}>
-            <Text style={s.closeLinkText}>{t('close')}</Text>
-          </TouchableOpacity>
-
         </SafeAreaView>
       </View>
 
@@ -366,9 +363,13 @@ const s = StyleSheet.create({
     color: '#f1f5f9',
   },
   closeBtn: {
-    padding: 6,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  closeText: {
+    fontSize: 15,
+    fontFamily: 'PlusJakartaSans-SemiBold',
+    color: color.onAsphalt.light,
   },
   previewWrap: {
     alignItems: 'center',
@@ -522,14 +523,4 @@ const s = StyleSheet.create({
   saveBtnQuiet: { backgroundColor: color.asphalt.dark },
   saveBtnQuietText: { color: color.onAsphalt.dark },
   saveBtnText: { color: color.onHeat.light, fontSize: 15, fontFamily: 'PlusJakartaSans-SemiBold' },
-  closeLink: {
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  closeLinkText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#64748b',
-    textDecorationLine: 'underline',
-  },
 });

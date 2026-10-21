@@ -98,7 +98,7 @@ const en: Dict = {
   ok: 'OK',
 
   // Share / image picker
-  shareResultTitle: 'Share Result',
+  shareResultTitle: 'Share result',
   shareCopied: 'Result copied. Paste it wherever you like.',
   shareSaveHint: 'Press and hold the image to save it to Photos or share it.',
   shareDownload: 'Download',
@@ -851,7 +851,7 @@ const id: Dict = {
   ok: 'Oke',
 
   // Share / image picker
-  shareResultTitle: 'Bagikan Hasil',
+  shareResultTitle: 'Bagikan hasil',
   shareCopied: 'Hasil disalin. Tempel di mana saja.',
   shareSaveHint: 'Tekan dan tahan gambar untuk menyimpan ke Foto atau membagikannya.',
   shareDownload: 'Unduh',

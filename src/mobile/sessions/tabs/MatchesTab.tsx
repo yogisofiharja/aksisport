@@ -64,12 +64,22 @@ export function MatchesTab({
   // A filter for this visit only — not saved.
   const [mineOnly, setMineOnly] = useState(false);
   const isMineMatch = (a: ActivityDetail) => a.participants.some((p) => p.userId === myUserId);
-  const hasMine = activities.some(isMineMatch);
-  const shown = mineOnly ? activities.filter(isMineMatch) : activities;
+  // Results (a Completed Session): finished matches first, newest on top,
+  // then the rest in queue order.
+  const ordered = isCompleted
+    ? [
+        ...activities
+          .filter((a) => a.status === 'completed')
+          .sort((x, y) => (y.completedAt ?? '').localeCompare(x.completedAt ?? '')),
+        ...activities.filter((a) => a.status !== 'completed'),
+      ]
+    : activities;
+  const shown = mineOnly ? ordered.filter(isMineMatch) : ordered;
   const queuedActivities = activities.filter((a) => a.status === 'queued');
   // Only the viewer's next match is "YOUR MATCH"; their later ones are
-  // ordinary queued rows with their name in bold.
-  const myNextMatchId = queuedActivities.find((a) => a.participants.some((p) => p.userId === myUserId))?.id;
+  // ordinary queued rows with their name in bold. Once the Session is
+  // Completed nothing is next: every queued row is plain.
+  const myNextMatchId = isCompleted ? undefined : queuedActivities.find((a) => a.participants.some((p) => p.userId === myUserId))?.id;
 
   if (!isPublished) {
     return (
@@ -96,7 +106,8 @@ export function MatchesTab({
           </HStack>
         )}
       </HStack>
-      {hasMine && (
+      {/* Always in the same place, on or off, once there are matches. */}
+      {activities.length > 0 && myUserId && (
         <HStack className="justify-between items-center min-h-[44px] mb-1">
           <Text className="text-sm font-bold text-ink dark:text-ink-dark">{t('myMatchesOnly')}</Text>
           <Switch value={mineOnly} onValueChange={setMineOnly} accessibilityLabel={t('myMatchesOnly')} />
@@ -137,7 +148,7 @@ export function MatchesTab({
               matchup={activityParticipantNames(a)}
               queueNumber={a.status === 'queued' ? queuedActivities.indexOf(a) + 1 : undefined}
               isMine={isMine}
-              emphasis={a.status === 'queued' && !isMine ? myName : undefined}
+              emphasis={a.status === 'queued' && !isMine && !isCompleted ? myName : undefined}
               // No live score is loaded here (it streams to the match screen
               // only), so a live card shows the matchup.
               sides={

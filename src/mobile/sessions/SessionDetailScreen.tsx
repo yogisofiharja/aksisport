@@ -4,7 +4,6 @@ import { appAlert } from '../../design-system/feedback/appAlert';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Icon } from '../../design-system/ui/Icon';
 import { HStack, VStack } from '../../../components/ui/box';
 import { Heading, Text } from '../../../components/ui/text';
 import { Pressable } from '../../../components/ui/pressable';
@@ -683,9 +682,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     return (
       <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
         <VStack className="px-5 pt-4 gap-4">
-          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-            <Icon name="arrow-back" size="lg" />
-          </Pressable>
+          <IconButton icon="chevron-back" label={t('back')} onPress={onBack} className="-ml-3 self-start" />
           <Text className="text-2xl font-black text-ink dark:text-ink-dark">{t('sessionLoadFailedTitle')}</Text>
           <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionLoadFailedDesc')}</Text>
           <Pressable
@@ -823,9 +820,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           session you're looking at. */}
       <VStack className="px-5 pt-4 pb-3 gap-3">
         <HStack className="justify-between items-center">
-          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-            <Icon name="arrow-back" size="lg" />
-          </Pressable>
+          <IconButton icon="chevron-back" label={t('back')} onPress={onBack} className="-ml-3 self-start" />
           {isOwnerOrAdmin && (
             <IconButton icon="ellipsis-horizontal" label={t('sessionMenuTitle')} onPress={() => setMenuVisible(true)} className="-mr-2" />
           )}
