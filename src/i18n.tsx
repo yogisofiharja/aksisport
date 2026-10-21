@@ -51,7 +51,7 @@ const en: Dict = {
 
   // Final screen
   winnerLabel: 'Winner!',
-  matchOver: 'Match Over',
+  matchDraw: 'Draw',
   shareResult: 'Share',
   nextMatch: 'Next match',
   matchFinished: 'Match finished',
@@ -402,6 +402,8 @@ const en: Dict = {
   umpireBreakBody: (names: string) => `Ask an organizer (${names}) to hand umpiring to someone else. The score carries on from where it is.`,
   umpireChangeFailed: "Couldn't change the umpire. Try again.",
   matchOptions: 'Match options',
+  finishMatch: 'Finish match',
+  finishMatchHint: "The side ahead wins. You'll confirm the result next.",
   endMatchEarly: 'End match early',
   endMatchEarlyHint: 'Saves the score so far. Asks you to confirm.',
   endMatchEarlyConfirmTitle: 'End this match now?',
@@ -832,7 +834,7 @@ const id: Dict = {
 
   // Final screen
   winnerLabel: 'Menang!',
-  matchOver: 'Pertandingan Selesai',
+  matchDraw: 'Seri',
   shareResult: 'Bagikan',
   nextMatch: 'Match berikutnya',
   matchFinished: 'Pertandingan selesai',
@@ -1181,6 +1183,8 @@ const id: Dict = {
   umpireBreakBody: (names: string) => `Minta penyelenggara (${names}) menyerahkan tugas wasit ke orang lain. Skor berlanjut dari posisi sekarang.`,
   umpireChangeFailed: 'Gagal mengganti wasit. Coba lagi.',
   matchOptions: 'Opsi pertandingan',
+  finishMatch: 'Selesaikan pertandingan',
+  finishMatchHint: 'Tim yang unggul menang. Kamu konfirmasi hasilnya setelah ini.',
   endMatchEarly: 'Akhiri pertandingan lebih awal',
   endMatchEarlyHint: 'Menyimpan skor sejauh ini. Minta konfirmasi dulu.',
   endMatchEarlyConfirmTitle: 'Akhiri pertandingan sekarang?',

@@ -46,7 +46,7 @@ export function MatchFinishedScreen({ matchState, teamNames, onBack, scorer }: P
           className="text-[36px] leading-[40px] font-display-hero text-ink dark:text-ink-dark text-center"
           numberOfLines={2}
         >
-          {winnerName ? t('teamWins', winnerName) : t('matchOver')}
+          {winnerName ? t('teamWins', winnerName) : t('matchDraw')}
         </Text>
 
         <View className="w-full mt-3 rounded-xl overflow-hidden bg-surface dark:bg-surface-dark border border-border dark:border-border-dark">

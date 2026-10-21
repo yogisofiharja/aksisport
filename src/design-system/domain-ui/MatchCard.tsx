@@ -23,6 +23,7 @@ import { Typography } from '../ui/Typography';
  *   per side with its score (a small "VS" between), the winner in 700 ink
  *   and the other side in 500 ink-muted; a 44px Share button behind a divider on the right
  *   (DP-026).
+ *   A draw (completed, no winner) shows both sides in ink, like this:
  * - unfinished: the completed row for a match stopped early (DP-025):
  *   its score so far, both sides in ink with no winner, and no Share.
  *
@@ -149,7 +150,8 @@ export function MatchCard({
   } ${onPress ? 'active:opacity-70' : ''}`;
 
   if (status === 'completed' || status === 'unfinished') {
-    const decided = status === 'completed';
+    // A winner to set in bold: not for Unfinished, nor for a draw.
+    const decided = status === 'completed' && !!pair?.some((s) => s.winner);
     return (
       <Pressable {...pressProps} className={`flex-row items-center gap-3 px-3.5 py-3 ${frame} ${className}`}>
         <View className="flex-1 min-w-0">
@@ -190,7 +192,7 @@ export function MatchCard({
             </Typography>
           )}
         </View>
-        {onShare && decided ? (
+        {onShare && status === 'completed' ? (
           <Pressable
             onPress={onShare}
             accessibilityRole="button"

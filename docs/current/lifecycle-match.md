@@ -70,9 +70,11 @@ No-op if already `isEnded`. Sets `isEnded = true, endReason =
 tiebreak is in progress) more tiebreak points → otherwise `null`
 (no winner, e.g. ending at 0–0).
 
-Not called by the app any more: the scoring screen's press-and-hold End
-was removed. A match ends on its final point, or is ended early as
-Unfinished (DP-025, `POST /end-early`, no winner).
+Called by the app only from **Finish match** in a Free Play match's
+Match options (DP-025): its result has the side ahead as winner, or no
+winner (a draw). The press-and-hold End that used to call it on any
+match was removed; other formats end on their final point, or are ended
+early as Unfinished (`POST /end-early`).
 
 ## Undo
 

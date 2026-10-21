@@ -176,7 +176,10 @@ export function MatchesTab({
                       : t('activityStatusLive')
                     : isUnfinished
                       ? [t('matchUnfinished'), endedAt].filter(Boolean).join(' · ')
-                      : (endedAt ?? t('activityStatusCompleted'))
+                      : isFinished && result && !result.winner
+                        ? // A Free Play match finished level (DP-025).
+                          [t('matchDraw'), endedAt].filter(Boolean).join(' · ')
+                        : (endedAt ?? t('activityStatusCompleted'))
               }
               onPress={isFinished ? () => onOpenMatch(a.id) : undefined}
               onShare={isFinished ? () => onShareMatch(a) : undefined}

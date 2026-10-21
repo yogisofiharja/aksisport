@@ -110,6 +110,17 @@ score with "Waiting for the umpire to confirm" until then.
 queued activity on completion (mentioned in earlier planning, no code
 exists for it).
 
+**Free Play** (`matchFormat.type === 'open'`, no target score) never ends
+on a point: the umpire's Match options have **Finish match** (Free Play
+only, DP-025), which ends it on the current score with `endMatchNow` — the
+side ahead wins, a tie has no winner — and goes to Match finished like
+any finish (Confirm result → `complete`; Undo last point restores the
+state before finishing). A completed match with no `winner` is a
+**draw**: "Draw" on Match finished / Result saved / the match result,
+"DRAW · <time>" on its Results row with both sides in ink and Share; it
+counts as a match played and neither a win nor a loss (`wins` counts
+`result.winner = team` only, and the profile shows no Won/Lost badge).
+
 ## live → unfinished (End match early)
 
 `POST /v1/activities/:id/end-early` (DP-025), the Session's umpire only.

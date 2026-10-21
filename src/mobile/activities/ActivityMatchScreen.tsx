@@ -6,6 +6,7 @@ import { Button, ButtonText } from '../../../components/ui/button';
 import {
   addPoint,
   createInitialState,
+  endMatchNow,
   getPointLabel,
   getServerTeam,
   MatchConfig,
@@ -455,6 +456,17 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
     setMatchState(previous);
   }
 
+  // DP-025: a Free Play match has no target score, so the umpire finishes
+  // it: the side ahead wins (a tie is a draw), then Match finished asks
+  // to confirm like any finish. Undo last point goes back to playing.
+  function handleFinish() {
+    if (!isScorer || !matchState || matchState.isEnded) return;
+    const ended = endMatchNow(matchState);
+    setHistory([...history, cloneState(matchState)]);
+    setMatchState(ended);
+    announceFinalResult(ended);
+  }
+
   // DP-025 End match early: saved as Unfinished with the score so far,
   // then back to the Session — no Result saved. Spectators following the
   // live copy are sent back too.
@@ -611,6 +623,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
         visible={optionsVisible}
         onClose={() => setOptionsVisible(false)}
         askOrganizers={isOrganizer ? undefined : organizers.map((m) => m.displayName || m.username)}
+        onFinish={matchState.config.matchFormat.type === 'open' ? handleFinish : undefined}
         onEndEarly={() => setEndEarlyVisible(true)}
       />
       <Dialog

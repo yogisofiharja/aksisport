@@ -88,7 +88,9 @@ render branches on (loading, pendingConfig, error, matchState.isEnded):
   else                → MobileMatchScreen (live scoring UI); the scorer's ⋯ opens
                         Match options (MatchOptionsSheet, DP-023/DP-025): for an
                         umpire who isn't an organizer, "Need a break or leaving
-                        early?" naming the organizers to ask; then "End match early"
+                        early?" naming the organizers to ask; for a Free Play match
+                        "Finish match" (endMatchNow → Match finished, "Draw" when level);
+                        then "End match early"
                         → Dialog "End this match now?" (Keep playing / End match) →
                         POST /end-early with the score so far, the live copy marked
                         unfinished, back to the Session.

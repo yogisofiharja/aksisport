@@ -52,7 +52,7 @@ export function ResultSavedScreen({ matchState, teamNames, onShare, onSetUpNextM
           className="mt-1 text-[36px] leading-[40px] font-display-hero text-ink dark:text-ink-dark text-center"
           numberOfLines={2}
         >
-          {winnerName ? t('teamWins', winnerName) : t('matchOver')}
+          {winnerName ? t('teamWins', winnerName) : t('matchDraw')}
         </Text>
         <Text className="font-display text-[56px] leading-[60px] text-ink dark:text-ink-dark" style={{ fontVariant: ['tabular-nums'] }}>
           {first}

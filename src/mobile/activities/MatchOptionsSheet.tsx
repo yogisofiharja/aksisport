@@ -12,6 +12,8 @@ type Props = {
   onClose: () => void;
   /** Owners/admins to ask, when the umpire isn't one of them. */
   askOrganizers?: string[];
+  /** Free Play only (DP-025): finish on the current score. */
+  onFinish?: () => void;
   /** End match early (DP-025): closes the sheet, then asks to confirm. */
   onEndEarly: () => void;
 };
@@ -23,9 +25,9 @@ function joinNames(names: string[], or: string): string {
 }
 
 // The umpire's Match options while scoring (Aksi redesign › board 8b):
-// End match early (DP-025). An umpire who isn't an organizer can't hand
+// Finish match (Free Play only) and End match early (DP-025). An umpire who isn't an organizer can't hand
 // the role on (DP-023), so they are told whom to ask instead.
-export function MatchOptionsSheet({ visible, onClose, askOrganizers, onEndEarly }: Props) {
+export function MatchOptionsSheet({ visible, onClose, askOrganizers, onFinish, onEndEarly }: Props) {
   const { t } = useTranslation();
   const { colorScheme } = useColorScheme();
   return (
@@ -46,6 +48,28 @@ export function MatchOptionsSheet({ visible, onClose, askOrganizers, onEndEarly 
         </View>
       ) : null}
       {askOrganizers ? <View className="h-1.5 -mx-5 bg-surface-sunken dark:bg-surface-sunken-dark" /> : null}
+      {onFinish ? (
+        <Pressable
+          onPress={() => {
+            onClose();
+            onFinish();
+          }}
+          accessibilityRole="button"
+          className="flex-row items-center gap-3 min-h-[60px] active:opacity-60"
+        >
+          <View className="w-10 h-10 rounded-lg items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark">
+            <Icon name="flag-outline" size="md" />
+          </View>
+          <View className="flex-1">
+            <Typography variant="body" className="font-semibold">
+              {t('finishMatch')}
+            </Typography>
+            <Typography variant="body" color="muted" className="text-[13px] leading-[18px]">
+              {t('finishMatchHint')}
+            </Typography>
+          </View>
+        </Pressable>
+      ) : null}
       <Pressable
         onPress={() => {
           onClose();
@@ -53,7 +77,7 @@ export function MatchOptionsSheet({ visible, onClose, askOrganizers, onEndEarly 
           setTimeout(onEndEarly, 250);
         }}
         accessibilityRole="button"
-        className="flex-row items-center gap-3 min-h-[60px] active:opacity-60"
+        className={`flex-row items-center gap-3 min-h-[60px] active:opacity-60 ${onFinish ? 'border-t border-border dark:border-border-dark' : ''}`}
       >
         <View className="w-10 h-10 rounded-lg items-center justify-center bg-danger-tint dark:bg-danger-tint-dark">
           <Icon name="stop-outline" size="md" color="destructive" />

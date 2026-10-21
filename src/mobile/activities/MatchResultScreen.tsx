@@ -48,7 +48,7 @@ export function MatchResultScreen({ matchState, teamNames, onShare, onBack }: Pr
             </>
           ) : (
             <Typography variant="title" color="muted">
-              {t('matchOver')}
+              {t('matchDraw')}
             </Typography>
           )}
         </VStack>
@@ -76,6 +76,8 @@ export function ScoreRow({ name, team, matchState }: { name: string; team: Team;
   const other: Team = team === 'A' ? 'B' : 'A';
   const sets = matchState.completedSets ?? [];
   const isWinner = matchState.winner === team;
+  // A draw (DP-025) has no loser: both sides in ink.
+  const isDraw = matchState.isEnded && !matchState.winner;
   const ongoing = matchState.games.A > 0 || matchState.games.B > 0;
   const scores: Array<{ value: number; won: boolean }> = sets.map((s) => ({ value: s[team], won: s[team] > s[other] }));
   if (ongoing) scores.push({ value: matchState.games[team], won: matchState.games[team] > matchState.games[other] });
@@ -86,7 +88,7 @@ export function ScoreRow({ name, team, matchState }: { name: string; team: Team;
       <Typography
         variant="body"
         className={`text-lg ${isWinner ? 'font-black' : 'font-semibold'}`}
-        color={isWinner ? 'default' : 'muted'}
+        color={isWinner || isDraw ? 'default' : 'muted'}
         numberOfLines={1}
         style={{ flex: 1 }}
       >
@@ -101,7 +103,7 @@ export function ScoreRow({ name, team, matchState }: { name: string; team: Team;
         <Typography
           key={i}
           variant="body"
-          className={`text-2xl font-black w-8 text-center ${s.won ? 'text-ink dark:text-ink-dark' : 'text-ink-faint dark:text-ink-faint-dark'}`}
+          className={`text-2xl font-black w-8 text-center ${s.won || isDraw ? 'text-ink dark:text-ink-dark' : 'text-ink-faint dark:text-ink-faint-dark'}`}
         >
           {s.value}
         </Typography>
