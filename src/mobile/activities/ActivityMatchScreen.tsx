@@ -14,8 +14,10 @@ import {
   Team,
 } from '../../sports/tennis/scoringEngine';
 import type { TeamASide, TeamNames } from '../../appTypes';
-import type { ActivityParticipant } from '../../core/api/types';
+import type { ActivityParticipant, ClubMember, Session } from '../../core/api/types';
 import { getActivity, startActivity, completeActivity, listActivities } from '../../core/activities/api';
+import { getSession, setSessionUmpire } from '../../core/sessions/api';
+import { listMembers } from '../../core/clubs/api';
 import { ApiRequestError } from '../../core/api/client';
 import { useAuth } from '../../core/auth/AuthContext';
 import { prefetchAudio, initAudio, playApplause } from '../../audio';
@@ -90,6 +92,20 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
   const [confirming, setConfirming] = useState(false);
   // The Session's next queued match, offered on Result saved.
   const [nextQueuedId, setNextQueuedId] = useState<string | null>(null);
+  // DP-023: the Session (its umpire) and its owners/admins — who may hand
+  // umpiring over, and whom the umpire asks.
+  const [session, setSession] = useState<Session | null>(null);
+  const [organizers, setOrganizers] = useState<ClubMember[]>([]);
+  const [reclaiming, setReclaiming] = useState(false);
+  const isOrganizer = organizers.some((m) => m.userId === profile?.id);
+
+  async function loadSession(id: string) {
+    const sess = await getSession(id);
+    setSession(sess);
+    const members = await listMembers(sess.clubId).catch(() => []);
+    setOrganizers(members.filter((m) => m.role === 'owner' || m.role === 'admin'));
+    return sess;
+  }
 
   const startedRef = useRef(false);
   const completedRef = useRef(false);
@@ -107,6 +123,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
       try {
         const detail = await getActivity(activityId);
         setSessionId(detail.sessionId);
+        loadSession(detail.sessionId).catch(() => {});
         const config = detail.config as MatchConfig;
 
         // Already finished before this device ever opened it — render the
@@ -222,6 +239,19 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
       }
     } finally {
       setStarting(false);
+    }
+  }
+
+  // DP-023: an owner/admin takes the umpire role back for themselves.
+  async function handleMakeMeUmpire() {
+    if (!session || !profile || reclaiming) return;
+    setReclaiming(true);
+    try {
+      setSession(await setSessionUmpire(session.id, profile.id));
+    } catch {
+      appAlert(t('umpireChangeFailed'), undefined, [{ text: t('ok') }]);
+    } finally {
+      setReclaiming(false);
     }
   }
 
@@ -405,7 +435,18 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
   }
 
   if (pendingConfig) {
-    return <MatchStartScreen players={pendingConfig.players} starting={starting} onBack={onDone} onStart={handleStart} />;
+    const umpireIsMe = session?.umpireUserId === profile?.id;
+    return (
+      <MatchStartScreen
+        players={pendingConfig.players}
+        starting={starting}
+        umpire={session ? { name: session.umpireName ?? '', isMe: umpireIsMe } : undefined}
+        onMakeMeUmpire={isOrganizer && !umpireIsMe ? handleMakeMeUmpire : undefined}
+        reclaiming={reclaiming}
+        onBack={onDone}
+        onStart={handleStart}
+      />
+    );
   }
 
   if (error || !matchState) {

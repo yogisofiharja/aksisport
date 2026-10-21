@@ -257,3 +257,12 @@ export function conversationMessageImageUrl(sessionId: string, messageId: string
 export function listSessionContactThreads(sessionId: string): Promise<SessionContactThread[]> {
   return apiFetch(`/v1/sessions/${sessionId}/contact`);
 }
+
+// DP-023: owners/admins make a checked-in player (or themselves) the
+// Session's umpire. Live matches move to them at once.
+export function setSessionUmpire(sessionId: string, userId: string): Promise<Session> {
+  return apiFetch(`/v1/sessions/${sessionId}/umpire`, {
+    method: 'PUT',
+    body: JSON.stringify({ userId }),
+  });
+}

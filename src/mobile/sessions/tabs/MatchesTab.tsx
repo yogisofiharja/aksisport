@@ -14,6 +14,8 @@ type Props = {
   activities: ActivityDetail[];
   isPublished: boolean;
   isOwnerOrAdmin: boolean;
+  /** The Session's umpire (DP-023): the only one who starts matches. */
+  isUmpire: boolean;
   isSessionActive: boolean;
   /** Completed: the tab is Results. */
   isCompleted: boolean;
@@ -47,6 +49,7 @@ export function MatchesTab({
   activities,
   isPublished,
   isOwnerOrAdmin,
+  isUmpire,
   isSessionActive,
   isCompleted,
   matchesOpen,
@@ -117,12 +120,12 @@ export function MatchesTab({
         <Text className="text-ink-muted dark:text-ink-muted-dark">{t('activityEmptyQueue')}</Text>
       ) : (
         shown.map((a) => {
-          // Owner/admin can start any queued match administratively, once
-          // matches are open (DP-022). A player starts their own from the
-          // screen's bottom action, Start my match (DP-024).
-          const canStart = matchesOpen && a.status === 'queued' && isOwnerOrAdmin;
-          // Any checked-in participant of the session can watch.
-          const canWatch = isSessionActive && a.status === 'live' && myParticipant?.status === 'checked_in';
+          // Only the Session's umpire starts matches, once they are open
+          // (DP-022, DP-023) — not the players, not other organizers.
+          const canStart = matchesOpen && a.status === 'queued' && isUmpire;
+          // Any checked-in participant of the session can watch; the
+          // umpire resumes theirs even when not checked in.
+          const canWatch = isSessionActive && a.status === 'live' && (myParticipant?.status === 'checked_in' || isUmpire);
           const isLiveScorer = a.status === 'live' && a.scorerUserId === myUserId;
           // A finished match opens its result (score, Share) at any time;
           // the row shows each side's score, winner in bold. The result is

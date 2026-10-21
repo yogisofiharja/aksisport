@@ -11,6 +11,8 @@ type Props = {
   courtCount: number;
   myUserId?: string;
   isOrganizer: boolean;
+  /** The umpire, when it isn't the viewer: named once their match is up next (DP-023). */
+  umpireName?: string;
   onPress: () => void;
 };
 
@@ -19,7 +21,7 @@ type Props = {
 // no match) the courts at a glance. Tapping it opens Matches. Matches have
 // no court number yet, so the strip says "You're up next", never "on
 // Court 2".
-export function LiveStrip({ activities, participants, courtCount, myUserId, isOrganizer, onPress }: Props) {
+export function LiveStrip({ activities, participants, courtCount, myUserId, isOrganizer, umpireName, onPress }: Props) {
   const { t } = useTranslation();
   const input = { activities, participants, courtCount, myUserId };
   const step = isOrganizer ? undefined : playerStep(input);
@@ -32,6 +34,8 @@ export function LiveStrip({ activities, participants, courtCount, myUserId, isOr
     const counts = courtCounts(input);
     line = t('liveStripCounts', counts.playing, counts.waiting, counts.courtsFree);
   }
+  // DP-023: whoever isn't the umpire waits for them to start it.
+  if (umpireName && (step?.kind === 'upNext' || step?.kind === 'upNextNoCourt')) line = `${line} · ${t('umpireIsUmpiring', umpireName)}`;
   return (
     <Pressable
       onPress={onPress}

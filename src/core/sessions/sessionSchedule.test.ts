@@ -10,6 +10,7 @@ function session(overrides: Partial<Session>): Session {
     courtCount: 1,
     status: 'open',
     createdBy: 'u1',
+    umpireUserId: 'u1',
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     hostPlaying: true,

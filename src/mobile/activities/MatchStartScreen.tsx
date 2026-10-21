@@ -10,20 +10,29 @@ import { Card } from '../../design-system/ui/Card';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { useTranslation } from '../../i18n';
 import { spinSteps } from '../../core/activities/spin';
+import { initialsFromName } from '../../core/initials';
 import type { TeamASide } from '../../appTypes';
 import type { Player, Team } from '../../sports/tennis/scoringEngine';
 
 type Props = {
   players: Player[];
   starting: boolean;
+  /** The Session's umpire (DP-023); only they get Start match. */
+  umpire?: { name: string; isMe: boolean };
+  /** Owners/admins: opens the handover sheet. */
+  onChangeUmpire?: () => void;
+  /** Owners/admins who aren't the umpire: take it back. */
+  onMakeMeUmpire?: () => void;
+  reclaiming?: boolean;
   onBack: () => void;
   onStart: (choice: { teamASide: TeamASide; firstServerId: string }) => void;
 };
 
-// DP-022: before a match starts, whoever is about to score sets which team
-// plays on the left and which on the right (switchable), and who serves
-// first — picked, or at random. Sides are then fixed for the match.
-export function MatchStartScreen({ players, starting, onBack, onStart }: Props) {
+// DP-022: before a match starts, the umpire sets which team plays on the
+// left and which on the right (switchable), and who serves first — picked,
+// or at random. Sides are then fixed for the match. Everyone else sees who
+// the umpire is (DP-023) and has no Start.
+export function MatchStartScreen({ players, starting, umpire, onChangeUmpire, onMakeMeUmpire, reclaiming, onBack, onStart }: Props) {
   const { t } = useTranslation();
   const [teamASide, setTeamASide] = useState<TeamASide>('left');
   const [firstServerId, setFirstServerId] = useState<string | null>(null);
@@ -145,6 +154,35 @@ export function MatchStartScreen({ players, starting, onBack, onStart }: Props) 
         </VStack>
       </Card>
 
+      {umpire && (
+        <View className="flex-row items-center gap-3 min-h-[60px] px-3 py-2 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark">
+          <View className="w-10 h-10 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark">
+            <Typography variant="body" className="text-sm font-display text-ink dark:text-ink-dark">
+              {initialsFromName(umpire.name)}
+            </Typography>
+          </View>
+          <View className="flex-1 min-w-0">
+            <Typography variant="body" color="muted" className="text-[13px] leading-[18px]">
+              {t('umpireForSession')}
+            </Typography>
+            <Typography variant="body" className="font-semibold" numberOfLines={1}>
+              {umpire.name}
+            </Typography>
+          </View>
+          {onChangeUmpire ? (
+            <Pressable onPress={onChangeUmpire} accessibilityRole="button" hitSlop={8} className="px-2 py-2.5 active:opacity-60">
+              <Typography variant="body" className="font-bold text-heat-strong dark:text-heat-strong-dark">
+                {t('umpireChange')}
+              </Typography>
+            </Pressable>
+          ) : (
+            <Typography variant="body" color="muted" className="text-xs leading-4 text-right max-w-[104px]">
+              {t('umpireOrganizersCanChange')}
+            </Typography>
+          )}
+        </View>
+      )}
+
       <HStack className="items-center justify-between" space="md">
         <Typography variant="body" color={firstServerId && !spinning ? 'default' : 'muted'} style={{ flex: 1 }}>
           {spinning
@@ -163,15 +201,23 @@ export function MatchStartScreen({ players, starting, onBack, onStart }: Props) 
         </Button>
       </HStack>
 
-      <Button
-        size="xl"
-        className="w-full"
-        disabled={!firstServerId || spinning}
-        loading={starting}
-        onPress={() => firstServerId && onStart({ teamASide, firstServerId })}
-      >
-        <ButtonText>{t('matchStartButton')}</ButtonText>
-      </Button>
+      {/* DP-023: Start match is the umpire's alone; an organizer who isn't
+          the umpire can take the role back first. */}
+      {!umpire || umpire.isMe ? (
+        <Button
+          size="xl"
+          className="w-full"
+          disabled={!firstServerId || spinning}
+          loading={starting}
+          onPress={() => firstServerId && onStart({ teamASide, firstServerId })}
+        >
+          <ButtonText>{t('matchStartButton')}</ButtonText>
+        </Button>
+      ) : onMakeMeUmpire ? (
+        <Button size="xl" className="w-full" loading={reclaiming} disabled={reclaiming} onPress={onMakeMeUmpire}>
+          <ButtonText>{t('umpireMakeMe')}</ButtonText>
+        </Button>
+      ) : null}
     </ScrollPage>
   );
 }

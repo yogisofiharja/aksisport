@@ -51,7 +51,7 @@ import { NativeShareModal, type NativeShareData } from '../../components/NativeS
 import { buildMatchShareData, teamNamesFromState } from '../../core/activities/shareData';
 import { ActionBar } from '../../design-system/layout/ActionBar';
 import { Button, ButtonText } from '../../design-system/ui/Button';
-import { playerStep } from '../../core/sessions/liveStrip';
+import { umpireStart } from '../../core/sessions/umpire';
 import { priceLabel } from './sessionDisplay';
 import { formatIDR } from '../../core/currency';
 import { SessionMenuSheet } from './SessionMenuSheet';
@@ -759,10 +759,13 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     chat: { value: 'chat', label: t('sessionTabChat'), count: chatUnread },
   };
   // One bottom action (DP-024) that follows the viewer's state: Request to
-  // join → Pay → Check in → Start my match; organizers with no step of
-  // their own get Generate matches. Nothing when no action applies — never
+  // join → Pay → Check in → (the umpire only) Start my match / Start next
+  // match; organizers with no step of their own get Generate matches. Nothing when no action applies — never
   // a disabled button.
-  const myStep = playerStep({ activities, participants, courtCount: session.courtCount, myUserId: profile?.id });
+  // DP-023: only the Session's umpire starts matches — their own when it
+  // is next, otherwise the next one in the queue.
+  const isUmpire = session.umpireUserId === profile?.id;
+  const umpireNext = isUmpire ? umpireStart({ activities, participants, courtCount: session.courtCount, myUserId: profile?.id }) : undefined;
   const spotsLeft = session.maxParticipants != null ? Math.max(0, session.maxParticipants - session.joinedCount) : undefined;
   // The bottom bar's fact is short: the amount alone ("Rp 50.000"), or
   // "Free" / "Split bill".
@@ -783,9 +786,12 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
       bottomAction = { label: t('sessionPay'), onPress: () => setActiveTab('players') };
     } else if (status === 'registered' && checkInWindowOpen) {
       bottomAction = { label: t('sessionCheckIn'), onPress: handleCheckIn };
-    } else if (status === 'checked_in' && matchesOpen && (myStep?.kind === 'upNext' || myStep?.kind === 'upNextNoCourt' || myStep?.kind === 'waiting')) {
-      const activityId = myStep.activityId;
-      bottomAction = { label: t('sessionStartMyMatch'), onPress: () => onOpenMatch(activityId) };
+    } else if (umpireNext && matchesOpen) {
+      const { activityId } = umpireNext;
+      bottomAction = {
+        label: umpireNext.kind === 'mine' ? t('sessionStartMyMatch') : t('sessionStartNextMatch'),
+        onPress: () => onOpenMatch(activityId),
+      };
     } else if (isOwnerOrAdmin && generationEligible) {
       bottomAction = { label: t('sessionGenerateMatches'), onPress: () => onAddMatch(sessionId) };
     }
@@ -839,6 +845,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           courtCount={session.courtCount}
           myUserId={profile?.id}
           isOrganizer={isOwnerOrAdmin}
+          umpireName={isUmpire ? undefined : session.umpireName}
           onPress={() => setActiveTab('matches')}
         />
       )}
@@ -903,6 +910,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             activities={activities}
             isPublished={isPublished}
             isOwnerOrAdmin={isOwnerOrAdmin}
+            isUmpire={isUmpire}
             isSessionActive={isSessionActive}
             isCompleted={session.lifecycleStatus === 'completed'}
             matchesOpen={matchesOpen}

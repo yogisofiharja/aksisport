@@ -185,6 +185,10 @@ export type Session = {
   // format, not this. Mandatory at creation as of DP-009/v0.5.1.
   activityType?: string;
   createdBy: string;
+  // DP-023: the one person who starts and scores every match of the
+  // Session — the creator by default; owners/admins hand it over.
+  umpireUserId: string;
+  umpireName?: string;
   createdAt: string;
   updatedAt: string;
   // DP-007: a core Session property, not an Organizer Preference — set
