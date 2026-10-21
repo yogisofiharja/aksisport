@@ -318,13 +318,18 @@ The app's Personal Context — always the post-auth entry point
   active town that they haven't joined). With no town at all, a card
   invites them to choose one instead. At the bottom, "Can't find yours?
   Start a community" pushes `CreateClub`.
-- **Inbox** (`InboxScreen`) — its first real content (DP-013 Contact
-  Organizer, was a placeholder through Milestone 5): every Contact
-  Organizer thread the caller is a party to, either as the member (their
+- **Inbox** (`InboxScreen`) — two `ListGroup` sections. "Messages":
+  direct conversations (DP-020) and groups (DP-021) together, most
+  recently active first; each row has the avatar (a success ring when
+  the person is online; two overlapping initials for a group), the
+  name, the time (`inboxTime`: today's time, "Yesterday", the weekday,
+  then the date), the last message ("You: …" for your own) and the
+  unread `CountBadge`. "Session conversations": every Contact Organizer
+  thread (DP-013) the caller is a party to, either as the member (their
   own thread) or as an owner/admin (any member's thread on a Session in
   a Club they run), most-recently-active first, `listMyContactThreads()`
-  (`GET /v1/me/contact-threads`). A blue dot marks a thread awaiting the
-  caller's reply. Tapping a row pushes `SessionDetail` with
+  (`GET /v1/me/contact-threads`), with "<Session> · <last message>"
+  under the party's name. Tapping a Session row pushes `SessionDetail` with
   `openContactWith: memberUserId` set, which auto-opens
   `SessionContactOrganizer`'s modal straight into that thread instead of
   the session's own Details tab.

@@ -55,6 +55,8 @@ type ListRowProps = {
   subtitle?: string;
   /** A third, smaller line (a time). */
   meta?: string;
+  /** Small muted text right of the title (an Inbox row's time). */
+  aside?: string;
   icon?: IconName;
   iconTone?: IconTone;
   /** Instead of `icon`: an avatar or a day block. */
@@ -73,6 +75,7 @@ export function ListRow({
   titleLines = 1,
   subtitle,
   meta,
+  aside,
   icon,
   iconTone = 'neutral',
   leading,
@@ -108,14 +111,17 @@ export function ListRow({
           </View>
         ) : null)}
       <View className="flex-1 min-w-0">
-        <Text
-          numberOfLines={titleLines}
-          className={`${framed ? 'text-base leading-[22px]' : 'text-[15px] leading-[21px]'} ${
-            strong || framed ? 'font-sans-bold' : 'font-sans-semibold'
-          } ${titleColor}`}
-        >
-          {title}
-        </Text>
+        <View className="flex-row items-baseline gap-2">
+          <Text
+            numberOfLines={titleLines}
+            className={`flex-1 ${framed ? 'text-base leading-[22px]' : 'text-[15px] leading-[21px]'} ${
+              strong || framed ? 'font-sans-bold' : 'font-sans-semibold'
+            } ${titleColor}`}
+          >
+            {title}
+          </Text>
+          {aside ? <Text className={`text-xs font-sans-medium ${mutedColor}`}>{aside}</Text> : null}
+        </View>
         {subtitle ? (
           <Text numberOfLines={2} className={`text-[13px] leading-[18px] font-sans ${mutedColor}`}>
             {subtitle}

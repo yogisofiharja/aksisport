@@ -807,6 +807,7 @@ const en: Dict = {
   firstRunLinkHint: "Someone shared a community link? Open it and you'll land right on that community.",
   exploreInTownCount: (town: string, count: number) => `Communities in ${town} · ${count}`,
   exploreStartCommunity: "Can't find yours? Start a community",
+  inboxYesterday: "Yesterday",
 };
 
 const id: Dict = {
@@ -1608,6 +1609,7 @@ const id: Dict = {
   firstRunLinkHint: "Ada yang membagikan tautan komunitas? Buka tautannya dan kamu langsung masuk ke komunitas itu.",
   exploreInTownCount: (town: string, count: number) => `Komunitas di ${town} · ${count}`,
   exploreStartCommunity: "Tidak ketemu? Buat komunitas",
+  inboxYesterday: "Kemarin",
 };
 
 const dicts: Record<Lang, Dict> = { en, id };
