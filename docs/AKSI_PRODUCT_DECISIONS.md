@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.29.0
+Version: 0.30.0
 
 Status: Living Document
 
@@ -1734,6 +1734,13 @@ its matches.
   owners and admins can change it there.
 - The current umpire cannot hand the role on themselves; they ask an
   owner or admin (the app tells them so).
+- **The new umpire is notified** (v0.30.0): when an owner or admin makes
+  someone the umpire, that person gets a notification, in the app and as
+  a push (DP-018): "You're the umpire for <Session>". Tapping it opens
+  the Session's Matches tab. It is not sent when the host becomes the
+  umpire by default at creation, or when an owner or admin reclaims the
+  role for themselves. It belongs to the Sessions group of notification
+  settings.
 
 ### Scope
 
@@ -1802,6 +1809,16 @@ Approved
   court on the start screen, DP-022) and **Back to session**.
 - Until confirmed, the match is not complete and the score can still be
   corrected.
+- **End match early** (v0.30.0): the umpire's scoring menu has "End
+  match early" ("Saves the score so far. Asks you to confirm."). A
+  confirm Dialog asks "End this match now? The score so far is saved, and
+  the match won't count as a win or loss." with **End match** (danger)
+  and **Keep playing**. Ending saves the match as **Unfinished** with its
+  current score and point log, and the umpire goes back to the Session
+  (no Result saved screen). Only the Session's umpire can do it.
+  Unfinished is the same status DP-027 uses: Results shows the match with
+  its score and an "Unfinished" label, without Share, and it counts as
+  neither a win nor a loss.
 
 ### Scope
 

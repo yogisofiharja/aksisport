@@ -6,6 +6,22 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.30.0
+
+Approved by Yogi, 2026-10-21.
+
+- DP-023: the new umpire gets a notification (in-app and push, Sessions
+  group): "You're the umpire for <Session>", opening the Session's
+  Matches tab. Not sent for the host as default umpire at creation, nor
+  when an owner/admin reclaims the role.
+- DP-025: **End match early** in the umpire's scoring menu, behind a
+  confirm Dialog (End match / Keep playing). The match is saved as
+  **Unfinished** with its score and point log — the status DP-027 uses —
+  shown in Results with an "Unfinished" label, no Share, no win or loss.
+  The umpire goes back to the Session.
+
+---
+
 ## v0.29.0
 
 Approved by Yogi, 2026-10-21.
