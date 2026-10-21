@@ -8,18 +8,20 @@ import { Typography } from '../ui/Typography';
  * A match in a Session's queue (Aksi redesign › MatchCard). Live is the
  * only dark one.
  *
- * - queued: a surface row with the queue number, the matchup and
- *   "Court 2 · queued". `action` holds Start match.
+ * - queued: a surface row with the queue number, one line per side with
+ *   a small muted "VS" between, and "Court 2 · queued". `action` holds
+ *   Start match.
  * - queued + `isMine`: the viewer's own match — 2px heat border, a
- *   "YOUR MATCH · COURT 2" eyebrow in heat-strong and the matchup in Saira.
+ *   "YOUR MATCH · COURT 2" eyebrow in heat-strong and the sides in Saira,
+ *   one per line with a small "VS" between.
  * - live: an asphalt card (radius 20) with a "COURT 1 · RACE TO 4" eyebrow
  *   and `action` (Watch, see MatchWatchLink) on the right; then one row per
  *   side: a ball dot on the server, games in a 30×36 box, points in a 44×44
  *   box, the leading side's points in heat. Without `sides` (no live score
  *   loaded) it shows the matchup instead.
  * - completed: a surface row with a "COURT 1 · 07:42" eyebrow and one line
- *   per side with its score, the winner in 700 ink and the other side in
- *   500 ink-muted; a 44px Share button behind a divider on the right
+ *   per side with its score (a small "VS" between), the winner in 700 ink
+ *   and the other side in 500 ink-muted; a 44px Share button behind a divider on the right
  *   (DP-026).
  *
  * `statusLabel` is what follows the court: "Queued", "Race to 4", "07:42".
@@ -153,25 +155,28 @@ export function MatchCard({
           </Typography>
           {pair ? (
             pair.map((side, i) => (
-              <View key={i} className="flex-row items-center justify-between gap-2">
-                <Typography
-                  variant="body"
-                  className={`flex-shrink ${side.winner ? 'font-bold' : 'font-medium text-ink-muted dark:text-ink-muted-dark'}`}
-                  numberOfLines={1}
-                  accessibilityLabel={side.winner ? `${side.names}, ${t('cardWinner')}` : undefined}
-                >
-                  {side.names}
-                </Typography>
-                {side.games != null ? (
-                  <Text
-                    className={`font-display text-lg leading-[22px] ${
-                      side.winner ? 'text-ink dark:text-ink-dark' : 'text-ink-muted dark:text-ink-muted-dark'
-                    }`}
-                    style={tabular}
+              <View key={i}>
+                {i === 1 ? <Versus /> : null}
+                <View className="flex-row items-center justify-between gap-2">
+                  <Typography
+                    variant="body"
+                    className={`flex-shrink ${side.winner ? 'font-bold' : 'font-medium text-ink-muted dark:text-ink-muted-dark'}`}
+                    numberOfLines={1}
+                    accessibilityLabel={side.winner ? `${side.names}, ${t('cardWinner')}` : undefined}
                   >
-                    {side.games}
-                  </Text>
-                ) : null}
+                    {side.names}
+                  </Typography>
+                  {side.games != null ? (
+                    <Text
+                      className={`font-display text-lg leading-[22px] ${
+                        side.winner ? 'text-ink dark:text-ink-dark' : 'text-ink-muted dark:text-ink-muted-dark'
+                      }`}
+                      style={tabular}
+                    >
+                      {side.games}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
             ))
           ) : (
@@ -206,15 +211,19 @@ export function MatchCard({
           </Typography>
           {action}
         </View>
-        <Text className="font-display text-lg leading-6 text-ink dark:text-ink-dark">
-          {a}
+        <View>
+          <Text className="font-display text-lg leading-6 text-ink dark:text-ink-dark" numberOfLines={1}>
+            {a}
+          </Text>
           {b ? (
             <>
-              <Text className="font-sans-semibold text-ink-muted dark:text-ink-muted-dark">{` ${t('activityVersus')} `}</Text>
-              {b}
+              <Versus />
+              <Text className="font-display text-lg leading-6 text-ink dark:text-ink-dark" numberOfLines={1}>
+                {b}
+              </Text>
             </>
           ) : null}
-        </Text>
+        </View>
       </Pressable>
     );
   }
@@ -227,15 +236,36 @@ export function MatchCard({
         </Text>
       ) : null}
       <View className="flex-1 min-w-0">
-        <Typography variant="body" className="font-semibold" numberOfLines={2}>
-          {withEmphasis(pair ? `${pair[0].names} ${t('activityVersus')} ${pair[1].names}` : matchup, emphasis)}
-        </Typography>
-        <Typography variant="body" color="muted" className="text-[13px] leading-[18px]" numberOfLines={1}>
+        {pair ? (
+          pair.map((side, i) => (
+            <View key={i}>
+              {i === 1 ? <Versus /> : null}
+              <Typography variant="body" className="font-semibold" numberOfLines={1}>
+                {withEmphasis(side.names, emphasis)}
+              </Typography>
+            </View>
+          ))
+        ) : (
+          <Typography variant="body" className="font-semibold" numberOfLines={2}>
+            {withEmphasis(matchup, emphasis)}
+          </Typography>
+        )}
+        <Typography variant="body" color="muted" className="mt-0.5 text-[13px] leading-[18px]" numberOfLines={1}>
           {[courtLabel, statusLabel].filter(Boolean).join(' · ')}
         </Typography>
       </View>
       {action}
     </Pressable>
+  );
+}
+
+// The small muted "VS" between a match's two sides.
+function Versus() {
+  const { t } = useTranslation();
+  return (
+    <Text className="text-[11px] leading-[14px] font-sans-semibold uppercase tracking-[0.9px] text-ink-faint dark:text-ink-faint-dark">
+      {t('activityVersus')}
+    </Text>
   );
 }
 
@@ -250,7 +280,7 @@ function withEmphasis(text: string, emphasis?: string): ReactNode {
             {emphasis}
           </Text>,
           part,
-        ]
+        ],
   );
 }
 
