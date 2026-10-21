@@ -140,7 +140,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 
 	authed.POST("/activities/:id/start", func(c *gin.Context) {
 		activityID := c.Param("id")
-		_, sessionID, role, ok := requireActivityAccess(c, pool, activityID)
+		_, sessionID, _, ok := requireActivityAccess(c, pool, activityID)
 		if !ok {
 			return
 		}
@@ -156,21 +156,10 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 			return
 		}
 		user := authjwt.CurrentUser(c)
-		// Owner/admin can start any queued match administratively — e.g. an
-		// organizer scoring on behalf of players without the app — without
-		// needing to be a checked-in participant of that specific match
-		// themselves. Regular players still need to be one of the match's
-		// own checked-in participants.
-		if !isOwnerOrAdmin(role) {
-			eligible, err := dbpkg.IsCheckedInActivityParticipant(c.Request.Context(), pool, activityID, user.ID)
-			if err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
-				return
-			}
-			if !eligible {
-				respondError(c, http.StatusForbidden, "only a checked-in participant of this match can start it")
-				return
-			}
+		// DP-023: only the Session's umpire starts matches, and scores them.
+		if !isSessionUmpire(sess.UmpireUserID, user.ID) {
+			respondError(c, http.StatusForbidden, "only the session's umpire can start a match")
+			return
 		}
 		activity, err := dbpkg.StartActivity(c.Request.Context(), pool, activityID, user.ID)
 		if errors.Is(err, dbpkg.ErrConflict) {
@@ -197,17 +186,11 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 
 	authed.POST("/activities/:id/complete", func(c *gin.Context) {
 		activityID := c.Param("id")
-		if _, _, _, ok := requireActivityAccess(c, pool, activityID); !ok {
+		_, sessionID, _, ok := requireActivityAccess(c, pool, activityID)
+		if !ok {
 			return
 		}
-		activity, err := dbpkg.GetActivity(c.Request.Context(), pool, activityID)
-		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
-			return
-		}
-		user := authjwt.CurrentUser(c)
-		if activity.ScorerUserID == nil || *activity.ScorerUserID != user.ID {
-			respondError(c, http.StatusForbidden, "only the current scorer can complete this match")
+		if !requireUmpire(c, pool, sessionID, "only the session's umpire can complete a match") {
 			return
 		}
 
@@ -230,4 +213,19 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		}
 		c.JSON(http.StatusOK, updated)
 	})
+}
+
+// requireUmpire sends 403 with msg unless the caller is the Session's
+// current umpire (DP-023). ok=false means a response has been sent.
+func requireUmpire(c *gin.Context, pool *pgxpool.Pool, sessionID, msg string) bool {
+	sess, err := dbpkg.GetSession(c.Request.Context(), pool, sessionID)
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, "internal error")
+		return false
+	}
+	if !isSessionUmpire(sess.UmpireUserID, authjwt.CurrentUser(c).ID) {
+		respondError(c, http.StatusForbidden, msg)
+		return false
+	}
+	return true
 }

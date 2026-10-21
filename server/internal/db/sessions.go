@@ -55,13 +55,13 @@ func resolveLifecycleStatus(s models.Session) string {
 	return "recruiting"
 }
 
-const sessionColumns = "id, club_id, sport, name, location, court_count, status, max_participants, default_match_format, created_by, created_at, updated_at, starts_at, recurring_schedule_id, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce"
+const sessionColumns = "id, club_id, sport, name, location, court_count, status, max_participants, default_match_format, created_by, created_at, updated_at, starts_at, recurring_schedule_id, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, umpire_user_id, (SELECT COALESCE(NULLIF(u.display_name, ''), u.username) FROM users u WHERE u.id = sessions.umpire_user_id)"
 
 // sessionScanTargets lists Scan destinations in sessionColumns' order —
 // shared so a query selecting sessionColumns plus extra columns can append
 // its own targets instead of repeating this list.
 func sessionScanTargets(s *models.Session) []any {
-	return []any{&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.MaxParticipants, &s.DefaultMatchFormat, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt, &s.StartsAt, &s.RecurringScheduleID, &s.SkillLevelMinID, &s.SkillLevelMaxID, &s.SkillLevelEnforcement, &s.DurationMinutes, &s.ActivityType, &s.Description, &s.HostPlaying, &s.PriceModel, &s.PricePerPerson, &s.TotalPrice, &s.DefaultSingleDeuce}
+	return []any{&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.MaxParticipants, &s.DefaultMatchFormat, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt, &s.StartsAt, &s.RecurringScheduleID, &s.SkillLevelMinID, &s.SkillLevelMaxID, &s.SkillLevelEnforcement, &s.DurationMinutes, &s.ActivityType, &s.Description, &s.HostPlaying, &s.PriceModel, &s.PricePerPerson, &s.TotalPrice, &s.DefaultSingleDeuce, &s.UmpireUserID, &s.UmpireName}
 }
 
 func scanSession(row pgx.CollectableRow) (models.Session, error) {
@@ -123,8 +123,8 @@ func CreateSession(ctx context.Context, pool *pgxpool.Pool, p CreateSessionParam
 		courtCount = 1
 	}
 	rows, err := pool.Query(ctx,
-		`INSERT INTO sessions (club_id, sport, name, location, court_count, max_participants, default_match_format, created_by, starts_at, recurring_schedule_id, status, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'draft'), $12, $13, $14, $15, $16, $17, $18, COALESCE(NULLIF($19, ''), 'free'), $20, $21, $22) RETURNING `+sessionColumns,
+		`INSERT INTO sessions (club_id, sport, name, location, court_count, max_participants, default_match_format, created_by, starts_at, recurring_schedule_id, status, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, umpire_user_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'draft'), $12, $13, $14, $15, $16, $17, $18, COALESCE(NULLIF($19, ''), 'free'), $20, $21, $22, $8) RETURNING `+sessionColumns,
 		p.ClubID, p.Sport, p.Name, p.Location, courtCount, p.MaxParticipants, p.DefaultMatchFormat, p.CreatedBy, p.StartsAt, p.RecurringScheduleID, p.Status,
 		p.SkillLevelMinID, p.SkillLevelMaxID, p.SkillLevelEnforcement, p.DurationMinutes, p.ActivityType, p.Description, p.HostPlaying,
 		p.PriceModel, p.PricePerPerson, p.TotalPrice, p.DefaultSingleDeuce,

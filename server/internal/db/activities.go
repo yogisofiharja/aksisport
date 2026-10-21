@@ -153,24 +153,6 @@ func ListActivitiesForSession(ctx context.Context, pool *pgxpool.Pool, sessionID
 	return result, nil
 }
 
-// IsCheckedInActivityParticipant reports whether userID is both listed as a
-// participant of activityID and currently checked in to that activity's
-// session — the "any checked-in participant of that activity" rule for
-// who's allowed to start it.
-func IsCheckedInActivityParticipant(ctx context.Context, pool *pgxpool.Pool, activityID, userID string) (bool, error) {
-	var exists bool
-	err := pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT 1 FROM activity_participants ap
-			JOIN activities a ON a.id = ap.activity_id
-			JOIN session_participants sp ON sp.session_id = a.session_id AND sp.user_id = ap.user_id
-			WHERE ap.activity_id = $1 AND ap.user_id = $2 AND sp.status = 'checked_in'
-		 )`,
-		activityID, userID,
-	).Scan(&exists)
-	return exists, err
-}
-
 // DeleteActivity removes a 'queued' activity (and its participants, via
 // ON DELETE CASCADE). Returns ErrConflict if the activity isn't queued —
 // a live or completed match must never be silently removed, only a

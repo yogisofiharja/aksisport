@@ -53,7 +53,7 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 	return dbSession{
 		ID: sess.ID, ClubID: sess.ClubID, Sport: sess.Sport, Status: sess.Status,
 		SkillLevelMinID: sess.SkillLevelMinID, SkillLevelMaxID: sess.SkillLevelMaxID, SkillLevelEnforcement: sess.SkillLevelEnforcement,
-		StartsAt: sess.StartsAt, DurationMinutes: sess.DurationMinutes,
+		StartsAt: sess.StartsAt, DurationMinutes: sess.DurationMinutes, UmpireUserID: sess.UmpireUserID,
 	}, m.Role, true
 }
 
@@ -69,6 +69,7 @@ type dbSession struct {
 	SkillLevelEnforcement *string
 	StartsAt              *time.Time
 	DurationMinutes       *int
+	UmpireUserID          string
 }
 
 // checkInWindowOpen: check-in (self, host-initiated, or adding a guest) is
@@ -818,7 +819,6 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		c.JSON(http.StatusOK, p)
 	})
-
 
 	// DP-002: self-service, mirrors /checkin's existing shape exactly (acts
 	// on the caller, no userId in the path). Owner/admin managing another
