@@ -18,8 +18,13 @@ type PlayerSportActivity struct {
 type PlayerSportSummary struct {
 	SessionsAttended int `json:"sessionsAttended"`
 	NoShows          int `json:"noShows"`
-	MatchesPlayed    int `json:"matchesPlayed"`
-	Wins             int `json:"wins"`
+	// MatchesPlayed: completed matches, draws included; Unfinished and
+	// Not played matches never count (DP-025, DP-027).
+	MatchesPlayed int `json:"matchesPlayed"`
+	Wins          int `json:"wins"`
+	// Losses: completed matches the other team won. Win rate is
+	// Wins / (Wins + Losses) — a draw is neither.
+	Losses int `json:"losses"`
 }
 
 // PlayerSessionHistory: a Session the player took part in — checked in

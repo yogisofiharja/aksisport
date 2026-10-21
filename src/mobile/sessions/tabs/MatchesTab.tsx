@@ -67,15 +67,15 @@ export function MatchesTab({
   // A filter for this visit only — not saved.
   const [mineOnly, setMineOnly] = useState(false);
   const isMineMatch = (a: ActivityDetail) => a.participants.some((p) => p.userId === myUserId);
-  // Results (a Completed Session): ended matches first — finished or
-  // Unfinished (DP-025) — newest on top, then the rest in queue order.
+  // Live matches, then the queue in order, then ended ones — finished or
+  // Unfinished (DP-025) — newest on top. The same while the Session is
+  // under way and on its Results.
   const ended = (a: ActivityDetail) => a.status === 'completed' || a.status === 'unfinished';
-  const ordered = isCompleted
-    ? [
-        ...activities.filter(ended).sort((x, y) => (y.completedAt ?? '').localeCompare(x.completedAt ?? '')),
-        ...activities.filter((a) => !ended(a)),
-      ]
-    : activities;
+  const ordered = [
+    ...activities.filter((a) => a.status === 'live'),
+    ...activities.filter((a) => a.status === 'queued'),
+    ...activities.filter(ended).sort((x, y) => (y.completedAt ?? '').localeCompare(x.completedAt ?? '')),
+  ];
   const shown = mineOnly ? ordered.filter(isMineMatch) : ordered;
   const queuedActivities = activities.filter((a) => a.status === 'queued');
   // Only the viewer's next match is "YOUR MATCH"; their later ones are

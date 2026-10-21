@@ -13,7 +13,9 @@ const playerHistoryLimit = 50
 // GetPlayerSportActivity assembles a player's history in one sport across
 // every Community (DP-019): summary counts over all time, and the most
 // recent Sessions and completed matches. A match counts as won when the
-// sport's stored result names the player's team as winner.
+// sport's stored result names the player's team as winner, lost when it
+// names the other team; a draw (no winner) is neither. Only completed
+// matches count — never Unfinished or Not played ones.
 func GetPlayerSportActivity(ctx context.Context, pool *pgxpool.Pool, userID, sport string) (models.PlayerSportActivity, error) {
 	a := models.PlayerSportActivity{Sport: sport, Sessions: []models.PlayerSessionHistory{}, Matches: []models.PlayerMatchHistory{}}
 
@@ -26,9 +28,12 @@ func GetPlayerSportActivity(ctx context.Context, pool *pgxpool.Pool, userID, spo
 			(SELECT count(*) FROM activity_participants ap JOIN activities ac ON ac.id = ap.activity_id
 			 WHERE ap.user_id = $1 AND ac.sport = $2 AND ac.status = 'completed'),
 			(SELECT count(*) FROM activity_participants ap JOIN activities ac ON ac.id = ap.activity_id
-			 WHERE ap.user_id = $1 AND ac.sport = $2 AND ac.status = 'completed' AND ac.result->>'winner' = ap.team)`,
+			 WHERE ap.user_id = $1 AND ac.sport = $2 AND ac.status = 'completed' AND ac.result->>'winner' = ap.team),
+			(SELECT count(*) FROM activity_participants ap JOIN activities ac ON ac.id = ap.activity_id
+			 WHERE ap.user_id = $1 AND ac.sport = $2 AND ac.status = 'completed'
+			   AND coalesce(ac.result->>'winner', '') <> '' AND ac.result->>'winner' <> ap.team)`,
 		userID, sport,
-	).Scan(&a.Summary.SessionsAttended, &a.Summary.NoShows, &a.Summary.MatchesPlayed, &a.Summary.Wins); err != nil {
+	).Scan(&a.Summary.SessionsAttended, &a.Summary.NoShows, &a.Summary.MatchesPlayed, &a.Summary.Wins, &a.Summary.Losses); err != nil {
 		return a, err
 	}
 

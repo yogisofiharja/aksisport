@@ -62,7 +62,9 @@ export function PlayerSportScreen({ userId, sport, onBack }: Props) {
   const level = player?.skillLevels.find((l) => l.sport === sport);
   const module = getSportModule(sport);
   const summary = activity?.summary;
-  const winRate = summary && summary.matchesPlayed > 0 ? Math.round((summary.wins / summary.matchesPlayed) * 100) : null;
+  // Wins over decided matches: draws don't count either way.
+  const decided = summary ? summary.wins + (summary.losses ?? 0) : 0;
+  const winRate = summary && decided > 0 ? Math.round((summary.wins / decided) * 100) : null;
 
   const stats = summary
     ? [
@@ -133,6 +135,7 @@ export function PlayerSportScreen({ userId, sport, onBack }: Props) {
                         </Typography>
                         {m.won === true && <Badge action="success" text={t('playerSportWon')} />}
                         {m.won === false && <Badge action="error" text={t('playerSportLost')} />}
+                        {m.won == null && <Badge action="muted" text={t('matchDraw')} />}
                       </HStack>
                       {score ? (
                         <Typography variant="body" className="font-semibold">

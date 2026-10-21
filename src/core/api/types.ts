@@ -453,7 +453,9 @@ export type DirectThread = {
 // A player's history in one sport, across every Community (DP-019).
 export type PlayerSportActivity = {
   sport: string;
-  summary: { sessionsAttended: number; noShows: number; matchesPlayed: number; wins: number };
+  // matchesPlayed: completed matches, draws included (never Unfinished or
+  // Not played). Win rate is wins / (wins + losses): a draw is neither.
+  summary: { sessionsAttended: number; noShows: number; matchesPlayed: number; wins: number; losses: number };
   sessions: {
     sessionId: string;
     sessionName?: string;
