@@ -32,7 +32,7 @@ type SheetProps = {
   closeLabel?: string | false;
 };
 
-const MAX_WIDTH = 520;
+const MAX_WIDTH = 640;
 const DISMISS_DISTANCE = 80;
 
 export function Sheet({ visible, onClose, title, description, children, closeLabel }: SheetProps) {

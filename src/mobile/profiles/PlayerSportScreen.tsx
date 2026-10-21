@@ -16,6 +16,7 @@ import { formatSessionDateTime } from '../../core/sessions/sessionSchedule';
 import { getSportModule } from '../../sports/registry';
 import type { PlayerProfile, PlayerSportActivity } from '../../core/api/types';
 import { AppBar } from '../../design-system/layout/AppBar';
+import { winRate } from '../../core/players/winRate';
 
 type Props = {
   userId: string;
@@ -62,16 +63,14 @@ export function PlayerSportScreen({ userId, sport, onBack }: Props) {
   const level = player?.skillLevels.find((l) => l.sport === sport);
   const module = getSportModule(sport);
   const summary = activity?.summary;
-  // Wins over decided matches: draws don't count either way.
-  const decided = summary ? summary.wins + (summary.losses ?? 0) : 0;
-  const winRate = summary && decided > 0 ? Math.round((summary.wins / decided) * 100) : null;
+  const rate = summary ? winRate(summary) : null;
 
   const stats = summary
     ? [
         { label: t('playerSportSessions'), value: String(summary.sessionsAttended) },
         { label: t('playerSportMatches'), value: String(summary.matchesPlayed) },
         { label: t('playerSportWins'), value: String(summary.wins) },
-        { label: t('playerSportWinRate'), value: winRate == null ? '—' : `${winRate}%` },
+        { label: t('playerSportWinRate'), value: rate == null ? '—' : `${rate}%` },
         { label: t('playerSportNoShows'), value: String(summary.noShows) },
       ]
     : [];

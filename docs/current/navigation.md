@@ -333,34 +333,27 @@ The app's Personal Context — always the post-auth entry point
   `openContactWith: memberUserId` set, which auto-opens
   `SessionContactOrganizer`'s modal straight into that thread instead of
   the session's own Details tab.
-- **Me** (`MeScreen`) — identity header: the user's own profile picture
-  (tap to change — camera/gallery, self-service only, `POST
-  /v1/me/avatar`) next to username/display name, then the gear icon at
-  top-right pushing
-  `Settings` (Theme, Language, Notifications, Privacy, Logout). Below it, a "Sports"
-  section: one non-interactive card per sport
-  (sport name + current level, or "Not set") with a small edit icon
-  that expands the card in place to a level-picker (chips), the same
-  interaction the now-retired standalone `SkillLevelsScreen` used to
-  provide via navigation — fully absorbed into `MeScreen` itself, no
-  separate screen/route anymore. Tapping the edit icon is a temporary
-  destination; product intent is for the card to eventually open a
-  per-sport detail/statistics screen instead, which doesn't exist yet
-  (statistics are out of scope) — when that lands, this inline editor
-  may move there or stay as a quick-edit affordance.
-  Above Sports, an "Account" section: a Display name row pushing
-  `EditDisplayName` (`DisplayNameScreen`, DP-016 — set, change, or clear
-  it), a "Your towns" card (DP-017: every saved town with a radio mark on
-  the active one — tap another to make it active, × to remove one, "Add a
-  town" opens the city picker; all save at once), and an
-  Email row (the confirmed
-  address or "Not set") pushing `AccountEmail` (`AccountEmailScreen`, the
-  same two-step confirmation as the sign-up gate), preceded — for an
-  account with no confirmed email — by a reminder card that can be
-  dismissed (remembered per user on the device).
-  At the bottom, a "Session History" card pushes `MySessionHistory`
-  (`SessionHistoryScreen` with no `clubId`): every past Session the user
-  joined, across all Clubs (DP-009).
+- **Me** (`MeScreen`) — a root AppBar with only the settings gear
+  (pushes `Settings`). A profile header: the user's own picture (76px;
+  tap to change — camera/gallery, self-service only, `POST
+  /v1/me/avatar`), the name, "@username · active town", and "Edit
+  profile", which pushes `EditDisplayName` (`DisplayNameScreen`, DP-016 —
+  set, change, or clear the display name). For an account with no
+  confirmed email, a reminder card that can be dismissed (remembered per
+  user on the device). "My sports": a `SportCard` per sport, two to a row,
+  the first in asphalt — the level (or "Not set") and "23 matches · 14
+  won · 61%" from the sport page's summary (`GET` player sport activity,
+  DP-019; win rate is wins over wins and losses, `core/players/winRate`).
+  The card pushes `PlayerSport` for the user; its pencil opens a Sheet of
+  that sport's levels as chips (DP-008), saved on tap. Then one
+  `ListGroup`: Session history (pushes `MySessionHistory`,
+  `SessionHistoryScreen` with no `clubId`: every past Session the user
+  joined, across all Clubs, DP-009), My towns (the towns, active one
+  marked, under it; opens a Sheet — DP-017: every saved town with a radio
+  mark on the active one, tap another to make it active, × to remove one,
+  "Add a town" opens the city picker; all save at once), and Account &
+  email ("<email> · confirmed" or "Not set"; pushes `AccountEmail`, the
+  same two-step confirmation as the sign-up gate).
 
 Tab screens navigate onto the *parent* `MainStack` (e.g. `ClubDetail`,
 `Settings`) via `useNavigation<NativeStackNavigationProp<MainStackParamList>>()`

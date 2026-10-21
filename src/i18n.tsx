@@ -808,6 +808,17 @@ const en: Dict = {
   exploreInTownCount: (town: string, count: number) => `Communities in ${town} · ${count}`,
   exploreStartCommunity: "Can't find yours? Start a community",
   inboxYesterday: "Yesterday",
+  meMySports: "My sports",
+  meEditProfile: "Edit profile",
+  meMyTowns: "My towns",
+  meAccountEmail: "Account & email",
+  meEmailConfirmed: (email: string) => `${email} · confirmed`,
+  meSportMatches: (n: number) => `${n} ${n === 1 ? 'match' : 'matches'}`,
+  meSportWon: (n: number) => `${n} won`,
+  meTownActive: (name: string) => `${name} (active)`,
+  meTownsNone: "No town yet",
+  meChangeLevel: "Change level",
+  meChangePhoto: "Change profile picture",
 };
 
 const id: Dict = {
@@ -1610,6 +1621,17 @@ const id: Dict = {
   exploreInTownCount: (town: string, count: number) => `Komunitas di ${town} · ${count}`,
   exploreStartCommunity: "Tidak ketemu? Buat komunitas",
   inboxYesterday: "Kemarin",
+  meMySports: "Olahragaku",
+  meEditProfile: "Ubah profil",
+  meMyTowns: "Kotaku",
+  meAccountEmail: "Akun & email",
+  meEmailConfirmed: (email: string) => `${email} · terkonfirmasi`,
+  meSportMatches: (n: number) => `${n} pertandingan`,
+  meSportWon: (n: number) => `${n} menang`,
+  meTownActive: (name: string) => `${name} (aktif)`,
+  meTownsNone: "Belum ada kota",
+  meChangeLevel: "Ubah level",
+  meChangePhoto: "Ganti foto profil",
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

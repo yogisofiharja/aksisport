@@ -1,4 +1,5 @@
 export * from './ClubCard';
+export * from './SportCard';
 export * from './SessionCard';
 export * from './MatchCard';
 export * from './PlayerCard';
