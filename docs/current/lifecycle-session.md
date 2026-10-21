@@ -41,6 +41,9 @@ elapses. See `internal/scheduling.AutoStartDueSessions`.
 elapses, a background process — not an organizer PATCH — resolves the
 Session automatically: `in_progress` → `completed`; any other non-terminal
 status → `cancelled` (it never started, so there's nothing to complete).
+Completing also moves the Session's queued matches to **Not played**
+(DP-027, `db.CompleteElapsedSession`, one transaction); live matches keep
+going for a one-hour grace period (see `lifecycle-activity.md`).
 See `internal/scheduling.AutoTransitionElapsedSessions`, riding the same
 ticker as DP-007 generation (and auto-start, above). Session History
 (Club-scoped and cross-Club) is described further down.

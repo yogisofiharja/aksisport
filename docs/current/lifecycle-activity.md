@@ -1,11 +1,14 @@
 # Activity Lifecycle (Current)
 
-Column: `activities.status`, `CHECK IN ('queued','live','completed','unfinished')`
-(`'unfinished'` since migration 0040), default `'queued'`.
+Column: `activities.status`,
+`CHECK IN ('queued','live','completed','unfinished','not_played')`
+(`'unfinished'` since migration 0040, `'not_played'` since 0041), default
+`'queued'`.
 
 ```
 queued → live → completed
-              ↘ unfinished   (End match early, DP-025)
+   │          ↘ unfinished   (End match early, DP-025; grace hour over, DP-027)
+   ↘ not_played              (still queued when the Session completed, DP-027)
 ```
 
 Strictly linear, one direction, no skipping — enforced by SQL `WHERE
@@ -135,7 +138,33 @@ An Unfinished match shows in the Matches/Results list with its score and
 neither a win nor a loss: player stats read `status='completed'` only.
 DP-027 (Session-end cleanup, not built yet) is to reuse this status.
 
-## completed / unfinished (terminal)
+## When the Session ends (DP-027)
+
+- **queued → not_played** when the auto-transition completes the
+  Session (`db.CompleteElapsedSession`). A Not played match never starts
+  (`StartActivity` needs `queued`) and never counts anywhere. Results
+  shows them collapsed in one row at the end, "3 matches not played",
+  that expands to a plain list (filtered by My matches only).
+- **Grace hour.** A match still `live` keeps going: the umpire can score,
+  complete and end it early until `scoringClosesAt` (the Session's end +
+  1 hour, `db.MatchGrace`, on every Session payload). After it,
+  `/complete` and `/end-early` answer 409 ("scoring closed an hour after
+  the session ended…", `db.ScoringOpen`), and on the auto-transition
+  tick `scheduling.UnfinishOverdueMatches` saves the match as
+  **Unfinished** with its last live score read from Firebase
+  (`firebaseadmin.LiveMatches.LastScore`), or the server's last stored
+  state when that can't be read (logged) — including a match that ended
+  on the court but was never confirmed. Idempotent. Because the ticker
+  runs every 15 minutes by default, this lands up to 15 minutes after
+  the hour; until then the app already shows the row as Unfinished with
+  no action.
+- In the app, the umpire sees Resume on such a match during the grace
+  hour, everyone checked in sees Watch.
+- Migration 0042 moved queued matches of already-Completed Sessions to
+  Not played once; overdue live matches of old Sessions are picked up
+  by the job's first run.
+
+## completed / unfinished / not_played (terminal)
 
 No further transitions. `GET /v1/sessions/:id/activities` and `GET
 /v1/activities/:id` still return completed activities (ordered after

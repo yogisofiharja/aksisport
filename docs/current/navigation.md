@@ -99,8 +99,9 @@ unsupported until expo-notifications is set up (`src/platform/push.ts`).
 `PlayerProfileSheet` (bottom sheet) has a **Chat** button in its header
 (pushes `DirectMessage`, `/messages/:userId`) and lists every sport; tapping
 one pushes `PlayerSport` (`/players/:userId/sports/:sport`,
-`PlayerSportScreen`): level, five summary tiles (sessions, matches, wins,
-win rate, no-shows), matches (vs, partner, score via the sport module's
+`PlayerSportScreen`): level, five summary tiles (sessions, matches —
+completed, draws included —, wins, win rate = wins ÷ (wins + losses), so
+draws don't count, and no-shows), matches (vs, partner, score via the sport module's
 `formatResult`, won/lost, date and Community) and Sessions (attended or
 no-show). The Me tab's sport cards push the same screen for yourself; the
 pencil on a card still edits the level in place. `DirectMessageScreen`
