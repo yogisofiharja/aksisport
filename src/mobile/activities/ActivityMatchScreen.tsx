@@ -38,7 +38,7 @@ import { MatchStartScreen } from './MatchStartScreen';
 import { MatchOptionsSheet } from './MatchOptionsSheet';
 import { UmpireSheet } from '../sessions/UmpireSheet';
 import { buildServiceOrder } from '../../core/activities/buildGeneratedMatchPayload';
-import { appAlert } from '../../design-system/feedback/appAlert';
+import { appAlert, toast } from '../../design-system/feedback/appAlert';
 import { NativeShareModal } from '../../components/NativeShareModal';
 import type { NativeShareData } from '../../components/NativeShareModal';
 import { useTranslation } from '../../i18n';
@@ -79,6 +79,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
   const [error, setError] = useState<string | null>(null);
   const [nativeShareData, setNativeShareData] = useState<NativeShareData | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
   // Opened after it finished (from the Matches list): a back arrow on the
   // result, not "Next match".
   const [openedFinished, setOpenedFinished] = useState(false);
@@ -114,6 +115,11 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
   const startedRef = useRef(false);
   const completedRef = useRef(false);
   const unsubscribeLiveRef = useRef<(() => void) | null>(null);
+  // Read inside the live subscription, which outlives renders.
+  const isScorerRef = useRef(false);
+  useEffect(() => {
+    isScorerRef.current = isScorer;
+  }, [isScorer]);
 
   useEffect(() => {
     prefetchAudio();
@@ -127,6 +133,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
       try {
         const detail = await getActivity(activityId);
         setSessionId(detail.sessionId);
+        sessionIdRef.current = detail.sessionId;
         loadSession(detail.sessionId).catch(() => {});
         const config = detail.config as MatchConfig;
 
@@ -156,6 +163,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
 
         const scorerUserId = detail.scorerUserId ?? null;
         const iAmScorer = scorerUserId != null && scorerUserId === profile?.id;
+        isScorerRef.current = iAmScorer;
         setIsScorer(iAmScorer);
         setScorerName(resolveScorerName(detail.participants, scorerUserId));
 
@@ -174,8 +182,8 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
           }
         } else {
           setMatchState(createInitialState(config));
-          watchAsSpectator();
         }
+        watchLive();
       } catch (err) {
         setError(err instanceof Error ? err.message : t('activityLoadError'));
       } finally {
@@ -193,19 +201,45 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
     };
   }, [activityId]);
 
-  function watchAsSpectator() {
+  // Follows the match's live copy for everyone, the umpire included:
+  // spectators see each point, and a handover (DP-023) — the server moving
+  // the copy's scorerUid — turns the old umpire's device into a spectator
+  // and the new umpire's into the scorer, from the current score.
+  function watchLive() {
     if (!isFirebaseReady) {
-      setError(t('activityLiveUnavailable'));
+      if (!isScorerRef.current) setError(t('activityLiveUnavailable'));
       return;
     }
     unsubscribeLiveRef.current?.();
     unsubscribeLiveRef.current = subscribeToLiveMatch(activityId, (payload) => {
       if (!payload) return; // no live data yet/anymore — keep last-known local state
+      const myUid = firebaseUser?.uid;
+      if (isScorerRef.current && payload.scorerUid && myUid && payload.scorerUid !== myUid) handedOff();
+      // The scorer's own writes come back here; their state is already right.
+      if (isScorerRef.current) return;
       if (payload.matchState) setMatchState(payload.matchState);
       if (payload.history) setHistory(payload.history);
       setTeamASide(normalizeSide(payload.teamASide));
       setConfirmed(Boolean(payload.confirmed));
+      // Made the umpire mid-match: score on from here.
+      if (payload.scorerUid && myUid && payload.scorerUid === myUid) {
+        isScorerRef.current = true;
+        setIsScorer(true);
+      }
     });
+  }
+
+  // Someone else umpires now: this device watches, and says who.
+  function handedOff() {
+    isScorerRef.current = false;
+    setIsScorer(false);
+    if (!sessionIdRef.current) return;
+    loadSession(sessionIdRef.current)
+      .then((sess) => {
+        setScorerName(sess.umpireName ?? null);
+        if (sess.umpireName) toast(t('umpireIsUmpiringNow', sess.umpireName));
+      })
+      .catch(() => {});
   }
 
   // Start: claim the scorer role, then begin with the chosen sides and
@@ -217,6 +251,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
       const started = await startActivity(activityId);
       const scorerUserId = started.scorerUserId ?? null;
       const iAmScorer = scorerUserId != null && scorerUserId === profile?.id;
+      isScorerRef.current = iAmScorer;
       setIsScorer(iAmScorer);
       if (iAmScorer) {
         setMatchState(
@@ -225,8 +260,8 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
         setTeamASide(choice.teamASide);
       } else {
         setMatchState(createInitialState(pendingConfig));
-        watchAsSpectator();
       }
+      watchLive();
       setPendingConfig(null);
     } catch (err) {
       if (err instanceof ApiRequestError && err.status === 409) {
@@ -236,7 +271,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
         setIsScorer(false);
         setMatchState(createInitialState(pendingConfig));
         setPendingConfig(null);
-        watchAsSpectator();
+        watchLive();
         appAlert(t('matchStartedElsewhere'), undefined, [{ text: t('ok') }]);
       } else {
         appAlert(t('activityLoadError'), undefined, [{ text: t('ok') }]);
