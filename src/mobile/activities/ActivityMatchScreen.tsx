@@ -424,6 +424,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
       <MatchFinishedScreen
         matchState={matchState}
         teamNames={teamNames}
+        onBack={onDone}
         scorer={isScorer ? { confirming, onConfirm: handleConfirmResult, onUndo: handleUndo } : undefined}
       />
     );

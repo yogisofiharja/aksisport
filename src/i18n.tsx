@@ -62,7 +62,8 @@ const en: Dict = {
   confirmResult: 'Confirm result',
   undoLastPoint: 'Undo last point',
   waitingForUmpire: 'Waiting for the umpire to confirm',
-  teamWins: (names: string) => `${names} win`,
+  // One player "wins"; a pair ("Sari / Budi") "win".
+  teamWins: (names: string) => `${names} ${names.includes(' / ') ? 'win' : 'wins'}`,
   resultSaved: 'Result saved',
   shareResultAction: 'Share result',
   setUpNextMatch: 'Set up next match',

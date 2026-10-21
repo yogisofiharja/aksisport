@@ -3,6 +3,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Illustration } from '../../design-system/feedback/Illustration';
 import { Typography } from '../../design-system/ui/Typography';
 import { Button, ButtonText } from '../../design-system/ui/Button';
+import { IconButton } from '../../design-system/ui/IconButton';
 import { useTranslation } from '../../i18n';
 import type { TeamNames } from '../../appTypes';
 import type { MatchState } from '../../sports/tennis/scoringEngine';
@@ -11,6 +12,8 @@ import { ScoreRow } from './MatchResultScreen';
 type Props = {
   matchState: MatchState;
   teamNames: TeamNames;
+  /** Leave without confirming; the match stays as it is (DP-025). */
+  onBack: () => void;
   /** The umpire's view: Confirm result / Undo last point. Absent for spectators. */
   scorer?: {
     confirming: boolean;
@@ -23,14 +26,17 @@ type Props = {
 // on the court, but the result is saved only when the umpire confirms.
 // Until then the umpire can undo the last point, and everyone else sees
 // the final score with "Waiting for the umpire to confirm".
-export function MatchFinishedScreen({ matchState, teamNames, scorer }: Props) {
+export function MatchFinishedScreen({ matchState, teamNames, onBack, scorer }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const winnerName = matchState.winner === 'A' ? teamNames.A : matchState.winner === 'B' ? teamNames.B : null;
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-ground dark:bg-ground-dark">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 32, gap: 12, alignItems: 'center' }}>
+      <View className="flex-row items-center min-h-[56px] px-1">
+        <IconButton icon="chevron-back" label={t('back')} onPress={onBack} />
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, gap: 12, alignItems: 'center' }}>
         <Illustration name="match-won" width={160} />
         <Typography variant="overline" color="muted" className="mt-2">
           {t('matchFinished')}
