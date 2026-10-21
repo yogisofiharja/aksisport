@@ -666,10 +666,8 @@ const en: Dict = {
   tabMe: 'Me',
 
   // Home (Personal Context Shell — Milestone 1)
-  homeAttentionTitle: 'Needs Attention',
   homeMyCommunitiesTitle: 'My Communities',
-  homeCommunitiesEmptyState: "You're not in a Community yet. Create one below, or find one in Explore.",
-  homeNewCommunity: 'New Community',
+  homeNewCommunity: 'New community',
   homeCreateCommunity: 'Create Community',
 
   // Explore (Milestone 1 — placeholder, real discovery is Planning-only)
@@ -797,6 +795,17 @@ const en: Dict = {
   sessionPreviewTitle: "Check it, then publish",
   liveMatchTitle: "Live match",
   homeGreeting: (name: string) => `Hi, ${name}`,
+  cardOpen: "Open",
+  homeRightNow: "Right now",
+  homeFindMore: "Find more",
+  homeWelcome: "Welcome to Aksi",
+  firstRunTitle: "Find your people",
+  firstRunMessage: "You're not in a community yet. Join one near you, or start your own.",
+  firstRunFindTitle: "Find a community",
+  firstRunFindDesc: "Pick your town and see who plays near you",
+  firstRunStartTitle: "Start a community",
+  firstRunStartDesc: "For organizers: run sessions for your group",
+  firstRunLinkHint: "Someone shared a community link? Open it and you'll land right on that community.",
 };
 
 const id: Dict = {
@@ -1457,9 +1466,7 @@ const id: Dict = {
   tabMe: 'Saya',
 
   // Home (Personal Context Shell — Milestone 1)
-  homeAttentionTitle: 'Perlu Perhatian',
   homeMyCommunitiesTitle: 'Komunitas Saya',
-  homeCommunitiesEmptyState: 'Kamu belum ikut Komunitas. Buat di bawah, atau cari di Jelajahi.',
   homeNewCommunity: 'Komunitas Baru',
   homeCreateCommunity: 'Buat Komunitas',
 
@@ -1588,6 +1595,17 @@ const id: Dict = {
   sessionPreviewTitle: "Periksa, lalu terbitkan",
   liveMatchTitle: "Pertandingan langsung",
   homeGreeting: (name: string) => `Hai, ${name}`,
+  cardOpen: "Buka",
+  homeRightNow: "Sekarang",
+  homeFindMore: "Cari lagi",
+  homeWelcome: "Selamat datang di Aksi",
+  firstRunTitle: "Temukan teman mainmu",
+  firstRunMessage: "Kamu belum ikut komunitas. Gabung yang dekat denganmu, atau buat sendiri.",
+  firstRunFindTitle: "Cari komunitas",
+  firstRunFindDesc: "Pilih kotamu dan lihat siapa yang main di dekatmu",
+  firstRunStartTitle: "Buat komunitas",
+  firstRunStartDesc: "Untuk penyelenggara: atur sesi untuk grupmu",
+  firstRunLinkHint: "Ada yang membagikan tautan komunitas? Buka tautannya dan kamu langsung masuk ke komunitas itu.",
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

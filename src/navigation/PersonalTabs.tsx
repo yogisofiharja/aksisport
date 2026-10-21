@@ -41,8 +41,9 @@ export function PersonalTabs() {
           tabBarIcon: ({ focused }) => <Icon name="home-outline" color={focused ? 'secondary' : 'muted'} />,
         }}
       >
-        {() => (
+        {({ navigation }) => (
           <HomeScreen
+            onOpenExplore={() => navigation.navigate('Explore')}
             onOpenNotifications={() => rootNavigation.navigate('Notifications')}
             onCreateClub={() => rootNavigation.navigate('CreateClub')}
             onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })}

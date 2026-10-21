@@ -53,6 +53,49 @@ export function priceLabel(session: Pick<Session, 'priceModel' | 'pricePerPerson
 
 type SessionCardProps = ComponentProps<typeof SessionCard>;
 
+function startTime(d: Date) {
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+// Home's "Right now" (Aksi redesign › Home). The live Session as the hero
+// card: "Community · venue".
+export function sessionHeroProps(session: Session, t: T, clubName: string): Omit<SessionCardProps, 'onPress' | 'className'> {
+  return {
+    variant: 'hero',
+    title: session.name || sportLabel(session.sport, t),
+    subtitle: [clubName, session.location].filter(Boolean).join(' · '),
+    status: t('activityStatusLive'),
+    statusAction: 'live',
+  };
+}
+
+// Every other Session there as a compact row: the day block, then
+// "19:00 · venue · Community" and the status pill.
+export function sessionRowProps(
+  session: Session,
+  t: T,
+  lang: 'en' | 'id',
+  clubName: string,
+  now: Date = new Date()
+): Omit<SessionCardProps, 'onPress' | 'className'> {
+  const start = session.startsAt ? new Date(session.startsAt) : undefined;
+  const locale = lang === 'id' ? 'id-ID' : 'en-GB';
+  return {
+    variant: 'row',
+    title: session.name || sportLabel(session.sport, t),
+    subtitle: [start ? startTime(start) : undefined, session.location, clubName].filter(Boolean).join(' · '),
+    day: start
+      ? {
+          weekday: start.toLocaleDateString(locale, { weekday: 'short' }).replace('.', ''),
+          date: String(start.getDate()),
+          today: start.toDateString() === now.toDateString(),
+        }
+      : undefined,
+    status: statusLabel(session.lifecycleStatus, t),
+    statusAction: sessionStatusColor(session.lifecycleStatus),
+  };
+}
+
 // Everything a SessionCard shows, from a Session as the list endpoints
 // return it — one mapping for every screen that lists Sessions. `subtitle`
 // defaults to the venue; cross-Community lists pass their own (the

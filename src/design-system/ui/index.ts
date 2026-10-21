@@ -9,3 +9,4 @@ export * from './Chip';
 export * from './Segmented';
 export * from './Switch';
 export * from './IconButton';
+export * from './List';

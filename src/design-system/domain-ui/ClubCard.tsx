@@ -9,6 +9,8 @@ import { Typography } from '../ui/Typography';
  *
  * - `tile` (Home): 150px wide, avatar over the name and "Owner · Jakarta
  *   Selatan" (`roleLabel` · `cityName`).
+ * - `new` (Home, after the tiles): a dashed 100px tile with + and `name`
+ *   as its label ("New community").
  * - `row` (Explore): avatar, name, "Jakarta Pusat · 42 members", plus
  *   "· private" for a private Community. Trailing: "Joined" when the viewer
  *   has a role, "Requested" while their request is pending, otherwise a
@@ -24,7 +26,7 @@ import { Typography } from '../ui/Typography';
 
 type ClubCardProps = {
   name: string;
-  variant?: 'tile' | 'row';
+  variant?: 'tile' | 'row' | 'new';
   hasAvatar?: boolean;
   avatarSource?: ImageSourcePropType;
   /** Translated role, e.g. "Owner" (tile). */
@@ -75,6 +77,21 @@ export function ClubCard({
   const frame = `bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl ${
     onPress ? 'active:opacity-70' : ''
   }`;
+
+  if (variant === 'new') {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        className={`w-[100px] p-3.5 rounded-xl items-center justify-center gap-1.5 border-2 border-dashed border-border-strong dark:border-border-strong-dark active:opacity-70 ${className}`}
+      >
+        <Icon name="add" size="lg" color="default" />
+        <Typography variant="label" className="text-center text-[13px]">
+          {name}
+        </Typography>
+      </Pressable>
+    );
+  }
 
   if (variant === 'tile') {
     const subline = [roleLabel, cityName].filter(Boolean).join(' · ');

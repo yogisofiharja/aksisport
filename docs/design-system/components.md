@@ -178,7 +178,7 @@ A session card summarizes one Session in a list: sport, status, name, when, wher
 
 The consumer provides the data and one action that fits the viewer's state (Join, Pay, Check in, Open matches).
 
-In code: `domain-ui/SessionCard.tsx`, following the redesign canvas (eyebrow date · time, footer price and capacity with an ink bar; see `codebase.md`).
+In code: `domain-ui/SessionCard.tsx`, following the redesign canvas (eyebrow date · time, footer price and capacity with an ink bar; see `codebase.md`). Home's "Right now" adds `variant="hero"` (the live Session as an asphalt card with heat cuts, Live pill and Open) and `variant="row"` (day block, name, "19:00 · venue · Community", status pill) for a `ListGroup`.
 
 ### ListItem
 
@@ -189,7 +189,7 @@ A list item is one row: lead (avatar or icon tile), title and subtitle, trailing
 - Trail: time + unread count (Inbox), a value + chevron (settings), or one small button (Confirm payment).
 - `--unread` bolds the title. `--danger` for Log out, Leave Community.
 - Swipe actions are not used; long-press opens an action Sheet (report, delete), matching chat messages.
-- In code: a new `ui/ListItem.tsx` on `Pressable`, reused for Members, Inbox, Payment and Settings; `domain-ui/PlayerCard.tsx` moves onto it. Long lists use `FlatList`.
+- In code: `ui/List.tsx` — `ListGroup` (the card with hairlines between rows) and `ListRow` (icon tile in neutral, heat, success or info, or any `leading` node; title, subtitle and a small meta line; trailing node and chevron; `danger`). `framed="light"` / `"dark"` makes one row a card on its own (First run's Find a community is the dark one). Used on Home, Me, Settings, Notifications and Inbox; Members, Payment and `PlayerCard` have not moved onto it yet. Long lists use `FlatList`.
 
 ### Chat
 

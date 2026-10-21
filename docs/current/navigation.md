@@ -280,14 +280,13 @@ belongs to `ClubSettingsScreen`.
 The app's Personal Context — always the post-auth entry point
 (`MainStack`'s `Personal` route). Four tabs:
 
-- **Home** (`HomeScreen`) — leads with "My Communities": a horizontal
-  row of `ClubCard` tiles (club picture if set, else initials; name; the
-  user's role · city), ending in a dashed "New Community" tile that pushes
-  `CreateClub` — shown even with no Communities yet, under a message
-  pointing to it and to Explore. Joining a Community is done from Explore or a shared link
-  (DP-017, see below), not from here. Below that,
-  an "Attention" section surfacing what needs attention across every
-  Community the user belongs to. Ranked with the same Live → Today →
+- **Home** (`HomeScreen`) — the root AppBar ("Thursday 22 Oct" over
+  "Hi, <first name>", the bell). "Right now" first: what needs attention
+  across every Community the user belongs to — a live Session as the dark
+  `SessionCard variant="hero"` (Live pill, name, "Community · venue",
+  Open), then today's, the next and draft Sessions as compact rows in one
+  `ListGroup` (`variant="row"`: day block, name, "19:00 · venue ·
+  Community", status pill). Ranked with the same Live → Today →
   Next (single soonest upcoming, per Club) → Draft priority as
   Community Home's own Current Focus (`currentFocusBuckets`,
   `src/core/sessions/currentFocus.ts` — shared by both screens per
@@ -295,8 +294,17 @@ The app's Personal Context — always the post-auth entry point
   its own ranking), just merged across every Club instead of scoped to
   one. Client-side aggregation over `listClubs()` + per-club
   `listSessions()`; no dedicated cross-club backend endpoint yet.
-  Tapping a club circle pushes `ClubDetail` on the parent `MainStack`;
-  tapping an attention item pushes `SessionDetail` directly.
+  Tapping a Session pushes `SessionDetail` directly. Then "My
+  communities" with "Find more" (→ Explore): a horizontal row of
+  `ClubCard` tiles (club picture if set, else initials; name; the user's
+  role · city) ending in a dashed "New community" tile that pushes
+  `CreateClub`; a tile pushes `ClubDetail`. Joining a Community is done
+  from Explore or a shared link (DP-017, see below), not from here.
+  **First run**: with no Community yet (after a successful load), Home
+  instead shows "Welcome to Aksi" as the date line, an illustrated "Find
+  your people" card, a dark "Find a community" card (→ Explore), "Start a
+  community" (→ `CreateClub`) and a line saying a shared community link
+  lands right on that community.
 - **Explore** (`ExploreScreen`) — Community search (DP-017). A search
   field queries `GET /v1/clubs/search` from two characters, 300ms after
   the last keystroke. Each result card shows the Community's picture,

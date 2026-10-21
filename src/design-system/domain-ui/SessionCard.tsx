@@ -1,5 +1,7 @@
-import { Pressable, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Svg, { Polygon } from 'react-native-svg';
 import { useTranslation } from '../../i18n';
+import { color } from '../foundation/colors';
 import { Badge, type BadgeAction } from '../ui/Badge';
 import { Icon } from '../ui/Icon';
 import { Typography } from '../ui/Typography';
@@ -23,9 +25,17 @@ import { Typography } from '../ui/Typography';
  * - completed / cancelled: sunken background, no footer; cancelled strikes
  *   the title through.
  *
+ * Two more layouts for Home's "Right now" (Aksi redesign › Home):
+ * - `hero`: the live Session as an asphalt card with heat cuts at the top
+ *   right, the Live pill, the title, `subtitle` ("Community · venue") and
+ *   an Open button.
+ * - `row`: a compact row for a ListGroup — a day block (`day`: weekday
+ *   over the date, heat-strong when it is today), the title, `subtitle`
+ *   ("19:00 · venue · Community") and the status pill.
+ *
  * Every string is passed in already formatted, except the generic player
- * count and "Open matches". Renders only (DOMAIN_UI.md): `onPress` is a
- * plain callback.
+ * count, "Open matches" and "Open". Renders only (DOMAIN_UI.md): `onPress`
+ * is a plain callback.
  */
 
 type SessionCardProps = {
@@ -43,6 +53,9 @@ type SessionCardProps = {
   /** "Free", "Rp 50.000 per person", "Split bill". */
   priceLabel?: string;
   isRecurring?: boolean;
+  variant?: 'card' | 'hero' | 'row';
+  /** row: the day block, e.g. { weekday: 'TUE', date: '21', today: false }. */
+  day?: { weekday: string; date: string; today: boolean };
   onPress?: () => void;
   className?: string;
 };
@@ -59,10 +72,86 @@ export function SessionCard({
   activityType,
   priceLabel,
   isRecurring = false,
+  variant = 'card',
+  day,
   onPress,
   className = '',
 }: SessionCardProps) {
   const { t } = useTranslation();
+
+  if (variant === 'hero') {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={!onPress}
+        accessibilityRole={onPress ? 'button' : undefined}
+        className={`relative overflow-hidden rounded-[20px] p-4 gap-2.5 bg-asphalt dark:bg-asphalt-dark ${onPress ? 'active:opacity-90' : ''} ${className}`}
+      >
+        <View pointerEvents="none" className="absolute -right-3 -top-2 opacity-90">
+          <Svg width={140} height={120} viewBox="0 0 140 120">
+            <Polygon points="40,120 64,120 140,4 116,4" fill={color.heat.light} />
+            <Polygon points="80,120 98,120 160,24 142,24" fill={color.heat.light} opacity={0.5} />
+          </Svg>
+        </View>
+        {status ? <Badge action="live" text={status} caps /> : null}
+        <View>
+          <Text numberOfLines={2} className="font-display text-[22px] leading-[26px] text-on-asphalt">
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text numberOfLines={1} className="text-[13px] leading-[18px] font-sans text-ink-muted-dark">
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        <View className="flex-row items-center justify-end pt-2.5 border-t border-on-asphalt/10">
+          <View className="h-9 px-3.5 rounded-lg bg-heat items-center justify-center">
+            <Text className="text-sm font-sans-semibold text-on-heat">{t('cardOpen')}</Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+
+  if (variant === 'row') {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={!onPress}
+        accessibilityRole={onPress ? 'button' : undefined}
+        className={`flex-row items-center gap-3 px-4 py-3 ${onPress ? 'active:opacity-70' : ''} ${className}`}
+      >
+        <View className="w-11 items-center">
+          {day ? (
+            <>
+              <Text
+                className={`text-[11px] leading-4 font-sans-bold tracking-[0.9px] uppercase ${
+                  day.today ? 'text-heat-strong dark:text-heat-strong-dark' : 'text-ink-muted dark:text-ink-muted-dark'
+                }`}
+              >
+                {day.weekday}
+              </Text>
+              <Text className="font-display text-xl leading-[22px] text-ink dark:text-ink-dark" style={{ fontVariant: ['tabular-nums'] }}>
+                {day.date}
+              </Text>
+            </>
+          ) : null}
+        </View>
+        <View className="flex-1 min-w-0">
+          <Text numberOfLines={1} className="text-[15px] leading-[22px] font-sans-semibold text-ink dark:text-ink-dark">
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text numberOfLines={1} className="text-[13px] leading-[18px] font-sans text-ink-muted dark:text-ink-muted-dark">
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {status ? <Badge action={statusAction} text={status} caps /> : null}
+      </Pressable>
+    );
+  }
+
   const isLive = statusAction === 'live';
   const isDraft = statusAction === 'draft';
   const isCancelled = statusAction === 'cancelled';
