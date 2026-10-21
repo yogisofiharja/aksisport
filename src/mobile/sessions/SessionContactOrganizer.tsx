@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Modal, RefreshControl, ScrollView } from 'react-native';
 import { Icon } from '../../design-system/ui/Icon';
-import { Box, HStack, VStack } from '../../../components/ui/box';
+import { Box, VStack } from '../../../components/ui/box';
 import { Text } from '../../../components/ui/text';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
@@ -12,6 +12,7 @@ import { UnreadCount } from '../messages/UnreadCount';
 import { usePollInterval, useLiveEvents } from '../../core/live/live';
 import type { ConversationMessage, Session, SessionContactThread } from '../../core/api/types';
 import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   visible: boolean;
@@ -112,18 +113,15 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <CloseOnBack onClose={onClose} />
       <VStack className="flex-1 bg-ground dark:bg-ground-dark">
-        <HStack className="px-5 pt-4 pb-3 items-center justify-between border-b border-border dark:border-border-dark">
-          <Pressable
-            className="p-2 -ml-2 active:opacity-60"
-            onPress={() => (isOwnerOrAdmin && openMemberUserId !== null ? setOpenMemberUserId(null) : onClose())}
-          >
-            <Icon name={isOwnerOrAdmin && openMemberUserId !== null ? 'arrow-back' : 'close'} size="lg" />
-          </Pressable>
-          <Text className="text-lg font-black text-ink dark:text-ink-dark">
-            {showingList ? t('sessionContactTitle') : isOwnerOrAdmin && openThread ? threadName(openThread) : t('sessionContactTitle')}
-          </Text>
-          <Box className="w-9" />
-        </HStack>
+        {/* A modal over the Session: ✕ closes it; inside one thread of the
+            organizer's list, back returns to the list. */}
+        <AppBar
+          safeTop
+          variant={isOwnerOrAdmin && openMemberUserId !== null ? 'stack' : 'form'}
+          title={showingList ? t('sessionContactTitle') : isOwnerOrAdmin && openThread ? threadName(openThread) : t('sessionContactTitle')}
+          onBack={() => setOpenMemberUserId(null)}
+          onClose={onClose}
+        />
 
         {showingList ? (
           <ScrollView

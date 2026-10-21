@@ -1,10 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl } from 'react-native';
+import { RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
-import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
@@ -13,6 +11,7 @@ import { useTranslation } from '../../i18n';
 import { listRecurringSchedules } from '../../core/recurringSchedules/api';
 import type { RecurringSchedule } from '../../core/api/types';
 import { weekdayLabel } from './weekday';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 // "Every Sat · 07:00–09:00": the weekday, start time and the end the
 // duration gives (wrapping past midnight).
@@ -53,12 +52,11 @@ export function RecurringScheduleListScreen({ clubId, onBack, onOpenSchedule, on
   );
 
   return (
-    <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
-
-      <Typography variant="heading">{t('recurringScheduleListTitle')}</Typography>
+    <ScrollPage
+      gap="lg"
+      appBar={<AppBar title={t('recurringScheduleListTitle')} onBack={onBack} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+    >
 
       {loading && schedules.length === 0 ? (
         <Loading />

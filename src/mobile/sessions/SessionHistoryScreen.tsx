@@ -1,10 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl } from 'react-native';
+import { RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
-import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
@@ -13,6 +11,7 @@ import { listMyJoinedSessions, listSessions } from '../../core/sessions/api';
 import { sessionDateBucket } from '../../core/sessions/sessionSchedule';
 import type { JoinedSession, Session } from '../../core/api/types';
 import { sessionCardProps } from './sessionDisplay';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   // Omitted for the Player's own cross-Club history (opened from Me).
@@ -54,12 +53,11 @@ export function SessionHistoryScreen({ clubId, onBack, onOpenSession }: Props) {
   const pastSessions = sessions.filter((s) => sessionDateBucket(s) === 'past').sort(byStartsAtDesc);
 
   return (
-    <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
-
-      <Typography variant="heading">{t(clubId ? 'sessionHistoryTitle' : 'mySessionHistoryTitle')}</Typography>
+    <ScrollPage
+      gap="lg"
+      appBar={<AppBar title={t(clubId ? 'sessionHistoryTitle' : 'mySessionHistoryTitle')} onBack={onBack} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+    >
 
       {loading && sessions.length === 0 ? (
         <Loading />

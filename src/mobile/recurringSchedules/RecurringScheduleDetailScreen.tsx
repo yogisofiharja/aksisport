@@ -7,7 +7,6 @@ import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Badge } from '../../design-system/ui/Badge';
 import { Card } from '../../design-system/ui/Card';
@@ -24,6 +23,7 @@ import {
 } from '../../core/recurringSchedules/api';
 import type { OccurrencePreview, RecurringSchedule } from '../../core/api/types';
 import { weekdayLabel } from './weekday';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   clubId: string;
@@ -124,20 +124,15 @@ export function RecurringScheduleDetailScreen({ clubId, scheduleId, onBack, onEd
 
   if (loading || !schedule) {
     return (
-      <Page>
+      <Page appBar={<AppBar onBack={onBack} />}>
         <Loading fullScreen />
       </Page>
     );
   }
 
   return (
-    <ScrollPage>
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
-
+    <ScrollPage appBar={<AppBar title={schedule.name || schedule.sport} onBack={onBack} />}>
       <VStack space="xs">
-        <Typography variant="heading">{schedule.name || schedule.sport}</Typography>
         <Typography variant="body" color="muted">
           {weekdayLabel(schedule.recurrenceRule.weekday, t)} {schedule.recurrenceRule.time}
           {schedule.location ? ` · ${schedule.location}` : ''}

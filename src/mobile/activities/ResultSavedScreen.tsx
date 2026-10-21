@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../design-system/ui/Icon';
 import { Typography } from '../../design-system/ui/Typography';
@@ -6,6 +6,7 @@ import { Button, ButtonText } from '../../design-system/ui/Button';
 import { useTranslation } from '../../i18n';
 import type { TeamNames } from '../../appTypes';
 import type { MatchState } from '../../sports/tennis/scoringEngine';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   matchState: MatchState;
@@ -32,16 +33,7 @@ export function ResultSavedScreen({ matchState, teamNames, onShare, onSetUpNextM
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-ground dark:bg-ground-dark">
-      <View className="flex-row items-center min-h-[56px] px-1">
-        <Pressable
-          onPress={onBackToSession}
-          accessibilityRole="button"
-          accessibilityLabel={t('backToSession')}
-          className="w-11 h-11 items-center justify-center active:opacity-60"
-        >
-          <Icon name="chevron-back" size="lg" />
-        </Pressable>
-      </View>
+      <AppBar onBack={onBackToSession} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 16, gap: 12, alignItems: 'center' }}>
         <View className="flex-row items-center gap-1.5 h-7 px-3 rounded-full bg-success-tint dark:bg-success-tint-dark">
           <Icon name="checkmark" size="sm" color="default" />

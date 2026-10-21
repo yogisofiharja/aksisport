@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { Card } from '../../design-system/ui/Card';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Loading } from '../../design-system/feedback/Loading';
@@ -15,6 +14,7 @@ import { authHeader, userAvatarUrl } from '../../core/api/client';
 import { listMyBlocks, unblockUser } from '../../core/safety/api';
 import { initialsFromName } from '../../core/initials';
 import type { BlockedUser } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onBack: () => void;
@@ -54,16 +54,10 @@ export function BlockedPlayersScreen({ onBack }: Props) {
   }
 
   return (
-    <ScrollPage gap="lg">
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
-      <VStack space="xs">
-        <Typography variant="heading">{t('blockedPlayersTitle')}</Typography>
-        <Typography variant="body" color="muted">
-          {t('blockedPlayersExplainer')}
-        </Typography>
-      </VStack>
+    <ScrollPage gap="lg" appBar={<AppBar title={t('blockedPlayersTitle')} onBack={onBack} />}>
+      <Typography variant="body" color="muted">
+        {t('blockedPlayersExplainer')}
+      </Typography>
 
       {loading && blocks.length === 0 ? (
         <Loading />

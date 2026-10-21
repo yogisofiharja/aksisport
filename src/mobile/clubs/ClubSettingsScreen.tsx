@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../../components/ui/button';
 import { Box, HStack, VStack } from '../../../components/ui/box';
-import { Heading, Text } from '../../../components/ui/text';
+import { Text } from '../../../components/ui/text';
 import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
 import { Loading } from '../../design-system/feedback/Loading';
@@ -25,6 +25,7 @@ import type { ClubBankAccount } from '../../core/api/types';
 import { CityPickerModal } from '../locations/CityPickerModal';
 import { Switch } from '../../design-system/ui/Switch';
 import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   clubId: string;
@@ -200,17 +201,12 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
-      <VStack className="px-5 pt-4 pb-2 gap-3">
-        <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-          <Icon name="arrow-back" size="lg" />
-        </Pressable>
-        <Heading size="2xl">{t('clubSettingsTitle')}</Heading>
-      </VStack>
+      <AppBar title={t('clubSettingsTitle')} onBack={onBack} />
 
       {loading ? (
         <Loading fullScreen />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, gap: 12 }}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 12 }}>
           <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('clubDiscoveryTitle')}</Text>
 
           <VStack className="gap-2">

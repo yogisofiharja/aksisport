@@ -1,10 +1,8 @@
 import { useCallback, useState, type ComponentProps } from 'react';
-import { Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Page } from '../../design-system/layout/Page';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { Loading } from '../../design-system/feedback/Loading';
 import { useTranslation } from '../../i18n';
 import { getClubPreview } from '../../core/clubs/api';
@@ -12,6 +10,7 @@ import { ApiRequestError } from '../../core/api/client';
 import type { ClubPreview } from '../../core/api/types';
 import { ClubDetailScreen } from './ClubDetailScreen';
 import { ClubPreviewScreen } from './ClubPreviewScreen';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = ComponentProps<typeof ClubDetailScreen>;
 
@@ -47,10 +46,7 @@ export function ClubEntryScreen(props: Props) {
 
   if (notFound) {
     return (
-      <ScrollPage>
-        <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={props.onBack}>
-          <Icon name="arrow-back" size="lg" />
-        </Pressable>
+      <ScrollPage appBar={<AppBar onBack={props.onBack} />}>
         <Typography variant="heading">{t('clubNotFoundTitle')}</Typography>
         <Typography variant="body" color="muted">
           {t('clubNotFoundDesc')}
@@ -61,7 +57,7 @@ export function ClubEntryScreen(props: Props) {
 
   if (!preview) {
     return (
-      <Page>
+      <Page appBar={<AppBar onBack={props.onBack} />}>
         <Loading fullScreen />
       </Page>
     );

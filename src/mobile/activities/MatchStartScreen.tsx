@@ -6,7 +6,6 @@ import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
-import { IconButton } from '../../design-system/ui/IconButton';
 import { Card } from '../../design-system/ui/Card';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { useTranslation } from '../../i18n';
@@ -14,6 +13,7 @@ import { spinSteps } from '../../core/activities/spin';
 import { initialsFromName } from '../../core/initials';
 import type { TeamASide } from '../../appTypes';
 import type { Player, Team } from '../../sports/tennis/scoringEngine';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   players: Player[];
@@ -125,14 +125,10 @@ export function MatchStartScreen({ players, starting, umpire, onChangeUmpire, on
   }
 
   return (
-    <ScrollPage gap="lg">
-      <IconButton icon="chevron-back" label={t('back')} onPress={onBack} className="-ml-3 self-start" />
-      <VStack space="xs">
-        <Typography variant="heading">{t('matchStartTitle')}</Typography>
-        <Typography variant="body" color="muted">
-          {readOnly ? t('matchStartWaiting', umpire.name) : t('matchStartExplainer')}
-        </Typography>
-      </VStack>
+    <ScrollPage gap="lg" appBar={<AppBar title={t('matchStartTitle')} onBack={onBack} />}>
+      <Typography variant="body" color="muted">
+        {readOnly ? t('matchStartWaiting', umpire.name) : t('matchStartExplainer')}
+      </Typography>
 
       <Card>
         <VStack space="md">

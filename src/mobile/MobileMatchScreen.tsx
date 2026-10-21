@@ -10,7 +10,7 @@ import { getPointLabel, getServerTeam, MatchState, Team } from '../sports/tennis
 import { storageGet, storageSave } from '../storage';
 import { useTranslation } from '../i18n';
 import { color } from '../design-system/foundation/colors';
-import { IconButton } from '../design-system/ui/IconButton';
+import { AppBar } from '../design-system/layout/AppBar';
 
 // Team sides (Aksi Sport): left in heat with ink text, right in asphalt
 // with light text — the same in both themes, like a broadcast scoreboard.
@@ -457,24 +457,25 @@ export function MobileMatchScreen({
     }
 
     return (
-      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
-        <StatusBar style={dark ? 'light' : 'dark'} />
+      <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-ground dark:bg-ground-dark">
+        <StatusBar style="light" />
+        {/* The dark scoring bar. Back, as on the Session screen; the match
+            keeps going. The umpire ends one early from Match options
+            (DP-025), behind ⋯. The point log sits here for a viewer and
+            next to Undo for the umpire. */}
+        <AppBar
+          tone="dark"
+          safeTop
+          title={t('liveMatchTitle')}
+          context={readOnly && scorerName ? t('umpireLabel', scorerName) : undefined}
+          onBack={onBack}
+          actions={[
+            ...(FOCUS_SUPPORTED ? [{ icon: 'expand-outline' as const, label: t('scoringFocusMode'), onPress: toggleFocus }] : []),
+            ...(readOnly ? [{ icon: 'list-outline' as const, label: t('pointLog'), onPress: () => setShowPointLog(true) }] : []),
+          ]}
+          onMore={!readOnly ? onOpenOptions : undefined}
+        />
         <View style={{ flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, gap: 14 }}>
-          {/* Top: status and tools */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            {/* Back, as on the Session screen; the match keeps going. The
-                umpire ends one early from Match options (DP-025). */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1, marginLeft: -12 }}>
-              <IconButton icon="chevron-back" label={t('back')} onPress={onBack} />
-              {readOnly && liveBadge()}
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {!readOnly && iconButton('megaphone-outline', onToggleVoice, voiceEnabled ? color.success[mode] : toolColor, t('scoringVoice'), toolBg)}
-              {iconButton('list-outline', () => setShowPointLog(true), toolColor, t('pointLog'), toolBg)}
-              {FOCUS_SUPPORTED && iconButton('expand-outline', toggleFocus, toolColor, t('scoringFocusMode'), toolBg)}
-              {!readOnly && onOpenOptions && iconButton('ellipsis-horizontal', onOpenOptions, toolColor, t('matchOptions'), toolBg)}
-            </View>
-          </View>
 
           {/* Games, big and centred; sets (once any is won) and the format below */}
           <View className="rounded-2xl bg-surface dark:bg-surface-dark py-3 items-center">
@@ -498,9 +499,11 @@ export function MobileMatchScreen({
             {teamCard(rightTeam, rightPlayers, rightPoint, rightIsServing, 'right')}
           </View>
 
-          {/* Undo, centred under the two teams */}
+          {/* Undo, centred under the two teams, with the umpire's voice and
+              point log beside it */}
           {!readOnly && (
-            <View style={{ alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+              {iconButton('megaphone-outline', onToggleVoice, voiceEnabled ? color.success[mode] : toolColor, t('scoringVoice'), toolBg)}
               <Pressable
                 onPress={onUndo}
                 disabled={!hasUndo}
@@ -510,6 +513,7 @@ export function MobileMatchScreen({
               >
                 <Ionicons name="arrow-undo-outline" size={24} color={color.ink[mode]} />
               </Pressable>
+              {iconButton('list-outline', () => setShowPointLog(true), toolColor, t('pointLog'), toolBg)}
             </View>
           )}
 

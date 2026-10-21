@@ -18,6 +18,7 @@ import { listMyGroups } from '../../core/messages/groups';
 import { groupLabel } from '../../core/messages/groupLabel';
 import { Icon } from '../../design-system/ui/Icon';
 import type { DirectThread, GroupThread, SessionContactThread } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onOpenSession: (sessionId: string, memberUserId: string) => void;
@@ -106,13 +107,11 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
   }
 
   return (
-    <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <HStack className="justify-between items-center">
-        <Typography variant="heading">{t('inboxTitle')}</Typography>
-        <Pressable onPress={onNewChat} hitSlop={8} className="p-2 -mr-2 active:opacity-60" accessibilityLabel={t('newChat')}>
-          <Icon name="create-outline" size="lg" color="secondary" />
-        </Pressable>
-      </HStack>
+    <ScrollPage
+      gap="lg"
+      appBar={<AppBar variant="root" title={t('inboxTitle')} actions={[{ icon: 'create-outline', label: t('newChat'), onPress: onNewChat }]} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+    >
 
       {loading && empty ? (
         <Loading />

@@ -18,6 +18,7 @@ import { listMembers } from '../../core/clubs/api';
 import { sessionDateBucket } from '../../core/sessions/sessionSchedule';
 import { sessionCardProps } from './sessionDisplay';
 import type { Session } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   clubId: string;
@@ -83,12 +84,11 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
   }
 
   return (
-    <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
-
-      <Typography variant="heading">{t('sessionListTitle')}</Typography>
+    <ScrollPage
+      gap="lg"
+      appBar={<AppBar title={t('sessionListTitle')} onBack={onBack} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+    >
 
       {loading && sessions.length === 0 ? (
         <Loading />

@@ -1,11 +1,10 @@
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, View } from 'react-native';
+import { RefreshControl, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { HStack } from '../../design-system/layout/HStack';
 import { VStack } from '../../design-system/layout/VStack';
 import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { Card } from '../../design-system/ui/Card';
 import { Badge } from '../../design-system/ui/Badge';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
@@ -16,6 +15,7 @@ import { getPlayerProfile, getPlayerSportActivity } from '../../core/api/client'
 import { formatSessionDateTime } from '../../core/sessions/sessionSchedule';
 import { getSportModule } from '../../sports/registry';
 import type { PlayerProfile, PlayerSportActivity } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   userId: string;
@@ -77,10 +77,11 @@ export function PlayerSportScreen({ userId, sport, onBack }: Props) {
     : [];
 
   return (
-    <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading && activity !== null} onRefresh={load} />}>
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
+    <ScrollPage
+      gap="lg"
+      appBar={<AppBar onBack={onBack} />}
+      refreshControl={<RefreshControl refreshing={loading && activity !== null} onRefresh={load} />}
+    >
 
       <VStack space="xs">
         <Typography variant="overline" color="muted">

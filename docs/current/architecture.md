@@ -14,7 +14,8 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
   - **Web** is the same app through `react-native-web`, built with
     `npm run build:web` and served at `app.aksisport.com` (see
     `docs/engineering/deployment.md`). On a wide window it keeps the
-    phone layout, centred in a 520px column (`App.tsx`). Screens get
+    phone layout, centred in a 640px column (`App.tsx`); the AppBar and
+    tab bar sit inside that column. Screens get
     real URLs from `src/navigation/linking.ts`.
   - Platform differences live behind shared wrappers, never in screens:
     `src/platform/DateTimePicker(.web).tsx` (the native picker has no web

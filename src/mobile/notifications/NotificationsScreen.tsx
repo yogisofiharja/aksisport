@@ -14,6 +14,7 @@ import { listNotifications, markAllNotificationsRead, markNotificationRead } fro
 import { notificationIcon, notificationText, timeAgo } from '../../core/notifications/text';
 import { enablePush, getPushState, type PushState } from '../../platform/push';
 import type { AppNotification } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onBack: () => void;
@@ -83,20 +84,12 @@ export function NotificationsScreen({ onBack }: Props) {
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <AppBar
+        title={t('notificationsTitle')}
+        onBack={onBack}
+        textAction={hasUnread ? { label: t('notificationsMarkAllRead'), onPress: markAll } : undefined}
+      />
       <VStack space="md" className="px-5 pt-4 pb-2">
-        <HStack className="justify-between items-center">
-          <Pressable className="p-2 -ml-2 active:opacity-60" onPress={onBack}>
-            <Icon name="arrow-back" size="lg" />
-          </Pressable>
-          {hasUnread && (
-            <Pressable onPress={markAll} hitSlop={8} className="active:opacity-60">
-              <Typography variant="body" className="text-sm font-bold text-heat-strong dark:text-heat-strong-dark">
-                {t('notificationsMarkAllRead')}
-              </Typography>
-            </Pressable>
-          )}
-        </HStack>
-        <Typography variant="heading">{t('notificationsTitle')}</Typography>
 
         {pushState === 'default' && (
           <Card>

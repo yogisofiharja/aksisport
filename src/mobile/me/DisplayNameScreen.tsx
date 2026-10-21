@@ -3,13 +3,12 @@ import { KeyboardAvoidingView, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ButtonText } from '../../../components/ui/button';
 import { VStack } from '../../../components/ui/box';
-import { Heading, Text } from '../../../components/ui/text';
+import { Text } from '../../../components/ui/text';
 import { Input, InputField } from '../../../components/ui/input';
-import { Pressable } from '../../../components/ui/pressable';
-import { Icon } from '../../design-system/ui/Icon';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { updateMe } from '../../core/api/client';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onBack: () => void;
@@ -46,15 +45,10 @@ export function DisplayNameScreen({ onBack }: Props) {
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <AppBar variant="form" title={t('displayNameTitle')} onClose={onBack} />
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-6" keyboardShouldPersistTaps="handled">
-          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-            <Icon name="arrow-back" size="lg" />
-          </Pressable>
-          <VStack className="gap-2">
-            <Heading size="2xl">{t('displayNameTitle')}</Heading>
-            <Text className="text-ink-muted dark:text-ink-muted-dark">{t('displayNameDesc', profile?.username ?? '')}</Text>
-          </VStack>
+          <Text className="text-ink-muted dark:text-ink-muted-dark">{t('displayNameDesc', profile?.username ?? '')}</Text>
           <VStack className="gap-2">
             <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('displayNameLabel')}</Text>
             <Input>

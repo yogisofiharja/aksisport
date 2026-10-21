@@ -31,6 +31,7 @@ import { weekdayLabel } from '../recurringSchedules/weekday';
 import { SkillLevelRangePicker, type SkillLevelRangeValue } from '../skillLevels/SkillLevelRangePicker';
 import { webSelectStyle } from '../../platform/webSelectStyle';
 import { Switch } from '../../design-system/ui/Switch';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   clubId: string;
@@ -531,10 +532,8 @@ export function CreateSessionScreen({
   if (showPreview) {
     return (
       <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+        <AppBar title={t('sessionPreviewTitle')} onBack={() => setShowPreview(false)} />
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5">
-          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={() => setShowPreview(false)}>
-            <Icon name="arrow-back" size="lg" />
-          </Pressable>
 
           <VStack className="gap-1">
             <Box className="bg-info-tint dark:bg-info-tint-dark rounded-full px-2.5 py-1 self-start mb-1">
@@ -635,11 +634,15 @@ export function CreateSessionScreen({
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <AppBar
+        variant="form"
+        title={t(
+          isEditingSchedule ? 'editScheduleTitle' : isEditing ? 'editSessionTitle' : isRecurring ? 'createScheduleTitle' : 'createSessionTitle'
+        )}
+        onClose={onBack}
+      />
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5" keyboardShouldPersistTaps="handled">
-          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-            <Icon name="arrow-back" size="lg" />
-          </Pressable>
 
           {!isEditing && !isEditingSchedule && (
             <VStack className="gap-2">

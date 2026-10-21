@@ -205,8 +205,7 @@ to the PATCH contract.
 
 **Session Options menu** (later pass, this same milestone track): Edit
 and Cancel are no longer always-visible buttons on the Details tab —
-both moved behind a "⋮" (`ellipsis-vertical`) icon at the top-right of
-the header, next to the back button, mirroring `ClubDetailScreen`'s own
+both moved behind the ⋯ at the right of the Session's AppBar, mirroring `ClubDetailScreen`'s own
 gear-icon settings entry point. `handleSessionMenu` builds the option
 list conditionally (`Alert.alert`, same pattern as the image-attach
 choosers elsewhere in this app) — Edit when `canEditConfiguration`

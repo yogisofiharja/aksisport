@@ -788,6 +788,15 @@ const en: Dict = {
   cardServing: 'Serving',
   cardWinner: 'Winner',
   appBarMore: 'More',
+  createClubTitle: "New community",
+  groupInfoTitle: "Group info",
+  createSessionTitle: "New session",
+  editSessionTitle: "Edit session",
+  createScheduleTitle: "New recurring schedule",
+  editScheduleTitle: "Edit recurring schedule",
+  sessionPreviewTitle: "Check it, then publish",
+  liveMatchTitle: "Live match",
+  homeGreeting: (name: string) => `Hi, ${name}`,
 };
 
 const id: Dict = {
@@ -1570,6 +1579,15 @@ const id: Dict = {
   cardServing: 'Servis',
   cardWinner: 'Pemenang',
   appBarMore: 'Lainnya',
+  createClubTitle: "Komunitas baru",
+  groupInfoTitle: "Info grup",
+  createSessionTitle: "Sesi baru",
+  editSessionTitle: "Ubah sesi",
+  createScheduleTitle: "Jadwal berulang baru",
+  editScheduleTitle: "Ubah jadwal berulang",
+  sessionPreviewTitle: "Periksa, lalu terbitkan",
+  liveMatchTitle: "Pertandingan langsung",
+  homeGreeting: (name: string) => `Hai, ${name}`,
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

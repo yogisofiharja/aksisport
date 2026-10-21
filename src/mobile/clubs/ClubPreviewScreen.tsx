@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, View } from 'react-native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
@@ -16,6 +16,7 @@ import { initialsFromName } from '../../core/initials';
 import { clubLink, shareLink } from '../../platform/shareLink';
 import { offerPush } from '../../core/notifications/offerPush';
 import type { ClubPreview } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   club: ClubPreview;
@@ -81,15 +82,9 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
   }
 
   return (
-    <ScrollPage>
-      <HStack className="justify-between items-center">
-        <Pressable className="p-2 -ml-2 active:opacity-60" onPress={onBack}>
-          <Icon name="arrow-back" size="lg" />
-        </Pressable>
-        <Pressable className="p-2 -mr-2 active:opacity-60" onPress={handleShare} accessibilityLabel={t('clubShareLink')}>
-          <Icon name="share-outline" size="lg" />
-        </Pressable>
-      </HStack>
+    <ScrollPage
+      appBar={<AppBar onBack={onBack} actions={[{ icon: 'share-outline', label: t('clubShareLink'), onPress: handleShare }]} />}
+    >
 
       <VStack space="md" style={{ alignItems: 'center' }}>
         <View className="w-24 h-24 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark border-2 border-border dark:border-border-dark">

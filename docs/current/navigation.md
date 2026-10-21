@@ -41,6 +41,26 @@ or correct the address; Log Out is the only other exit).
 - **ForgotPassword** → Login. Three steps in one screen: username or
   email → code + new password → done.
 
+## App bar
+
+The navigators draw no headers; every screen draws its own
+`AppBar` (`design-system/layout/AppBar.tsx`), picked by where it sits:
+
+- **root** — the four tabs: Home (date line over "Hi, <first name>", the
+  bell), Explore, Inbox (new chat), Me (settings gear, no title).
+- **stack** — everything pushed from another screen: back is always the
+  chevron, a 17px title with a context line, at most two icons or ⋯.
+  The Session screen's context line is "Wed 22 Oct · 19:00 · <Community>";
+  chats put the avatar before the title and open the person or group
+  from it; Notifications has "Mark all read" as a text action.
+- **form** — create and edit (new Community, new/edit Session or
+  Recurring Schedule, Add match, display name, email, new chat / add
+  people): ✕ Close on the left.
+- **dark** — the live scoring screen.
+
+The auth screens (Log in, Sign up, Confirm email, Complete profile) keep
+their own layouts; Forgot password has a stack bar back to Log in.
+
 ## MainStack (native-stack, `headerShown: false`)
 
 Initial route is `Personal` (a bottom-tab navigator, see below).
@@ -74,9 +94,9 @@ Session has a level range, and Approve/Decline for a pending request. `CreateClu
 community" switch; `ClubSettingsScreen` (owner) edits both under "Finding
 & joining".
 
-**Notifications** (DP-018). `HomeScreen`'s header has a bell
-(`NotificationBell`) with an unread count, re-counted on focus and every
-minute while Home is showing; it pushes `Notifications`
+**Notifications** (DP-018). `HomeScreen`'s app bar has a bell
+(`useNotificationBell`) with a heat dot while any are unread, re-counted
+on focus and every minute while Home is showing; it pushes `Notifications`
 (`/notifications`, `NotificationsScreen`): every notification, newest
 first, unread ones tinted with a blue dot, "Mark all read", and — when
 this device hasn't allowed notifications yet — a card to turn them on.

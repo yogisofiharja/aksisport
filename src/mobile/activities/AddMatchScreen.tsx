@@ -9,7 +9,6 @@ import { HStack } from '../../design-system/layout/HStack';
 import { Card } from '../../design-system/ui/Card';
 import { Typography } from '../../design-system/ui/Typography';
 import { Button, ButtonText } from '../../design-system/ui/Button';
-import { Icon } from '../../design-system/ui/Icon';
 import { Divider } from '../../design-system/ui/Divider';
 import { Loading } from '../../design-system/feedback/Loading';
 import { useTranslation } from '../../i18n';
@@ -23,6 +22,7 @@ import { availableToPlay, generateFairRound, suggestedMatchCount, type Generated
 import { buildGeneratedMatchPayload, participantLabel } from '../../core/activities/buildGeneratedMatchPayload';
 import { webSelectStyle } from '../../platform/webSelectStyle';
 import { Switch } from '../../design-system/ui/Switch';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   sessionId: string;
@@ -268,12 +268,7 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
   const modeLabel = (m: MatchMode) => (m === 'single' ? t('single') : t('double'));
 
   return (
-    <ScrollPage keyboardAvoiding gap="lg">
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
-
-      <Typography variant="heading">{t('activityAddTitle')}</Typography>
+    <ScrollPage keyboardAvoiding gap="lg" appBar={<AppBar variant="form" title={t('activityAddTitle')} onClose={onBack} />}>
 
       {generationEligible && (
         <HStack className="gap-2" space="sm">

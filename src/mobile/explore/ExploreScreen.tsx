@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, TextInput } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
@@ -18,6 +18,7 @@ import { CityPickerModal } from '../locations/CityPickerModal';
 import { clubAvatarUrl, listClubsInMyCity, searchClubs } from '../../core/clubs/api';
 import { shortCityName } from '../../core/locations/cityName';
 import type { ClubPreview } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onOpenClub: (clubId: string) => void;
@@ -138,8 +139,7 @@ export function ExploreScreen({ onOpenClub }: Props) {
   }
 
   return (
-    <ScrollPage gap="lg" keyboardShouldPersistTaps="handled">
-      <Typography variant="heading">{t('exploreTitle')}</Typography>
+    <ScrollPage gap="lg" keyboardShouldPersistTaps="handled" appBar={<AppBar variant="root" title={t('exploreTitle')} />}>
 
       <HStack className="items-center rounded-2xl border border-border-strong dark:border-border-strong-dark bg-surface dark:bg-surface-dark px-4" space="sm">
         <Icon name="search" size="sm" color="muted" />

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { HStack } from '../../design-system/layout/HStack';
 import { VStack } from '../../design-system/layout/VStack';
 import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
@@ -13,6 +12,7 @@ import { authHeader } from '../../core/api/client';
 import { addGroupMembers, createGroup, getGroup, listMessageableUsers } from '../../core/messages/groups';
 import { PersonAvatar } from './PersonAvatar';
 import type { MessageableUser } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   // Set: add people to this group. Unset: start a new chat.
@@ -105,14 +105,7 @@ export function GroupPeopleScreen({ groupId, onBack, onDone, onDirect }: Props) 
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
-      <HStack className="items-center px-4 pt-3 pb-3 border-b border-border dark:border-border-dark" space="sm">
-        <Pressable className="p-2 -ml-2 active:opacity-60" onPress={onBack}>
-          <Icon name="arrow-back" size="lg" />
-        </Pressable>
-        <Typography variant="title" style={{ flex: 1 }}>
-          {groupId ? t('groupAddPeople') : t('newChat')}
-        </Typography>
-      </HStack>
+      <AppBar variant="form" title={groupId ? t('groupAddPeople') : t('newChat')} onClose={onBack} />
 
       <VStack space="md" className="px-5 pt-4">
         {!groupId && (

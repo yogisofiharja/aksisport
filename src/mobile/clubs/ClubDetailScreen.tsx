@@ -28,6 +28,7 @@ import { initialsFromName } from '../../core/initials';
 import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
 import { sessionCardProps } from '../sessions/sessionDisplay';
 import type { Club, Session } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   clubId: string;
@@ -175,7 +176,7 @@ export function ClubDetailScreen({
 
   if (loading || !club) {
     return (
-      <Page>
+      <Page appBar={<AppBar onBack={onBack} />}>
         <Loading fullScreen />
       </Page>
     );
@@ -184,22 +185,17 @@ export function ClubDetailScreen({
   const focus = currentFocusSessions(sessions);
 
   return (
-    <ScrollPage>
-      <HStack className="justify-between items-center">
-        <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-          <Icon name="arrow-back" size="lg" />
-        </Pressable>
-        <HStack space="sm" className="items-center">
-          <Pressable className="p-2 active:opacity-60" onPress={handleShare} accessibilityLabel={t('clubShareLink')}>
-            <Icon name="share-outline" size="lg" />
-          </Pressable>
-          {isOwner && (
-            <Pressable className="p-2 -mr-2 active:opacity-60" onPress={() => onOpenClubSettings(clubId)}>
-              <Icon name="settings-outline" size="lg" />
-            </Pressable>
-          )}
-        </HStack>
-      </HStack>
+    <ScrollPage
+      appBar={
+        <AppBar
+          onBack={onBack}
+          actions={[
+            { icon: 'share-outline', label: t('clubShareLink'), onPress: handleShare },
+            ...(isOwner ? [{ icon: 'settings-outline' as const, label: t('clubSettingsTitle'), onPress: () => onOpenClubSettings(clubId) }] : []),
+          ]}
+        />
+      }
+    >
 
       <HStack space="md" className="items-center">
         <Pressable onPress={isOwner ? handleChangeAvatar : undefined} disabled={!isOwner || uploadingAvatar} className="active:opacity-70">

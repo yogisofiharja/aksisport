@@ -1,12 +1,10 @@
 import { KeyboardAvoidingView, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { VStack } from '../../../components/ui/box';
-import { Heading, Text } from '../../../components/ui/text';
-import { Pressable } from '../../../components/ui/pressable';
-import { Icon } from '../../design-system/ui/Icon';
+import { Text } from '../../../components/ui/text';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { EmailConfirmation } from '../auth/EmailConfirmation';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onBack: () => void;
@@ -21,17 +19,12 @@ export function AccountEmailScreen({ onBack }: Props) {
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <AppBar variant="form" title={t(profile?.email ? 'emailChangeTitle' : 'emailAddTitle')} onClose={onBack} />
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-6" keyboardShouldPersistTaps="handled">
-          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-            <Icon name="arrow-back" size="lg" />
-          </Pressable>
-          <VStack className="gap-2">
-            <Heading size="2xl">{t(profile?.email ? 'emailChangeTitle' : 'emailAddTitle')}</Heading>
-            <Text className="text-ink-muted dark:text-ink-muted-dark">
-              {profile?.email ? t('emailChangeDesc', profile.email) : t('emailAddDesc')}
-            </Text>
-          </VStack>
+          <Text className="text-ink-muted dark:text-ink-muted-dark">
+            {profile?.email ? t('emailChangeDesc', profile.email) : t('emailAddDesc')}
+          </Text>
           <EmailConfirmation onConfirmed={onBack} />
         </ScrollView>
       </KeyboardAvoidingView>

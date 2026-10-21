@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { HStack } from '../../design-system/layout/HStack';
-import { VStack } from '../../design-system/layout/VStack';
 import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { usePollInterval, useLiveEvents, type LiveEvent } from '../../core/live/live';
 import { ConversationThread } from '../sessions/ConversationThread';
 import type { ConversationMessage } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type OutgoingImage = { base64: string; contentType: string };
 
@@ -106,34 +104,14 @@ export function ChatRoom({
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
-      <HStack className="items-center px-4 pt-3 pb-3 border-b border-border dark:border-border-dark" space="sm">
-        <Pressable className="p-2 -ml-2 active:opacity-60" onPress={onBack}>
-          <Icon name="arrow-back" size="lg" />
-        </Pressable>
-        <Pressable
-          className="flex-row items-center gap-3 active:opacity-70"
-          style={{ flex: 1 }}
-          onPress={onPressHeader}
-          disabled={!onPressHeader}
-        >
-          {avatar}
-          <VStack style={{ flex: 1 }}>
-            <Typography variant="body" className="font-bold" numberOfLines={1}>
-              {title}
-            </Typography>
-            {subtitle ? (
-              <Typography variant="body" color="muted" className="text-xs" numberOfLines={1}>
-                {subtitle}
-              </Typography>
-            ) : null}
-          </VStack>
-        </Pressable>
-        {onMenu && (
-          <Pressable className="p-2 -mr-2 active:opacity-60" onPress={onMenu} hitSlop={4}>
-            <Icon name="ellipsis-vertical" size="lg" />
-          </Pressable>
-        )}
-      </HStack>
+      <AppBar
+        title={title}
+        context={subtitle || undefined}
+        titleAvatar={avatar}
+        onPressTitle={onPressHeader}
+        onBack={onBack}
+        onMore={onMenu}
+      />
 
       {unavailable && messages.length === 0 && !loading ? (
         <Typography variant="body" color="muted" className="px-5 pt-6">

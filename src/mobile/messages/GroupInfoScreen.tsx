@@ -20,6 +20,7 @@ import { PersonAvatar } from './PersonAvatar';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { labelFor } from './GroupChatScreen';
 import type { GroupChat } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   groupId: string;
@@ -104,10 +105,7 @@ export function GroupInfoScreen({ groupId, onBack, onAddPeople, onLeft }: Props)
   }
 
   return (
-    <ScrollPage gap="lg">
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
+    <ScrollPage gap="lg" appBar={<AppBar title={t('groupInfoTitle')} onBack={onBack} />}>
 
       {failed ? (
         <Typography variant="body" color="muted">

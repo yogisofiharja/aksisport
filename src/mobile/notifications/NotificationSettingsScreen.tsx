@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Pressable } from 'react-native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { Card } from '../../design-system/ui/Card';
 import { Loading } from '../../design-system/feedback/Loading';
 import { appAlert } from '../../design-system/feedback/appAlert';
@@ -16,6 +14,7 @@ import {
   type NotificationSettings,
 } from '../../core/notifications/api';
 import { Switch } from '../../design-system/ui/Switch';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onBack: () => void;
@@ -55,16 +54,10 @@ export function NotificationSettingsScreen({ onBack }: Props) {
   }
 
   return (
-    <ScrollPage gap="lg">
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
-      <VStack space="xs">
-        <Typography variant="heading">{t('notificationSettingsTitle')}</Typography>
-        <Typography variant="body" color="muted">
-          {t('notificationSettingsExplainer')}
-        </Typography>
-      </VStack>
+    <ScrollPage gap="lg" appBar={<AppBar title={t('notificationSettingsTitle')} onBack={onBack} />}>
+      <Typography variant="body" color="muted">
+        {t('notificationSettingsExplainer')}
+      </Typography>
 
       {!settings ? (
         <Loading />

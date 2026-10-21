@@ -15,7 +15,7 @@ import { AppAlertHost } from './src/design-system/feedback/appAlert';
 //
 // On a wide browser window the app keeps its phone layout, centred in a
 // fixed-width column, rather than stretching every screen edge to edge.
-const WEB_MAX_WIDTH = 520;
+const WEB_MAX_WIDTH = 640;
 
 // Aksi Sport type (foundation/typography.ts): one family name per weight,
 // matching tailwind.config.js's `font-*` classes.

@@ -1,4 +1,3 @@
-import { Pressable } from 'react-native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
@@ -9,6 +8,7 @@ import { Button, ButtonText } from '../../design-system/ui/Button';
 import { useTranslation, type Lang } from '../../i18n';
 import { useTheme, type ThemePreference } from '../../theme';
 import { useAuth } from '../../core/auth/AuthContext';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onBack: () => void;
@@ -28,12 +28,7 @@ export function SettingsScreen({ onBack, onOpenBlocked, onOpenNotifications }: P
   const { signOut } = useAuth();
 
   return (
-    <ScrollPage gap="lg">
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
-
-      <Typography variant="heading">{t('settingsTitle')}</Typography>
+    <ScrollPage gap="lg" appBar={<AppBar title={t('settingsTitle')} onBack={onBack} />}>
 
       <VStack space="sm">
         <Typography variant="label" color="muted">

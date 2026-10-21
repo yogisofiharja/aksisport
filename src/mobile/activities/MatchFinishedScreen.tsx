@@ -3,11 +3,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Illustration } from '../../design-system/feedback/Illustration';
 import { Typography } from '../../design-system/ui/Typography';
 import { Button, ButtonText } from '../../design-system/ui/Button';
-import { IconButton } from '../../design-system/ui/IconButton';
 import { useTranslation } from '../../i18n';
 import type { TeamNames } from '../../appTypes';
 import type { MatchState } from '../../sports/tennis/scoringEngine';
 import { ScoreRow } from './MatchResultScreen';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   matchState: MatchState;
@@ -33,9 +33,7 @@ export function MatchFinishedScreen({ matchState, teamNames, onBack, scorer }: P
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-ground dark:bg-ground-dark">
-      <View className="flex-row items-center min-h-[56px] px-1">
-        <IconButton icon="chevron-back" label={t('back')} onPress={onBack} />
-      </View>
+      <AppBar onBack={onBack} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, gap: 12, alignItems: 'center' }}>
         <Illustration name="match-won" width={160} />
         <Typography variant="overline" color="muted" className="mt-2">

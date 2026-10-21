@@ -6,11 +6,11 @@ import { VStack } from '../../../components/ui/box';
 import { Heading, Text } from '../../../components/ui/text';
 import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
-import { Icon } from '../../design-system/ui/Icon';
 import { useTranslation } from '../../i18n';
 import { confirmPasswordReset, requestPasswordReset } from '../../core/api/client';
 import { PasswordField } from './PasswordField';
 import { RESEND_COOLDOWN_SECONDS, useCountdown } from '../../core/useCountdown';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onBackToLogin: () => void;
@@ -67,11 +67,9 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <AppBar onBack={onBackToLogin} />
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-6" keyboardShouldPersistTaps="handled">
-          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBackToLogin}>
-            <Icon name="arrow-back" size="lg" />
-          </Pressable>
 
           {step === 'request' && (
             <>

@@ -12,6 +12,7 @@ import { createClub } from '../../core/clubs/api';
 import type { City, Club } from '../../core/api/types';
 import { CityPickerModal } from '../locations/CityPickerModal';
 import { Switch } from '../../design-system/ui/Switch';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onBack: () => void;
@@ -51,11 +52,9 @@ export function CreateClubScreen({ onBack, onCreated }: Props) {
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <AppBar variant="form" title={t('createClubTitle')} onClose={onBack} />
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5" keyboardShouldPersistTaps="handled">
-          <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-            <Icon name="arrow-back" size="lg" />
-          </Pressable>
 
           <VStack className="gap-2">
             <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('clubNamePlaceholder')}</Text>

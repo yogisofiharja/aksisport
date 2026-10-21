@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 import { View, type ViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -17,9 +17,13 @@ import { useColorScheme } from 'nativewind';
  * No horizontal padding by default — compose with Container for that.
  */
 
-type PageProps = ViewProps & { className?: string };
+type PageProps = ViewProps & {
+  className?: string;
+  /** The screen's AppBar, at the top of the safe area. */
+  appBar?: ReactNode;
+};
 
-export const Page = forwardRef<View, PageProps>(function Page({ className = '', style, children, ...props }, ref) {
+export const Page = forwardRef<View, PageProps>(function Page({ className = '', style, appBar, children, ...props }, ref) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -27,6 +31,7 @@ export const Page = forwardRef<View, PageProps>(function Page({ className = '', 
     <View ref={ref} className={`flex-1 bg-ground dark:bg-ground-dark ${className}`} style={style} {...props}>
       <SafeAreaView className="flex-1">
         <StatusBar style={isDark ? 'light' : 'dark'} />
+        {appBar}
         {children}
       </SafeAreaView>
     </View>

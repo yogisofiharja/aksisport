@@ -99,12 +99,13 @@ render branches on (loading, pendingConfig, error, matchState.isEnded):
 `MobileMatchScreen` has two modes (DP-022), both with Team A on the side
 `teamASide` says (part of the live copy, so spectators see the same
 sides):
-- **normal** (default): portrait, in the app's look — a top row with the
-  chevron back (leaves the screen; a live match keeps going) and, for a
-  spectator, the LIVE badge with "Umpire: <name>"; on the right the tools
-  (voice, point log, Focus mode, and the scorer's ⋯ Match options); a
-  games/sets card; the two teams as tappable cards side by side (server
-  marked with a ball and "SERVING"); then Undo;
+- **normal** (default): portrait, in the app's look — the dark AppBar
+  ("Live match", with "Umpire: <name>" under it for a spectator): the
+  chevron back (leaves the screen; a live match keeps going), Focus mode,
+  and the scorer's ⋯ Match options (a spectator gets the point log there
+  instead); a games/sets card; the two teams as tappable cards side by
+  side (server marked with a ball and "SERVING"); then, for the scorer,
+  voice, Undo and the point log in one row;
 - **focus**: landscape, the full-screen court — each half a giant tap
   target, score box at the top with Leave focus mode on its left and
   voice/point log/Match options on its right, Undo on the net, the LIVE
@@ -117,7 +118,7 @@ phone is locked to the mode's orientation while the screen is open,
 unlocked on leaving. On web, Focus mode is offered only where full screen
 and `screen.orientation.lock` exist on a touch device (Android browsers):
 entering it requests full screen then locks landscape, and the court
-covers the whole viewport (`position: fixed`, outside the app's 520px
+covers the whole viewport (`position: fixed`, outside the app's 640px
 column); leaving it, or leaving full screen with the browser's gesture,
 returns to normal mode. Web always opens in normal mode (full screen must
 start from a tap). Which side serves comes from

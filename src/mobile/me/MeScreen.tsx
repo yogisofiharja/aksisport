@@ -19,6 +19,7 @@ import { initialsFromName } from '../../core/initials';
 import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
 import { storageGet, storageSave } from '../../storage';
 import type { SkillLevel, UserSkillLevel } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onOpenSettings: () => void;
@@ -146,7 +147,10 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
   }
 
   return (
-    <ScrollPage gap="lg">
+    <ScrollPage
+      gap="lg"
+      appBar={<AppBar variant="root" actions={[{ icon: 'settings-outline', label: t('settingsTitle'), onPress: onOpenSettings }]} />}
+    >
       <HStack className="justify-between items-center">
         <HStack space="md" className="items-center">
           {/* Tap to change — self-service only, this is always the caller's
@@ -173,11 +177,6 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
               </Typography>
             )}
           </VStack>
-        </HStack>
-        <HStack space="sm" className="items-center">
-          <Pressable className="p-2 -mr-2 active:opacity-60" onPress={onOpenSettings}>
-            <Icon name="settings-outline" size="lg" />
-          </Pressable>
         </HStack>
       </HStack>
 

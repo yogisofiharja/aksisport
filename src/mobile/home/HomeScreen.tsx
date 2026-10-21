@@ -3,8 +3,9 @@ import { Pressable, RefreshControl, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
-import { HStack } from '../../design-system/layout/HStack';
-import { NotificationBell } from '../notifications/NotificationBell';
+import { useNotificationBell } from '../notifications/NotificationBell';
+import { useAuth } from '../../core/auth/AuthContext';
+import { homeDateLine, firstName } from './homeDisplay';
 import { Typography } from '../../design-system/ui/Typography';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
@@ -19,6 +20,7 @@ import { currentFocusBuckets } from '../../core/sessions/currentFocus';
 import { sessionCardProps } from '../sessions/sessionDisplay';
 import { shortCityName } from '../../core/locations/cityName';
 import type { ClubWithRole, Session } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 function roleLabel(role: ClubWithRole['role'], t: (key: string) => string) {
   if (role === 'owner') return t('clubRoleOwner');
@@ -75,6 +77,8 @@ async function loadAttention(clubs: ClubWithRole[]): Promise<AttentionItem[]> {
 
 export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onCreateClub }: Props) {
   const { t, lang } = useTranslation();
+  const { profile } = useAuth();
+  const bell = useNotificationBell(onOpenNotifications);
   const [clubs, setClubs] = useState<ClubWithRole[]>([]);
   const [attention, setAttention] = useState<AttentionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,11 +110,18 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
   );
 
   return (
-    <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <HStack className="justify-between items-center">
-        <Typography variant="heading">{t('tabHome')}</Typography>
-        <NotificationBell onPress={onOpenNotifications} />
-      </HStack>
+    <ScrollPage
+      gap="lg"
+      appBar={
+        <AppBar
+          variant="root"
+          dateLine={homeDateLine(new Date(), lang)}
+          title={t('homeGreeting', firstName(profile?.displayName || profile?.username || ''))}
+          actions={[bell]}
+        />
+      }
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+    >
 
       {loading && clubs.length === 0 ? (
         <Loading />

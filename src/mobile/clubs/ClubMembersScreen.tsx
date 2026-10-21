@@ -3,12 +3,11 @@ import { ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, Scroll
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Icon } from '../../design-system/ui/Icon';
 import { Chip } from '../../design-system/ui/Chip';
 import { PlayerCard } from '../../design-system/domain-ui/PlayerCard';
 import { Button, ButtonText } from '../../../components/ui/button';
 import { Box, HStack, VStack } from '../../../components/ui/box';
-import { Heading, Text } from '../../../components/ui/text';
+import { Text } from '../../../components/ui/text';
 import { Input, InputField } from '../../../components/ui/input';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
@@ -27,6 +26,7 @@ import type { ClubJoinRequest, ClubMember, UserSummary } from '../../core/api/ty
 import { ApiRequestError } from '../../core/api/client';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   clubId: string;
@@ -270,19 +270,12 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <AppBar
+        title={t('clubMembersTitle')}
+        onBack={onBack}
+        actions={isOwner ? [{ icon: 'person-add-outline', label: t('clubAddMember'), onPress: openAddMember }] : []}
+      />
       <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-5">
-        <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-          <Icon name="arrow-back" size="lg" />
-        </Pressable>
-
-        <HStack className="justify-between items-center">
-          <Heading size="2xl">{t('clubMembersTitle')}</Heading>
-          {isOwner && (
-            <Pressable onPress={openAddMember} className="p-2 active:opacity-60" hitSlop={8}>
-              <Icon name="person-add-outline" size="lg" color="brand" />
-            </Pressable>
-          )}
-        </HStack>
 
         {joinRequests.length > 0 && (
           <VStack className="gap-2">

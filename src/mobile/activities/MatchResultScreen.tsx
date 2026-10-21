@@ -4,12 +4,12 @@ import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
-import { IconButton } from '../../design-system/ui/IconButton';
 import { Card } from '../../design-system/ui/Card';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { useTranslation } from '../../i18n';
 import type { TeamNames } from '../../appTypes';
 import type { MatchState, Team } from '../../sports/tennis/scoringEngine';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   matchState: MatchState;
@@ -28,10 +28,7 @@ export function MatchResultScreen({ matchState, teamNames, onShare, onBack }: Pr
   const winnerName = winner === 'A' ? teamNames.A : winner === 'B' ? teamNames.B : null;
 
   return (
-    <ScrollPage gap="lg">
-      {onBack && (
-        <IconButton icon="chevron-back" label={t('back')} onPress={onBack} className="-ml-3 self-start" />
-      )}
+    <ScrollPage gap="lg" appBar={onBack ? <AppBar onBack={onBack} /> : undefined}>
       <Card padding="xl">
         <VStack space="sm" className="items-center">
           <View className="w-16 h-16 rounded-full items-center justify-center bg-heat-tint dark:bg-heat-tint-dark">

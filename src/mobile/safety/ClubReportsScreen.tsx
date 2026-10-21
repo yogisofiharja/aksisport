@@ -5,7 +5,6 @@ import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { Card } from '../../design-system/ui/Card';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Loading } from '../../design-system/feedback/Loading';
@@ -15,6 +14,7 @@ import { useTranslation } from '../../i18n';
 import { dismissReport, listClubReports, removeReportedMessage } from '../../core/safety/api';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import type { ClubReport } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   clubId: string;
@@ -74,11 +74,11 @@ export function ClubReportsScreen({ clubId, onBack }: Props) {
   }
 
   return (
-    <ScrollPage gap="lg" refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
-      <Typography variant="heading">{t('clubReportsTitle')}</Typography>
+    <ScrollPage
+      gap="lg"
+      appBar={<AppBar title={t('clubReportsTitle')} onBack={onBack} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+    >
 
       {loading && reports.length === 0 ? (
         <Loading />

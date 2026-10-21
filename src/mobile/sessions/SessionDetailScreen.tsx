@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { HStack, VStack } from '../../../components/ui/box';
-import { Heading, Text } from '../../../components/ui/text';
+import { VStack } from '../../../components/ui/box';
+import { Text } from '../../../components/ui/text';
 import { Pressable } from '../../../components/ui/pressable';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
@@ -57,7 +57,6 @@ import { formatIDR } from '../../core/currency';
 import { SessionMenuSheet } from './SessionMenuSheet';
 import { UmpireSheet } from './UmpireSheet';
 import { Sheet } from '../../design-system/feedback/Sheet';
-import { IconButton } from '../../design-system/ui/IconButton';
 import { sessionLink, shareLink } from '../../platform/shareLink';
 import type { MatchFormat, MatchMode, MatchState } from '../../sports/tennis/scoringEngine';
 import { minParticipants } from '../../sports/tennis/rules';
@@ -71,6 +70,7 @@ import type {
   SkillLevel,
   UserSkillLevel,
 } from '../../core/api/types';
+import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   sessionId: string;
@@ -691,8 +691,8 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   if (!session && !loading && loadFailed) {
     return (
       <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+        <AppBar onBack={onBack} />
         <VStack className="px-5 pt-4 gap-4">
-          <IconButton icon="chevron-back" label={t('back')} onPress={onBack} className="-ml-3 self-start" />
           <Text className="text-2xl font-black text-ink dark:text-ink-dark">{t('sessionLoadFailedTitle')}</Text>
           <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionLoadFailedDesc')}</Text>
           <Pressable
@@ -711,8 +711,11 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   if (loading || !session) {
     return (
-      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark items-center justify-center">
-        <ActivityIndicator size="large" />
+      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+        <AppBar onBack={onBack} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" />
+        </View>
       </SafeAreaView>
     );
   }
@@ -831,23 +834,16 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
-      {/* Persistent header — name/date stay pinned above the tab body
-          (outside the ScrollView) so switching tabs never loses which
-          session you're looking at. */}
-      <VStack className="px-5 pt-4 pb-3 gap-3">
-        <HStack className="justify-between items-center">
-          <IconButton icon="chevron-back" label={t('back')} onPress={onBack} className="-ml-3 self-start" />
-          {isOwnerOrAdmin && (
-            <IconButton icon="ellipsis-horizontal" label={t('sessionMenuTitle')} onPress={() => setMenuVisible(true)} className="-mr-2" />
-          )}
-        </HStack>
-        <VStack className="gap-0.5">
-          <Heading size="2xl" numberOfLines={1}>{session.name || session.sport}</Heading>
-          {session.startsAt && (
-            <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{formatSessionWhen(session, lang, t('sessionSectionToday'))}</Text>
-          )}
-        </VStack>
-      </VStack>
+      {/* Persistent header — name, then "Wed 22 Oct · 19:00 · Community"
+          as the context line, pinned above the tab body (outside the
+          ScrollView) so switching tabs never loses which session you're
+          looking at. */}
+      <AppBar
+        title={session.name || session.sport}
+        context={[formatSessionWhen(session, lang, t('sessionSectionToday')), club?.name].filter(Boolean).join(' · ') || undefined}
+        onBack={onBack}
+        onMore={isOwnerOrAdmin ? () => setMenuVisible(true) : undefined}
+      />
       {session.lifecycleStatus === 'in_progress' && (
         <LiveStrip
           activities={activities}

@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 import {
   KeyboardAvoidingView,
   ScrollView,
@@ -41,6 +41,8 @@ type ScrollPageProps = Omit<ScrollViewProps, 'contentContainerStyle'> & {
   contentContainerStyle?: ScrollViewProps['contentContainerStyle'];
   keyboardAvoiding?: boolean;
   gap?: SpacingToken;
+  /** The screen's AppBar: stays put above the scrolling content. */
+  appBar?: ReactNode;
 };
 
 export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function ScrollPage(
@@ -50,6 +52,7 @@ export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function Scrol
     keyboardAvoiding = false,
     keyboardShouldPersistTaps,
     gap = 'xl',
+    appBar,
     children,
     ...props
   },
@@ -78,6 +81,7 @@ export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function Scrol
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      {appBar}
       {keyboardAvoiding ? (
         <KeyboardAvoidingView className="flex-1" behavior="padding">
           {scrollView}

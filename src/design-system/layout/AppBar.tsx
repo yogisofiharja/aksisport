@@ -1,5 +1,5 @@
-import type { ComponentProps } from 'react';
-import { Text, View } from 'react-native';
+import type { ComponentProps, ReactNode } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { Icon } from '../ui/Icon';
@@ -23,6 +23,12 @@ import { IconButton } from '../ui/IconButton';
  * text. Every icon button is 44×44; the bar is at least 56px tall, with a
  * bottom border except on root.
  *
+ * `textAction` is one short text button on the right in heat-strong
+ * ("Mark all read"), in place of icons.
+ *
+ * A chat's stack bar puts the person or group avatar before the title
+ * (`titleAvatar`) and opens its info from the title (`onPressTitle`).
+ *
  * Renders only: back, close and actions are plain callbacks. It sits inside
  * the screen's own safe area; `safeTop` pads by the top inset for a screen
  * that has none.
@@ -30,7 +36,7 @@ import { IconButton } from '../ui/IconButton';
 
 type IconName = ComponentProps<typeof Icon>['name'];
 
-export type AppBarAction = { icon: IconName; label: string; onPress: () => void };
+export type AppBarAction = { icon: IconName; label: string; onPress: () => void; dot?: boolean };
 
 type AppBarProps = {
   variant?: 'root' | 'stack' | 'form';
@@ -48,6 +54,12 @@ type AppBarProps = {
   onMore?: () => void;
   tone?: 'light' | 'dark';
   safeTop?: boolean;
+  /** stack: one text button on the right, e.g. "Mark all read". */
+  textAction?: { label: string; onPress: () => void };
+  /** stack: an avatar before the title (a chat). */
+  titleAvatar?: ReactNode;
+  /** stack: makes the title block tappable (a chat's info). */
+  onPressTitle?: () => void;
 };
 
 export function AppBar({
@@ -62,6 +74,9 @@ export function AppBar({
   onMore,
   tone = 'light',
   safeTop = false,
+  titleAvatar,
+  onPressTitle,
+  textAction,
 }: AppBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -72,7 +87,7 @@ export function AppBar({
   const topPad = safeTop ? insets.top : 0;
 
   const icons = actions.slice(0, onMore ? 1 : 2).map((a) => (
-    <IconButton key={a.label} icon={a.icon} label={a.label} onPress={a.onPress} onDark={dark} />
+    <IconButton key={a.label} icon={a.icon} label={a.label} onPress={a.onPress} onDark={dark} dot={a.dot} />
   ));
   if (onMore) icons.push(<IconButton key="more" icon="ellipsis-horizontal" label={t('appBarMore')} onPress={onMore} onDark={dark} />);
 
@@ -105,19 +120,33 @@ export function AppBar({
     <View className={`${bg} ${border}`} style={{ paddingTop: topPad }}>
       <View className="flex-row items-center gap-1 min-h-[56px] px-1">
         {leading}
-        <View className={`flex-1 min-w-0 px-1 ${leading ? '' : 'pl-3'}`}>
-          {title ? (
-            <Text accessibilityRole="header" className={`text-[17px] leading-[22px] font-sans-bold ${ink}`} numberOfLines={1}>
-              {title}
-            </Text>
-          ) : null}
-          {context ? (
-            <Text className={`text-xs leading-4 font-sans-medium ${muted}`} numberOfLines={1}>
-              {context}
-            </Text>
-          ) : null}
-        </View>
+        <Pressable
+          onPress={onPressTitle}
+          disabled={!onPressTitle}
+          className={`flex-1 min-w-0 flex-row items-center gap-3 px-1 ${leading ? '' : 'pl-3'} ${onPressTitle ? 'active:opacity-70' : ''}`}
+        >
+          {titleAvatar}
+          <View className="flex-1 min-w-0">
+            {title ? (
+              <Text accessibilityRole="header" className={`text-[17px] leading-[22px] font-sans-bold ${ink}`} numberOfLines={1}>
+                {title}
+              </Text>
+            ) : null}
+            {context ? (
+              <Text className={`text-xs leading-4 font-sans-medium ${muted}`} numberOfLines={1}>
+                {context}
+              </Text>
+            ) : null}
+          </View>
+        </Pressable>
         {icons}
+        {textAction ? (
+          <Pressable onPress={textAction.onPress} accessibilityRole="button" className="h-11 px-2 justify-center active:opacity-60">
+            <Text className={`text-sm font-sans-semibold ${dark ? 'text-heat-on-asphalt' : 'text-heat-strong dark:text-heat-strong-dark'}`}>
+              {textAction.label}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
       {variant === 'stack' && largeTitle ? (
         <Text accessibilityRole="header" className={`px-4 pb-3 text-[34px] leading-[38px] font-display-hero ${ink}`} numberOfLines={2}>
