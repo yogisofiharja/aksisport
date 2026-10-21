@@ -3,27 +3,18 @@ package db
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/yogisofiharja/aksi-server/internal/testdb"
 )
 
-// These run against a real database (with migrations applied) when
-// TEST_DATABASE_URL is set; they create their own users, Community and
-// Session and remove them afterwards.
+// Database tests run against the test binary's own database
+// (internal/testdb, see main_test.go), never the dev database.
 func testPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
-	url := os.Getenv("TEST_DATABASE_URL")
-	if url == "" {
-		t.Skip("TEST_DATABASE_URL is not set")
-	}
-	pool, err := pgxpool.New(context.Background(), url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(pool.Close)
-	return pool
+	return testdb.Pool(t)
 }
 
 func testUser(t *testing.T, pool *pgxpool.Pool, name string) string {

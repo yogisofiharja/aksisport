@@ -4,28 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yogisofiharja/aksi-server/internal/db"
+	"github.com/yogisofiharja/aksi-server/internal/testdb"
 )
 
-// Runs against a real database when TEST_DATABASE_URL is set.
 func gracePool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
-	url := os.Getenv("TEST_DATABASE_URL")
-	if url == "" {
-		t.Skip("TEST_DATABASE_URL is not set")
-	}
-	pool, err := pgxpool.New(context.Background(), url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(pool.Close)
-	return pool
+	return testdb.Pool(t)
 }
 
 type fakeScores struct {
@@ -85,7 +75,7 @@ func TestUnfinishOverdueMatches(t *testing.T) {
 
 	score := json.RawMessage(`{"games":{"A":3,"B":2}}`)
 	reader := perMatch{overdue: fakeScores{state: score}, fallback: fakeScores{err: errors.New("firebase down")}}
-	// Only this test's matches: the database may hold others.
+	// Only this test's matches, in case another test left some behind.
 	run := func() int {
 		t.Helper()
 		all, err := db.ListOverdueLiveMatches(ctx, pool)

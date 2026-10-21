@@ -38,13 +38,17 @@ document is the target priority order, not a coverage mandate.
   the app is still small enough that manual on-device testing (as
   used throughout this migration) is adequate. Revisit if regressions
   from manual testing start recurring.
-- **No mocked-Postgres or testcontainers setup for Go tests** — until
-  server-side tests exist at all, don't over-invest in test
-  infrastructure. Start with pure-logic tests (permission helpers that
-  don't need a live DB) and plain `go test` against a real dev
-  Postgres for the rest, matching how the project already does manual
-  verification (see `docs/current` — smoke-tested against the real dev
-  VM database throughout this migration).
+- **No mocked Postgres or testcontainers.** Pure logic is tested without
+  a database. Tests that need one run in a **throwaway schema** inside the
+  dev database (`server/internal/testdb`): each package's test binary
+  creates `aksi_test_<random>`, applies every migration there (its
+  connections' `search_path` is that schema, then `public` for the
+  pgcrypto/citext extensions), runs its tests and drops the schema with
+  `CASCADE`. The tests never see or change the dev tables, and no extra
+  database is created. Packages with database tests opt in with
+  `func TestMain(m *testing.M) { os.Exit(testdb.Main(m)) }` and get their
+  pool from `testdb.Pool(t)`. Without `TEST_DATABASE_URL` those tests are
+  skipped; the rest still run.
 - **No snapshot testing** — not a good fit for a UI this actively
   changing; prefer behavioral tests where tests are added at all.
 
@@ -54,6 +58,12 @@ document is the target priority order, not a coverage mandate.
 npx vitest run <file>      # single client test file
 npm test                    # all client tests
 
-cd server && make test      # all Go tests, once they exist
+cd server && make test      # Go tests; database tests skip
+cd server && make test-db   # Go tests, database tests included
 cd server && make vet       # go vet
 ```
+
+`make test-db` sets `TEST_DATABASE_URL` from `server/.env`'s
+`DATABASE_URL`; the role only needs to be allowed to create schemas in
+that database (the app's own role is). A run that is killed before it
+finishes can leave an `aksi_test_…` schema behind; drop it by hand.
