@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Web: no browser focus ring on text fields — the field's own border
+   shows focus (Aksi Sport › Input turns it heat). Buttons and links keep
+   theirs for keyboard users. */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none;
+}

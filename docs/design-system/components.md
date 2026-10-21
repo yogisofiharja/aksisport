@@ -59,6 +59,7 @@ A text input collects one line (or a few, as Textarea) with a visible label and 
 - `ak-field--error` turns the outline and hint `danger`; the hint says how to fix it, in the user's terms.
 - Labels sit above, never placeholder-only. Placeholders show an example, in `ink-muted`.
 - Input text is 16px (`text-base`): on the web build, iOS Safari zooms the page into anything smaller.
+- No browser focus ring on the web build (`global.css`): the field's own border shows focus.
 - Set `keyboardType` (`number-pad`, `email-address`, `phone-pad`), `autoComplete` and `textContentType` so the right keyboard and autofill appear.
 
 ### Select
