@@ -24,6 +24,10 @@ Approved by Yogi, 2026-10-21.
   press-and-hold End on the scoring screen is removed (End match early
   replaces it) and the top left is the back chevron; spectators see
   "Umpire: <name>".
+- DP-025: **Finishing a Free Play match** — Finish match in Match
+  options (Free Play only): the side ahead wins, confirmed on Match
+  finished as usual; a tie is saved as a **Draw** (shown in Results,
+  neither a win nor a loss, shareable). End match early is unchanged.
 
 ---
 

@@ -1823,6 +1823,15 @@ Approved
   neither a win nor a loss. It replaces the scoring screen's old
   press-and-hold End, which ended a match with a winner on the current
   score; the top left of the scoring screens is now the back chevron.
+- **Finishing a Free Play match** (v0.30.0): a Free Play match (no
+  target score) never ends on a point, so its umpire's Match options
+  have **Finish match** above End match early ("The side ahead wins.
+  You'll confirm the result next."), for Free Play only. It goes to
+  Match finished → Confirm result / Undo last point, like a normal
+  finish, then Result saved with Share. With the score tied, Match
+  finished says **Draw**; the result is saved as a draw: shown as a draw
+  in Results, neither a win nor a loss, and it can be shared. End match
+  early stays for stopping without a result (Unfinished).
 
 ### Scope
 
