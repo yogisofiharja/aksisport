@@ -6,6 +6,7 @@ import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
+import { IconButton } from '../../design-system/ui/IconButton';
 import { Card } from '../../design-system/ui/Card';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { useTranslation } from '../../i18n';
@@ -37,6 +38,8 @@ export function MatchStartScreen({ players, starting, umpire, onChangeUmpire, on
   const [teamASide, setTeamASide] = useState<TeamASide>('left');
   const [firstServerId, setFirstServerId] = useState<string | null>(null);
 
+  // Everyone but the umpire sees the match read-only: no sides, no server.
+  const readOnly = !!umpire && !umpire.isMe;
   const leftTeam: Team = teamASide === 'left' ? 'A' : 'B';
   const rightTeam: Team = leftTeam === 'A' ? 'B' : 'A';
 
@@ -91,7 +94,7 @@ export function MatchStartScreen({ players, starting, umpire, onChangeUmpire, on
               <Pressable
                 key={p.id}
                 onPress={() => setFirstServerId(p.id)}
-                disabled={spinning}
+                disabled={spinning || readOnly}
                 // The server's chip is solid: ink on the orange side, light on
                 // the dark side, with the ball as a small dot before the name.
                 className={`flex-row items-center justify-center gap-2 px-3 py-2.5 rounded-full border-[1.5px] active:opacity-70 ${
@@ -123,13 +126,11 @@ export function MatchStartScreen({ players, starting, umpire, onChangeUmpire, on
 
   return (
     <ScrollPage gap="lg">
-      <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack}>
-        <Icon name="arrow-back" size="lg" />
-      </Pressable>
+      <IconButton icon="chevron-back" label={t('back')} onPress={onBack} className="-ml-3 self-start" />
       <VStack space="xs">
         <Typography variant="heading">{t('matchStartTitle')}</Typography>
         <Typography variant="body" color="muted">
-          {t('matchStartExplainer')}
+          {readOnly ? t('matchStartWaiting', umpire.name) : t('matchStartExplainer')}
         </Typography>
       </VStack>
 
@@ -139,18 +140,20 @@ export function MatchStartScreen({ players, starting, umpire, onChangeUmpire, on
             {half(leftTeam, 'left')}
             {half(rightTeam, 'right')}
           </HStack>
-          <Button
-            variant="outline"
-            disabled={spinning}
-            onPress={() => setTeamASide(teamASide === 'left' ? 'right' : 'left')}
-          >
-            <HStack space="sm" className="items-center">
-              <Icon name="swap-horizontal" size="sm" color="secondary" />
-              <ButtonText variant="outline">
-                {t('matchStartSwitchSides')}
-              </ButtonText>
-            </HStack>
-          </Button>
+          {!readOnly && (
+            <Button
+              variant="outline"
+              disabled={spinning}
+              onPress={() => setTeamASide(teamASide === 'left' ? 'right' : 'left')}
+            >
+              <HStack space="sm" className="items-center">
+                <Icon name="swap-horizontal" size="sm" color="secondary" />
+                <ButtonText variant="outline">
+                  {t('matchStartSwitchSides')}
+                </ButtonText>
+              </HStack>
+            </Button>
+          )}
         </VStack>
       </Card>
 
@@ -183,23 +186,25 @@ export function MatchStartScreen({ players, starting, umpire, onChangeUmpire, on
         </View>
       )}
 
-      <HStack className="items-center justify-between" space="md">
-        <Typography variant="body" color={firstServerId && !spinning ? 'default' : 'muted'} style={{ flex: 1 }}>
-          {spinning
-            ? t('matchStartChoosing')
-            : firstServerId
-              ? t('matchStartServes', players.find((p) => p.id === firstServerId)?.name ?? '')
-              : t('matchStartPickServer')}
-        </Typography>
-        <Button variant="outline" size="sm" onPress={pickRandom} disabled={spinning}>
-          <HStack space="xs" className="items-center">
-            <Icon name="shuffle" size="sm" color="secondary" />
-            <ButtonText variant="outline">
-              {t('matchStartRandom')}
-            </ButtonText>
-          </HStack>
-        </Button>
-      </HStack>
+      {!readOnly && (
+        <HStack className="items-center justify-between" space="md">
+          <Typography variant="body" color={firstServerId && !spinning ? 'default' : 'muted'} style={{ flex: 1 }}>
+            {spinning
+              ? t('matchStartChoosing')
+              : firstServerId
+                ? t('matchStartServes', players.find((p) => p.id === firstServerId)?.name ?? '')
+                : t('matchStartPickServer')}
+          </Typography>
+          <Button variant="outline" size="sm" onPress={pickRandom} disabled={spinning}>
+            <HStack space="xs" className="items-center">
+              <Icon name="shuffle" size="sm" color="secondary" />
+              <ButtonText variant="outline">
+                {t('matchStartRandom')}
+              </ButtonText>
+            </HStack>
+          </Button>
+        </HStack>
+      )}
 
       {/* DP-023: Start match is the umpire's alone; an organizer who isn't
           the umpire can take the role back first. */}

@@ -40,10 +40,6 @@ const en: Dict = {
   swapSides: 'Swap Sides',
 
   // Match
-  endMatchTitle: 'End Match',
-  endMatchConfirm: 'Are you sure you want to end the match?',
-  endMatchShort: 'End',
-  holdToEndHint: 'Press and hold to end match',
   pointLog: 'Point Log',
   noPoints: 'No points yet',
   game: 'GAME',
@@ -84,6 +80,7 @@ const en: Dict = {
   scoringPointFor: (names: string) => `Point for ${names}`,
   matchStartTitle: 'Ready to play',
   matchStartExplainer: 'Choose each team\'s side and who serves first. Sides stay fixed once the match starts.',
+  matchStartWaiting: (name: string) => `Waiting for ${name} to start.`,
   matchStartLeftHalf: 'Left',
   matchStartRightHalf: 'Right',
   matchStartSwitchSides: 'Switch sides',
@@ -624,7 +621,7 @@ const en: Dict = {
   activityLiveUnavailable: "Live viewing isn't available right now.",
   activityNoCheckedIn: 'No one has joined yet.',
   liveMatchBadge: 'LIVE',
-  scoredBy: (name: string) => `Scored by ${name}`,
+  umpireLabel: (name: string) => `Umpire: ${name}`,
 
   // Payments — session pricing
   sessionPriceLabel: 'Price',
@@ -824,10 +821,6 @@ const id: Dict = {
   swapSides: 'Tukar Tempat',
 
   // Match
-  endMatchTitle: 'Akhiri Match',
-  endMatchConfirm: 'Yakin ingin mengakhiri pertandingan?',
-  endMatchShort: 'Akhiri',
-  holdToEndHint: 'Tekan dan tahan untuk mengakhiri pertandingan',
   pointLog: 'Riwayat Poin',
   noPoints: 'Belum ada poin',
   game: 'GAME',
@@ -867,6 +860,7 @@ const id: Dict = {
   scoringPointFor: (names: string) => `Poin untuk ${names}`,
   matchStartTitle: 'Siap bermain',
   matchStartExplainer: 'Pilih sisi tiap tim dan siapa yang servis pertama. Sisi tidak bisa diubah setelah pertandingan dimulai.',
+  matchStartWaiting: (name: string) => `Menunggu ${name} memulai.`,
   matchStartLeftHalf: 'Kiri',
   matchStartRightHalf: 'Kanan',
   matchStartSwitchSides: 'Tukar sisi',
@@ -1405,7 +1399,7 @@ const id: Dict = {
   activityLiveUnavailable: 'Menonton langsung tidak tersedia saat ini.',
   activityNoCheckedIn: 'Belum ada yang bergabung.',
   liveMatchBadge: 'LANGSUNG',
-  scoredBy: (name: string) => `Dinilai oleh ${name}`,
+  umpireLabel: (name: string) => `Wasit: ${name}`,
 
   // Payments — harga sesi
   sessionPriceLabel: 'Harga',
