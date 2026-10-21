@@ -1,14 +1,17 @@
+import { useCallback, useState } from 'react';
+import Constants from 'expo-constants';
+import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
-import { HStack } from '../../design-system/layout/HStack';
+import { AppBar } from '../../design-system/layout/AppBar';
 import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
-import { Card } from '../../design-system/ui/Card';
-import { Button, ButtonText } from '../../design-system/ui/Button';
+import { Segmented } from '../../design-system/ui/Segmented';
+import { ListGroup, ListRow } from '../../design-system/ui/List';
 import { useTranslation, type Lang } from '../../i18n';
 import { useTheme, type ThemePreference } from '../../theme';
 import { useAuth } from '../../core/auth/AuthContext';
-import { AppBar } from '../../design-system/layout/AppBar';
+import { getNotificationSettings } from '../../core/notifications/api';
+import { listMyBlocks } from '../../core/safety/api';
 
 type Props = {
   onBack: () => void;
@@ -16,98 +19,90 @@ type Props = {
   onOpenNotifications: () => void;
 };
 
-const THEME_OPTIONS: { value: ThemePreference; icon: 'phone-portrait-outline' | 'sunny-outline' | 'moon-outline'; labelKey: 'followDevice' | 'light' | 'dark' }[] = [
-  { value: 'system', icon: 'phone-portrait-outline', labelKey: 'followDevice' },
-  { value: 'light', icon: 'sunny-outline', labelKey: 'light' },
-  { value: 'dark', icon: 'moon-outline', labelKey: 'dark' },
-];
-
+// Settings (Aksi redesign › Settings): theme and language as Segmented
+// controls that apply at once, then grouped rows, Log out last, then the
+// app version.
 export function SettingsScreen({ onBack, onOpenBlocked, onOpenNotifications }: Props) {
   const { t, lang, setLang } = useTranslation();
   const { preference, setPreference } = useTheme();
   const { signOut } = useAuth();
+  const [kinds, setKinds] = useState<{ on: number; total: number } | null>(null);
+  const [blocked, setBlocked] = useState<number | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      getNotificationSettings()
+        .then((s) => {
+          const values = Object.values(s);
+          setKinds({ on: values.filter(Boolean).length, total: values.length });
+        })
+        .catch(() => {});
+      listMyBlocks()
+        .then((b) => setBlocked(b.length))
+        .catch(() => {});
+    }, [])
+  );
 
   return (
     <ScrollPage gap="lg" appBar={<AppBar title={t('settingsTitle')} onBack={onBack} />}>
-
       <VStack space="sm">
-        <Typography variant="label" color="muted">
-          {t('languageSection')}
-        </Typography>
-        <HStack space="sm">
-          {(['en', 'id'] as Lang[]).map((l) => (
-            <Button
-              key={l}
-              className="flex-1"
-              variant={lang === l ? 'solid' : 'outline'}
-              onPress={() => setLang(l)}
-            >
-              <ButtonText variant={lang === l ? 'solid' : 'outline'}>
-                {l === 'en' ? t('english') : t('indonesian')}
-              </ButtonText>
-            </Button>
-          ))}
-        </HStack>
-      </VStack>
-
-      <VStack space="sm">
-        <Typography variant="label" color="muted">
+        <Typography variant="overline" color="muted">
           {t('displayTheme')}
         </Typography>
-        <VStack space="sm">
-          {THEME_OPTIONS.map((opt) => {
-            const selected = preference === opt.value;
-            return (
-              <Card key={opt.value} pressable onPress={() => setPreference(opt.value)}>
-                <HStack className="justify-between items-center" space="md">
-                  <HStack space="md" className="items-center">
-                    <Icon name={opt.icon} color={selected ? 'secondary' : 'muted'} />
-                    <Typography variant="body" color={selected ? 'secondary' : 'default'} className="text-lg font-bold">
-                      {t(opt.labelKey)}
-                    </Typography>
-                  </HStack>
-                  {selected && <Icon name="checkmark-circle" color="secondary" />}
-                </HStack>
-              </Card>
-            );
-          })}
-        </VStack>
+        <Segmented<ThemePreference>
+          options={[
+            { value: 'light', label: t('light') },
+            { value: 'dark', label: t('dark') },
+            { value: 'system', label: t('followDevice') },
+          ]}
+          value={preference}
+          onChange={setPreference}
+        />
       </VStack>
-
-      <Card pressable onPress={onOpenNotifications}>
-        <HStack className="justify-between items-center" space="md">
-          <HStack space="md" className="items-center">
-            <Icon name="notifications-outline" color="muted" />
-            <Typography variant="body" className="text-lg font-bold">
-              {t('notificationSettingsTitle')}
-            </Typography>
-          </HStack>
-          <Icon name="chevron-forward" size="sm" color="muted" />
-        </HStack>
-      </Card>
 
       <VStack space="sm">
-        <Typography variant="label" color="muted">
-          {t('privacySection')}
+        <Typography variant="overline" color="muted">
+          {t('languageSection')}
         </Typography>
-        <Card pressable onPress={onOpenBlocked}>
-          <HStack className="justify-between items-center" space="md">
-            <HStack space="md" className="items-center">
-              <Icon name="ban-outline" color="muted" />
-              <Typography variant="body" className="text-lg font-bold">
-                {t('blockedPlayersTitle')}
-              </Typography>
-            </HStack>
-            <Icon name="chevron-forward" size="sm" color="muted" />
-          </HStack>
-        </Card>
+        <Segmented<Lang>
+          options={[
+            { value: 'en', label: t('english') },
+            { value: 'id', label: t('indonesian') },
+          ]}
+          value={lang}
+          onChange={setLang}
+        />
       </VStack>
 
-      <Button action="negative" variant="outline" size="xl" className="w-full" onPress={signOut}>
-        <ButtonText action="negative" variant="outline">
-          {t('logout')}
-        </ButtonText>
-      </Button>
+      <VStack space="sm">
+        <Typography variant="overline" color="muted">
+          {t('settingsNotificationsPrivacy')}
+        </Typography>
+        <ListGroup>
+          <ListRow
+            icon="notifications-outline"
+            title={t('notificationSettingsTitle')}
+            subtitle={kinds ? t('settingsKindsOn', kinds.on, kinds.total) : undefined}
+            chevron
+            onPress={onOpenNotifications}
+          />
+          <ListRow
+            icon="ban-outline"
+            title={t('blockedPlayersTitle')}
+            subtitle={blocked != null ? t('settingsBlockedCount', blocked) : undefined}
+            chevron
+            onPress={onOpenBlocked}
+          />
+        </ListGroup>
+      </VStack>
+
+      <ListGroup>
+        <ListRow icon="log-out-outline" title={t('logout')} danger onPress={signOut} />
+      </ListGroup>
+
+      <Typography variant="caption" color="muted" className="text-center">
+        {t('settingsVersion', Constants.expoConfig?.version ?? '')}
+      </Typography>
     </ScrollPage>
   );
 }

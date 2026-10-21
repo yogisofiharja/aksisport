@@ -1,4 +1,5 @@
 export * from './EmptyState';
+export * from './Alert';
 export * from './Loading';
 export * from './Dialog';
 export * from './Sheet';

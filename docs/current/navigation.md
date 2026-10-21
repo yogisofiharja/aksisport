@@ -94,12 +94,20 @@ Session has a level range, and Approve/Decline for a pending request. `CreateClu
 community" switch; `ClubSettingsScreen` (owner) edits both under "Finding
 & joining".
 
+**Settings** (`SettingsScreen`): Display theme (Light / Dark / System)
+and Language (English / Bahasa Indonesia) as `Segmented` controls that
+apply at once; "Notifications & privacy" rows — Notifications ("3 of 4
+kinds on") and Blocked players (the count); Log out as a danger row; then
+"Aksi · version <app.json version>".
+
 **Notifications** (DP-018). `HomeScreen`'s app bar has a bell
 (`useNotificationBell`) with a heat dot while any are unread, re-counted
 on focus and every minute while Home is showing; it pushes `Notifications`
 (`/notifications`, `NotificationsScreen`): every notification, newest
-first, unread ones tinted with a blue dot, "Mark all read", and — when
-this device hasn't allowed notifications yet — a card to turn them on.
+first, in two `ListGroup`s, "Unread · n" (bold, heat icon tile, heat
+dot) and "Earlier"; "Mark all read" is the AppBar's text action; and —
+when this device hasn't allowed notifications yet — an info `Alert` to
+turn them on (or say they are blocked).
 Opening one marks it read and goes to its `path` (`useLinkTo`).
 `PushSync` (mounted with `MainStack`) re-registers the device on
 sign-in and on language change, and handles taps: while an Aksi tab is

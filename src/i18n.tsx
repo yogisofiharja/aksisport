@@ -819,6 +819,12 @@ const en: Dict = {
   meTownsNone: "No town yet",
   meChangeLevel: "Change level",
   meChangePhoto: "Change profile picture",
+  notificationsUnreadGroup: (n: number) => `Unread · ${n}`,
+  notificationsEarlier: "Earlier",
+  settingsNotificationsPrivacy: "Notifications & privacy",
+  settingsKindsOn: (on: number, total: number) => `${on} of ${total} kinds on`,
+  settingsBlockedCount: (n: number) => n === 0 ? 'Nobody' : `${n} ${n === 1 ? 'player' : 'players'}`,
+  settingsVersion: (v: string) => `Aksi · version ${v}`,
 };
 
 const id: Dict = {
@@ -1632,6 +1638,12 @@ const id: Dict = {
   meTownsNone: "Belum ada kota",
   meChangeLevel: "Ubah level",
   meChangePhoto: "Ganti foto profil",
+  notificationsUnreadGroup: (n: number) => `Belum dibaca · ${n}`,
+  notificationsEarlier: "Sebelumnya",
+  settingsNotificationsPrivacy: "Notifikasi & privasi",
+  settingsKindsOn: (on: number, total: number) => `${on} dari ${total} jenis aktif`,
+  settingsBlockedCount: (n: number) => n === 0 ? 'Tidak ada' : `${n} pemain`,
+  settingsVersion: (v: string) => `Aksi · versi ${v}`,
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

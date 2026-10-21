@@ -1,13 +1,9 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { RefreshControl, View } from 'react-native';
 import { useFocusEffect, useLinkTo } from '@react-navigation/native';
-import { HStack } from '../../design-system/layout/HStack';
 import { VStack } from '../../design-system/layout/VStack';
 import { Typography } from '../../design-system/ui/Typography';
-import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
-import { Card } from '../../design-system/ui/Card';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { useTranslation } from '../../i18n';
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from '../../core/notifications/api';
@@ -15,6 +11,9 @@ import { notificationIcon, notificationText, timeAgo } from '../../core/notifica
 import { enablePush, getPushState, type PushState } from '../../platform/push';
 import type { AppNotification } from '../../core/api/types';
 import { AppBar } from '../../design-system/layout/AppBar';
+import { ScrollPage } from '../../design-system/layout/ScrollPage';
+import { ListGroup, ListRow } from '../../design-system/ui/List';
+import { Alert } from '../../design-system/feedback/Alert';
 
 type Props = {
   onBack: () => void;
@@ -82,77 +81,67 @@ export function NotificationsScreen({ onBack }: Props) {
 
   const hasUnread = items?.some((n) => !n.readAt) ?? false;
 
-  return (
-    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
-      <AppBar
-        title={t('notificationsTitle')}
-        onBack={onBack}
-        textAction={hasUnread ? { label: t('notificationsMarkAllRead'), onPress: markAll } : undefined}
-      />
-      <VStack space="md" className="px-5 pt-4 pb-2">
+  const unread = items?.filter((n) => !n.readAt) ?? [];
+  const earlier = items?.filter((n) => n.readAt) ?? [];
 
-        {pushState === 'default' && (
-          <Card>
-            <VStack space="sm">
-              <Typography variant="body" className="font-bold">
-                {t('pushTurnOnTitle')}
-              </Typography>
-              <Typography variant="body" color="muted">
-                {t('pushTurnOnDesc')}
-              </Typography>
-              <Button size="lg" className="w-full" onPress={turnOnPush} isDisabled={enabling}>
-                <ButtonText>{t('pushTurnOn')}</ButtonText>
-              </Button>
-            </VStack>
-          </Card>
-        )}
-        {pushState === 'denied' && (
-          <Typography variant="body" color="muted" className="text-sm">
-            {t('pushBlocked')}
-          </Typography>
-        )}
-      </VStack>
+  function row(item: AppNotification) {
+    const isUnread = !item.readAt;
+    return (
+      <ListRow
+        key={item.id}
+        icon={notificationIcon(item.type)}
+        iconTone={isUnread ? 'heat' : 'neutral'}
+        title={notificationText(item, t)}
+        titleLines={3}
+        strong={isUnread}
+        meta={timeAgo(item.createdAt, t)}
+        trailing={isUnread ? <View className="w-2 h-2 rounded-full bg-heat" accessibilityLabel={t('notificationsUnread')} /> : undefined}
+        onPress={() => open(item)}
+      />
+    );
+  }
+
+  return (
+    <ScrollPage
+      gap="md"
+      appBar={
+        <AppBar
+          title={t('notificationsTitle')}
+          onBack={onBack}
+          textAction={hasUnread ? { label: t('notificationsMarkAllRead'), onPress: markAll } : undefined}
+        />
+      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+    >
+      {pushState === 'default' && (
+        <Alert icon="notifications-outline" title={t('pushTurnOnTitle')} actionLabel={t('pushTurnOn')} onAction={enabling ? undefined : turnOnPush}>
+          {t('pushTurnOnDesc')}
+        </Alert>
+      )}
+      {pushState === 'denied' && <Alert icon="notifications-off-outline" title={t('pushBlocked')} />}
 
       {items === null ? null : items.length === 0 ? (
-        <View className="px-5 pt-4">
-          <EmptyState message={t('notificationsEmpty')} />
-        </View>
+        <EmptyState message={t('notificationsEmpty')} />
       ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(n) => n.id}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          renderItem={({ item }) => {
-            const unread = !item.readAt;
-            return (
-              <Pressable
-                onPress={() => open(item)}
-                className={`px-5 py-4 border-b border-border dark:border-border-dark active:opacity-70 ${
-                  unread ? 'bg-heat-tint dark:bg-heat-tint-dark' : ''
-                }`}
-              >
-                <HStack space="md" className="items-start">
-                  <View className="w-9 h-9 rounded-full items-center justify-center bg-surface-sunken dark:bg-surface-sunken-dark">
-                    <Icon name={notificationIcon(item.type)} size="sm" color={unread ? 'secondary' : 'muted'} />
-                  </View>
-                  <VStack space="xs" style={{ flex: 1 }}>
-                    <Typography variant="body" className={unread ? 'font-bold' : ''}>
-                      {notificationText(item, t)}
-                    </Typography>
-                    <Typography variant="body" color="muted" className="text-xs">
-                      {timeAgo(item.createdAt, t)}
-                    </Typography>
-                  </VStack>
-                  {unread && (
-                    <View className="w-2.5 h-2.5 rounded-full bg-heat mt-2" accessibilityLabel={t('notificationsUnread')} />
-                  )}
-                </HStack>
-              </Pressable>
-            );
-          }}
-        />
+        <>
+          {unread.length > 0 && (
+            <VStack space="sm">
+              <Typography variant="overline" color="muted">
+                {t('notificationsUnreadGroup', unread.length)}
+              </Typography>
+              <ListGroup>{unread.map(row)}</ListGroup>
+            </VStack>
+          )}
+          {earlier.length > 0 && (
+            <VStack space="sm">
+              <Typography variant="overline" color="muted">
+                {t('notificationsEarlier')}
+              </Typography>
+              <ListGroup>{earlier.map(row)}</ListGroup>
+            </VStack>
+          )}
+        </>
       )}
-    </SafeAreaView>
+    </ScrollPage>
   );
 }
