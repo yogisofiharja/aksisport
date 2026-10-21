@@ -6,7 +6,6 @@ import { Button, ButtonText } from '../../../components/ui/button';
 import {
   addPoint,
   createInitialState,
-  endMatchNow,
   getPointLabel,
   getServerTeam,
   MatchConfig,
@@ -456,15 +455,6 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
     setMatchState(previous);
   }
 
-  function handleEndMatch() {
-    if (!isScorer || !matchState || matchState.isEnded) return;
-    const ended = endMatchNow(matchState);
-    const nextHistory = [...history, cloneState(matchState)];
-    setHistory(nextHistory);
-    setMatchState(ended);
-    announceFinalResult(ended);
-  }
-
   // DP-025 End match early: saved as Unfinished with the score so far,
   // then back to the Session — no Result saved. Spectators following the
   // live copy are sent back too.
@@ -613,7 +603,7 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
         scorerName={scorerName ?? session?.umpireName ?? null}
         onAddPoint={handleAddPoint}
         onUndo={handleUndo}
-        onEndMatch={handleEndMatch}
+        onBack={onDone}
         onToggleVoice={() => setVoiceEnabled((v) => !v)}
         onOpenOptions={isScorer ? () => setOptionsVisible(true) : undefined}
       />

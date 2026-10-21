@@ -1,9 +1,10 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
+import { IconButton } from '../../design-system/ui/IconButton';
 import { Card } from '../../design-system/ui/Card';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { useTranslation } from '../../i18n';
@@ -29,9 +30,7 @@ export function MatchResultScreen({ matchState, teamNames, onShare, onBack }: Pr
   return (
     <ScrollPage gap="lg">
       {onBack && (
-        <Pressable className="p-2 -ml-2 active:opacity-60 self-start" onPress={onBack} accessibilityLabel={t('back')}>
-          <Icon name="arrow-back" size="lg" />
-        </Pressable>
+        <IconButton icon="chevron-back" label={t('back')} onPress={onBack} className="-ml-3 self-start" />
       )}
       <Card padding="xl">
         <VStack space="sm" className="items-center">

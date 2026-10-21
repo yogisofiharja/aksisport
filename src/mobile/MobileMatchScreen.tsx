@@ -1,9 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { useEffect, useRef, useState, type ComponentProps } from 'react';
-import { Animated, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState, type ComponentProps } from 'react';
+import { Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { TeamNames, TeamASide } from '../appTypes';
@@ -11,7 +10,7 @@ import { getPointLabel, getServerTeam, MatchState, Team } from '../sports/tennis
 import { storageGet, storageSave } from '../storage';
 import { useTranslation } from '../i18n';
 import { color } from '../design-system/foundation/colors';
-import { Dialog } from '../design-system/feedback/Dialog';
+import { IconButton } from '../design-system/ui/IconButton';
 
 // Team sides (Aksi Sport): left in heat with ink text, right in asphalt
 // with light text — the same in both themes, like a broadcast scoreboard.
@@ -29,7 +28,6 @@ function ServeBall({ size }: { size: number }) {
   );
 }
 
-const HOLD_MS = 700;
 const FOCUS_KEY = 'aksi.scoringFocusMode';
 
 // Focus mode needs landscape. The phone apps can turn the screen; a
@@ -54,13 +52,14 @@ type Props = {
   history: MatchState[];
   hasUndo: boolean;
   voiceEnabled: boolean;
-  /** Viewer mode: no scoring, undo, or end-match controls. */
+  /** Viewer mode: no scoring or undo controls. */
   readOnly?: boolean;
-  /** Shown in the LIVE badge when readOnly. */
+  /** The umpire, shown in the LIVE badge when readOnly. */
   scorerName?: string | null;
+  /** Leaves the screen; a live match keeps going. */
+  onBack: () => void;
   onAddPoint: (team: Team) => void;
   onUndo: () => void;
-  onEndMatch: () => void;
   onToggleVoice: () => void;
   /** The umpire's Match options (DP-023); no button when absent. */
   onOpenOptions?: () => void;
@@ -122,7 +121,7 @@ function buildLog(history: MatchState[], current: MatchState): LogEntry[] {
 //   the controls below;
 // - focus: landscape, the full-screen court — each half a giant tap target.
 // The choice is remembered on the device. Both modes share the controls
-// (undo, voice, point log, hold-to-end) and their dialogs.
+// (undo, voice, point log, Match options) and their dialogs.
 export function MobileMatchScreen({
   matchState,
   teamNames,
@@ -133,24 +132,19 @@ export function MobileMatchScreen({
   readOnly = false,
   scorerName,
   onAddPoint,
+  onBack,
   onUndo,
-  onEndMatch,
   onToggleVoice,
   onOpenOptions,
 }: Props) {
   const [focus, setFocus] = useState(false);
   const [showPointLog, setShowPointLog] = useState(false);
-  const [showEndConfirm, setShowEndConfirm] = useState(false);
-  const [showHoldHint, setShowHoldHint] = useState(false);
   const [scoreBoxHalfW, setScoreBoxHalfW] = useState(0);
   // Normal mode sizes the scores from the team row's real size (the app
   // can be narrower than the window, e.g. the phone-width column on web).
   const [teamRow, setTeamRow] = useState({ width: 0, height: 0 });
   const [court, setCourt] = useState({ width: 0, height: 0 });
 
-  const pressAnim = useRef(new Animated.Value(0)).current;
-  const holdAnim = useRef<Animated.CompositeAnimation | null>(null);
-  const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { t } = useTranslation();
   const { colorScheme } = useColorScheme();
@@ -175,8 +169,6 @@ export function MobileMatchScreen({
         leaveWebFullscreen();
       }
       if (Platform.OS !== 'web') ScreenOrientation.unlockAsync().catch(() => {});
-      holdAnim.current?.stop();
-      if (hintTimeout.current) clearTimeout(hintTimeout.current);
     };
   }, []);
 
@@ -254,88 +246,16 @@ export function MobileMatchScreen({
     ? t('scoringFormatBestOf', fmt.setsToWin * 2 - 1)
     : null;
 
-  // ── Long-press end match handlers ─────────────────────────────────────────
-
-  function handleAkhiriPressIn() {
-    const anim = Animated.timing(pressAnim, { toValue: 1, duration: HOLD_MS, useNativeDriver: true });
-    holdAnim.current = anim;
-    anim.start(({ finished }) => {
-      holdAnim.current = null;
-      if (!finished) return; // released early
-      Animated.timing(pressAnim, { toValue: 0, duration: 0, useNativeDriver: true }).start();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      setShowEndConfirm(true);
-    });
-  }
-
-  function handleAkhiriPressOut() {
-    if (!holdAnim.current) return; // animation already completed — modal is showing
-    holdAnim.current.stop();
-    holdAnim.current = null;
-    Animated.timing(pressAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start();
-  }
-
-  // Fires on every completed tap regardless of hold duration. If the hold
-  // already succeeded, showEndConfirm is true by the time this runs (it's
-  // set synchronously inside the animation callback, before release) — skip
-  // the hint in that case so we don't show it right next to the dialog.
-  function handleAkhiriTap() {
-    if (showEndConfirm) return;
-    Haptics.selectionAsync().catch(() => {});
-    setShowHoldHint(true);
-    if (hintTimeout.current) clearTimeout(hintTimeout.current);
-    hintTimeout.current = setTimeout(() => setShowHoldHint(false), 1800);
-  }
-
   const pointLog = buildLog(history, matchState);
 
   // ── Shared pieces ─────────────────────────────────────────────────────────
-
-  function endButton(style: 'tab' | 'outline') {
-    return (
-      <TouchableOpacity
-        onPressIn={handleAkhiriPressIn}
-        onPressOut={handleAkhiriPressOut}
-        onPress={handleAkhiriTap}
-        activeOpacity={1}
-        accessibilityLabel={t('endMatchTitle')}
-        style={
-          style === 'tab'
-            ? { backgroundColor: color.asphalt.dark, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 8, borderTopLeftRadius: 16, borderTopRightRadius: 16, alignItems: 'center', overflow: 'hidden' }
-            : { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: color.danger[themeMode], overflow: 'hidden' }
-        }
-      >
-        <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: style === 'tab' ? color.danger.light : color.dangerTint[themeMode], opacity: pressAnim }} />
-        {style === 'tab' ? (
-          <Ionicons name="stop-circle-outline" size={30} color={color.danger.dark} />
-        ) : (
-          <>
-            <Ionicons name="stop-circle-outline" size={18} color={color.danger[themeMode]} />
-            <Text style={{ color: color.danger[themeMode], fontWeight: '800', fontSize: 14 }}>{t('endMatchShort')}</Text>
-          </>
-        )}
-      </TouchableOpacity>
-    );
-  }
-
-  function holdHint(place: { bottom: number } | { top: number; left: number }) {
-    if (!showHoldHint) return null;
-    return (
-      <View
-        pointerEvents="none"
-        style={{ position: 'absolute', ...place, ...('bottom' in place ? { alignSelf: 'center' as const } : {}), zIndex: 10, backgroundColor: color.asphalt.dark, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, minWidth: 200, alignItems: 'center' }}
-      >
-        <Text style={{ color: color.onAsphalt.light, fontSize: 12, fontWeight: '700' }}>{t('holdToEndHint')}</Text>
-      </View>
-    );
-  }
 
   function liveBadge() {
     return (
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: color.asphalt.dark, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 }}>
         <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color.heat.light }} />
         <Text style={{ color: color.heatOnAsphalt.light, fontSize: 12, fontWeight: '900', letterSpacing: 1.5 }}>{t('liveMatchBadge')}</Text>
-        {scorerName && <Text style={{ color: color.onAsphalt.light, fontSize: 12, fontWeight: '600' }}>· {t('scoredBy', scorerName)}</Text>}
+        {scorerName && <Text style={{ color: color.onAsphalt.light, fontSize: 12, fontWeight: '600' }}>· {t('umpireLabel', scorerName)}</Text>}
       </View>
     );
   }
@@ -476,17 +396,12 @@ export function MobileMatchScreen({
             ))}
           </View>
 
-          {/* Bottom centre: hold-to-end (scorer) or LIVE badge (viewer) */}
-          <View pointerEvents="box-none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' }}>
-            {!readOnly ? (
-              <>
-                {holdHint({ bottom: 56 })}
-                {endButton('tab')}
-              </>
-            ) : (
-              <View pointerEvents="none" style={{ marginBottom: 14 }}>{liveBadge()}</View>
-            )}
-          </View>
+          {/* Bottom centre: the LIVE badge (viewer) */}
+          {readOnly && (
+            <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' }}>
+              <View style={{ marginBottom: 14 }}>{liveBadge()}</View>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -547,13 +462,11 @@ export function MobileMatchScreen({
         <View style={{ flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, gap: 14 }}>
           {/* Top: status and tools */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <View style={{ flexShrink: 1 }}>
-              {readOnly ? liveBadge() : (
-                <View>
-                  {endButton('outline')}
-                  {holdHint({ top: 44, left: 0 })}
-                </View>
-              )}
+            {/* Back, as on the Session screen; the match keeps going. The
+                umpire ends one early from Match options (DP-025). */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1, marginLeft: -12 }}>
+              <IconButton icon="chevron-back" label={t('back')} onPress={onBack} />
+              {readOnly && liveBadge()}
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {!readOnly && iconButton('megaphone-outline', onToggleVoice, voiceEnabled ? color.success[mode] : toolColor, t('scoringVoice'), toolBg)}
@@ -608,20 +521,6 @@ export function MobileMatchScreen({
   return (
     <View style={{ flex: 1 }}>
       {focus ? renderFocus() : renderNormal()}
-
-      {/* End match confirmation */}
-      <Dialog
-        visible={showEndConfirm}
-        title={t('endMatchTitle')}
-        description={t('endMatchConfirm')}
-        cancelLabel={t('cancel')}
-        confirmLabel={t('endMatchShort')}
-        onCancel={() => setShowEndConfirm(false)}
-        onConfirm={() => {
-          setShowEndConfirm(false);
-          onEndMatch();
-        }}
-      />
 
       {/* Point log panel */}
       {showPointLog && (
