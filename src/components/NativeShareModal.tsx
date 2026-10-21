@@ -4,6 +4,7 @@ import { createElement, useEffect, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
   useWindowDimensions,
+  Image,
   ImageBackground,
   Modal,
   Platform,
@@ -22,6 +23,13 @@ import { color } from '../design-system/foundation/colors';
 import { renderShareCard } from './shareCardCanvas';
 import { useTranslation } from '../i18n';
 import { CloseOnBack } from '../design-system/feedback/useBackToClose';
+import { Asset } from 'expo-asset';
+
+// The Aksi lockup (mark over "aksi") in Urban Heat, from the Aksi Sport
+// design system's Logos (heat is allowed on asphalt and photos), trimmed:
+// 303×359.
+const LOGO = require('../../assets/brand/aksi-lockup-heat.png');
+const LOGO_RATIO = 303 / 359;
 
 export type NativeShareData = {
   matchup: string;
@@ -46,7 +54,7 @@ function cardTextSizes(cardW: number, names: string[]) {
   const columnW = (cardW - 40 - 36) / 2; // card padding, "VS" in the middle
   const longest = Math.max(1, ...names.map((n) => n.length));
   const nameSize = Math.max(9, Math.min(17 * k, Math.floor(columnW / (longest * 0.74))));
-  return { nameSize, vsSize: Math.round(13 * k), scoreSize: Math.round(Math.min(68, cardW * 0.22)), brandSize: Math.round(14 * k) };
+  return { nameSize, vsSize: Math.round(13 * k), scoreSize: Math.round(Math.min(68, cardW * 0.22)), logoSize: Math.round(34 * k) };
 }
 
 export function NativeShareModal({ data, onClose }: Props) {
@@ -84,6 +92,7 @@ export function NativeShareModal({ data, onClose }: Props) {
           score: data.score,
           breakdown: data.breakdown,
           backgroundUri: bgUri,
+          logoUri: Asset.fromModule(LOGO).uri,
         });
         if (!cancelled) setWebFile(new File([blob], 'aksi-match.jpg', { type: 'image/jpeg' }));
       } catch (e) {
@@ -277,8 +286,12 @@ export function NativeShareModal({ data, onClose }: Props) {
 
                 {/* Brand */}
                 <View style={s.brandRow}>
-                  <Text style={[s.brand, { fontSize: sizes.brandSize }]}>AKSI</Text>
-                  <Ionicons name="tennisball" size={15} color="#fde047" />
+                  <Image
+                    source={LOGO}
+                    accessibilityLabel="Aksi"
+                    style={{ height: sizes.logoSize, width: Math.round(sizes.logoSize * LOGO_RATIO) }}
+                    resizeMode="contain"
+                  />
                 </View>
               </View>
             </View>
@@ -340,8 +353,10 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'flex-end',
   },
+  // Redesign (Aksi Sport): asphalt, not navy; Saira for the names and
+  // score; the Urban Heat Aksi lockup as the branding. Same layout.
   sheet: {
-    backgroundColor: '#0f172a',
+    backgroundColor: color.asphalt.light,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -355,12 +370,12 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.07)',
+    borderBottomColor: 'rgba(244,242,239,0.08)',
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#f1f5f9',
+    fontSize: 20,
+    fontFamily: 'Saira-Bold',
+    color: color.onAsphalt.light,
   },
   closeBtn: {
     paddingVertical: 10,
@@ -388,7 +403,7 @@ const s = StyleSheet.create({
     paddingBottom: 20,
   },
   defaultBg: {
-    backgroundColor: '#0c1933',
+    backgroundColor: color.asphalt.dark,
   },
 
   // All content at bottom
@@ -409,8 +424,8 @@ const s = StyleSheet.create({
   },
   playerName: {
     fontSize: 17,
-    fontWeight: '900',
-    color: '#ffffff',
+    fontFamily: 'Saira-Bold',
+    color: color.onAsphalt.light,
     letterSpacing: 0.5,
   },
   playerLeft: {
@@ -421,8 +436,8 @@ const s = StyleSheet.create({
   },
   vsText: {
     fontSize: 13,
-    fontWeight: '900',
-    color: 'rgba(255,255,255,0.5)',
+    fontFamily: 'PlusJakartaSans-Bold',
+    color: 'rgba(244,242,239,0.5)',
     marginHorizontal: 10,
     letterSpacing: 1,
   },
@@ -430,16 +445,16 @@ const s = StyleSheet.create({
   // Score
   score: {
     fontSize: 68,
-    fontWeight: '900',
-    color: '#ffffff',
+    fontFamily: 'Saira-ExtraBoldItalic',
+    color: color.onAsphalt.light,
     textAlign: 'center',
     lineHeight: 74,
     letterSpacing: -1,
   },
   breakdown: {
     fontSize: 13,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.55)',
+    fontFamily: 'PlusJakartaSans-SemiBold',
+    color: color.inkMuted.dark,
     textAlign: 'center',
     letterSpacing: 0.5,
     marginTop: -2,
@@ -450,12 +465,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     marginTop: 4,
-  },
-  brand: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: 1,
   },
 
   // Camera overlay sits over card but outside cardRef
@@ -498,14 +507,14 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(2,6,23,0.94)',
+    backgroundColor: 'rgba(19,19,21,0.94)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
     gap: 16,
   },
   saveHint: {
-    color: '#cbd5e1',
+    color: color.inkMuted.dark,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
