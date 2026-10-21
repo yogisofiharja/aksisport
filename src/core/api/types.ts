@@ -225,6 +225,9 @@ export type Session = {
   // DP-022: from when matches may be started (10 minutes before the start
   // time in live use; the server decides). Absent without a start time.
   matchesOpenAt?: string;
+  // DP-027: the Session's end plus the one-hour grace period, until which
+  // a match still live when it completed can be scored and confirmed.
+  scoringClosesAt?: string;
 };
 
 export type PriceModel = 'free' | 'per_person' | 'split_bill';
@@ -265,7 +268,8 @@ export type SessionParticipant = {
 
 // 'unfinished': stopped before it was decided (DP-025 End match early,
 // DP-027) — its score so far, neither a win nor a loss.
-export type ActivityStatus = 'queued' | 'live' | 'completed' | 'unfinished';
+// 'not_played': still queued when its Session completed (DP-027).
+export type ActivityStatus = 'queued' | 'live' | 'completed' | 'unfinished' | 'not_played';
 
 export type ActivityParticipant = {
   id: string;

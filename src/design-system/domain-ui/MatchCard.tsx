@@ -17,8 +17,8 @@ import { Typography } from '../ui/Typography';
  * - live: an asphalt card (radius 20) with a "COURT 1 · RACE TO 4" eyebrow
  *   and `action` (Watch, see MatchWatchLink) on the right; then one row per
  *   side: a ball dot on the server, games in a 30×36 box, points in a 44×44
- *   box, the leading side's points in heat. Without `sides` (no live score
- *   loaded) it shows the matchup instead.
+ *   box, the leading side's points in heat. Sides with no score (none
+ *   loaded) show just their names, one per line with a "VS" between.
  * - completed: a surface row with a "COURT 1 · 07:42" eyebrow and one line
  *   per side with its score (a small "VS" between), the winner in 700 ink
  *   and the other side in 500 ink-muted; a 44px Share button behind a divider on the right
@@ -102,7 +102,9 @@ export function MatchCard({
   };
 
   if (status === 'live') {
-    const lead = pair ? leadingSide(pair) : -1;
+    // Sides without a score (none loaded) show their names, stacked.
+    const scored = pair?.some((s) => s.games != null || s.points != null);
+    const lead = pair && scored ? leadingSide(pair) : -1;
     return (
       <Pressable {...pressProps} className={`bg-asphalt dark:bg-asphalt-dark rounded-[20px] p-4 gap-3 ${className}`}>
         <View className="flex-row items-center justify-between gap-2">
@@ -111,7 +113,19 @@ export function MatchCard({
           </Typography>
           {action}
         </View>
-        {pair ? (
+        {pair && !scored ? (
+          <View>
+            <Typography variant="body" className="text-on-asphalt font-semibold" numberOfLines={1}>
+              {pair[0].names}
+            </Typography>
+            <Text className="text-[11px] leading-[14px] font-sans-semibold uppercase tracking-[0.9px] text-on-asphalt opacity-50">
+              {t('activityVersus')}
+            </Text>
+            <Typography variant="body" className="text-on-asphalt font-semibold" numberOfLines={1}>
+              {pair[1].names}
+            </Typography>
+          </View>
+        ) : pair ? (
           pair.map((side, i) => (
             <View key={i} className="flex-row items-center gap-2">
               <View className="flex-1 flex-row items-center gap-2 min-w-0">

@@ -353,7 +353,9 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
       }
     } catch (err) {
       console.error('Failed to complete activity', err);
-      appAlert(t('confirmResultFailed'), undefined, [{ text: t('ok') }]);
+      // DP-027: refused once the grace hour after the Session is over.
+      const closed = err instanceof ApiRequestError && err.status === 409;
+      appAlert(closed ? t('scoringClosed') : t('confirmResultFailed'), undefined, [{ text: t('ok') }]);
     } finally {
       setConfirming(false);
     }
@@ -489,8 +491,9 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
       setIsScorer(false);
       if (sessionId) onBackToSession(sessionId);
       else onDone();
-    } catch {
-      appAlert(t('endMatchEarlyFailed'), undefined, [{ text: t('ok') }]);
+    } catch (err) {
+      const closed = err instanceof ApiRequestError && err.status === 409;
+      appAlert(closed ? t('scoringClosed') : t('endMatchEarlyFailed'), undefined, [{ text: t('ok') }]);
     } finally {
       setEndingEarly(false);
     }

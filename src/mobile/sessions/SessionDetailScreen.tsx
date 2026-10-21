@@ -272,6 +272,13 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     session?.status === 'in_progress' ||
     (session?.status === 'open' && !!session.matchesOpenAt && now >= new Date(session.matchesOpenAt).getTime());
 
+  // DP-027: a live match can be scored until the Session ends, and on a
+  // Completed Session for its grace hour (scoringClosesAt).
+  const scoringOpen =
+    session?.status === 'completed'
+      ? !!session.scoringClosesAt && now < new Date(session.scoringClosesAt).getTime()
+      : session?.status !== 'cancelled';
+
   // Draft is pre-publish — nothing check-in/match-related is available
   // yet, not even the organizer's own check-in status (explicit product
   // decision, Milestone 2): check-in (self, adding a participant) and
@@ -916,6 +923,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
             isUmpire={isUmpire}
             isSessionActive={isSessionActive}
             isCompleted={session.lifecycleStatus === 'completed'}
+            scoringOpen={scoringOpen}
             matchesOpen={matchesOpen}
             canRegenerate={canRegenerate}
             busy={busy}
