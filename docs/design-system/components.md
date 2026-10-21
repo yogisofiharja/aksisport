@@ -83,7 +83,7 @@ Checkboxes toggle independent options; radios pick one of a few. In code: new `u
 
 A switch turns a setting on or off immediately, with no Save button. In code: React Native `Switch` with `trackColor` / `thumbColor` from `foundation/colors.ts`, or an app component for the exact look.
 
-- 48×28 track: `ink` when on with a `ball` thumb (v0.29, keeping heat for the one action on a screen), `border-strong` when off (surface thumb).
+- 48×28 track: when on, `ink` with a `ball` thumb in light mode and `ball` with an ink (#131315) thumb in dark mode (keeping heat for the one action on a screen); `border-strong` when off (surface thumb).
 - Label on the left, switch on the right, inside a List; helper text in `caption`.
 - Used for the per-kind notification settings (DP-018) and Community options like turning Community chat off.
 
