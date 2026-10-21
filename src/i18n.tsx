@@ -362,7 +362,7 @@ const en: Dict = {
   sessionDraftRecoveryContinue: 'Continue Draft',
   sessionDraftRecoveryStartNew: 'Or start a new one below',
   sessionHistoryEmptyState: 'No past sessions yet.',
-  mySessionHistoryTitle: 'Session History',
+  mySessionHistoryTitle: 'Session history',
   mySessionHistoryEmptyState: 'Sessions you joined will show up here once their date has passed.',
   sessionCreate: 'Create Session',
   sessionNamePlaceholder: 'Session name',
@@ -773,7 +773,7 @@ const en: Dict = {
 
   // Me (Milestone 1)
   meSportsTitle: 'Sports',
-  logout: 'Log Out',
+  logout: 'Log out',
 
   // Domain cards and app bar (design system)
   cardPlayers: (count: number) => `${count} ${count === 1 ? 'player' : 'players'}`,

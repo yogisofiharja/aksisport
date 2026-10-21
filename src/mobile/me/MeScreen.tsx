@@ -199,7 +199,7 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
             <Icon name="camera-outline" size="xs" />
           </View>
         </Pressable>
-        <VStack style={{ flex: 1, minWidth: 0 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Text accessibilityRole="header" numberOfLines={1} className="font-display-hero text-[28px] leading-[32px] text-ink dark:text-ink-dark">
             {name}
           </Text>
@@ -213,7 +213,7 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
               {t('meEditProfile')}
             </Typography>
           </Pressable>
-        </VStack>
+        </View>
       </HStack>
 
       {/* DP-015: an account with no confirmed email gets a reminder. */}

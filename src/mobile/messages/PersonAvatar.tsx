@@ -33,7 +33,7 @@ export function PersonAvatar({ userId, name, hasAvatar, headers, size = 40 }: Pr
 // initials, the second overlapping the first. A group of one other
 // shows one.
 export function GroupAvatar({ names, size = 44 }: { names: string[]; size?: number }) {
-  const small = Math.round(size * 0.7);
+  const small = Math.round(size * 0.64);
   const shown = names.slice(0, 2);
   return (
     <View style={{ width: size, height: size }}>

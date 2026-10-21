@@ -148,7 +148,7 @@ export function ExploreScreen({ onOpenClub, onCreateClub }: Props) {
 
       <VStack space="md">
         <Input>
-          <InputSlot>
+          <InputSlot className="pr-0">
             <Icon name="search" size="sm" color="muted" />
           </InputSlot>
           <InputField
@@ -211,10 +211,12 @@ export function ExploreScreen({ onOpenClub, onCreateClub }: Props) {
       ) : (
         <VStack space="sm">
           <Typography variant="overline" color="muted">
-            {inTown === null ? t('exploreInTownTitle', shortCityName(town)) : t('exploreInTownCount', shortCityName(town), inTown.length)}
+            {inTown && inTown.length > 0
+              ? t('exploreInTownCount', shortCityName(town), inTown.length)
+              : t('exploreInTownTitle', shortCityName(town))}
           </Typography>
           {inTown === null ? null : inTown.length === 0 ? (
-            <EmptyState message={t('exploreInTownEmpty', town)} />
+            <EmptyState message={t('exploreInTownEmpty', shortCityName(town))} />
           ) : (
             <VStack space="sm">{inTown.map(renderClub)}</VStack>
           )}

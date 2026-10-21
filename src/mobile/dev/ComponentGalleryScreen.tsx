@@ -23,6 +23,9 @@ import { ClubCard } from '../../design-system/domain-ui/ClubCard';
 import { RecurringScheduleCard } from '../../design-system/domain-ui/RecurringScheduleCard';
 import { PlayerCard } from '../../design-system/domain-ui/PlayerCard';
 import { MatchCard, MatchWatchLink } from '../../design-system/domain-ui/MatchCard';
+import { ListGroup, ListRow } from '../../design-system/ui/List';
+import { GroupAvatar } from '../messages/PersonAvatar';
+import { FirstRunHome } from '../home/FirstRunHome';
 
 // Development only (registered in MainStack under __DEV__, at
 // /dev/components): every design-system component on one page, in the
@@ -75,13 +78,8 @@ export function ComponentGalleryScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+      <AppBar title="Components" onBack={onBack} />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 28, paddingBottom: 40 }}>
-        <View className="flex-row items-center justify-between">
-          <Typography variant="heading">Components</Typography>
-          <Button variant="ghost" size="sm" onPress={onBack}>
-            <ButtonText>Back</ButtonText>
-          </Button>
-        </View>
         <Segmented
           options={[
             { value: 'light', label: 'Light' },
@@ -91,6 +89,68 @@ export function ComponentGalleryScreen({ onBack }: { onBack: () => void }) {
           value={preference}
           onChange={setPreference}
         />
+
+        {/* States the redesigned personal pages show that test data
+            rarely has: a live Session, unread conversations, no
+            Community yet. */}
+        <Section title="Home · Right now">
+          <SessionCard variant="hero" title="Sabtu Pagi Doubles" subtitle="AKSI · Lapangan Tenis Senayan" status="Live" statusAction="live" onPress={noop} />
+          <ListGroup>
+            <SessionCard
+              variant="row"
+              title="Selasa Malam Padel"
+              subtitle="19:00 · Padel Pro Kemang · Kemang Padel Club"
+              day={{ weekday: 'TUE', date: '21', today: true }}
+              status="Recruiting"
+              statusAction="recruiting"
+              onPress={noop}
+            />
+            <SessionCard
+              variant="row"
+              title="Sabtu Pagi Doubles"
+              subtitle="07:00 · Senayan · AKSI"
+              day={{ weekday: 'SAT', date: '25', today: false }}
+              status="Draft"
+              statusAction="draft"
+              onPress={noop}
+            />
+          </ListGroup>
+        </Section>
+
+        <Section title="Inbox rows">
+          <ListGroup>
+            <ListRow
+              leading={<GroupAvatar names={['Kevin Wijaya']} />}
+              title="Kevin Wijaya"
+              strong
+              subtitle="Besok jadi main? Aku bawa bola"
+              aside="07:41"
+              trailing={<CountBadge count={2} />}
+              onPress={noop}
+            />
+            <ListRow leading={<GroupAvatar names={['Rani Aulia']} />} title="Rani Aulia" subtitle="You: Sip, nanti aku transfer ya" aside="Yesterday" onPress={noop} />
+            <ListRow
+              leading={<GroupAvatar names={['Budi Santoso', 'Kevin Wijaya']} />}
+              title="Selasa crew"
+              subtitle="Kevin: Minggu depan main di Kemang?"
+              aside="Fri"
+              onPress={noop}
+            />
+          </ListGroup>
+          <ListGroup>
+            <ListRow
+              icon="chatbubbles-outline"
+              title="You & Kemang Padel's organizer"
+              subtitle="Selasa Malam Padel · Receipt received"
+              aside="Thu"
+              onPress={noop}
+            />
+          </ListGroup>
+        </Section>
+
+        <Section title="First run · Home">
+          <FirstRunHome onOpenExplore={noop} onCreateClub={noop} />
+        </Section>
 
         <Section title="Status pills">
           <View className="flex-row flex-wrap gap-2">

@@ -7,10 +7,8 @@ import { HStack } from '../../design-system/layout/HStack';
 import { AppBar } from '../../design-system/layout/AppBar';
 import { useNotificationBell } from '../notifications/NotificationBell';
 import { Typography } from '../../design-system/ui/Typography';
-import { Card } from '../../design-system/ui/Card';
-import { ListGroup, ListRow } from '../../design-system/ui/List';
+import { ListGroup } from '../../design-system/ui/List';
 import { Loading } from '../../design-system/feedback/Loading';
-import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { ClubCard } from '../../design-system/domain-ui/ClubCard';
 import { useTranslation } from '../../i18n';
@@ -23,6 +21,7 @@ import { sessionHeroProps, sessionRowProps } from '../sessions/sessionDisplay';
 import { shortCityName } from '../../core/locations/cityName';
 import { homeDateLine, firstName } from './homeDisplay';
 import type { ClubWithRole, Session } from '../../core/api/types';
+import { FirstRunHome } from './FirstRunHome';
 
 function roleLabel(role: ClubWithRole['role'], t: (key: string) => string) {
   if (role === 'owner') return t('clubRoleOwner');
@@ -139,30 +138,7 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
       {loading && !loaded ? (
         <Loading />
       ) : firstRun ? (
-        <VStack space="md">
-          <Card padding="none">
-            <EmptyState illustration="no-members" title={t('firstRunTitle')} message={t('firstRunMessage')} />
-          </Card>
-          <ListRow
-            framed="dark"
-            icon="compass-outline"
-            title={t('firstRunFindTitle')}
-            subtitle={t('firstRunFindDesc')}
-            chevron
-            onPress={onOpenExplore}
-          />
-          <ListRow
-            framed="light"
-            icon="add"
-            title={t('firstRunStartTitle')}
-            subtitle={t('firstRunStartDesc')}
-            chevron
-            onPress={onCreateClub}
-          />
-          <Typography variant="body" color="muted" className="text-center text-[13px] leading-[18px] mt-1">
-            {t('firstRunLinkHint')}
-          </Typography>
-        </VStack>
+        <FirstRunHome onOpenExplore={onOpenExplore} onCreateClub={onCreateClub} />
       ) : (
         <>
           {/* Right now: the live Session as the dark card, then today's,
