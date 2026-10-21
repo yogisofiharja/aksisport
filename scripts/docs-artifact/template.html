@@ -252,12 +252,12 @@
       <dl class="facts">
         <div class="fact"><dt>Milestones</dt><dd>4 of 6 done<small>the other two are partial</small></dd></div>
         <div class="fact"><dt>Product decisions</dt><dd>21 approved<small>DP-018 (push) in progress</small></dd></div>
-        <div class="fact"><dt>Last commit</dt><dd class="mono">__COMMIT__<small>branch <span class="mono">dev</span>, 45 commits ahead of <span class="mono">master</span></small></dd></div>
+        <div class="fact"><dt>Last commit</dt><dd class="mono">__COMMIT__<small>branch <span class="mono">dev</span>, 8 commits ahead of <span class="mono">master</span></small></dd></div>
         <div class="fact"><dt>Library</dt><dd>__COUNT__ documents<small>archive and the combined export left out</small></dd></div>
       </dl>
 
       <div class="prose">
-        <div class="callout"><b class="cap">Design system</b>The app now uses Aksi Sport: Urban Heat orange, ink, Saira and Plus Jakarta Sans. Tokens and fonts (step 1) and the existing components and screens (step 2) are applied; the new components (step 3) are in progress, and the cards and app bar wait for the new page designs. Read <a href="#design-system-readme">the brand book</a>, <a href="#design-system-codebase">where each part lands in the code</a>, <a href="#design-system-components">the component specs</a>, or open the <a href="https://claude.ai/artifact/YSa2PzfDcgixW3tStAbBzW" target="_blank" rel="noopener">live design system</a>.</div>
+        <div class="callout"><b class="cap">Design system</b>The app now uses Aksi Sport: Urban Heat orange, ink, Saira and Plus Jakarta Sans. Tokens and fonts (step 1) and the existing components and screens (step 2) are applied; the new components (step 3) are in progress. Redesign part A is built: the AppBar on every screen, and Home (with first run), Explore, Inbox, Me, Notifications and Settings follow the redesign canvas; the Community and Session pages are next. Read <a href="#design-system-readme">the brand book</a>, <a href="#design-system-codebase">where each part lands in the code</a>, <a href="#design-system-components">the component specs</a>, or open the <a href="https://claude.ai/artifact/YSa2PzfDcgixW3tStAbBzW" target="_blank" rel="noopener">live design system</a>.</div>
 
         <h2>Milestones</h2>
         <div class="table-wrap"><table>
@@ -274,6 +274,9 @@
         <p>Source: <a href="#implementation-roadmap">Implementation Roadmap</a>.</p>
 
         <h2>Just built</h2>
+        <ul>
+          <li><strong>Redesign part A.</strong> Every screen now has the design system's AppBar (root on the tabs, back chevron on pushed screens, ✕ on forms, dark on live scoring; the Session screen's date is the bar's context line). Home shows "Right now" (a live Session as a dark card, then today's, next and draft Sessions as rows) and your Communities, or a first-run page when you have none. Explore, Inbox, Me, Notifications and Settings follow the redesign boards. See <a href="#current-navigation">Navigation</a>.</li>
+        </ul>
         <ul>
           <li><strong>Recurring Schedule editing and sync (DP-007).</strong> A Schedule can be edited from its detail page. After saving, the organizer chooses whether to push the Template to Sessions already generated. Sessions edited by hand are skipped, and dates and times never move. See <a href="#current-lifecycle-recurring-schedule">Recurring Schedule Lifecycle</a>.</li>
           <li><strong>Cross-Club Session history (DP-009).</strong> "Session History" on the Me tab lists every past Session a player joined, across all Clubs.</li>

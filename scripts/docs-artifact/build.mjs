@@ -51,7 +51,7 @@ for (const [group, paths] of groups) {
 }
 
 const commit = execSync('git rev-parse --short HEAD', { cwd: repo }).toString().trim();
-const synced = new Date().toISOString().slice(0, 10);
+const synced = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD, not UTC
 const json = JSON.stringify(docs).replace(/</g, '\\u003c');
 
 const html = readFileSync(join(here, 'template.html'), 'utf8')
