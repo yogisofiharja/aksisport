@@ -26,6 +26,8 @@ export function notificationText(n: AppNotification, t: T): string {
       return t('notifPaymentConfirmed', p.session ?? '');
     case 'session_reminder':
       return t('notifSessionReminder', p.session ?? '', startsIn(Number(p.minutes), t));
+    case 'umpire_assigned':
+      return t('notifUmpireAssigned', p.session ?? '');
     default:
       return t('notifGeneric');
   }
@@ -57,6 +59,8 @@ export function notificationIcon(type: string): ComponentProps<typeof Ionicons>[
       return 'wallet-outline';
     case 'session_reminder':
       return 'alarm-outline';
+    case 'umpire_assigned':
+      return 'flag-outline';
     default:
       return 'notifications-outline';
   }

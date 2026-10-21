@@ -58,6 +58,11 @@ func Render(locale string, n Notification) (title, body string) {
 			return p("session"), "Dimulai " + startsInText(true, p("minutes")) + "."
 		}
 		return p("session"), "Starts " + startsInText(false, p("minutes")) + "."
+	case TypeUmpireAssigned:
+		if id {
+			return "Wasit", "Kamu jadi wasit untuk " + p("session")
+		}
+		return "Umpire", "You're the umpire for " + p("session")
 	case TypeCommunityJoinRequest:
 		if id {
 			return "Permintaan bergabung", p("name") + " ingin bergabung dengan " + p("club") + "."

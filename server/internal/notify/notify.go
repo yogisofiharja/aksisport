@@ -27,6 +27,8 @@ const (
 	TypePaymentReceipt        = "payment_receipt"
 	TypePaymentConfirmed      = "payment_confirmed"
 	TypeSessionReminder       = "session_reminder"
+	// DP-023: an owner/admin made this person the Session's umpire.
+	TypeUmpireAssigned = "umpire_assigned"
 
 	// Message pushes (DP-021) — pushed only, never recorded: conversations
 	// live in Inbox, not on the Notifications page.
@@ -57,7 +59,7 @@ func CategoryOf(notificationType string) string {
 		return CategorySessionRequests
 	case TypePaymentReceipt, TypePaymentConfirmed:
 		return CategoryPayments
-	case TypeSessionReminder:
+	case TypeSessionReminder, TypeUmpireAssigned:
 		return CategorySessionReminders
 	}
 	return ""

@@ -65,7 +65,7 @@ func NewRouter(d Deps) *gin.Engine {
 	RegisterLocationRoutes(v1, pool, verifier)
 	RegisterSessionRoutes(v1, pool, verifier, msgs, d.Notifier)
 	RegisterActivityRoutes(v1, pool, verifier)
-	RegisterUmpireRoutes(v1, pool, verifier, d.LiveMatches)
+	RegisterUmpireRoutes(v1, pool, verifier, d.LiveMatches, d.Notifier)
 	RegisterRecurringScheduleRoutes(v1, pool, verifier)
 	RegisterSkillLevelRoutes(v1, pool, verifier)
 

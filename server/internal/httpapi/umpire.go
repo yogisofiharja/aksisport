@@ -11,6 +11,7 @@ import (
 
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	dbpkg "github.com/yogisofiharja/aksi-server/internal/db"
+	"github.com/yogisofiharja/aksi-server/internal/notify"
 )
 
 // umpireAssignmentProblem is DP-023's rule for who may make whom the
@@ -43,7 +44,7 @@ type LiveMatches interface {
 	SetScorer(ctx context.Context, activityID, firebaseUID string) error
 }
 
-func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, liveMatches LiveMatches) {
+func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, liveMatches LiveMatches, notifier *notify.Service) {
 	authed := rg.Group("")
 	authed.Use(authjwt.RequireAuth(verifier))
 	authed.Use(authjwt.RequireProfile(pool))
@@ -79,6 +80,10 @@ func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 				return
 			}
 			handOverLiveMatches(ctx, pool, liveMatches, liveIDs, body.UserID)
+			// The new umpire hears about it — never someone taking it back
+			// for themselves (Send skips the caller).
+			notifySession(ctx, pool, notifier, sessionID, []string{body.UserID}, user.ID,
+				notify.TypeUmpireAssigned, "/sessions/"+sessionID+"?tab=matches", nil)
 		}
 		updated, err := dbpkg.GetSession(ctx, pool, sessionID)
 		if err != nil {

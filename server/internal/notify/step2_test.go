@@ -27,7 +27,7 @@ func TestStartsInText(t *testing.T) {
 func TestStepTwoTexts(t *testing.T) {
 	for _, typ := range []string{
 		TypeCommunityJoinApproved, TypeSessionJoinRequest, TypeSessionJoinApproved,
-		TypePaymentReceipt, TypePaymentConfirmed, TypeSessionReminder,
+		TypePaymentReceipt, TypePaymentConfirmed, TypeSessionReminder, TypeUmpireAssigned,
 	} {
 		for _, locale := range []string{"en", "id"} {
 			title, body := Render(locale, Notification{Type: typ, Params: map[string]string{
@@ -41,6 +41,10 @@ func TestStepTwoTexts(t *testing.T) {
 	_, body := Render("en", Notification{Type: TypeSessionReminder, Params: map[string]string{"session": "Sunday doubles", "minutes": "120"}})
 	if body != "Starts in 2 hours." {
 		t.Errorf("reminder body = %q", body)
+	}
+	_, body = Render("id", Notification{Type: TypeUmpireAssigned, Params: map[string]string{"session": "Sabtu Pagi"}})
+	if body != "Kamu jadi wasit untuk Sabtu Pagi" {
+		t.Errorf("umpire body = %q", body)
 	}
 	_, body = Render("en", Notification{Type: TypeSessionJoinApproved, Params: map[string]string{"session": "Sunday doubles", "claimed": "1"}})
 	if body != "You're in Sunday doubles. See you there!" {
@@ -57,6 +61,7 @@ func TestCategoryOf(t *testing.T) {
 		TypePaymentReceipt:        CategoryPayments,
 		TypePaymentConfirmed:      CategoryPayments,
 		TypeSessionReminder:       CategorySessionReminders,
+		TypeUmpireAssigned:        CategorySessionReminders,
 		TypeDirectMessage:         "",
 	}
 	for typ, category := range want {

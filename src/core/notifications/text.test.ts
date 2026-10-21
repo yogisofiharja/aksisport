@@ -21,6 +21,7 @@ describe('notificationText', () => {
     expect(n('payment_receipt', { name: 'Budi', session: 'Sunday' })).toBe('notifPaymentReceipt(Budi,Sunday)');
     expect(n('payment_confirmed', { session: 'Sunday' })).toBe('notifPaymentConfirmed(Sunday)');
     expect(n('session_reminder', { session: 'Sunday', minutes: '120' })).toBe('notifSessionReminder(Sunday,startsIn(durationHours(2)))');
+    expect(n('umpire_assigned', { session: 'Sunday' })).toBe('notifUmpireAssigned(Sunday)');
   });
 
   it('still says something for a type this version does not know', () => {
