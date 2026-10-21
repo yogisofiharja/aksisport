@@ -213,6 +213,37 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		}
 		c.JSON(http.StatusOK, updated)
 	})
+
+	// DP-025 End match early: the umpire stops a live match; it is saved
+	// as Unfinished with the score so far, neither a win nor a loss.
+	authed.POST("/activities/:id/end-early", func(c *gin.Context) {
+		activityID := c.Param("id")
+		_, sessionID, _, ok := requireActivityAccess(c, pool, activityID)
+		if !ok {
+			return
+		}
+		if !requireUmpire(c, pool, sessionID, "only the session's umpire can end a match") {
+			return
+		}
+		var body struct {
+			Result   json.RawMessage `json:"result"`
+			PointLog json.RawMessage `json:"pointLog"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil || len(body.Result) == 0 {
+			respondError(c, http.StatusBadRequest, "result is required")
+			return
+		}
+		updated, err := dbpkg.EndActivityEarly(c.Request.Context(), pool, activityID, body.Result, body.PointLog)
+		if errors.Is(err, dbpkg.ErrConflict) {
+			respondError(c, http.StatusConflict, "match is not live")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, updated)
+	})
 }
 
 // requireUmpire sends 403 with msg unless the caller is the Session's

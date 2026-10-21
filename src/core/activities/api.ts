@@ -33,6 +33,15 @@ export function completeActivity(activityId: string, result: unknown, pointLog?:
   });
 }
 
+// DP-025 End match early: the umpire saves a live match as Unfinished
+// with the score so far.
+export function endActivityEarly(activityId: string, result: unknown, pointLog?: unknown): Promise<Activity> {
+  return apiFetch(`/v1/activities/${activityId}/end-early`, {
+    method: 'POST',
+    body: JSON.stringify({ result, pointLog }),
+  });
+}
+
 // Only a queued (not yet started) match can be deleted — used by the
 // Regenerate-matches flow to clear the upcoming queue before generating a
 // fresh fair round.

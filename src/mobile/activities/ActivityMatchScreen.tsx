@@ -15,7 +15,8 @@ import {
 } from '../../sports/tennis/scoringEngine';
 import type { TeamASide, TeamNames } from '../../appTypes';
 import type { ActivityParticipant, ClubMember, Session } from '../../core/api/types';
-import { getActivity, startActivity, completeActivity, listActivities } from '../../core/activities/api';
+import { getActivity, startActivity, completeActivity, endActivityEarly, listActivities } from '../../core/activities/api';
+import { Dialog } from '../../design-system/feedback/Dialog';
 import { getSession, setSessionUmpire } from '../../core/sessions/api';
 import { listMembers } from '../../core/clubs/api';
 import { ApiRequestError } from '../../core/api/client';
@@ -102,6 +103,8 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
   const [reclaiming, setReclaiming] = useState(false);
   const [umpireSheetVisible, setUmpireSheetVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
+  const [endEarlyVisible, setEndEarlyVisible] = useState(false);
+  const [endingEarly, setEndingEarly] = useState(false);
   const isOrganizer = organizers.some((m) => m.userId === profile?.id);
 
   async function loadSession(id: string) {
@@ -150,6 +153,12 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
           setMatchState((detail.result as MatchState) ?? createInitialState(config));
           setHistory((detail.pointLog as MatchState[] | undefined) ?? []);
           setLoading(false);
+          return;
+        }
+
+        // Stopped early (DP-025): nothing to show beyond its Results row.
+        if (detail.status === 'unfinished') {
+          onBackToSession(detail.sessionId);
           return;
         }
 
@@ -215,6 +224,17 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
       if (!payload) return; // no live data yet/anymore — keep last-known local state
       const myUid = firebaseUser?.uid;
       if (isScorerRef.current && payload.scorerUid && myUid && payload.scorerUid !== myUid) handedOff();
+      // Ended early by the umpire (DP-025): nothing left to watch.
+      if (payload.unfinished) {
+        // The device that ended it has already left; any other — the
+        // umpire's second device included — follows.
+        if (completedRef.current) return;
+        unsubscribeLiveRef.current?.();
+        unsubscribeLiveRef.current = null;
+        if (sessionIdRef.current) onBackToSession(sessionIdRef.current);
+        else onDone();
+        return;
+      }
       // The scorer's own writes come back here; their state is already right.
       if (isScorerRef.current) return;
       if (payload.matchState) setMatchState(payload.matchState);
@@ -445,6 +465,35 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
     announceFinalResult(ended);
   }
 
+  // DP-025 End match early: saved as Unfinished with the score so far,
+  // then back to the Session — no Result saved. Spectators following the
+  // live copy are sent back too.
+  async function handleEndEarly() {
+    if (!isScorer || !matchState || matchState.isEnded || endingEarly) return;
+    setEndingEarly(true);
+    try {
+      await endActivityEarly(activityId, matchState, history);
+      completedRef.current = true;
+      await pushLiveMatchState(activityId, {
+        matchState,
+        history,
+        teamASide,
+        updatedAt: Date.now(),
+        activityId,
+        scorerUid: firebaseUser?.uid,
+        unfinished: true,
+      });
+      isScorerRef.current = false;
+      setIsScorer(false);
+      if (sessionId) onBackToSession(sessionId);
+      else onDone();
+    } catch {
+      appAlert(t('endMatchEarlyFailed'), undefined, [{ text: t('ok') }]);
+    } finally {
+      setEndingEarly(false);
+    }
+  }
+
   function handleShare() {
     if (!matchState) return;
     setNativeShareData(buildMatchShareData(matchState, teamNames));
@@ -560,17 +609,31 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
         )}
         voiceEnabled={voiceEnabled}
         readOnly={!isScorer}
-        scorerName={scorerName}
+        // The umpire may not be playing this match (DP-023).
+        scorerName={scorerName ?? session?.umpireName ?? null}
         onAddPoint={handleAddPoint}
         onUndo={handleUndo}
         onEndMatch={handleEndMatch}
         onToggleVoice={() => setVoiceEnabled((v) => !v)}
-        onOpenOptions={isScorer && !isOrganizer ? () => setOptionsVisible(true) : undefined}
+        onOpenOptions={isScorer ? () => setOptionsVisible(true) : undefined}
       />
       <MatchOptionsSheet
         visible={optionsVisible}
         onClose={() => setOptionsVisible(false)}
         askOrganizers={isOrganizer ? undefined : organizers.map((m) => m.displayName || m.username)}
+        onEndEarly={() => setEndEarlyVisible(true)}
+      />
+      <Dialog
+        visible={endEarlyVisible}
+        title={t('endMatchEarlyConfirmTitle')}
+        description={t('endMatchEarlyConfirmDesc')}
+        cancelLabel={t('keepPlaying')}
+        confirmLabel={t('endMatchEarlyConfirm')}
+        onCancel={() => setEndEarlyVisible(false)}
+        onConfirm={() => {
+          setEndEarlyVisible(false);
+          handleEndEarly();
+        }}
       />
     </View>
   );

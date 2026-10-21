@@ -67,14 +67,13 @@ export function MatchesTab({
   // A filter for this visit only — not saved.
   const [mineOnly, setMineOnly] = useState(false);
   const isMineMatch = (a: ActivityDetail) => a.participants.some((p) => p.userId === myUserId);
-  // Results (a Completed Session): finished matches first, newest on top,
-  // then the rest in queue order.
+  // Results (a Completed Session): ended matches first — finished or
+  // Unfinished (DP-025) — newest on top, then the rest in queue order.
+  const ended = (a: ActivityDetail) => a.status === 'completed' || a.status === 'unfinished';
   const ordered = isCompleted
     ? [
-        ...activities
-          .filter((a) => a.status === 'completed')
-          .sort((x, y) => (y.completedAt ?? '').localeCompare(x.completedAt ?? '')),
-        ...activities.filter((a) => a.status !== 'completed'),
+        ...activities.filter(ended).sort((x, y) => (y.completedAt ?? '').localeCompare(x.completedAt ?? '')),
+        ...activities.filter((a) => !ended(a)),
       ]
     : activities;
   const shown = mineOnly ? ordered.filter(isMineMatch) : ordered;
@@ -132,6 +131,9 @@ export function MatchesTab({
           // the tennis MatchState (the only Sport Module today): set
           // scores, or games when no set was completed.
           const isFinished = a.status === 'completed';
+          // Stopped early (DP-025): its score so far and "Unfinished" — no
+          // winner, no result to open, nothing to share.
+          const isUnfinished = a.status === 'unfinished';
           const isMine = a.id === myNextMatchId;
           const me = a.participants.find((p) => p.userId === myUserId);
           const myName = me ? me.displayName || me.username || undefined : undefined;
@@ -140,7 +142,10 @@ export function MatchesTab({
               .filter((p) => p.team === team)
               .map((p) => p.displayName || p.username || p.guestName)
               .join(' / ');
-          const result = isFinished ? (a.result as Partial<MatchState> | undefined) : undefined;
+          const result = isFinished || isUnfinished ? (a.result as Partial<MatchState> | undefined) : undefined;
+          const endedAt = a.completedAt
+            ? new Date(a.completedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
+            : undefined;
           const sideScore = (team: 'A' | 'B') =>
             result?.completedSets?.length ? result.completedSets.map((set) => set[team]).join(' ') : result?.games?.[team];
           const config = a.config as Partial<MatchConfig> | undefined;
@@ -158,8 +163,8 @@ export function MatchesTab({
                 a.status === 'live'
                   ? undefined
                   : [
-                      { names: teamNames('A'), games: sideScore('A'), winner: result?.winner === 'A' },
-                      { names: teamNames('B'), games: sideScore('B'), winner: result?.winner === 'B' },
+                      { names: teamNames('A'), games: sideScore('A'), winner: isFinished && result?.winner === 'A' },
+                      { names: teamNames('B'), games: sideScore('B'), winner: isFinished && result?.winner === 'B' },
                     ]
               }
               statusLabel={
@@ -169,9 +174,9 @@ export function MatchesTab({
                     ? config?.matchFormat
                       ? matchFormatShort(config.matchFormat, t)
                       : t('activityStatusLive')
-                    : a.completedAt
-                      ? new Date(a.completedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
-                      : t('activityStatusCompleted')
+                    : isUnfinished
+                      ? [t('matchUnfinished'), endedAt].filter(Boolean).join(' · ')
+                      : (endedAt ?? t('activityStatusCompleted'))
               }
               onPress={isFinished ? () => onOpenMatch(a.id) : undefined}
               onShare={isFinished ? () => onShareMatch(a) : undefined}

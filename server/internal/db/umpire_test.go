@@ -104,6 +104,26 @@ func TestSessionUmpire(t *testing.T) {
 		}
 	})
 
+	t.Run("ending early saves the match as unfinished", func(t *testing.T) {
+		other, err := CreateActivity(ctx, pool, sess.ID, "tennis", config, []ActivityParticipantInput{{UserID: &player}}, host)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := StartActivity(ctx, pool, other.ID, player); err != nil {
+			t.Fatal(err)
+		}
+		a, err := EndActivityEarly(ctx, pool, other.ID, json.RawMessage(`{"games":{"A":2,"B":1}}`), json.RawMessage(`[]`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a.Status != "unfinished" || a.CompletedAt == nil {
+			t.Fatalf("status = %q, completedAt = %v", a.Status, a.CompletedAt)
+		}
+		if _, err := EndActivityEarly(ctx, pool, other.ID, json.RawMessage(`{}`), nil); err != ErrConflict {
+			t.Fatalf("ending it again: err = %v, want ErrConflict", err)
+		}
+	})
+
 	t.Run("reclaiming hands them back", func(t *testing.T) {
 		if _, err := SetSessionUmpire(ctx, pool, sess.ID, host); err != nil {
 			t.Fatal(err)

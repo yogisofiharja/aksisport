@@ -18,6 +18,8 @@ export type LiveMatchPayload = {
   // when the umpire confirms. False/absent while finished-but-unconfirmed,
   // so spectators keep seeing "Waiting for the umpire to confirm".
   confirmed?: boolean;
+  // DP-025 End match early: saved as Unfinished; spectators leave.
+  unfinished?: boolean;
 };
 
 // Keyed by activityId under `sessions/` — the only path the RTDB security

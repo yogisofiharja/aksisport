@@ -23,13 +23,15 @@ import { Typography } from '../ui/Typography';
  *   per side with its score (a small "VS" between), the winner in 700 ink
  *   and the other side in 500 ink-muted; a 44px Share button behind a divider on the right
  *   (DP-026).
+ * - unfinished: the completed row for a match stopped early (DP-025):
+ *   its score so far, both sides in ink with no winner, and no Share.
  *
  * `statusLabel` is what follows the court: "Queued", "Race to 4", "07:42".
  * `action` is a composed element: which button shows, and what it does, is
  * Session logic for the screen (DOMAIN_UI.md).
  */
 
-type MatchStatus = 'queued' | 'live' | 'completed';
+type MatchStatus = 'queued' | 'live' | 'completed' | 'unfinished';
 
 export type MatchSide = {
   names: string; // "Budi / Andi"
@@ -146,7 +148,8 @@ export function MatchCard({
     isMine && status === 'queued' ? 'border-2 border-heat' : 'border border-border dark:border-border-dark'
   } ${onPress ? 'active:opacity-70' : ''}`;
 
-  if (status === 'completed') {
+  if (status === 'completed' || status === 'unfinished') {
+    const decided = status === 'completed';
     return (
       <Pressable {...pressProps} className={`flex-row items-center gap-3 px-3.5 py-3 ${frame} ${className}`}>
         <View className="flex-1 min-w-0">
@@ -160,7 +163,9 @@ export function MatchCard({
                 <View className="flex-row items-center justify-between gap-2">
                   <Typography
                     variant="body"
-                    className={`flex-shrink ${side.winner ? 'font-bold' : 'font-medium text-ink-muted dark:text-ink-muted-dark'}`}
+                    className={`flex-shrink ${
+                      !decided ? 'font-semibold' : side.winner ? 'font-bold' : 'font-medium text-ink-muted dark:text-ink-muted-dark'
+                    }`}
                     numberOfLines={1}
                     accessibilityLabel={side.winner ? `${side.names}, ${t('cardWinner')}` : undefined}
                   >
@@ -169,7 +174,7 @@ export function MatchCard({
                   {side.games != null ? (
                     <Text
                       className={`font-display text-lg leading-[22px] ${
-                        side.winner ? 'text-ink dark:text-ink-dark' : 'text-ink-muted dark:text-ink-muted-dark'
+                        !decided || side.winner ? 'text-ink dark:text-ink-dark' : 'text-ink-muted dark:text-ink-muted-dark'
                       }`}
                       style={tabular}
                     >
@@ -185,7 +190,7 @@ export function MatchCard({
             </Typography>
           )}
         </View>
-        {onShare ? (
+        {onShare && decided ? (
           <Pressable
             onPress={onShare}
             accessibilityRole="button"

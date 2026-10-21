@@ -215,3 +215,26 @@ func CompleteActivity(ctx context.Context, pool *pgxpool.Pool, activityID string
 	}
 	return a, err
 }
+
+// EndActivityEarly saves a 'live' activity as 'unfinished' with the score
+// so far and its point log (DP-025 End match early). Returns ErrConflict
+// if it isn't live.
+func EndActivityEarly(ctx context.Context, pool *pgxpool.Pool, activityID string, result, pointLog json.RawMessage) (models.Activity, error) {
+	rows, err := pool.Query(ctx,
+		`UPDATE activities SET status = 'unfinished', result = $2, point_log = COALESCE($3, point_log), completed_at = now()
+		 WHERE id = $1 AND status = 'live' RETURNING `+activityColumns,
+		activityID, result, pointLog,
+	)
+	if err != nil {
+		return models.Activity{}, err
+	}
+	a, err := pgx.CollectOneRow(rows, scanActivity)
+	rows.Close()
+	if errors.Is(err, pgx.ErrNoRows) {
+		if _, gerr := GetActivity(ctx, pool, activityID); errors.Is(gerr, ErrNotFound) {
+			return models.Activity{}, ErrNotFound
+		}
+		return models.Activity{}, ErrConflict
+	}
+	return a, err
+}

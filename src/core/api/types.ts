@@ -263,7 +263,9 @@ export type SessionParticipant = {
   hasReceipt: boolean;
 };
 
-export type ActivityStatus = 'queued' | 'live' | 'completed';
+// 'unfinished': stopped before it was decided (DP-025 End match early,
+// DP-027) — its score so far, neither a win nor a loss.
+export type ActivityStatus = 'queued' | 'live' | 'completed' | 'unfinished';
 
 export type ActivityParticipant = {
   id: string;
