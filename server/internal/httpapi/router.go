@@ -22,6 +22,9 @@ type Deps struct {
 	// Passwords may be nil — password recovery then reports itself
 	// unavailable.
 	Passwords PasswordSetter
+	// LiveMatches may be nil — an umpire handover then leaves live copies
+	// in Firebase with the old umpire.
+	LiveMatches LiveMatches
 	// ClientIP identifies callers for rate limiting the public routes.
 	ClientIP ClientIPResolver
 	// Notifier records and pushes notifications (DP-018).
@@ -62,7 +65,7 @@ func NewRouter(d Deps) *gin.Engine {
 	RegisterLocationRoutes(v1, pool, verifier)
 	RegisterSessionRoutes(v1, pool, verifier, msgs, d.Notifier)
 	RegisterActivityRoutes(v1, pool, verifier)
-	RegisterUmpireRoutes(v1, pool, verifier)
+	RegisterUmpireRoutes(v1, pool, verifier, d.LiveMatches)
 	RegisterRecurringScheduleRoutes(v1, pool, verifier)
 	RegisterSkillLevelRoutes(v1, pool, verifier)
 

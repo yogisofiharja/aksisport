@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -35,7 +37,13 @@ func isSessionUmpire(umpireUserID, userID string) bool {
 	return umpireUserID != "" && umpireUserID == userID
 }
 
-func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier) {
+// LiveMatches moves a match's live copy in Firebase to a new scorer
+// (firebaseadmin.LiveMatches).
+type LiveMatches interface {
+	SetScorer(ctx context.Context, activityID, firebaseUID string) error
+}
+
+func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, liveMatches LiveMatches) {
 	authed := rg.Group("")
 	authed.Use(authjwt.RequireAuth(verifier))
 	authed.Use(authjwt.RequireProfile(pool))
@@ -65,10 +73,12 @@ func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 			return
 		}
 		if body.UserID != sess.UmpireUserID {
-			if _, err := dbpkg.SetSessionUmpire(ctx, pool, sessionID, body.UserID); err != nil {
+			liveIDs, err := dbpkg.SetSessionUmpire(ctx, pool, sessionID, body.UserID)
+			if err != nil {
 				respondError(c, http.StatusInternalServerError, "internal error")
 				return
 			}
+			handOverLiveMatches(ctx, pool, liveMatches, liveIDs, body.UserID)
 		}
 		updated, err := dbpkg.GetSession(ctx, pool, sessionID)
 		if err != nil {
@@ -77,4 +87,23 @@ func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		}
 		c.JSON(http.StatusOK, updated)
 	})
+}
+
+// handOverLiveMatches lets the new umpire's device write to each live
+// match's copy in Firebase, from its current score (DP-023). Best effort:
+// a failure is logged, and the database already names the new umpire.
+func handOverLiveMatches(ctx context.Context, pool *pgxpool.Pool, liveMatches LiveMatches, activityIDs []string, userID string) {
+	if liveMatches == nil || len(activityIDs) == 0 {
+		return
+	}
+	uid, err := dbpkg.FirebaseUID(ctx, pool, userID)
+	if err != nil {
+		log.Printf("umpire handover: firebase uid of %s: %v", userID, err)
+		return
+	}
+	for _, id := range activityIDs {
+		if err := liveMatches.SetScorer(ctx, id, uid); err != nil {
+			log.Printf("umpire handover: live match %s: %v", id, err)
+		}
+	}
 }

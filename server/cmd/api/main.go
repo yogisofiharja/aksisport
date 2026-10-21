@@ -78,6 +78,17 @@ func main() {
 		passwords = setter
 	}
 
+	// DP-023: without these, an umpire handed a match mid-play can't write
+	// its live score until the match is reopened from the start.
+	var liveMatches httpapi.LiveMatches
+	if cfg.FirebaseServiceAccountFile == "" || cfg.FirebaseDatabaseURL == "" {
+		log.Print("umpire handover: live scores stay with the old umpire (FIREBASE_SERVICE_ACCOUNT_FILE or FIREBASE_DATABASE_URL is not set)")
+	} else if lm, err := firebaseadmin.NewLiveMatchesFromFile(cfg.FirebaseServiceAccountFile, cfg.FirebaseDatabaseURL); err != nil {
+		log.Printf("umpire handover: live scores stay with the old umpire (%v)", err)
+	} else {
+		liveMatches = lm
+	}
+
 	// DP-018. The Web Push key pair is generated on first start and kept
 	// in the database: browsers bind their subscriptions to it.
 	vapidPublic, vapidPrivate, err := db.GetOrCreateServerKeys(ctx, pool, "vapid_public_key", "vapid_private_key", notify.GenerateVAPIDKeys)
@@ -102,6 +113,7 @@ func main() {
 		AllowedOrigins: cfg.AllowedOrigins,
 		Mailer:         mailer,
 		Passwords:      passwords,
+		LiveMatches:    liveMatches,
 		Notifier:       notifier,
 		Hub:            hub,
 		ClientIP: httpapi.ClientIPResolver{

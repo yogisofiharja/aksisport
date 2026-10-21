@@ -15,6 +15,10 @@ type Config struct {
 	// (JSON). Only password recovery (DP-015) needs it; unset, everything
 	// else works and recovery reports itself unavailable.
 	FirebaseServiceAccountFile string
+	// FirebaseDatabaseURL is the Realtime Database holding live match
+	// copies. With the service account, an umpire handover moves them to
+	// the new umpire (DP-023).
+	FirebaseDatabaseURL string
 	// ResendAPIKey selects Resend as the mail provider (DP-015). Unset,
 	// mail is written to the server log instead of being sent.
 	ResendAPIKey string
@@ -56,6 +60,7 @@ func Load() Config {
 		FirebaseProject:                     os.Getenv("FIREBASE_PROJECT_ID"),
 		AllowedOrigins:                      getEnv("ALLOWED_ORIGINS", "*"),
 		FirebaseServiceAccountFile:          os.Getenv("FIREBASE_SERVICE_ACCOUNT_FILE"),
+		FirebaseDatabaseURL:                 os.Getenv("FIREBASE_DATABASE_URL"),
 		ResendAPIKey:                        os.Getenv("RESEND_API_KEY"),
 		MailFrom:                            os.Getenv("MAIL_FROM"),
 		ClientIPHeader:                      os.Getenv("CLIENT_IP_HEADER"),
