@@ -4,7 +4,11 @@
 `aksi-production`), whose Realtime Database rules are in the repository:
 `deploy/firebase/database.rules.json` — only signed-in people can read a
 live score, and only the match's scorer (the `scorerUid` in the payload)
-can create, change or remove it. They are applied by hand when each
+can create, change or remove it. When an owner/admin hands umpiring
+over mid-match (DP-023), the server rewrites `scorerUid` on each live
+copy of the Session with its service account (`firebaseadmin.LiveMatches`,
+REST, needs `FIREBASE_SERVICE_ACCOUNT_FILE` and `FIREBASE_DATABASE_URL`),
+so the new umpire can write and the old one can't. They are applied by hand when each
 project is created (`docs/engineering/deployment.md`, "Firebase
 projects"). Until an environment has moved, it still uses the shared
 `poin-yuk` project described below, whose rules must stay open for the

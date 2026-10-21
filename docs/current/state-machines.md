@@ -38,11 +38,18 @@ directly off this state to choose Auth/CompleteProfile/Main — see
 mount
   → loading: true
   → GET /v1/activities/:id
+  → also loads the Session (its umpire) and the Club's owners/admins
   → completed: show the stored result (never the live copy)
+  → unfinished (DP-025): back to the Session — it has no result screen
   → queued:    show MatchStartScreen (DP-022) — nothing is started yet
   → live, I'm the scorer: resume from the live copy (readLiveMatch) if there is
                one, else createInitialState(config)    [see lifecycle-match.md]
-  → live, someone else scores: subscribe to the live copy (watch)
+  → live, someone else scores: watch
+  → live, either way: subscribe to the live copy (watchLive) —
+      its scorerUid moves away from me (DP-023 handover) → spectator view,
+        toast "<Name> is umpiring now"
+      its scorerUid becomes mine → scorer, from the copy's current state
+      unfinished=true and I didn't end it → back to the Session
   → loading: false
 
 MatchStartScreen (queued): pick sides (Team A left or right, "Switch sides")
@@ -50,7 +57,11 @@ MatchStartScreen (queued): pick sides (Team A left or right, "Switch sides")
   the players — at least 16 hops, about 3 seconds, slowing down — until it
   stops on a random one (`spinSteps`); while it spins the line below says
   "Choosing who serves first…" and everything else is disabled; the name
-  appears once it stops) → "Start match":
+  appears once it stops). Below the sides: "Umpire for this session · <Name>"
+  (DP-023) with "Change" (owners/admins, opens UmpireSheet) or "Organizers can
+  change this". Only the umpire gets "Start match"; an owner/admin who isn't
+  the umpire gets "Make me umpire" instead; everyone else gets neither.
+  "Start match":
   POST /start → I'm the scorer: createInitialState with the service order
   rebuilt from the chosen first server (buildServiceOrder), sides kept for the
   match. 409 (another device started first) → watch it instead, with a notice.
@@ -74,7 +85,13 @@ render branches on (loading, pendingConfig, error, matchState.isEnded):
                         'matches' }). Both clear the live copy.
                       → otherwise (opened later, or watched to the end):
                         MatchResultScreen — winner, score, "Share result", back.
-  else                → MobileMatchScreen (live scoring UI)
+  else                → MobileMatchScreen (live scoring UI); the scorer's ⋯ opens
+                        Match options (MatchOptionsSheet, DP-023/DP-025): for an
+                        umpire who isn't an organizer, "Need a break or leaving
+                        early?" naming the organizers to ask; then "End match early"
+                        → Dialog "End this match now?" (Keep playing / End match) →
+                        POST /end-early with the score so far, the live copy marked
+                        unfinished, back to the Session.
 ```
 
 `MobileMatchScreen` has two modes (DP-022), both with Team A on the side

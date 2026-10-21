@@ -461,15 +461,25 @@ in `internal/db/conversations.go`).
 | POST | `/v1/sessions/:id/activities` | profile | owner/admin | Body `{config, participants: [{userId\|guestName, team?}]}`. Creates a `queued` activity. `config`/`result` are opaque JSON, not validated server-side. |
 | GET | `/v1/sessions/:id/activities` | profile | member | Ordered live → queued → completed, then `created_at ASC` within each. |
 | GET | `/v1/activities/:id` | profile | member of parent club | Returns `ActivityDetail` (activity + participants). |
-| POST | `/v1/activities/:id/start` | profile | checked-in participant of *this activity*, or owner/admin of the parent club | `queued → live`. Sets `scorer_user_id` = caller, `started_at` = now. 409 unless matches are open (`db.MatchesOpen`, checked before anything else): the Session is `in_progress`, or it is `open` and now is at or after `starts_at` minus `MATCH_EARLY_START_MINUTES` (default 10, DP-022) — also 409 if the activity isn't currently `queued`. Starting a match on an `open` Session moves the Session to `in_progress` (`db.StartSessionEarly`, only from `open`); it still completes at `starts_at + duration_minutes`. Owner/admin bypasses the checked-in-participant eligibility check (`dbpkg.IsCheckedInActivityParticipant`) entirely — they can start any queued match in the session administratively, becoming its scorer even if they're not one of its players (e.g. scoring on behalf of players without the app). |
-| POST | `/v1/activities/:id/complete` | profile | current scorer only | Body `{result, pointLog?}`. `live → completed`. 403 if caller isn't `scorer_user_id`. 409 if not currently `live`. |
+| POST | `/v1/activities/:id/start` | profile | the Session's umpire (DP-023) | `queued → live`. Sets `scorer_user_id` = the umpire, `started_at` = now. 409 unless matches are open (`db.MatchesOpen`, checked first): the Session is `in_progress`, or it is `open` and now is at or after `starts_at` minus `MATCH_EARLY_START_MINUTES` (default 10, DP-022) — also 409 if the activity isn't currently `queued`. 403 for anyone but the umpire, owners/admins and the match's own players included. Starting a match on an `open` Session moves the Session to `in_progress` (`db.StartSessionEarly`, only from `open`); it still completes at `starts_at + duration_minutes`. |
+| POST | `/v1/activities/:id/complete` | profile | the Session's umpire | Body `{result, pointLog?}`. `live → completed`. 403 for anyone else. 409 if not currently `live`. |
+| POST | `/v1/activities/:id/end-early` | profile | the Session's umpire | DP-025 End match early. Body `{result, pointLog?}` (the score so far). `live → unfinished` — neither a win nor a loss (stats read `completed` only). 409 if not currently `live`. |
 | DELETE | `/v1/activities/:id` | profile | owner/admin | As of v0.8.0. Only a `queued` match can be deleted — 409 otherwise (`db.DeleteActivity`). Used by the client's Regenerate-matches flow (`AddMatchScreen`/`SessionDetailScreen`), which deletes every currently queued match before generating a fresh fair round; not exposed as a standalone "delete this match" action anywhere in the UI yet. |
 
 Not implemented: activity edit while queued (`PATCH /v1/activities/:id`),
 auto-generation as a standalone endpoint (match generation instead
 happens client-side — see DP-005's Match Generation — by calling the
-existing `POST /v1/sessions/:id/activities` once per generated match),
-scorer transfer.
+existing `POST /v1/sessions/:id/activities` once per generated match).
+Handing scoring over happens per Session, through its umpire (below).
+
+### Umpire (DP-023)
+
+| Method | Path | Auth | Extra check | Notes |
+|---|---|---|---|---|
+| PUT | `/v1/sessions/:id/umpire` | profile | owner/admin | Body `{userId}`. The target must be a `checked_in` participant of the Session (playing or not), or the caller themselves (reclaim, checked in or not) — 400 otherwise. 409 on a `completed` or `cancelled` Session. Sets `sessions.umpire_user_id`; every `live` match of the Session gets `scorer_user_id` = the new umpire, and its live copy in Firebase gets the new `scorerUid` (when `FIREBASE_SERVICE_ACCOUNT_FILE` and `FIREBASE_DATABASE_URL` are set). Notifies the new umpire (`umpire_assigned`, not when they took it themselves). Returns the Session. |
+
+Every Session payload carries `umpireUserId` (the creator by default) and
+`umpireName`.
 
 ## Skill Levels (DP-008)
 

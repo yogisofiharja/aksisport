@@ -76,8 +76,8 @@ and previewable like a public one — only joining is gated.
 | View session, list sessions, register, check in, view participants | any member |
 | Create activity (`POST /v1/sessions/:id/activities`) | `owner` or `admin` |
 | View activity/activities | any member of the parent club |
-| Start an activity | **partly role-based** — see below |
-| Complete an activity | **not role-based** — see below |
+| Make someone the Session's umpire (`PUT /v1/sessions/:id/umpire`, DP-023) | `owner` or `admin` — a checked-in participant, or themselves |
+| Start, complete or end early an activity | **not role-based** — the Session's umpire only, see below |
 | Manage Club bank accounts (create/update/delete) | `owner` only |
 | List Club bank accounts | any member |
 | Confirm payment (a player's row ⋯ on Players, DP-024) | `owner` or `admin` |
@@ -85,11 +85,9 @@ and previewable like a public one — only joining is gated.
 | View a payment receipt image | **not role-based alone** — see below |
 
 `docs/archive/prd.md`'s Club Roles section lists Admin as able to "Assign scorer" —
-there is no assign-scorer endpoint; the closest actual behavior is
-that starting an activity makes the starter the scorer (see
-`lifecycle-activity.md`). Owner/admin can trigger this administratively
-on any queued match (see below); a regular member can only trigger it
-for a match they're actually playing in.
+DP-023 makes this per Session: owners/admins choose the Session's
+**umpire** (`PUT /v1/sessions/:id/umpire`), who scores every match of
+it (see `lifecycle-activity.md`).
 
 ## Payment receipt visibility (Milestone 5, DP-012)
 
@@ -110,21 +108,17 @@ payment). Everyone else still sees that participant's `status`
 
 ## Activity-specific rules
 
-- **Start** (`POST /v1/activities/:id/start`): caller must be a
-  **checked-in participant of that specific activity** — i.e. present
-  in `activity_participants` for this activity AND their
-  `session_participants.status = 'checked_in'` for the parent session —
-  **or** `owner`/`admin` of the parent club. The role check is an
-  `isOwnerOrAdmin(role)` bypass added around the checked-in-participant
-  check (`dbpkg.IsCheckedInActivityParticipant`) — an owner/admin can
-  start any queued match in the session even if they're not one of its
-  players, becoming its scorer (e.g. scoring on behalf of players
-  without the app). A regular member who isn't one of the activity's
-  participants still cannot start it.
-- **Complete** (`POST /v1/activities/:id/complete`): caller must be
-  exactly `activities.scorer_user_id` (set when the activity was
-  started). No one else — not even the club owner — can complete a
-  match they aren't scoring.
+- **Start, complete, end early** (`POST /v1/activities/:id/start`,
+  `/complete`, `/end-early`): the caller must be the Session's umpire
+  (`sessions.umpire_user_id`, the creator by default) — nobody else, not
+  the match's players and not the Club's owner/admins. An owner/admin
+  who wants to score takes the umpire role first (reclaim). The app
+  mirrors this: only the umpire sees Start and scoring controls.
+- **Assign the umpire** (`PUT /v1/sessions/:id/umpire`): `owner`/`admin`
+  only; the target is a `checked_in` participant of the Session or the
+  caller themselves; not on a Completed or Cancelled Session. The umpire
+  can't hand the role on; the app tells a non-organizer umpire whom to
+  ask (Match options).
 
 ## Sole-owner protection
 
@@ -138,10 +132,8 @@ ownership at all** — a club's owner is permanent once set at creation.
 
 ## Live match (Firebase RTDB)
 
-`src/sessionSync.ts` has no security rules or auth check of any kind —
-`db.ts`'s Firebase Realtime Database has no documented rules file in
-this repo. Any client holding a key can read and write
-`sessions/{key}`. The `scorerUid` field in `LiveMatchPayload` is not
-enforced anywhere (client or RTDB rules) — it's
-present in the payload but nothing currently rejects a write from a
-non-scorer.
+See `firebase-security.md`. In Aksi's own Firebase projects the rules
+(`deploy/firebase/database.rules.json`) let only the live copy's
+`scorerUid` write to it. An umpire handover (DP-023) moves `scorerUid`
+to the new umpire from the server, with the service account, so the
+rules stay as they are.

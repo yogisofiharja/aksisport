@@ -210,6 +210,8 @@ The scoreboard shows a live match: teams, set scores and the current game, on as
 - The serving side carries a `ball` dot; the other side keeps an empty dot so names stay aligned.
 - All numerals use the display face with tabular numerals so scores never jump.
 
+Match rows (the same component, on surface): one line per side with a small muted "VS" between; a finished match shows each side's score, the winner in 700 ink; an **Unfinished** match (DP-025) shows its score with both sides in ink, "UNFINISHED · 21:25" as the eyebrow, and no Share.
+
 In code: `domain-ui/MatchCard.tsx`.
 
 ### Avatar
