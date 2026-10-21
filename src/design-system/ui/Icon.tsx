@@ -19,7 +19,7 @@ import { iconSize, type IconSizeToken } from '../foundation/icon-size';
  * replaces).
  */
 
-type IconColor = 'default' | 'muted' | 'brand' | 'secondary' | 'destructive' | 'onBrand' | 'onDark' | 'success' | 'info';
+type IconColor = 'default' | 'muted' | 'brand' | 'secondary' | 'destructive' | 'onBrand' | 'onDark' | 'success' | 'info' | 'inverse';
 
 type IconProps = {
   name: ComponentProps<typeof Ionicons>['name'];
@@ -45,6 +45,7 @@ export function Icon({ name, size = 'md', color: colorToken = 'default', style }
     onDark: palette.onAsphalt, // on asphalt or danger fills
     success: palette.success, // on success-tint
     info: palette.info, // on info-tint
+    inverse: palette.surface, // on an ink fill (a selected Chip)
   };
 
   return <Ionicons name={name} size={iconSize[size]} color={resolved[colorToken]} style={style} />;

@@ -721,7 +721,6 @@ const en: Dict = {
   townsMakeActive: (name: string) => `Make ${name} active`,
   townsRemove: (name: string) => `Remove ${name}`,
   townsAdd: 'Add a town',
-  exploreOtherTown: 'Other town',
   townTitle: 'Your town',
   cityPickerSearchPlaceholder: 'Search a city or regency',
   cityPickerChooseProvince: 'Or choose a province',
@@ -806,6 +805,8 @@ const en: Dict = {
   firstRunStartTitle: "Start a community",
   firstRunStartDesc: "For organizers: run sessions for your group",
   firstRunLinkHint: "Someone shared a community link? Open it and you'll land right on that community.",
+  exploreInTownCount: (town: string, count: number) => `Communities in ${town} · ${count}`,
+  exploreStartCommunity: "Can't find yours? Start a community",
 };
 
 const id: Dict = {
@@ -1521,7 +1522,6 @@ const id: Dict = {
   townsMakeActive: (name: string) => `Jadikan ${name} aktif`,
   townsRemove: (name: string) => `Hapus ${name}`,
   townsAdd: 'Tambah kota',
-  exploreOtherTown: 'Kota lain',
   townTitle: 'Kota kamu',
   cityPickerSearchPlaceholder: 'Cari kota atau kabupaten',
   cityPickerChooseProvince: 'Atau pilih provinsi',
@@ -1606,6 +1606,8 @@ const id: Dict = {
   firstRunStartTitle: "Buat komunitas",
   firstRunStartDesc: "Untuk penyelenggara: atur sesi untuk grupmu",
   firstRunLinkHint: "Ada yang membagikan tautan komunitas? Buka tautannya dan kamu langsung masuk ke komunitas itu.",
+  exploreInTownCount: (town: string, count: number) => `Komunitas di ${town} · ${count}`,
+  exploreStartCommunity: "Tidak ketemu? Buat komunitas",
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

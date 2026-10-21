@@ -59,7 +59,12 @@ export function PersonalTabs() {
           tabBarIcon: ({ focused }) => <Icon name="compass-outline" color={focused ? 'secondary' : 'muted'} />,
         }}
       >
-        {() => <ExploreScreen onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })} />}
+        {() => (
+          <ExploreScreen
+            onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })}
+            onCreateClub={() => rootNavigation.navigate('CreateClub')}
+          />
+        )}
       </Tab.Screen>
 
       <Tab.Screen

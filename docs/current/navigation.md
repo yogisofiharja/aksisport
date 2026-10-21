@@ -310,13 +310,14 @@ The app's Personal Context — always the post-auth entry point
   the last keystroke. Each result card shows the Community's picture,
   name, **location**, member count, a "Private" badge where it applies,
   and "Joined"/"Requested" if that describes the caller. Tapping one
-  pushes `ClubDetail`. Before a search is typed, it lists "Communities
-  in <active town>" (`GET /v1/clubs/in-my-city`: Communities in the
-  caller's active town that they haven't joined). Above the list, the
-  caller's saved towns as chips, the active one filled in: tapping another
-  switches to it; "Other town" opens the city picker, and the town picked
-  is saved and made active. With no town at all, a card invites them to
-  choose one instead.
+  pushes `ClubDetail` (Join lives on the Community page, never on the
+  row). Before a search is typed, the active town is one filled chip
+  under the search field: tapping it opens the city picker, and the town
+  picked is saved and made active. Below it, "Communities in <town> ·
+  <count>" (`GET /v1/clubs/in-my-city`: Communities in the caller's
+  active town that they haven't joined). With no town at all, a card
+  invites them to choose one instead. At the bottom, "Can't find yours?
+  Start a community" pushes `CreateClub`.
 - **Inbox** (`InboxScreen`) — its first real content (DP-013 Contact
   Organizer, was a placeholder through Milestone 5): every Contact
   Organizer thread the caller is a party to, either as the member (their

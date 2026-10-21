@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, TextInput } from 'react-native';
+import { ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { useColorScheme } from 'nativewind';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
@@ -9,6 +8,8 @@ import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Card } from '../../design-system/ui/Card';
+import { Chip } from '../../design-system/ui/Chip';
+import { Input, InputField, InputSlot } from '../../design-system/ui/Input';
 import { ClubCard } from '../../design-system/domain-ui/ClubCard';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { useTranslation } from '../../i18n';
@@ -22,6 +23,7 @@ import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onOpenClub: (clubId: string) => void;
+  onCreateClub: () => void;
 };
 
 const MIN_QUERY_LENGTH = 2;
@@ -35,14 +37,17 @@ const MIN_QUERY_LENGTH = 2;
 // Typing two or more characters switches to search by name or location,
 // with results appearing after a short pause.
 //
+// The active town is one chip at the top (Aksi redesign › Explore);
+// tapping it opens the town picker, and the town picked is saved and made
+// active. Rows open the Community page — Join lives there, never on the
+// row.
+//
 // Every Community is shown with its location, so two with similar names
 // can be told apart. Tapping one opens it: members land on its home,
 // everyone else on its preview with the option to join.
-export function ExploreScreen({ onOpenClub }: Props) {
+export function ExploreScreen({ onOpenClub, onCreateClub }: Props) {
   const { t } = useTranslation();
   const { profile, refreshProfile } = useAuth();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ClubPreview[]>([]);
   // The query the current `results` answer — so "no matches" is only
@@ -141,33 +146,51 @@ export function ExploreScreen({ onOpenClub }: Props) {
   return (
     <ScrollPage gap="lg" keyboardShouldPersistTaps="handled" appBar={<AppBar variant="root" title={t('exploreTitle')} />}>
 
-      <HStack className="items-center rounded-2xl border border-border-strong dark:border-border-strong-dark bg-surface dark:bg-surface-dark px-4" space="sm">
-        <Icon name="search" size="sm" color="muted" />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('exploreSearchPlaceholder')}
-          placeholderTextColor={isDark ? '#64748b' : '#9ca3af'}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          className="flex-1 font-semibold text-ink dark:text-ink-dark"
-          style={{ height: 48, fontSize: 16 }}
-        />
-        {searching ? (
-          <ActivityIndicator size="small" />
-        ) : query.length > 0 ? (
-          <Pressable onPress={() => setQuery('')} hitSlop={8} className="active:opacity-60" accessibilityLabel={t('exploreClearSearch')}>
-            <Icon name="close-circle" size="sm" color="muted" />
-          </Pressable>
+      <VStack space="md">
+        <Input>
+          <InputSlot>
+            <Icon name="search" size="sm" color="muted" />
+          </InputSlot>
+          <InputField
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('exploreSearchPlaceholder')}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            accessibilityLabel={t('exploreSearchPlaceholder')}
+          />
+          {searching ? (
+            <InputSlot>
+              <ActivityIndicator size="small" />
+            </InputSlot>
+          ) : query.length > 0 ? (
+            <InputSlot>
+              <Pressable onPress={() => setQuery('')} hitSlop={8} className="active:opacity-60" accessibilityLabel={t('exploreClearSearch')}>
+                <Icon name="close-circle" size="sm" color="muted" />
+              </Pressable>
+            </InputSlot>
+          ) : null}
+        </Input>
+        {town && !isSearching ? (
+          <HStack>
+            <Chip
+              selected
+              icon="location-outline"
+              trailingIcon="chevron-down"
+              label={shortCityName(town)}
+              accessibilityLabel={`${shortCityName(town)}, ${t('exploreChangeTown')}`}
+              onPress={() => setShowCityPicker(true)}
+            />
+          </HStack>
         ) : null}
-      </HStack>
+      </VStack>
 
       {isSearching ? (
         answeredQuery === trimmed && results.length === 0 ? (
           <EmptyState message={t('exploreNoResults', trimmed)} />
         ) : (
-          <VStack space="md">{results.map(renderClub)}</VStack>
+          <VStack space="sm">{results.map(renderClub)}</VStack>
         )
       ) : !town ? (
         <Card>
@@ -188,46 +211,21 @@ export function ExploreScreen({ onOpenClub }: Props) {
       ) : (
         <VStack space="sm">
           <Typography variant="overline" color="muted">
-            {t('exploreInTownTitle', town)}
+            {inTown === null ? t('exploreInTownTitle', shortCityName(town)) : t('exploreInTownCount', shortCityName(town), inTown.length)}
           </Typography>
-          {/* The person's saved towns, the active one highlighted — going
-              home or coming back is one tap. */}
-          <HStack className="flex-wrap gap-2">
-            {(profile?.cities ?? []).map((city) => {
-              const active = city.code === cityCode;
-              return (
-                <Pressable
-                  key={city.code}
-                  onPress={() => switchTown(city.code)}
-                  disabled={active}
-                  className={`px-3 py-2 rounded-full ${active ? 'bg-ink dark:bg-ink-dark' : 'bg-surface-sunken dark:bg-surface-sunken-dark'} active:opacity-70`}
-                >
-                  <Typography variant="body" className={active ? 'text-sm font-sans-bold text-surface dark:text-surface-dark' : 'text-sm font-semibold text-ink-muted dark:text-ink-muted-dark'}>
-                    {shortCityName(city.name)}
-                  </Typography>
-                </Pressable>
-              );
-            })}
-            <Pressable
-              onPress={() => setShowCityPicker(true)}
-              className="px-3 py-2 rounded-full border border-dashed border-border-strong dark:border-border-strong-dark active:opacity-70"
-              accessibilityLabel={t('townsAdd')}
-            >
-              <HStack className="items-center" space="xs">
-                <Icon name="add" size="xs" color="muted" />
-                <Typography variant="body" color="muted" className="text-sm font-semibold">
-                  {t('exploreOtherTown')}
-                </Typography>
-              </HStack>
-            </Pressable>
-          </HStack>
           {inTown === null ? null : inTown.length === 0 ? (
             <EmptyState message={t('exploreInTownEmpty', town)} />
           ) : (
-            <VStack space="md">{inTown.map(renderClub)}</VStack>
+            <VStack space="sm">{inTown.map(renderClub)}</VStack>
           )}
         </VStack>
       )}
+
+      <Pressable onPress={onCreateClub} accessibilityRole="link" className="min-h-[44px] items-center justify-center active:opacity-60">
+        <Typography variant="label" color="brand">
+          {t('exploreStartCommunity')}
+        </Typography>
+      </Pressable>
 
       <CityPickerModal
         visible={showCityPicker}

@@ -1,10 +1,14 @@
+import type { ComponentProps } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { Icon } from './Icon';
 
 /**
  * Chips (Aksi Sport › Chip).
  *
  * - `Chip` with `onPress`: a filter chip — 36px, `border-strong` outline;
- *   selected flips to an ink fill with surface text. Put a row of them in a
+ *   selected flips to an ink fill with surface text. `icon` /
+ *   `trailingIcon` add 16px icons around the label (Explore's town chip:
+ *   a pin and a chevron). Put a row of them in a
  *   horizontal ScrollView; never wrap them to a fixed width.
  * - `Chip` without `onPress`: a tag — a static label such as a skill level
  *   or a role (Admin, Owner). Not tappable. `strong` fills it with ink, for
@@ -20,11 +24,14 @@ type ChipProps = {
   selected?: boolean;
   /** Tag only: ink fill (Owner). */
   strong?: boolean;
+  icon?: ComponentProps<typeof Icon>['name'];
+  trailingIcon?: ComponentProps<typeof Icon>['name'];
+  accessibilityLabel?: string;
   onPress?: () => void;
   className?: string;
 };
 
-export function Chip({ label, selected = false, strong = false, onPress, className = '' }: ChipProps) {
+export function Chip({ label, selected = false, strong = false, icon, trailingIcon, accessibilityLabel, onPress, className = '' }: ChipProps) {
   if (!onPress) {
     return (
       <View
@@ -47,12 +54,14 @@ export function Chip({ label, selected = false, strong = false, onPress, classNa
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      className={`h-9 px-3.5 rounded-full items-center justify-center border active:opacity-70 ${
+      accessibilityLabel={accessibilityLabel}
+      className={`h-9 px-3.5 rounded-full flex-row gap-1.5 items-center justify-center border active:opacity-70 ${
         selected
           ? 'bg-ink dark:bg-ink-dark border-ink dark:border-ink-dark'
           : 'border-border-strong dark:border-border-strong-dark'
       } ${className}`}
     >
+      {icon ? <Icon name={icon} size="xs" color={selected ? 'inverse' : 'default'} /> : null}
       <Text
         className={`text-sm font-sans-semibold ${
           selected ? 'text-surface dark:text-surface-dark' : 'text-ink dark:text-ink-dark'
@@ -60,6 +69,7 @@ export function Chip({ label, selected = false, strong = false, onPress, classNa
       >
         {label}
       </Text>
+      {trailingIcon ? <Icon name={trailingIcon} size="xs" color={selected ? 'inverse' : 'default'} /> : null}
     </Pressable>
   );
 }
