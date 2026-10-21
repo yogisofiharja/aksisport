@@ -32,20 +32,24 @@ func AutoStartDueSessions(ctx context.Context, pool *pgxpool.Pool) error {
 // AutoTransitionElapsedSessions is DP-009's backend-driven lifecycle
 // resolution: once a Session's starts_at+duration has passed, it no longer
 // waits on an organizer action. In Progress becomes Completed (it actually
-// happened); any other non-terminal state becomes Cancelled (it never
-// started, so there's nothing to "complete").
+// happened), and its queued matches become Not played (DP-027); any other
+// non-terminal state becomes Cancelled (it never started, so there's
+// nothing to "complete").
 func AutoTransitionElapsedSessions(ctx context.Context, pool *pgxpool.Pool) error {
 	sessions, err := db.ListElapsedSessions(ctx, pool)
 	if err != nil {
 		return err
 	}
 	for _, sess := range sessions {
-		next := "cancelled"
 		if sess.Status == "in_progress" {
-			next = "completed"
+			// DP-027: its queued matches become Not played with it.
+			if _, err := db.CompleteElapsedSession(ctx, pool, sess.ID); err != nil {
+				log.Printf("session %s: auto-transition to completed failed: %v", sess.ID, err)
+			}
+			continue
 		}
-		if err := db.SetSessionStatus(ctx, pool, sess.ID, next); err != nil {
-			log.Printf("session %s: auto-transition to %s failed: %v", sess.ID, next, err)
+		if err := db.SetSessionStatus(ctx, pool, sess.ID, "cancelled"); err != nil {
+			log.Printf("session %s: auto-transition to cancelled failed: %v", sess.ID, err)
 		}
 	}
 	return nil

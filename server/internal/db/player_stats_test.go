@@ -43,6 +43,7 @@ func TestPlayerSummaryCounts(t *testing.T) {
 	add("completed", `{"winner":"B"}`)
 	add("completed", `{"winner":null}`)
 	add("unfinished", `{"winner":"A"}`)
+	add("not_played", `null`)
 
 	got, err := GetPlayerSportActivity(ctx, pool, me, "tennis")
 	if err != nil {
