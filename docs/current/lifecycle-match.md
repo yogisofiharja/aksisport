@@ -70,11 +70,15 @@ No-op if already `isEnded`. Sets `isEnded = true, endReason =
 tiebreak is in progress) more tiebreak points → otherwise `null`
 (no winner, e.g. ending at 0–0).
 
+Not called by the app any more: the scoring screen's press-and-hold End
+was removed. A match ends on its final point, or is ended early as
+Unfinished (DP-025, `POST /end-early`, no winner).
+
 ## Undo
 
 Not part of the engine itself — the caller (`ActivityMatchScreen`) keeps a `history: MatchState[]` array, push a
 deep clone (`JSON.parse(JSON.stringify(...))`) before every
-`addPoint`/`endMatchNow` call, and undo by popping the last entry back
+`addPoint` call, and undo by popping the last entry back
 into current state. The engine has no built-in undo/redo.
 
 ## Persistence during a live match

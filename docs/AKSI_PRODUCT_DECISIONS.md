@@ -1732,6 +1732,8 @@ its matches.
 - The umpire is the only one who starts matches (on the start screen,
   DP-022) and scores them. The start screen shows who the umpire is;
   owners and admins can change it there.
+  Everyone else sees the start screen read-only (v0.30.0): no sides or
+  first server to set, "Waiting for <umpire> to start".
 - The current umpire cannot hand the role on themselves; they ask an
   owner or admin (the app tells them so).
 - **The new umpire is notified** (v0.30.0): when an owner or admin makes
@@ -1818,7 +1820,9 @@ Approved
   (no Result saved screen). Only the Session's umpire can do it.
   Unfinished is the same status DP-027 uses: Results shows the match with
   its score and an "Unfinished" label, without Share, and it counts as
-  neither a win nor a loss.
+  neither a win nor a loss. It replaces the scoring screen's old
+  press-and-hold End, which ended a match with a winner on the current
+  score; the top left of the scoring screens is now the back chevron.
 
 ### Scope
 

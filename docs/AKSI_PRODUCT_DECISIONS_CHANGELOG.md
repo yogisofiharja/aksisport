@@ -19,6 +19,11 @@ Approved by Yogi, 2026-10-21.
   **Unfinished** with its score and point log — the status DP-027 uses —
   shown in Results with an "Unfinished" label, no Share, no win or loss.
   The umpire goes back to the Session.
+- Review fixes (same version): the start screen is read-only for
+  everyone but the umpire ("Waiting for <umpire> to start"); the
+  press-and-hold End on the scoring screen is removed (End match early
+  replaces it) and the top left is the back chevron; spectators see
+  "Umpire: <name>".
 
 ---
 

@@ -97,13 +97,19 @@ render branches on (loading, pendingConfig, error, matchState.isEnded):
 `MobileMatchScreen` has two modes (DP-022), both with Team A on the side
 `teamASide` says (part of the live copy, so spectators see the same
 sides):
-- **normal** (default): portrait, in the app's look — a tools row (voice,
-  point log, Focus mode), a games/sets card, the two teams as tappable
-  blue/red cards side by side (server marked with a ball and "SERVING"),
-  then Undo and hold-to-end;
+- **normal** (default): portrait, in the app's look — a top row with the
+  chevron back (leaves the screen; a live match keeps going) and, for a
+  spectator, the LIVE badge with "Umpire: <name>"; on the right the tools
+  (voice, point log, Focus mode, and the scorer's ⋯ Match options); a
+  games/sets card; the two teams as tappable cards side by side (server
+  marked with a ball and "SERVING"); then Undo;
 - **focus**: landscape, the full-screen court — each half a giant tap
   target, score box at the top with Leave focus mode on its left and
-  voice/point log on its right, Undo on the net, hold-to-end at the bottom.
+  voice/point log/Match options on its right, Undo on the net, the LIVE
+  badge at the bottom for spectators.
+There is no button that ends a match with a result before it is decided
+(the old press-and-hold End was removed): a match finishes on its last
+point, or the umpire ends it early as Unfinished from Match options.
 On iOS/Android the mode is remembered (`aksi.scoringFocusMode`) and the
 phone is locked to the mode's orientation while the screen is open,
 unlocked on leaving. On web, Focus mode is offered only where full screen
