@@ -25,6 +25,32 @@ func deriveSessionFields(s *models.Session) {
 		at := s.StartsAt.Add(-MatchEarlyStart)
 		s.MatchesOpenAt = &at
 	}
+	s.ScoringClosesAt = ScoringClosesAt(*s)
+}
+
+// MatchGrace (DP-027): how long after a Session's end its umpire may still
+// score and confirm a match that was live when it ended.
+const MatchGrace = time.Hour
+
+// ScoringClosesAt is the end of the grace period — the Session's end plus
+// MatchGrace — or nil for a Session with no start time or duration.
+func ScoringClosesAt(s models.Session) *time.Time {
+	if s.StartsAt == nil || s.DurationMinutes == nil {
+		return nil
+	}
+	at := s.StartsAt.Add(time.Duration(*s.DurationMinutes)*time.Minute + MatchGrace)
+	return &at
+}
+
+// ScoringOpen reports whether a live match of this Session may still be
+// scored, confirmed or ended early: always before the Session is over,
+// and on a Completed Session until the grace period ends (DP-027).
+func ScoringOpen(s models.Session, now time.Time) bool {
+	if s.Status != "completed" {
+		return s.Status != "cancelled"
+	}
+	closes := ScoringClosesAt(s)
+	return closes != nil && now.Before(*closes)
 }
 
 // MatchesOpen reports whether a Session's matches may be started now:

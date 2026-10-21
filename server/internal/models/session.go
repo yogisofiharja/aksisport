@@ -99,4 +99,8 @@ type Session struct {
 	// Starting one before the start time makes the Session In Progress.
 	// Nil for a Session with no start time.
 	MatchesOpenAt *time.Time `json:"matchesOpenAt,omitempty"`
+	// ScoringClosesAt (DP-027): the Session's end plus the one-hour grace
+	// period. Until then a match still live when the Session completed can
+	// be scored and confirmed; after it, it is saved as Unfinished.
+	ScoringClosesAt *time.Time `json:"scoringClosesAt,omitempty"`
 }

@@ -57,6 +57,28 @@ func (l *LiveMatches) SetScorer(ctx context.Context, activityID, firebaseUID str
 	return l.do(ctx, http.MethodPut, endpoint, token, payload, nil)
 }
 
+// LastScore reads a match's live copy: its last match state and point
+// history (DP-027, saving a match as Unfinished). found is false when the
+// match has no live copy.
+func (l *LiveMatches) LastScore(ctx context.Context, activityID string) (matchState, history json.RawMessage, found bool, err error) {
+	token, err := l.token(ctx, databaseScope)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	var copy *struct {
+		MatchState json.RawMessage `json:"matchState"`
+		History    json.RawMessage `json:"history"`
+	}
+	endpoint := fmt.Sprintf("%s/sessions/%s.json", l.databaseURL, url.PathEscape(activityID))
+	if err := l.do(ctx, http.MethodGet, endpoint, token, nil, &copy); err != nil {
+		return nil, nil, false, err
+	}
+	if copy == nil || len(copy.MatchState) == 0 || string(copy.MatchState) == "null" {
+		return nil, nil, false, nil
+	}
+	return copy.MatchState, copy.History, true, nil
+}
+
 func (l *LiveMatches) do(ctx context.Context, method, endpoint, token string, payload []byte, into any) error {
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(payload))
 	if err != nil {

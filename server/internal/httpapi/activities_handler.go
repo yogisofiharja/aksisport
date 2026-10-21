@@ -258,5 +258,11 @@ func requireUmpire(c *gin.Context, pool *pgxpool.Pool, sessionID, msg string) bo
 		respondError(c, http.StatusForbidden, msg)
 		return false
 	}
+	// DP-027: on a Completed Session, scoring closes an hour after its end;
+	// the match is then saved as Unfinished by the scheduler.
+	if !dbpkg.ScoringOpen(sess, time.Now()) {
+		respondError(c, http.StatusConflict, "scoring closed an hour after the session ended; the match is saved as unfinished")
+		return false
+	}
 	return true
 }

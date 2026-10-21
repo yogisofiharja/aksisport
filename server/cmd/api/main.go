@@ -79,14 +79,17 @@ func main() {
 	}
 
 	// DP-023: without these, an umpire handed a match mid-play can't write
-	// its live score until the match is reopened from the start.
+	// its live score until the match is reopened from the start; and
+	// DP-027 saves overdue matches as Unfinished with the server's last
+	// state instead of their live score.
 	var liveMatches httpapi.LiveMatches
+	var liveScores scheduling.LiveScores
 	if cfg.FirebaseServiceAccountFile == "" || cfg.FirebaseDatabaseURL == "" {
-		log.Print("umpire handover: live scores stay with the old umpire (FIREBASE_SERVICE_ACCOUNT_FILE or FIREBASE_DATABASE_URL is not set)")
+		log.Print("live matches: no admin access (FIREBASE_SERVICE_ACCOUNT_FILE or FIREBASE_DATABASE_URL is not set)")
 	} else if lm, err := firebaseadmin.NewLiveMatchesFromFile(cfg.FirebaseServiceAccountFile, cfg.FirebaseDatabaseURL); err != nil {
-		log.Printf("umpire handover: live scores stay with the old umpire (%v)", err)
+		log.Printf("live matches: no admin access (%v)", err)
 	} else {
-		liveMatches = lm
+		liveMatches, liveScores = lm, lm
 	}
 
 	// DP-018. The Web Push key pair is generated on first start and kept
@@ -156,6 +159,11 @@ func main() {
 				}
 				if err := scheduling.AutoTransitionElapsedSessions(ctx, pool); err != nil {
 					log.Printf("session auto-transition: %v", err)
+				}
+				if n, err := scheduling.UnfinishOverdueMatches(ctx, pool, liveScores); err != nil {
+					log.Printf("overdue live matches: %v", err)
+				} else if n > 0 {
+					log.Printf("overdue live matches: %d saved as unfinished", n)
 				}
 			}
 		}
