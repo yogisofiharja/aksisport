@@ -216,7 +216,11 @@ export function ExploreScreen({ onOpenClub, onCreateClub }: Props) {
               : t('exploreInTownTitle', shortCityName(town))}
           </Typography>
           {inTown === null ? null : inTown.length === 0 ? (
-            <EmptyState message={t('exploreInTownEmpty', shortCityName(town))} />
+            <EmptyState
+              illustration="no-members"
+              title={t('exploreInTownEmptyTitle')}
+              message={t('exploreInTownEmpty')}
+            />
           ) : (
             <VStack space="sm">{inTown.map(renderClub)}</VStack>
           )}

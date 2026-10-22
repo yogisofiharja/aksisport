@@ -729,7 +729,7 @@ const en: Dict = {
   cityPickerRemove: 'Remove my town',
   cityPickerClose: 'Close',
   exploreInTownTitle: (town: string) => `Communities in ${town}`,
-  exploreInTownEmpty: (town: string) => `No communities in ${town} to join yet. Try searching, or change your town.`,
+  exploreInTownEmpty: 'Try searching by name or city, or change your town.',
   exploreChangeTown: 'Change town',
   exploreSetTownTitle: 'See communities in your town',
   exploreSetTownDesc: 'Pick your city and they will be listed here.',
@@ -768,7 +768,7 @@ const en: Dict = {
 
   // Inbox (Milestone 1 — placeholder, no backing data model yet)
   inboxTitle: 'Inbox',
-  inboxEmptyState: "You're all caught up — nothing here yet.",
+  inboxEmptyState: "Start a chat with the pencil above, or from a player's profile.",
   inboxContactOrganizerParty: (clubName: string) => `You & ${clubName}'s organizer`,
 
   // Me (Milestone 1)
@@ -825,6 +825,8 @@ const en: Dict = {
   settingsKindsOn: (on: number, total: number) => `${on} of ${total} kinds on`,
   settingsBlockedCount: (n: number) => n === 0 ? 'Nobody' : `${n} ${n === 1 ? 'player' : 'players'}`,
   settingsVersion: (v: string) => `Aksi · version ${v}`,
+  inboxEmptyTitle: "No messages yet",
+  exploreInTownEmptyTitle: "No communities here yet",
 };
 
 const id: Dict = {
@@ -1548,7 +1550,7 @@ const id: Dict = {
   cityPickerRemove: 'Hapus kota saya',
   cityPickerClose: 'Tutup',
   exploreInTownTitle: (town: string) => `Komunitas di ${town}`,
-  exploreInTownEmpty: (town: string) => `Belum ada komunitas di ${town} untuk diikuti. Coba cari, atau ganti kotamu.`,
+  exploreInTownEmpty: 'Coba cari berdasarkan nama atau kota, atau ganti kotamu.',
   exploreChangeTown: 'Ganti kota',
   exploreSetTownTitle: 'Lihat komunitas di kotamu',
   exploreSetTownDesc: 'Pilih kotamu, dan komunitasnya akan muncul di sini.',
@@ -1587,7 +1589,7 @@ const id: Dict = {
 
   // Inbox (Milestone 1 — placeholder, belum ada model data pendukung)
   inboxTitle: 'Kotak Masuk',
-  inboxEmptyState: 'Belum ada yang perlu dilihat di sini.',
+  inboxEmptyState: 'Mulai obrolan lewat ikon pensil di atas, atau dari profil pemain.',
   inboxContactOrganizerParty: (clubName: string) => `Kamu & penyelenggara ${clubName}`,
 
   // Me (Milestone 1)
@@ -1644,6 +1646,8 @@ const id: Dict = {
   settingsKindsOn: (on: number, total: number) => `${on} dari ${total} jenis aktif`,
   settingsBlockedCount: (n: number) => n === 0 ? 'Tidak ada' : `${n} pemain`,
   settingsVersion: (v: string) => `Aksi · versi ${v}`,
+  inboxEmptyTitle: "Belum ada pesan",
+  exploreInTownEmptyTitle: "Belum ada komunitas di sini",
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

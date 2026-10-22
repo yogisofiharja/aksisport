@@ -119,7 +119,7 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
       {loading && empty ? (
         <Loading />
       ) : empty ? (
-        <EmptyState message={t('inboxEmptyState')} />
+        <EmptyState illustration="no-messages" title={t('inboxEmptyTitle')} message={t('inboxEmptyState')} />
       ) : (
         <>
           {/* Messages: direct conversations and groups together, most

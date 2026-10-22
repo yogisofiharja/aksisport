@@ -105,7 +105,8 @@ kinds on") and Blocked players (the count); Log out as a danger row; then
 on focus and every minute while Home is showing; it pushes `Notifications`
 (`/notifications`, `NotificationsScreen`): every notification, newest
 first, in two `ListGroup`s, "Unread · n" (bold, heat icon tile, heat
-dot) and "Earlier"; "Mark all read" is the AppBar's text action; and —
+dot) and "Earlier" (time ago for a week, then "14 Oct", with the year
+when it isn't this year); "Mark all read" is the AppBar's text action; and —
 when this device hasn't allowed notifications yet — an info `Alert` to
 turn them on (or say they are blocked).
 Opening one marks it read and goes to its `path` (`useLinkTo`).
@@ -323,7 +324,8 @@ The app's Personal Context — always the post-auth entry point
   under the search field: tapping it opens the city picker, and the town
   picked is saved and made active. Below it, "Communities in <town> ·
   <count>" (`GET /v1/clubs/in-my-city`: Communities in the caller's
-  active town that they haven't joined). With no town at all, a card
+  active town that they haven't joined; with none, an illustrated
+  EmptyState). With no town at all, a card
   invites them to choose one instead. At the bottom, "Can't find yours?
   Start a community" pushes `CreateClub`.
 - **Inbox** (`InboxScreen`) — two `ListGroup` sections. "Messages":
@@ -337,7 +339,8 @@ The app's Personal Context — always the post-auth entry point
   own thread) or as an owner/admin (any member's thread on a Session in
   a Club they run), most-recently-active first, `listMyContactThreads()`
   (`GET /v1/me/contact-threads`), with "<Session> · <last message>"
-  under the party's name. Tapping a Session row pushes `SessionDetail` with
+  under the party's name. With no conversations at all, an illustrated
+  EmptyState ("No messages yet"). Tapping a Session row pushes `SessionDetail` with
   `openContactWith: memberUserId` set, which auto-opens
   `SessionContactOrganizer`'s modal straight into that thread instead of
   the session's own Details tab.

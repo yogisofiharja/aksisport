@@ -67,11 +67,20 @@ export function notificationIcon(type: string): ComponentProps<typeof Ionicons>[
 }
 
 // "just now", "5 min ago", "3 h ago", "2 d ago", then the date.
-export function timeAgo(iso: string, t: T, now: Date = new Date()): string {
+// After a week, the date: "14 Oct" ("14 Okt"), with the year only when it
+// isn't this year ("14 Oct 2025").
+export function timeAgo(iso: string, t: T, lang: 'en' | 'id' = 'en', now: Date = new Date()): string {
   const seconds = Math.max(0, (now.getTime() - new Date(iso).getTime()) / 1000);
   if (seconds < 60) return t('timeJustNow');
   if (seconds < 3600) return t('timeMinutesAgo', Math.floor(seconds / 60));
   if (seconds < 86400) return t('timeHoursAgo', Math.floor(seconds / 3600));
   if (seconds < 7 * 86400) return t('timeDaysAgo', Math.floor(seconds / 86400));
-  return new Date(iso).toLocaleDateString();
+  const date = new Date(iso);
+  return date
+    .toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-GB', {
+      day: 'numeric',
+      month: 'short',
+      ...(date.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
+    })
+    .replace('.', '');
 }

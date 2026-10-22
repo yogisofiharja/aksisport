@@ -32,10 +32,15 @@ describe('notificationText', () => {
 describe('timeAgo', () => {
   const now = new Date('2026-10-14T12:00:00Z');
   it('rounds down to the largest whole unit', () => {
-    expect(timeAgo('2026-10-14T11:59:30Z', t, now)).toBe('timeJustNow()');
-    expect(timeAgo('2026-10-14T11:55:00Z', t, now)).toBe('timeMinutesAgo(5)');
-    expect(timeAgo('2026-10-14T09:10:00Z', t, now)).toBe('timeHoursAgo(2)');
-    expect(timeAgo('2026-10-12T12:00:00Z', t, now)).toBe('timeDaysAgo(2)');
+    expect(timeAgo('2026-10-14T11:59:30Z', t, 'en', now)).toBe('timeJustNow()');
+    expect(timeAgo('2026-10-14T11:55:00Z', t, 'en', now)).toBe('timeMinutesAgo(5)');
+    expect(timeAgo('2026-10-14T09:10:00Z', t, 'en', now)).toBe('timeHoursAgo(2)');
+    expect(timeAgo('2026-10-12T12:00:00Z', t, 'en', now)).toBe('timeDaysAgo(2)');
+  });
+  it('shows the day and month after a week, and the year when it differs', () => {
+    expect(timeAgo('2026-10-01T12:00:00Z', t, 'en', now)).toBe('1 Oct');
+    expect(timeAgo('2025-10-14T12:00:00Z', t, 'en', now)).toBe('14 Oct 2025');
+    expect(timeAgo('2026-08-17T12:00:00Z', t, 'id', now)).toBe('17 Agu');
   });
 });
 

@@ -94,7 +94,7 @@ export function NotificationsScreen({ onBack }: Props) {
         title={notificationText(item, t)}
         titleLines={3}
         strong={isUnread}
-        meta={timeAgo(item.createdAt, t)}
+        meta={timeAgo(item.createdAt, t, lang)}
         trailing={isUnread ? <View className="w-2 h-2 rounded-full bg-heat" accessibilityLabel={t('notificationsUnread')} /> : undefined}
         onPress={() => open(item)}
       />
