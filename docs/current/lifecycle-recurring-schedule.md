@@ -90,10 +90,15 @@ not Organizer Preferences (DP-004) and not owned by Recurring Schedule —
 ad-hoc Sessions set both at creation (mandatory as of v0.5.1) or edit them
 via `PATCH /v1/sessions/:id`; generated Sessions have both populated from
 the occurrence timestamp and the Recurrence Rule's own `durationMinutes`.
-Same fields, two sources. `CreateSessionScreen` now unifies ad-hoc and
-recurring creation behind one "make this recurring" toggle, with native
-date/time pickers (`@react-native-community/datetimepicker`) — no more
-free-text date entry.
+Same fields, two sources. `CreateSessionScreen` unifies ad-hoc and
+recurring creation behind one "Make this recurring" switch. With it on,
+Date becomes **Every** (Mon–Sun), then Time | Duration, then **Open days
+ahead** (a stepper, default 3, 0–30: "Each session is published this
+many days before it starts, so players can join."), then a note
+computed from those three (`core/recurringSchedules/firstSession.ts`,
+mirroring the server's first occurrence): "First session: Sat 24 Oct,
+07:00. It opens on Wed 21 Oct." — or "It opens as soon as you create the
+schedule." when that moment has already passed.
 
 ## Editing and Session Synchronization
 

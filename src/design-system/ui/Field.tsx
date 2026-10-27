@@ -62,6 +62,8 @@ type SelectFieldProps = {
   value: string;
   onPress?: () => void;
   error?: string | null;
+  /** Danger outline without its own error line (a row of fields sharing one). */
+  isInvalid?: boolean;
   hint?: string;
   /** Read-only: no chevron, not tappable (Sport while editing). */
   disabled?: boolean;
@@ -69,7 +71,7 @@ type SelectFieldProps = {
   className?: string;
 };
 
-export function SelectField({ label, value, onPress, error, hint, disabled, accessibilityLabel, className = '' }: SelectFieldProps) {
+export function SelectField({ label, value, onPress, error, isInvalid, hint, disabled, accessibilityLabel, className = '' }: SelectFieldProps) {
   return (
     <Field label={label} hint={hint} error={error} className={className}>
       <Pressable
@@ -78,7 +80,7 @@ export function SelectField({ label, value, onPress, error, hint, disabled, acce
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? (label ? `${label}: ${value}` : value)}
         className={`h-12 flex-row items-center justify-between gap-1 pl-3.5 pr-2.5 rounded-lg bg-surface dark:bg-surface-dark active:opacity-70 ${
-          error ? 'border border-danger dark:border-danger-dark' : 'border border-border-strong dark:border-border-strong-dark'
+          error || isInvalid ? 'border border-danger dark:border-danger-dark' : 'border border-border-strong dark:border-border-strong-dark'
         }`}
       >
         <Text numberOfLines={1} className="flex-1 text-base font-sans text-ink dark:text-ink-dark">
@@ -113,10 +115,19 @@ export function SwitchField({ label, hint, value, onValueChange, disabled }: Swi
 }
 
 /** A form section's title: Saira italic over a hairline ("How matches are played"). */
+/** The error line on its own, under a row of fields that share it. */
+export function FieldError({ children }: { children: string }) {
+  return (
+    <Text accessibilityLiveRegion="polite" className="text-xs leading-4 font-sans-semibold text-danger dark:text-danger-dark">
+      {children}
+    </Text>
+  );
+}
+
 export function FormSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View className="gap-4 pt-4 border-t border-border dark:border-border-dark">
-      <Text className="text-xl leading-6 font-display text-ink dark:text-ink-dark">{title}</Text>
+      <Text accessibilityRole="header" className="text-xl leading-6 font-display-hero text-ink dark:text-ink-dark">{title}</Text>
       {children}
     </View>
   );

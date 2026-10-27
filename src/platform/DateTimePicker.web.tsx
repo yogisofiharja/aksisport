@@ -9,8 +9,9 @@ import { webSelectStyle } from './webSelectStyle';
 // same props the app passes the native picker, so screens don't branch on
 // platform. Built from the app's own components rather than the browser's
 // <input type="date|time">, whose pop-up calendar can't be styled and
-// looked nothing like the rest of the app. `display` is a native-only
-// presentation hint and is ignored.
+// looked nothing like the rest of the app. `display="inline"` shows the
+// month calendar on its own, already open (inside a picker Sheet); other
+// `display` values are native-only hints and are ignored.
 type Props = {
   value: Date;
   mode: 'date' | 'time';
@@ -29,9 +30,10 @@ const sameDay = (a: Date, b: Date) =>
 // A field showing the chosen date; tapping it opens a month calendar
 // inline, directly below — same reveal-in-place pattern the native forms
 // use, so nothing floats over the page.
-function DateField({ value, onChange }: Props) {
+function DateField({ value, onChange, display }: Props) {
   const { lang } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const inline = display === 'inline';
+  const [open, setOpen] = useState(inline);
   // The month on screen, independent of the selected date while browsing.
   const [shown, setShown] = useState(() => new Date(value.getFullYear(), value.getMonth(), 1));
 
@@ -60,20 +62,22 @@ function DateField({ value, onChange }: Props) {
     const next = new Date(value);
     next.setFullYear(year, month, day);
     onChange(null, next);
-    setOpen(false);
+    if (!inline) setOpen(false);
   }
 
   return (
     <View className="gap-2">
-      <Pressable
-        onPress={toggle}
-        className="flex-row items-center justify-between px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark active:opacity-70"
-      >
-        <Text className="text-base font-bold text-ink dark:text-ink-dark">
-          {value.toLocaleDateString(lang, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-        </Text>
-        <Icon name="calendar-outline" size="sm" color="muted" />
-      </Pressable>
+      {inline ? null : (
+        <Pressable
+          onPress={toggle}
+          className="flex-row items-center justify-between px-4 py-3 rounded-xl bg-surface-sunken dark:bg-surface-sunken-dark active:opacity-70"
+        >
+          <Text className="text-base font-bold text-ink dark:text-ink-dark">
+            {value.toLocaleDateString(lang, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+          </Text>
+          <Icon name="calendar-outline" size="sm" color="muted" />
+        </Pressable>
+      )}
 
       {open && (
         <View className="rounded-2xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark p-3 gap-2">

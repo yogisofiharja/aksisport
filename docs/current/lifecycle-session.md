@@ -238,27 +238,34 @@ and the `POST /v1/sessions/:id/participants/:userId/add` /
 `POST /v1/sessions/:id/participants/guest/plan` routes were removed
 as dead code along with it (`docs/current/api.md`).
 
-**Ad-hoc creation is now a two-step preview flow** (Milestone 2,
-`CreateSessionScreen`): tapping "Continue" no longer calls
-`createSession()` directly — it only validates the form and flips to a
-read-only preview of everything entered (name, location, sport/
-activity type, date/time, duration, capacity, skill level range and
-enforcement as two separate rows if required, notes), with **nothing
-persisted yet**. Host Playing is deliberately not shown here — it's
-redundant with the participant list the organizer already sees once
-the Session is published. From there:
-**Publish** (`createSession()` then immediately `publishSession()`),
-**Save as Draft** (`createSession()` only, same end state as the old
-direct-submit path), or **Discard** (just `onBack()` — no API call,
-since nothing exists to delete). "Continue
-Editing" is simply the back arrow, returning to the form with all
-state intact (it's the same component, toggling a local `showPreview`
-flag, not a separate screen/route). This preview step is **ad-hoc-
-create only** — editing an existing Draft (`EditSession`) and creating
-a Recurring Schedule both still save directly on submit, unchanged.
+**The form** (Aksi redesign › Create a session; `CreateSessionScreen`
+with `sessions/form/SessionForm.tsx`): a form AppBar (✕, "New session"
+over the Community's name) and one scrolling column — Sport row, Activity
+type (Segmented), Session name, Location, Date | Time | Duration on one
+row (each opens a picker Sheet; the system dialog on Android), the "Make
+this recurring" and "I'll be playing too" switches with their hints,
+Number of players (optional), *How matches are played* (format
+Segmented: Free Play · Fixed · Race To · Regular, its stepper or sets,
+single deuce), *Who can join* (skill level switch, From/To pickers,
+Enforcement Segmented with its hint), *Price* (Free · Per person · Split
+bill, then the amount with an `Rp` prefix) and *Notes*. Continue is
+pinned at the bottom. Validation (`core/sessions/sessionForm.ts`) puts
+each problem under its field and scrolls to the first; once tried, the
+messages update as the organizer types. Leaving with anything changed —
+✕, Android back or the browser's back (`usePreventRemove`) — asks first
+in a Dialog: "Discard this session?" (or "…schedule?", or "Discard your
+changes?" when editing), Keep editing / Discard.
+
+**Ad-hoc creation goes through a check screen** (Milestone 2): Continue
+only validates and shows what was entered, with **nothing persisted
+yet**. From there: **Publish** (`createSession()` then
+`publishSession()`), **Save as draft** (`createSession()` only) or
+**Discard** (just leaves — nothing exists to delete). Back returns to the
+form with everything kept. Editing an existing Session saves directly on
+Save, with no check screen.
 
 **Date/time cannot be in the past** (Milestone 2): validated in
-`CreateSessionScreen` (`combinedStartsAt().getTime() < Date.now()`,
+`validateSessionForm` (`combinedStartsAt(date, time) < now`,
 skipped for the recurring path — a weekday rule has no single literal
 date to check) and mirrored server-side on both `POST
 /v1/clubs/:clubId/sessions` and `PATCH /v1/sessions/:id` (400 if

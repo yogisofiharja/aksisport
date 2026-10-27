@@ -78,10 +78,11 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   │                            anyone else → ClubPreviewScreen), ClubSettingsScreen
 │   │   ├── sessions/                  SessionHistoryScreen (cross-Club, from Me),
 │   │   │                            SessionDetailScreen,
-│   │   │                            CreateSessionScreen — unified ad-hoc/recurring
-│   │   │                            creation behind a "make this recurring" toggle
-│   │   │                            (v0.5.1; CreateRecurringScheduleScreen retired,
-│   │   │                            merged in here)
+│   │   │                            CreateSessionScreen — create / edit a Session or
+│   │   │                            Recurring Schedule behind a "make this recurring"
+│   │   │                            switch; form/ holds SessionForm (the fields),
+│   │   │                            PickerSheets (date, time, option sheets) and the
+│   │   │                            check screens
 │   │   ├── activities/                 AddMatchScreen (Generate Match/Generate Matches/
 │   │   │                              Custom Match tabs, v0.8.0; migrated to
 │   │   │                              design-system/* components, matching newer
@@ -90,11 +91,8 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   │                              MatchFinishedScreen (Confirm result / Undo, DP-025),
 │   │   │                              ResultSavedScreen (after confirming), MatchResultScreen
 │   │   │                              (a finished match opened later: Share)
-│   │   ├── recurringSchedules/          RecurringScheduleListScreen,
-│   │   │                              RecurringScheduleDetailScreen, weekday.ts
-│   │   └── skillLevels/                 SkillLevelRangePicker.tsx — shared by
-│   │                                  CreateSessionScreen's two modes, always
-│   │                                  visible (mandatory, not collapsible)
+│   │   └── recurringSchedules/          RecurringScheduleListScreen,
+│   │                                  RecurringScheduleDetailScreen, weekday.ts
 │   │       (auth/home/explore/inbox/me/clubs/sessions/activities/recurringSchedules
 │   │        screens have no web equivalent)
 │   │
