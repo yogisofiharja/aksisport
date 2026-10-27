@@ -47,6 +47,9 @@ type Session struct {
 	// admin or member — or "visitor" for a Session-only participant
 	// (DP-028). Set by GET /sessions/:id only.
 	ViewerRole string `json:"viewerRole,omitempty"`
+	// InvitedBy is who invited a visitor to this Session (DP-028), for
+	// "<Name> invited you to join session". Set by GET /sessions/:id only.
+	InvitedBy *string `json:"invitedBy,omitempty"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 	// StartsAt is a core Session property (not an Organizer Preference,

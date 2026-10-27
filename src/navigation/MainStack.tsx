@@ -18,6 +18,7 @@ import { AccountEmailScreen } from '../mobile/me/AccountEmailScreen';
 import { NotificationsScreen } from '../mobile/notifications/NotificationsScreen';
 import { NotificationSettingsScreen } from '../mobile/notifications/NotificationSettingsScreen';
 import { ComponentGalleryScreen } from '../mobile/dev/ComponentGalleryScreen';
+import { InviteLandingScreen } from '../mobile/invites/InviteLandingScreen';
 import { LoginScreen } from '../mobile/auth/LoginScreen';
 import { SignUpScreen } from '../mobile/auth/SignUpScreen';
 import { VerifyEmailScreen } from '../mobile/auth/VerifyEmailScreen';
@@ -36,6 +37,7 @@ export type MainStackParamList = {
   Settings: undefined;
   NotificationSettings: undefined;
   DevComponents: undefined;
+  Invite: { token: string };
   DevAuthScreen: { screen: 'login' | 'signup' | 'verify' };
   BlockedPlayers: undefined;
   AccountEmail: undefined;
@@ -134,6 +136,21 @@ export function MainStack() {
           }
         </Stack.Screen>
       )}
+
+      {/* DP-028: an invite link, /i/:token. */}
+      <Stack.Screen name="Invite">
+        {({ navigation, route }) => (
+          <InviteLandingScreen
+            token={route.params.token}
+            onResolved={(invite) =>
+              invite.targetType === 'session'
+                ? navigation.replace('SessionDetail', { sessionId: invite.targetId })
+                : navigation.replace('ClubDetail', { clubId: invite.targetId })
+            }
+            onHome={() => navigation.navigate('Personal', { screen: 'Home' })}
+          />
+        )}
+      </Stack.Screen>
 
       <Stack.Screen name="BlockedPlayers">
         {({ navigation }) => <BlockedPlayersScreen onBack={() => navigation.goBack()} />}

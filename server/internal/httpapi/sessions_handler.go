@@ -385,6 +385,11 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		session.ViewerRole = role
+		if role == dbpkg.SessionVisitorRole {
+			if inv, err := dbpkg.GetInvitationFor(c.Request.Context(), pool, authjwt.CurrentUser(c).ID, dbpkg.InviteTargetSession, sessionID); err == nil {
+				session.InvitedBy = &inv.FromName
+			}
+		}
 		c.JSON(http.StatusOK, session)
 	})
 

@@ -15,7 +15,12 @@ import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';
 import { listClubs, clubAvatarUrl } from '../../core/clubs/api';
-import { listSessions } from '../../core/sessions/api';
+import { listMyJoinedSessions, listSessions } from '../../core/sessions/api';
+import { sessionDateBucket } from '../../core/sessions/sessionSchedule';
+import { dismissInvitation, listMyInvitations } from '../../core/invites/api';
+import type { InvitationCard } from '../../core/invites/types';
+import { InviteCard } from '../../design-system/domain-ui/InviteCard';
+import { inviteCardLines } from './inviteCardLines';
 import { currentFocusBuckets } from '../../core/sessions/currentFocus';
 import { sessionHeroProps, sessionRowProps } from '../sessions/sessionDisplay';
 import { shortCityName } from '../../core/locations/cityName';
@@ -35,11 +40,12 @@ type Props = {
   onCreateClub: () => void;
   onOpenSession: (sessionId: string) => void;
   onOpenExplore: () => void;
+  onOpenInvite: (invite: InvitationCard) => void;
 };
 
 type AttentionItem = {
   session: Session;
-  club: ClubWithRole;
+  club: { name: string };
 };
 
 function byStartsAtAsc(a: AttentionItem, b: AttentionItem) {
@@ -54,8 +60,14 @@ function byStartsAtAsc(a: AttentionItem, b: AttentionItem) {
 // Client-side N+1 fetch (1 + club count) — accepted MVP tradeoff at
 // recreational-club scale; no cross-club backend endpoint exists yet.
 async function loadAttention(clubs: ClubWithRole[]): Promise<{ live: AttentionItem[]; rest: AttentionItem[] }> {
-  const perClub = await Promise.all(
-    clubs.map(async (club) => {
+  // DP-028: Sessions you play in outside your Communities (as a
+  // Session-only participant) show here like any other.
+  const memberOf = new Set(clubs.map((c) => c.id));
+  const elsewhere = listMyJoinedSessions()
+    .then((joined) => joined.filter((s) => !memberOf.has(s.clubId)))
+    .catch(() => []);
+  const perClub = await Promise.all([
+    ...clubs.map(async (club) => {
       try {
         const sessions = await listSessions(club.id);
         const buckets = currentFocusBuckets(sessions);
@@ -68,8 +80,20 @@ async function loadAttention(clubs: ClubWithRole[]): Promise<{ live: AttentionIt
       } catch {
         return { live: [], today: [], next: [], drafts: [] };
       }
-    })
-  );
+    }),
+    elsewhere.then((joined) => {
+      const buckets = currentFocusBuckets(joined);
+      const item = (session: Session) => ({ session, club: { name: joined.find((j) => j.id === session.id)?.clubName ?? '' } });
+      return {
+        live: buckets.live.map(item),
+        today: buckets.today.map(item),
+        next: joined
+          .filter((s) => s.status !== 'in_progress' && s.status !== 'draft' && sessionDateBucket(s) === 'upcoming')
+          .map(item),
+        drafts: [],
+      };
+    }),
+  ]);
   const live = perClub.flatMap((r) => r.live);
   const today = perClub.flatMap((r) => r.today).sort(byStartsAtAsc);
   const next = perClub.flatMap((r) => r.next).sort(byStartsAtAsc);
@@ -77,13 +101,14 @@ async function loadAttention(clubs: ClubWithRole[]): Promise<{ live: AttentionIt
   return { live, rest: [...today, ...next, ...drafts] };
 }
 
-export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onCreateClub, onOpenExplore }: Props) {
+export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onCreateClub, onOpenExplore, onOpenInvite }: Props) {
   const { t, lang } = useTranslation();
   const { profile } = useAuth();
   const bell = useNotificationBell(onOpenNotifications);
   const [clubs, setClubs] = useState<ClubWithRole[]>([]);
   const [live, setLive] = useState<AttentionItem[]>([]);
   const [rest, setRest] = useState<AttentionItem[]>([]);
+  const [invites, setInvites] = useState<InvitationCard[]>([]);
   const [loading, setLoading] = useState(true);
   // Only a successful load can say "no communities": a failed one keeps
   // whatever was there and never shows the first-run page by mistake.
@@ -99,8 +124,9 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
 
   const load = useCallback(async () => {
     try {
-      const result = await listClubs();
+      const [result, pending] = await Promise.all([listClubs(), listMyInvitations().catch(() => [] as InvitationCard[])]);
       setClubs(result);
+      setInvites(pending);
       const attention = await loadAttention(result);
       setLive(attention.live);
       setRest(attention.rest);
@@ -118,8 +144,15 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
     }, [load])
   );
 
-  // First run (Aksi redesign › First run): no Community yet.
-  const firstRun = loaded && clubs.length === 0;
+  // First run (Aksi redesign › First run): no Community yet — and nothing
+  // else to show (an invitation, a Session played outside a Community).
+  const firstRun = loaded && clubs.length === 0 && invites.length === 0 && live.length + rest.length === 0;
+  const [invitedBefore, invitedAfter] = t('inviteInvitedYou', '\u0000').split('\u0000');
+
+  async function handleNotNow(invite: InvitationCard) {
+    setInvites((prev) => prev.filter((i) => i.id !== invite.id));
+    await dismissInvitation(invite.id).catch(() => {});
+  }
   const name = firstName(profile?.displayName || profile?.username || '');
 
   return (
@@ -141,6 +174,28 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
         <FirstRunHome onOpenExplore={onOpenExplore} onCreateClub={onCreateClub} />
       ) : (
         <>
+          {/* DP-028: in-app invitations on top, one card each. */}
+          {invites.length > 0 && (
+            <VStack space="md">
+              <Typography variant="overline" color="muted">
+                {t('homeInvited')}
+              </Typography>
+              {invites.map((invite) => (
+                <InviteCard
+                  key={invite.id}
+                  fromName={invite.fromName}
+                  invitedYou={[invitedBefore, invitedAfter]}
+                  title={invite.sessionName ?? invite.clubName}
+                  lines={inviteCardLines(invite, t, lang)}
+                  notNowLabel={t('inviteNotNow')}
+                  joinLabel={t('inviteJoin')}
+                  onNotNow={() => handleNotNow(invite)}
+                  onJoin={() => onOpenInvite(invite)}
+                />
+              ))}
+            </VStack>
+          )}
+
           {/* Right now: the live Session as the dark card, then today's,
               the next per Community and drafts as rows. */}
           {live.length + rest.length > 0 && (
@@ -178,6 +233,11 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
                 </Typography>
               </Pressable>
             </HStack>
+            {clubs.length === 0 ? (
+              <Typography variant="body" color="muted">
+                {t('homeNoCommunityYet')}
+              </Typography>
+            ) : null}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
               {clubs.map((club) => (
                 <ClubCard

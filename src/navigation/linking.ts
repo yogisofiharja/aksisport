@@ -37,6 +37,7 @@ export const linking: LinkingOptions<LinkableParamList> = {
       BlockedPlayers: 'settings/blocked',
       NotificationSettings: 'settings/notifications',
       DevComponents: 'dev/components',
+      Invite: 'i/:token',
       DevAuthScreen: 'dev/auth/:screen',
       AccountEmail: 'me/email',
       Notifications: 'notifications',

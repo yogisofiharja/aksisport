@@ -10,22 +10,26 @@ import { Icon } from '../ui/Icon';
  * - `heat`: something for the organizer to act on (join requests, a draft
  *   to finish). One per screen, usually first.
  * - `danger`: a blocking state, or reports waiting.
+ * - `success`: good news that changes what to do next (an organizer's
+ *   invite lets you straight into a private Community).
  *
  * At most one action: an underlined link (`actionLabel` + `onAction`), or
  * with `onPress` the whole banner is the tap target, ending in a chevron
  * ("2 people want to join · Review").
  */
-type Tone = 'info' | 'heat' | 'danger';
+type Tone = 'info' | 'heat' | 'danger' | 'success';
 
 const toneClass: Record<Tone, string> = {
   info: 'bg-info-tint dark:bg-info-tint-dark',
   heat: 'bg-heat-tint dark:bg-heat-tint-dark',
   danger: 'bg-danger-tint dark:bg-danger-tint-dark',
+  success: 'bg-success-tint dark:bg-success-tint-dark',
 };
 const toneIcon: Record<Tone, ComponentProps<typeof Icon>['color']> = {
   info: 'info',
   heat: 'brand',
   danger: 'destructive',
+  success: 'success',
 };
 
 type AlertProps = {

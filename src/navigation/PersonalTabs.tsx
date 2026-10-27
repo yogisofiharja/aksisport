@@ -48,6 +48,12 @@ export function PersonalTabs() {
             onCreateClub={() => rootNavigation.navigate('CreateClub')}
             onOpenClub={(clubId) => rootNavigation.navigate('ClubDetail', { clubId })}
             onOpenSession={(sessionId) => rootNavigation.navigate('SessionDetail', { sessionId })}
+            // Join opens the target (DP-028).
+            onOpenInvite={(invite) =>
+              invite.targetType === 'session'
+                ? rootNavigation.navigate('SessionDetail', { sessionId: invite.targetId })
+                : rootNavigation.navigate('ClubDetail', { clubId: invite.targetId })
+            }
           />
         )}
       </Tab.Screen>

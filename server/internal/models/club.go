@@ -57,6 +57,17 @@ type ClubPreview struct {
 	ViewerRole *string `json:"viewerRole,omitempty"`
 	// ViewerRequestPending: the caller has asked to join and is waiting.
 	ViewerRequestPending bool `json:"viewerRequestPending"`
+	// Invite is the caller's invitation to this Community (DP-028), for a
+	// non-member; set by GET /clubs/:clubId/preview only.
+	Invite *ClubInvite `json:"invite,omitempty"`
+}
+
+// ClubInvite: who invited the viewer, their role there now (owner, admin,
+// member, or "" if they left), and whether it lets the viewer straight in.
+type ClubInvite struct {
+	FromName   string `json:"fromName"`
+	FromRole   string `json:"fromRole"`
+	StraightIn bool   `json:"straightIn"`
 }
 
 // ClubJoinRequest is a pending request as an owner/admin sees it.

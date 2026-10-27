@@ -56,6 +56,7 @@ import { priceLabel } from './sessionDisplay';
 import { formatIDR } from '../../core/currency';
 import { SessionMenuSheet, type SessionMenuItem } from './SessionMenuSheet';
 import { InviteSheet } from '../invites/InviteSheet';
+import { InvitedLine } from '../invites/InvitedLine';
 import { UmpireSheet } from './UmpireSheet';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { sessionLink, shareLink } from '../../platform/shareLink';
@@ -916,6 +917,10 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           onPress={() => setActiveTab('matches')}
         />
       )}
+      {session.viewerRole === 'visitor' && session.invitedBy ? (
+        // DP-028: one line above the tabs for an invited non-member.
+        <InvitedLine name={session.invitedBy} text={t('inviteInvitedYouToSession', '\u0000')} />
+      ) : null}
       <VStack className="px-5 pt-3 pb-4">
         <Segmented options={tabOrder.map((key) => tabOptions[key])} value={activeTab} onChange={setActiveTab} />
       </VStack>

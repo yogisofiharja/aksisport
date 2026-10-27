@@ -173,6 +173,13 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
+		// DP-028: a non-member sees who invited them and whether it lets
+		// them straight in.
+		if preview.ViewerRole == nil {
+			if inv, err := dbpkg.ClubInviteFor(c.Request.Context(), pool, preview.ID, user.ID); err == nil {
+				preview.Invite = &inv
+			}
+		}
 		c.JSON(http.StatusOK, preview)
 	})
 

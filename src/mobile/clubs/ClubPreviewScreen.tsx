@@ -9,6 +9,7 @@ import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Card } from '../../design-system/ui/Card';
 import { Badge } from '../../design-system/ui/Badge';
 import { appAlert } from '../../design-system/feedback/appAlert';
+import { Alert } from '../../design-system/feedback/Alert';
 import { useTranslation } from '../../i18n';
 import { authHeader } from '../../core/api/client';
 import { cancelJoinRequest, clubAvatarUrl, joinClub } from '../../core/clubs/api';
@@ -43,6 +44,8 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
   }, []);
 
   const isPrivate = club.visibility === 'private';
+  // A private Community that this person's invite lets straight in.
+  const straightIn = isPrivate && Boolean(club.invite?.straightIn);
 
   async function handleJoin() {
     if (busy) return;
@@ -123,6 +126,22 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
         </Typography>
       ) : null}
 
+      {/* DP-028: who invited them; an owner/admin's invite skips the
+          request to a private Community. */}
+      {club.invite && !club.viewerRequestPending ? (
+        straightIn ? (
+          <Alert
+            tone="success"
+            icon="checkmark-circle-outline"
+            title={t('inviteFromOrganizer', club.invite.fromName, t(club.invite.fromRole === 'owner' ? 'clubRoleOwner' : 'clubRoleAdmin').toLowerCase())}
+          >
+            {t('inviteStraightIn')}
+          </Alert>
+        ) : (
+          <Alert tone="info" icon="mail-outline" title={t('inviteFromMember', club.invite.fromName)} />
+        )
+      ) : null}
+
       {error && (
         <Typography variant="body" color="destructive">
           {error}
@@ -150,11 +169,13 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
       ) : (
         <VStack space="sm">
           <Button size="xl" className="w-full" onPress={handleJoin} isDisabled={busy}>
-            <ButtonText>{isPrivate ? t('clubRequestToJoin') : t('clubJoin')}</ButtonText>
+            <ButtonText>{straightIn ? t('inviteJoinNamed', club.name) : isPrivate ? t('clubRequestToJoin') : t('clubJoin')}</ButtonText>
           </Button>
-          <Typography variant="body" color="muted" className="text-sm" style={{ textAlign: 'center' }}>
-            {isPrivate ? t('clubPrivateJoinHint') : t('clubPublicJoinHint')}
-          </Typography>
+          {straightIn ? null : (
+            <Typography variant="body" color="muted" className="text-sm" style={{ textAlign: 'center' }}>
+              {isPrivate ? t('clubPrivateJoinHint') : t('clubPublicJoinHint')}
+            </Typography>
+          )}
         </VStack>
       )}
     </ScrollPage>

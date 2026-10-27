@@ -92,6 +92,9 @@ export type ClubPreview = {
   memberCount: number;
   viewerRole?: ClubRole;
   viewerRequestPending: boolean;
+  // A non-member's invitation (DP-028): who sent it, their role there now,
+  // and whether it lets them straight into a private Community.
+  invite?: { fromName: string; fromRole: ClubRole | ''; straightIn: boolean };
 };
 
 // A pending request to join a private Community, as its owner/admins see it.
@@ -192,6 +195,8 @@ export type Session = {
   // The caller's role in the Session's Community, or 'visitor' for a
   // Session-only participant (DP-028). Set by getSession only.
   viewerRole?: ClubRole | 'visitor';
+  // Who invited a visitor (DP-028): "<Name> invited you to join session".
+  invitedBy?: string;
   createdAt: string;
   updatedAt: string;
   // DP-007: a core Session property, not an Organizer Preference — set

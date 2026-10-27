@@ -326,3 +326,30 @@ func DismissInvitation(ctx context.Context, pool *pgxpool.Pool, id, userID strin
 	}
 	return nil
 }
+
+// ClubInviteFor is what a Community's preview tells a non-member about
+// their invitation to it (DP-028): who invited them most recently — to the
+// Community or one of its Sessions — that inviter's role there now, and
+// whether it lets them straight in (HasOrganizerInvite). ErrNotFound when
+// there is none.
+func ClubInviteFor(ctx context.Context, pool *pgxpool.Pool, clubID, userID string) (models.ClubInvite, error) {
+	var inv models.ClubInvite
+	err := pool.QueryRow(ctx,
+		`SELECT COALESCE(NULLIF(fu.display_name, ''), fu.username), COALESCE(m.role, '')
+		 FROM invitations i
+		 JOIN users fu ON fu.id = i.from_user
+		 LEFT JOIN club_members m ON m.club_id = i.club_id AND m.user_id = i.from_user
+		 WHERE i.club_id = $1 AND i.to_user = $2
+		 ORDER BY (i.target_type = 'club') DESC, i.created_at DESC
+		 LIMIT 1`,
+		clubID, userID,
+	).Scan(&inv.FromName, &inv.FromRole)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.ClubInvite{}, ErrNotFound
+	}
+	if err != nil {
+		return models.ClubInvite{}, err
+	}
+	inv.StraightIn, err = HasOrganizerInvite(ctx, pool, clubID, userID)
+	return inv, err
+}

@@ -443,3 +443,29 @@ Invited, or "already in" / "already playing". For a Session, the note
 and admins get **Reset link** last, in its own group, behind a Dialog
 ("Reset the invite link?", Reset / Keep link).
 
+**The friend's side.** `/i/:token` is the `Invite` route
+(`InviteLandingScreen`). Signed out, the auth screens come first and
+`restoreIntendedUrl` brings them back to it; signed in, it opens the link
+(`GET /v1/invites/:token`, which records the invitation) and replaces
+itself with the Session or the Community. A reset link shows "This invite
+link no longer works. Ask for a new one." with Go to Home.
+
+- **Home**: an **Invited** section on top, one `InviteCard` per pending
+  in-app invitation — "<Name> invited you", the target, for a Session
+  "when · place" and "<Community> · price", Not now (dismisses) and Join
+  (opens the target). Sessions played outside your Communities show under
+  Right now like any other. With no Community yet but an invite or such a
+  Session, Home shows those instead of First run, and My communities says
+  "You're not in a community yet. You can play in a session without
+  joining one."
+- **Session, as an invited non-member** (`viewerRole: 'visitor'`): the
+  normal Session screen with one line above the tabs, "<Name> invited
+  you to join session" (`InvitedLine`); the bottom action is Request to
+  join, as for anyone. No ⋯ (only members invite) and no member list.
+- **Community preview** (`ClubPreviewScreen`) for someone invited: an
+  owner/admin's invite to a private Community shows a green note
+  "<Name> (admin) invited you. This is a private community, but your
+  invite lets you straight in. No request needed." and the button "Join
+  <Community>"; a member's invite shows "<Name> invited you." and joining
+  works as before.
+
