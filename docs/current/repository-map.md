@@ -74,7 +74,7 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   │                            Privacy/Logout)
 │   │   ├── clubs/                    CreateClubScreen, ClubEntryScreen (member →
 │   │   │                            CommunityScreen's tabs: CommunityHomeTab,
-│   │   │                            CommunitySessionsTab, ClubChatScreen, ClubMembersScreen;
+│   │   │                            CommunitySessionsTab, ClubChatScreen, CommunityMembersTab;
 │   │   │                            anyone else → ClubPreviewScreen), ClubSettingsScreen
 │   │   ├── sessions/                  SessionHistoryScreen (cross-Club, from Me),
 │   │   │                            SessionDetailScreen,

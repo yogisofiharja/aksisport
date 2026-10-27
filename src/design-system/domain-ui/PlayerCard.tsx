@@ -15,6 +15,9 @@ import { Typography } from '../ui/Typography';
  * - The picture shows when the screen passes `avatarSource` (it needs auth
  *   headers); otherwise initials.
  *
+ * `inList` drops the card frame for a row inside a `ListGroup` (the
+ * Members tab). `nameNote` follows the name in muted text ("(you)").
+ *
  * `trailing` stays composed by the screen: an Owner tag, an Admin tag, a
  * Paid / Awaiting pill, a ⋯ button or an Approve button. Which of those
  * apply is Community or Session membership logic, not this component's
@@ -32,6 +35,9 @@ type PlayerCardProps = {
   isOnline?: boolean;
   isGuest?: boolean;
   trailing?: ReactNode;
+  inList?: boolean;
+  /** Muted text after the name, e.g. "(you)". */
+  nameNote?: string;
   className?: string;
 };
 
@@ -43,12 +49,13 @@ export function PlayerCard({
   isOnline = false,
   isGuest = false,
   trailing,
+  inList = false,
+  nameNote,
   className = '',
 }: PlayerCardProps) {
+  const frame = inList ? 'px-4' : 'px-3.5 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl';
   return (
-    <View
-      className={`flex-row items-center gap-3 px-3.5 py-2.5 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl ${className}`}
-    >
+    <View className={`flex-row items-center gap-3 py-2.5 ${frame} ${className}`}>
       <View className="w-10 h-10">
         <View
           className={`w-10 h-10 rounded-full overflow-hidden items-center justify-center ${
@@ -72,6 +79,7 @@ export function PlayerCard({
       <View className="flex-1 min-w-0">
         <Typography variant="body" className="text-[15px] leading-5 font-semibold" numberOfLines={1}>
           {name}
+          {nameNote ? <Typography variant="body" color="muted" className="text-[15px] font-medium">{` ${nameNote}`}</Typography> : null}
         </Typography>
         {subtitle ? (
           <Typography variant="body" color="muted" className="text-[13px] leading-[18px]" numberOfLines={1}>

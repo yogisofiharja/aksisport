@@ -142,8 +142,9 @@ shippable, "phased by risk."
 
 Real, live work that fell outside the six-milestone roadmap above:
 
-- **Club Members redesign** — `b68145f`. 4-column avatar grid, search,
-  Add Member dialog backed by a new `GET /v1/users/search` endpoint.
+- **Club Members redesign** — `b68145f`, since replaced by the
+  Community's Members tab (grouped rows, search, Add member backed by
+  `GET /v1/users/search`).
 - **Deployment infrastructure** — `c83efc1`. Production/staging on a
   single VPS (systemd + Caddy + GitHub Actions), fully separate
   environments and databases.
@@ -208,8 +209,8 @@ Real, live work that fell outside the six-milestone roadmap above:
   fallback.
 - **Online Indicator (DP-014)** — a User attribute derived from recent
   request activity (no push/websocket presence infra exists), shown as
-  a green outline ring on member circle avatars (Club Members grid,
-  detail sheet, Add Member search).
+  a green dot on member avatars (a Community's Members tab, a Session's
+  Players tab) and a ring in direct-message rows.
 
 ---
 

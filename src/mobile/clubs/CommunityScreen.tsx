@@ -10,7 +10,7 @@ import { getClubChat } from '../../core/messages/groups';
 import { useLiveEvents } from '../../core/live/live';
 import { CommunityHomeTab } from './CommunityHomeTab';
 import { ClubChatScreen } from './ClubChatScreen';
-import { ClubMembersScreen } from './ClubMembersScreen';
+import { CommunityMembersTab } from './CommunityMembersTab';
 import { CommunitySessionsTab } from './CommunitySessionsTab';
 
 export type CommunityTab = 'home' | 'sessions' | 'chat' | 'members';
@@ -128,7 +128,7 @@ export function CommunityScreen(props: CommunityScreenProps) {
           />
         )}
         {tab === 'chat' && <ClubChatScreen clubId={clubId} edges={[...edges]} onBack={onExit} />}
-        {tab === 'members' && <ClubMembersScreen clubId={clubId} edges={[...edges]} onBack={onExit} onChanged={loadCounts} />}
+        {tab === 'members' && <CommunityMembersTab clubId={clubId} edges={[...edges]} onBack={onExit} onChanged={loadCounts} />}
       </View>
       <TabBarView
         items={(['home', 'sessions', 'chat', 'members'] as const).map((key) => ({

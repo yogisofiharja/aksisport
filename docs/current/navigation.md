@@ -90,10 +90,20 @@ This is what a shared link opens. The Community's Home tab and
 `ClubPreviewScreen` both have a share icon (`src/platform/shareLink.ts`:
 the native share sheet, the browser's where it has one, otherwise the
 link is copied and a notice says so).
-`ClubMembersScreen` lists those requests above the member list with
-Approve / Decline; tapping a request opens the requester's player profile
+**Community — Members tab** (`CommunityMembersTab`), the same for every
+role: a large "Members · N" title (owner: add member in the bar), a
+member search, then for owners/admins the join requests first — each row
+"asked to join · 2 days ago" with Approve, and Decline behind its ⋯;
+tapping a request opens the requester's player profile
 (`PlayerProfileSheet`, DP-019: picture, name, username, online, joined
-date, skill level per sport) with the same two actions. On a Session's
+date, skill level per sport) with Approve/Decline. Then "Owner & admins"
+(Owner and Admin tags) and "Members · N", each a `ListGroup` of
+`PlayerCard` rows (online dot, "@username", "(you)" on your own row).
+Tapping anyone opens their profile. A row's ⋯ holds what the viewer can
+do to that member, unchanged from before: the owner makes someone admin
+or a regular member, or removes them (asks first); anyone but the owner
+can leave from their own row. Add member (owner) is a Sheet searching
+every user (`GET /v1/users/search`), existing members left out. On a Session's
 Players tab, owner/admins tap any player's row for the same
 sheet — the Session's sport first, a within/outside-range badge when the
 Session has a level range, and Approve/Decline for a pending request. `CreateClubScreen` asks for a location and a "Private

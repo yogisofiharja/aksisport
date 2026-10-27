@@ -34,8 +34,8 @@ re-checks independently.
 **Exception to layer 3**: `GET /v1/users/search` requires a profile
 (layer 2) but no club membership at all — any user with a profile can
 search any other user by username/display name, regardless of whether
-they share a club. It exists specifically to back `ClubMembersScreen`'s
-Add Member dialog; "is this person already a member of *this* club" is
+they share a club. It exists specifically to back the Members tab's
+Add member sheet; "is this person already a member of *this* club" is
 filtered client-side afterward, not by the search endpoint itself.
 
 **Also outside layer 3 (DP-017)**: Community discovery is open to any
