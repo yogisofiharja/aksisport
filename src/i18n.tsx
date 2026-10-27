@@ -1747,7 +1747,7 @@ const id: Dict = {
   createSessionTitle: "Sesi baru",
   editSessionTitle: "Ubah sesi",
   createScheduleTitle: "Jadwal berulang baru",
-  editScheduleTitle: "Ubah jadwal berulang",
+  editScheduleTitle: "Ubah jadwal",
   liveMatchTitle: "Pertandingan langsung",
   homeGreeting: (name: string) => `Hai, ${name}`,
   cardOpen: "Buka",

@@ -26,7 +26,7 @@ export function AuthHero({ title, subtitle, logoLabel = 'Aksi' }: AuthHeroProps)
       style={{ minHeight: 280 + insets.top, paddingTop: insets.top + 24 }}
     >
       <View pointerEvents="none" className="absolute right-0 bottom-0">
-        <Svg width={240} height={300} viewBox="150 0 240 300">
+        <Svg width={240} height={300} viewBox="110 0 240 300">
           <Polygon points="210,300 270,300 450,20 390,20" fill={color.heat.light} />
           <Polygon points="300,300 342,300 482,80 440,80" fill={color.heat.light} opacity={0.45} />
           <Circle cx={330} cy={62} r={16} fill={color.ball.light} />
