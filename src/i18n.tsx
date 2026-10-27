@@ -636,6 +636,8 @@ const en: Dict = {
   // Activities (matches within a session)
   activityQueueTitle: 'Matches',
   activityEmptyQueue: 'No matches yet — add one to get started.',
+  activityEmptyPlayer: 'No matches yet.',
+  activityEmptyCompleted: 'No matches were played.',
   activityAdd: 'Add Match',
   activityAddTitle: 'Add Match',
   activityPickParticipants: 'Pick Participants',
@@ -1595,6 +1597,8 @@ const id: Dict = {
   // Activities (pertandingan dalam sesi)
   activityQueueTitle: 'Pertandingan',
   activityEmptyQueue: 'Belum ada pertandingan — tambahkan satu untuk mulai.',
+  activityEmptyPlayer: 'Belum ada pertandingan.',
+  activityEmptyCompleted: 'Tidak ada pertandingan yang dimainkan.',
   activityAdd: 'Tambah Pertandingan',
   activityAddTitle: 'Tambah Pertandingan',
   activityPickParticipants: 'Pilih Peserta',

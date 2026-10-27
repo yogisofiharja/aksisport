@@ -124,7 +124,10 @@ export function MatchesTab({
         </HStack>
       )}
       {activities.length === 0 ? (
-        <Text className="text-ink-muted dark:text-ink-muted-dark">{t('activityEmptyQueue')}</Text>
+        <Text className="text-ink-muted dark:text-ink-muted-dark">
+          {/* "Add one" only to someone who can. */}
+          {t(isCompleted ? 'activityEmptyCompleted' : isOwnerOrAdmin && isSessionActive ? 'activityEmptyQueue' : 'activityEmptyPlayer')}
+        </Text>
       ) : (
         shown.map((a) => {
           // Only the Session's umpire starts matches, once they are open
