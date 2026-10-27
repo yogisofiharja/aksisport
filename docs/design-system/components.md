@@ -102,14 +102,14 @@ The app bar sits at the top of every screen: back, title, up to two actions.
 
 ### TabBar
 
-The tab bar is the app's root navigation: Home, Explore, Inbox and Me (Milestone 1).
+The tab bar is the app's root navigation: Home, Explore, Inbox and Me (Milestone 1), and inside a Community its own four tabs: Home, Sessions, Chat and Members.
 
 - Active tab: `ink` label, `heat-strong` icon, and a short heat bar above it leaning at `slant-lean`, a nod to the mark.
 - Unread count: a heat badge with ink numerals, ringed in `surface`. Show numbers up to 99, then "99+".
 - Icons are 24px outline, 1.75 stroke; the active icon does not switch to a filled style.
 - Four tabs, always labelled. No tab is ever hidden based on role.
 
-In code: a custom `tabBar` for the bottom tabs in `navigation/PersonalTabs.tsx`, padded by `useSafeAreaInsets().bottom`. Detail screens are pushed on a Stack above the tabs, so it hides there and the ActionBar takes over.
+In code: `layout/TabBar.tsx` — `TabBarView` draws the bar from a list of tabs, padded by `useSafeAreaInsets().bottom`; `TabBar` adapts it as the bottom tab navigator's `tabBar` in `navigation/PersonalTabs.tsx`, and `mobile/clubs/CommunityScreen.tsx` uses `TabBarView` directly. Detail screens are pushed on a Stack above the tabs, so it hides there and the ActionBar takes over.
 
 ### Tabs
 

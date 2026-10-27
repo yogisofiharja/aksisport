@@ -827,6 +827,10 @@ const en: Dict = {
   settingsVersion: (v: string) => `Aksi · version ${v}`,
   inboxEmptyTitle: "No messages yet",
   exploreInTownEmptyTitle: "No communities here yet",
+  communityTabHome: "Home",
+  communityTabSessions: "Sessions",
+  communityTabChat: "Chat",
+  communityTabMembers: "Members",
 };
 
 const id: Dict = {
@@ -1648,6 +1652,10 @@ const id: Dict = {
   settingsVersion: (v: string) => `Aksi · versi ${v}`,
   inboxEmptyTitle: "Belum ada pesan",
   exploreInTownEmptyTitle: "Belum ada komunitas di sini",
+  communityTabHome: "Beranda",
+  communityTabSessions: "Sesi",
+  communityTabChat: "Obrolan",
+  communityTabMembers: "Anggota",
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

@@ -15,16 +15,18 @@ import {
   setClubChatEnabled,
 } from '../../core/messages/groups';
 import { ChatRoom } from '../messages/ChatRoom';
+import type { Edge } from 'react-native-safe-area-context';
 
 type Props = {
   clubId: string;
+  edges?: Edge[];
   onBack: () => void;
 };
 
 // A Community's chat (DP-021) on the shared chat screen: every member
 // reads and posts. The owner and admins can delete anyone's message and
 // turn the chat off (history stays readable). It never sends pushes.
-export function ClubChatScreen({ clubId, onBack }: Props) {
+export function ClubChatScreen({ clubId, edges, onBack }: Props) {
   const { t } = useTranslation();
   const { profile: me } = useAuth();
   const [clubName, setClubName] = useState('');
@@ -63,6 +65,7 @@ export function ClubChatScreen({ clubId, onBack }: Props) {
 
   return (
     <ChatRoom
+      edges={edges}
       onBack={onBack}
       avatar={
         <View className="w-9 h-9 rounded-full items-center justify-center bg-heat-tint dark:bg-heat-tint-dark">

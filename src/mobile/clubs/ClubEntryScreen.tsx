@@ -1,4 +1,4 @@
-import { useCallback, useState, type ComponentProps } from 'react';
+import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Page } from '../../design-system/layout/Page';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
@@ -8,16 +8,16 @@ import { useTranslation } from '../../i18n';
 import { getClubPreview } from '../../core/clubs/api';
 import { ApiRequestError } from '../../core/api/client';
 import type { ClubPreview } from '../../core/api/types';
-import { ClubDetailScreen } from './ClubDetailScreen';
+import { CommunityScreen, type CommunityScreenProps } from './CommunityScreen';
 import { ClubPreviewScreen } from './ClubPreviewScreen';
 import { AppBar } from '../../design-system/layout/AppBar';
 
-type Props = ComponentProps<typeof ClubDetailScreen>;
+type Props = CommunityScreenProps;
 
 // What the Community route (`/clubs/:clubId`) actually renders (DP-017).
 // The same address is opened by members from Home and by anyone from
 // Explore or a shared link, so this asks the server how the caller relates
-// to the Community first: members get its home (ClubDetailScreen),
+// to the Community first: members get its tabs (CommunityScreen),
 // everyone else the preview with the option to join. Joining a public
 // Community flips this to the home in place.
 export function ClubEntryScreen(props: Props) {
@@ -63,7 +63,7 @@ export function ClubEntryScreen(props: Props) {
     );
   }
 
-  if (preview.viewerRole) return <ClubDetailScreen {...props} />;
+  if (preview.viewerRole) return <CommunityScreen {...props} />;
 
   return <ClubPreviewScreen club={preview} onBack={props.onBack} onChanged={setPreview} />;
 }

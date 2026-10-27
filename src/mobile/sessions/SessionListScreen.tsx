@@ -19,12 +19,16 @@ import { sessionDateBucket } from '../../core/sessions/sessionSchedule';
 import { sessionCardProps } from './sessionDisplay';
 import type { Session } from '../../core/api/types';
 import { AppBar } from '../../design-system/layout/AppBar';
+import type { Edge } from 'react-native-safe-area-context';
 
 type Props = {
   clubId: string;
+  edges?: Edge[];
+  initialView?: 'upcoming' | 'past' | 'drafts';
   onBack: () => void;
   onOpenSession: (sessionId: string) => void;
   onCreateSession: () => void;
+  onOpenRecurringSchedules: () => void;
   onOpenHistory: () => void;
 };
 
@@ -32,7 +36,7 @@ function byStartsAtAsc(a: Session, b: Session) {
   return (a.startsAt ?? '').localeCompare(b.startsAt ?? '');
 }
 
-export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSession, onOpenHistory }: Props) {
+export function SessionListScreen({ clubId, edges, onBack, onOpenSession, onCreateSession, onOpenHistory }: Props) {
   const { t, lang } = useTranslation();
   const { profile } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -86,6 +90,7 @@ export function SessionListScreen({ clubId, onBack, onOpenSession, onCreateSessi
   return (
     <ScrollPage
       gap="lg"
+      edges={edges}
       appBar={<AppBar title={t('sessionListTitle')} onBack={onBack} />}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >

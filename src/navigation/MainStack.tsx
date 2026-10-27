@@ -1,10 +1,11 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NavigatorScreenParams } from '@react-navigation/native';
+import type { PersonalTabParamList } from './PersonalTabs';
+import type { CommunityScreenProps, CommunityTab, SessionsView } from '../mobile/clubs/CommunityScreen';
 import { PersonalTabs } from './PersonalTabs';
 import { CreateClubScreen } from '../mobile/clubs/CreateClubScreen';
 import { ClubEntryScreen } from '../mobile/clubs/ClubEntryScreen';
-import { ClubMembersScreen } from '../mobile/clubs/ClubMembersScreen';
 import { ClubSettingsScreen } from '../mobile/clubs/ClubSettingsScreen';
-import { SessionListScreen } from '../mobile/sessions/SessionListScreen';
 import { SessionHistoryScreen } from '../mobile/sessions/SessionHistoryScreen';
 import { CreateSessionScreen } from '../mobile/sessions/CreateSessionScreen';
 import { SessionDetailScreen } from '../mobile/sessions/SessionDetailScreen';
@@ -25,11 +26,10 @@ import { ClubReportsScreen } from '../mobile/safety/ClubReportsScreen';
 import { GroupChatScreen } from '../mobile/messages/GroupChatScreen';
 import { GroupInfoScreen } from '../mobile/messages/GroupInfoScreen';
 import { GroupPeopleScreen } from '../mobile/messages/GroupPeopleScreen';
-import { ClubChatScreen } from '../mobile/clubs/ClubChatScreen';
 import { DisplayNameScreen } from '../mobile/me/DisplayNameScreen';
 
 export type MainStackParamList = {
-  Personal: undefined;
+  Personal: NavigatorScreenParams<PersonalTabParamList> | undefined;
   Settings: undefined;
   NotificationSettings: undefined;
   DevComponents: undefined;
@@ -44,7 +44,7 @@ export type MainStackParamList = {
   PlayerSport: { userId: string; sport: string };
   EditDisplayName: undefined;
   CreateClub: undefined;
-  ClubDetail: { clubId: string };
+  ClubDetail: { clubId: string; tab?: CommunityTab };
   ClubMembers: { clubId: string };
   ClubSettings: { clubId: string };
   ClubReports: { clubId: string };
@@ -64,6 +64,33 @@ export type MainStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
+
+// Everything a Community's tabs open, for each route that shows the
+// Community (its own address, and the older per-tab addresses that
+// notifications and shared links still use). Back from any tab leaves the
+// Community for the main Home.
+function communityProps(
+  navigation: NativeStackNavigationProp<MainStackParamList>,
+  clubId: string,
+  initialTab?: CommunityTab,
+  initialSessionsView?: SessionsView
+): CommunityScreenProps {
+  return {
+    clubId,
+    initialTab,
+    initialSessionsView,
+    onExit: () => navigation.navigate('Personal', { screen: 'Home' }),
+    onBack: () => navigation.goBack(),
+    onTabChange: (tab) => navigation.setParams({ tab } as never),
+    onOpenSession: (sessionId) => navigation.navigate('SessionDetail', { sessionId }),
+    onCreateSession: () => navigation.navigate('CreateSession', { clubId }),
+    onOpenRecurringSchedules: () => navigation.navigate('RecurringScheduleList', { clubId }),
+    onOpenClubSettings: () => navigation.navigate('ClubSettings', { clubId }),
+    onOpenReports: () => navigation.navigate('ClubReports', { clubId }),
+    onOpenPastSessions: () => navigation.navigate('SessionHistory', { clubId }),
+    onLeft: () => navigation.navigate('Personal', { screen: 'Home' }),
+  };
+}
 
 export function MainStack() {
   return (
@@ -167,18 +194,7 @@ export function MainStack() {
         {({ navigation, route }) => (
           // Members get the Community's home; anyone else its preview
           // with the option to join (DP-017).
-          <ClubEntryScreen
-            clubId={route.params.clubId}
-            onBack={() => navigation.goBack()}
-            onOpenMembers={(clubId) => navigation.navigate('ClubMembers', { clubId })}
-            onOpenSessions={(clubId) => navigation.navigate('SessionList', { clubId })}
-            onOpenSession={(sessionId) => navigation.navigate('SessionDetail', { sessionId })}
-            onOpenRecurringSchedules={(clubId) => navigation.navigate('RecurringScheduleList', { clubId })}
-            onOpenClubSettings={(clubId) => navigation.navigate('ClubSettings', { clubId })}
-            onOpenReports={(clubId) => navigation.navigate('ClubReports', { clubId })}
-            onOpenChat={(clubId) => navigation.navigate('ClubChat', { clubId })}
-            onLeft={() => navigation.navigate('Personal')}
-          />
+          <ClubEntryScreen {...communityProps(navigation, route.params.clubId, route.params.tab)} />
         )}
       </Stack.Screen>
 
@@ -243,7 +259,7 @@ export function MainStack() {
       </Stack.Screen>
 
       <Stack.Screen name="ClubChat">
-        {({ navigation, route }) => <ClubChatScreen clubId={route.params.clubId} onBack={() => navigation.goBack()} />}
+        {({ navigation, route }) => <ClubEntryScreen {...communityProps(navigation, route.params.clubId, 'chat')} />}
       </Stack.Screen>
 
       <Stack.Screen name="ClubReports">
@@ -251,21 +267,11 @@ export function MainStack() {
       </Stack.Screen>
 
       <Stack.Screen name="ClubMembers">
-        {({ navigation, route }) => (
-          <ClubMembersScreen clubId={route.params.clubId} onBack={() => navigation.goBack()} />
-        )}
+        {({ navigation, route }) => <ClubEntryScreen {...communityProps(navigation, route.params.clubId, 'members')} />}
       </Stack.Screen>
 
       <Stack.Screen name="SessionList">
-        {({ navigation, route }) => (
-          <SessionListScreen
-            clubId={route.params.clubId}
-            onBack={() => navigation.goBack()}
-            onOpenSession={(sessionId) => navigation.navigate('SessionDetail', { sessionId })}
-            onCreateSession={() => navigation.navigate('CreateSession', { clubId: route.params.clubId })}
-            onOpenHistory={() => navigation.navigate('SessionHistory', { clubId: route.params.clubId })}
-          />
-        )}
+        {({ navigation, route }) => <ClubEntryScreen {...communityProps(navigation, route.params.clubId, 'sessions')} />}
       </Stack.Screen>
 
       <Stack.Screen name="SessionHistory">

@@ -17,9 +17,6 @@ import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';
 import { getClub, listJoinRequests, listMembers, clubAvatarUrl, removeMember, uploadClubAvatar } from '../../core/clubs/api';
 import { countClubReports } from '../../core/safety/api';
-import { getClubChat } from '../../core/messages/groups';
-import { useLiveEvents } from '../../core/live/live';
-import { UnreadCount } from '../messages/UnreadCount';
 import { clubLink, shareLink } from '../../platform/shareLink';
 import { Card } from '../../design-system/ui/Card';
 import { listSessions } from '../../core/sessions/api';
@@ -29,31 +26,30 @@ import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
 import { sessionCardProps } from '../sessions/sessionDisplay';
 import type { Club, Session } from '../../core/api/types';
 import { AppBar } from '../../design-system/layout/AppBar';
+import type { Edge } from 'react-native-safe-area-context';
 
 type Props = {
   clubId: string;
+  edges?: Edge[];
   onBack: () => void;
-  onOpenMembers: (clubId: string) => void;
-  onOpenSessions: (clubId: string) => void;
+  onOpenMembers: () => void;
   onOpenSession: (sessionId: string) => void;
-  onOpenRecurringSchedules: (clubId: string) => void;
-  onOpenClubSettings: (clubId: string) => void;
-  onOpenReports: (clubId: string) => void;
-  onOpenChat: (clubId: string) => void;
+  onOpenRecurringSchedules: () => void;
+  onOpenClubSettings: () => void;
+  onOpenReports: () => void;
   // After the caller has left this Community.
   onLeft: () => void;
 };
 
 export function ClubDetailScreen({
   clubId,
+  edges,
   onBack,
   onOpenMembers,
-  onOpenSessions,
   onOpenSession,
   onOpenRecurringSchedules,
   onOpenClubSettings,
   onOpenReports,
-  onOpenChat,
   onLeft,
 }: Props) {
   const { t, lang } = useTranslation();
@@ -69,8 +65,6 @@ export function ClubDetailScreen({
   const [pendingRequests, setPendingRequests] = useState(0);
   // DP-021: reports waiting for this Community's owner/admins.
   const [openReports, setOpenReports] = useState(0);
-  // DP-021: the Community chat's unread count for the caller.
-  const [chatUnread, setChatUnread] = useState(0);
   // GET .../avatar is behind the same auth as every other route — fetched
   // once per mount, same convention as ClubMembersScreen/SessionChat's own
   // image headers.
@@ -96,20 +90,12 @@ export function ClubDetailScreen({
       setIsOwnerOrAdmin(organizer);
       setPendingRequests(organizer ? (await listJoinRequests(clubId).catch(() => [])).length : 0);
       setOpenReports(organizer ? (await countClubReports(clubId).catch(() => ({ count: 0 }))).count : 0);
-      setChatUnread((await getClubChat(clubId).catch(() => ({ unreadCount: 0 }))).unreadCount);
     } catch {
       // leave stale state; user can back out and retry
     } finally {
       setLoading(false);
     }
   }, [clubId, profile?.id]);
-
-  // A new Community chat message from someone else adds to the count.
-  useLiveEvents((e) => {
-    if (e.type === 'message.created' && e.data?.kind === 'club' && e.data?.clubId === clubId && e.data?.message?.senderId !== profile?.id) {
-      setChatUnread((n) => n + 1);
-    }
-  });
 
   useFocusEffect(
     useCallback(() => {
@@ -176,7 +162,7 @@ export function ClubDetailScreen({
 
   if (loading || !club) {
     return (
-      <Page appBar={<AppBar onBack={onBack} />}>
+      <Page edges={edges} appBar={<AppBar onBack={onBack} />}>
         <Loading fullScreen />
       </Page>
     );
@@ -186,12 +172,13 @@ export function ClubDetailScreen({
 
   return (
     <ScrollPage
+      edges={edges}
       appBar={
         <AppBar
           onBack={onBack}
           actions={[
             { icon: 'share-outline', label: t('clubShareLink'), onPress: handleShare },
-            ...(isOwner ? [{ icon: 'settings-outline' as const, label: t('clubSettingsTitle'), onPress: () => onOpenClubSettings(clubId) }] : []),
+            ...(isOwner ? [{ icon: 'settings-outline' as const, label: t('clubSettingsTitle'), onPress: () => onOpenClubSettings() }] : []),
           ]}
         />
       }
@@ -228,7 +215,7 @@ export function ClubDetailScreen({
       </HStack>
 
       {pendingRequests > 0 && (
-        <Card pressable onPress={() => onOpenMembers(clubId)}>
+        <Card pressable onPress={() => onOpenMembers()}>
           <HStack className="justify-between items-center" space="md">
             <VStack space="xs" style={{ flex: 1 }}>
               <Typography variant="body" className="font-bold">
@@ -244,7 +231,7 @@ export function ClubDetailScreen({
       )}
 
       {openReports > 0 && (
-        <Card pressable onPress={() => onOpenReports(clubId)}>
+        <Card pressable onPress={() => onOpenReports()}>
           <HStack className="justify-between items-center" space="md">
             <HStack space="md" className="items-center" style={{ flex: 1 }}>
               <Icon name="flag-outline" color="destructive" />
@@ -272,27 +259,8 @@ export function ClubDetailScreen({
         )}
       </VStack>
 
-      <Button size="xl" className="w-full" onPress={() => onOpenSessions(clubId)}>
-        <ButtonText>{t('sessionListTitle')}</ButtonText>
-      </Button>
-
-      <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenChat(clubId)}>
-        <HStack space="sm" className="items-center">
-          <ButtonText variant="outline">
-            {t('clubChatTitle')}
-          </ButtonText>
-          <UnreadCount count={chatUnread} />
-        </HStack>
-      </Button>
-
-      <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenMembers(clubId)}>
-        <ButtonText variant="outline">
-          {t('clubMembersTitle')}
-        </ButtonText>
-      </Button>
-
       {isOwnerOrAdmin && (
-        <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenRecurringSchedules(clubId)}>
+        <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenRecurringSchedules()}>
           <ButtonText variant="outline">
             {t('recurringScheduleListTitle')}
           </ButtonText>
@@ -300,7 +268,7 @@ export function ClubDetailScreen({
       )}
 
       {isOwnerOrAdmin && (
-        <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenReports(clubId)}>
+        <Button variant="outline" size="xl" className="w-full" onPress={() => onOpenReports()}>
           <ButtonText variant="outline">
             {t('clubReportsTitle')}
           </ButtonText>

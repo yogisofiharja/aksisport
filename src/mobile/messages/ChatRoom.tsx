@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { Typography } from '../../design-system/ui/Typography';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
@@ -12,6 +12,8 @@ import { AppBar } from '../../design-system/layout/AppBar';
 type OutgoingImage = { base64: string; contentType: string };
 
 type Props = {
+  /** Safe-area edges; inside a Community's tabs, no 'bottom'. */
+  edges?: Edge[];
   onBack: () => void;
   // Header: picture, name, a line under it; tapping opens details; ⋮ menu.
   avatar: ReactNode;
@@ -44,6 +46,7 @@ type Props = {
 // thread, live updates, polling fallback, read receipts, typing, editing,
 // deleting and reporting are all the same machine.
 export function ChatRoom({
+  edges,
   onBack,
   avatar,
   title,
@@ -103,7 +106,7 @@ export function ChatRoom({
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+    <SafeAreaView edges={edges} className="flex-1 bg-ground dark:bg-ground-dark">
       <AppBar
         title={title}
         context={subtitle || undefined}

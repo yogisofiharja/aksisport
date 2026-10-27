@@ -27,10 +27,14 @@ import { ApiRequestError } from '../../core/api/client';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { CloseOnBack } from '../../design-system/feedback/useBackToClose';
 import { AppBar } from '../../design-system/layout/AppBar';
+import type { Edge } from 'react-native-safe-area-context';
 
 type Props = {
   clubId: string;
+  edges?: Edge[];
   onBack: () => void;
+  /** Members or join requests changed (the tab bar's count). */
+  onChanged?: () => void;
 };
 
 function roleLabel(role: ClubMember['role'], t: (key: string) => string) {
@@ -39,7 +43,7 @@ function roleLabel(role: ClubMember['role'], t: (key: string) => string) {
   return t('clubRoleMember');
 }
 
-export function ClubMembersScreen({ clubId, onBack }: Props) {
+export function ClubMembersScreen({ clubId, edges, onBack, onChanged }: Props) {
   const { t } = useTranslation();
   const { profile } = useAuth();
   const [members, setMembers] = useState<ClubMember[]>([]);
@@ -106,6 +110,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
     } finally {
       setDecidingRequestId(null);
       await load();
+      onChanged?.();
     }
   }
 
@@ -269,7 +274,7 @@ export function ClubMembersScreen({ clubId, onBack }: Props) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+    <SafeAreaView edges={edges} className="flex-1 bg-ground dark:bg-ground-dark">
       <AppBar
         title={t('clubMembersTitle')}
         onBack={onBack}

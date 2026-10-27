@@ -69,7 +69,17 @@ Initial route is `Personal` (a bottom-tab navigator, see below).
 `ClubEntryScreen`, which first asks `GET /v1/clubs/:clubId/preview` how
 the caller relates to the Community (DP-017):
 
-- a member → `ClubDetailScreen`, the Community's home, as before;
+- a member → `CommunityScreen`: the Community's four tabs (IA v1.1.0),
+  Home · Sessions · Chat · Members, the same for every role, drawn with
+  the app's `TabBarView` (heat count on Chat for unread Community chat
+  messages, and on Members for an owner/admin's pending join requests).
+  The tabs are state inside this one screen, not a navigator, so
+  switching never builds history: back from any tab goes to the main
+  Home (`Personal` › `Home`). The open tab is kept in the route
+  (`/clubs/:clubId?tab=members`). The older per-tab addresses
+  (`/clubs/:clubId/members`, `/chat`, `/sessions`) still work —
+  notifications link to Members — and open the Community on that tab.
+  Settings stays behind the ⋯ menu, never a tab;
 - anyone else → `ClubPreviewScreen`: picture, name, Public/Private,
   location, member count, description, and one action — "Join community"
   (public; joining swaps to the home in place) or "Request to join"
@@ -210,15 +220,14 @@ without any extra code.
 Personal (initial) — see PersonalTabs below
   ├─→ CreateClub          → replaces with ClubDetail on success
   ├─→ Settings            → goBack() (opened from the Me tab)
-  └─→ ClubDetail { clubId }
-        ├─→ ClubMembers { clubId }
-        ├─→ ClubSettings { clubId }       (Milestone 5 — gear icon, owner-only; Bank
-        │                                  Accounts + Danger Zone/Delete Community)
-        ├─→ SessionDetail { sessionId }   (direct — tapping a "Current Focus" card, Milestone 3;
-        │                                  same route as SessionList's own onOpenSession below)
-        └─→ SessionList { clubId }
-              ├─→ CreateSession { clubId }   → replaces with SessionDetail on success
-              └─→ SessionDetail { sessionId }
+  └─→ ClubDetail { clubId, tab? }   (CommunityScreen: Home · Sessions · Chat · Members;
+        │                            ClubMembers / ClubChat / SessionList render the same
+        │                            screen on that tab)
+        ├─→ ClubSettings { clubId }       (owner-only; Bank Accounts + Danger Zone/Delete Community)
+        ├─→ ClubReports { clubId }        (owner/admin)
+        ├─→ RecurringScheduleList { clubId }
+        ├─→ CreateSession { clubId }      → replaces with SessionDetail on success
+        └─→ SessionDetail { sessionId }   (from Home's Current Focus or the Sessions tab)
                     ├─→ AddMatch { sessionId }        → goBack() on success
                     ├─→ ActivityMatch { activityId }  → Result saved (DP-025): "Back to session"
                     │                                   goBack()s to the Matches tab if that's where
@@ -373,20 +382,6 @@ those routes don't exist on the tab navigator itself.
 
 ## Not present
 
-- No tabs inside Community Context — `ClubDetail` (Milestone 3) is a
-  single screen enriched with a ranked "Current Focus" list, not a
-  Home/Sessions/Communication tab bar; the roadmap explicitly left the
-  navigation shape (tabs vs. single screen) as an implementation
-  choice, and a single screen was simpler for what Current Focus needs
-  today. Session/Members/Recurring Schedules access is still plain
-  buttons below it, same as before. See "ClubDetail" below for what
-  Current Focus ranks and how.
-- No Communication of any kind at the Community level — still
-  `# Planning` in `AKSI_PRODUCT_DECISIONS.md` (see
-  `docs/IMPLEMENTATION_ROADMAP.md`'s Milestone 6), no DP exists yet. `ClubDetail` deliberately has no
-  Communication entry point, even a
-  placeholder — unlike `SessionDetail`'s Chat tab (Milestone 2), there
-  was no existing screen shell to slot a placeholder into here.
 - No browsing of Communities by distance, popularity or category —
   Explore lists the caller's own city and answers a typed
   query.

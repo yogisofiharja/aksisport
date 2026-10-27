@@ -4,7 +4,7 @@ import {
   ScrollView,
   type ScrollViewProps,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { spacing, type SpacingToken } from '../foundation/spacing';
@@ -43,6 +43,8 @@ type ScrollPageProps = Omit<ScrollViewProps, 'contentContainerStyle'> & {
   gap?: SpacingToken;
   /** The screen's AppBar: stays put above the scrolling content. */
   appBar?: ReactNode;
+  /** Safe-area edges; a screen above a tab bar leaves out 'bottom'. */
+  edges?: Edge[];
 };
 
 export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function ScrollPage(
@@ -53,6 +55,7 @@ export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function Scrol
     keyboardShouldPersistTaps,
     gap = 'xl',
     appBar,
+    edges,
     children,
     ...props
   },
@@ -79,7 +82,7 @@ export const ScrollPage = forwardRef<ScrollView, ScrollPageProps>(function Scrol
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+    <SafeAreaView edges={edges} className="flex-1 bg-ground dark:bg-ground-dark">
       <StatusBar style={isDark ? 'light' : 'dark'} />
       {appBar}
       {keyboardAvoiding ? (

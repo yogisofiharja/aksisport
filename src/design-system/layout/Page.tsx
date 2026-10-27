@@ -1,6 +1,6 @@
 import { forwardRef, type ReactNode } from 'react';
 import { View, type ViewProps } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 
@@ -21,15 +21,17 @@ type PageProps = ViewProps & {
   className?: string;
   /** The screen's AppBar, at the top of the safe area. */
   appBar?: ReactNode;
+  /** Safe-area edges; a screen above a tab bar leaves out 'bottom'. */
+  edges?: Edge[];
 };
 
-export const Page = forwardRef<View, PageProps>(function Page({ className = '', style, appBar, children, ...props }, ref) {
+export const Page = forwardRef<View, PageProps>(function Page({ className = '', style, appBar, edges, children, ...props }, ref) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   return (
     <View ref={ref} className={`flex-1 bg-ground dark:bg-ground-dark ${className}`} style={style} {...props}>
-      <SafeAreaView className="flex-1">
+      <SafeAreaView edges={edges} className="flex-1">
         <StatusBar style={isDark ? 'light' : 'dark'} />
         {appBar}
         {children}
