@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import { Icon } from '../../design-system/ui/Icon';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
@@ -16,6 +14,7 @@ import {
 } from '../../core/messages/groups';
 import { ChatRoom } from '../messages/ChatRoom';
 import type { Edge } from 'react-native-safe-area-context';
+import type { ClubMember } from '../../core/api/types';
 
 type Props = {
   clubId: string;
@@ -23,14 +22,16 @@ type Props = {
   onBack: () => void;
 };
 
-// A Community's chat (DP-021) on the shared chat screen: every member
-// reads and posts. The owner and admins can delete anyone's message and
+// A Community's Chat tab (DP-021) on the shared chat screen: every member
+// reads and posts. The bar reads "Community chat · <name> · N members";
+// an owner's or admin's messages carry their role after the name. The owner and admins can delete anyone's message and
 // turn the chat off (history stays readable). It never sends pushes.
 export function ClubChatScreen({ clubId, edges, onBack }: Props) {
   const { t } = useTranslation();
   const { profile: me } = useAuth();
   const [clubName, setClubName] = useState('');
-  const [isOrganizer, setIsOrganizer] = useState(false);
+  const [members, setMembers] = useState<ClubMember[]>([]);
+  const isOrganizer = members.some((m) => m.userId === me?.id && (m.role === 'owner' || m.role === 'admin'));
   const [enabled, setEnabled] = useState(true);
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export function ClubChatScreen({ clubId, edges, onBack }: Props) {
       .then((c) => setClubName(c.name))
       .catch(() => {});
     listMembers(clubId)
-      .then((members) => setIsOrganizer(members.some((m) => m.userId === me?.id && (m.role === 'owner' || m.role === 'admin'))))
+      .then(setMembers)
       .catch(() => {});
     getClubChat(clubId)
       .then((s) => setEnabled(s.enabled))
@@ -67,13 +68,12 @@ export function ClubChatScreen({ clubId, edges, onBack }: Props) {
     <ChatRoom
       edges={edges}
       onBack={onBack}
-      avatar={
-        <View className="w-9 h-9 rounded-full items-center justify-center bg-heat-tint dark:bg-heat-tint-dark">
-          <Icon name="chatbubbles" size="sm" color="secondary" />
-        </View>
-      }
       title={t('clubChatTitle')}
-      subtitle={clubName}
+      subtitle={clubName ? t('clubChatContext', clubName, members.length) : undefined}
+      senderRole={(senderId) => {
+        const role = members.find((m) => m.userId === senderId)?.role;
+        return role === 'owner' ? t('clubRoleOwner') : role === 'admin' ? t('clubRoleAdmin') : undefined;
+      }}
       onMenu={isOrganizer ? handleMenu : undefined}
       fetchMessages={() => listClubChatMessages(clubId)}
       sendMessage={(m) => sendClubChatMessage(clubId, m)}

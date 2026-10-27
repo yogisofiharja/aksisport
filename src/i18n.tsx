@@ -842,6 +842,9 @@ const en: Dict = {
   sessionsSchedulesNoneHint: "Set one up to create sessions every week",
   sessionsDraftsEmpty: "No drafts.",
   sessionsUpcomingEmptyTitle: "No sessions coming up",
+  chatToday: "Today",
+  chatYesterday: "Yesterday",
+  clubChatContext: (name: string, members: number) => `${name} · ${members} ${members === 1 ? 'member' : 'members'}`,
 };
 
 const id: Dict = {
@@ -1678,6 +1681,9 @@ const id: Dict = {
   sessionsSchedulesNoneHint: "Buat satu agar sesi dibuat setiap minggu",
   sessionsDraftsEmpty: "Tidak ada draf.",
   sessionsUpcomingEmptyTitle: "Belum ada sesi mendatang",
+  chatToday: "Hari ini",
+  chatYesterday: "Kemarin",
+  clubChatContext: (name: string, members: number) => `${name} · ${members} anggota`,
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

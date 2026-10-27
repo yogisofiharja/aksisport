@@ -187,7 +187,11 @@ Community chat (`ClubChat`, `/clubs/:clubId/chat`) are one screen,
 messages load from and go to; it wraps the shared `ConversationThread`
 (also used inside a Session for Session Chat and Contact Organizer). It
 owns loading, the polling fallback and catching a chat's first message
-live; all images load from `/v1/conversation-messages/:id/image`.
+live; all images load from `/v1/conversation-messages/:id/image`. The
+thread puts a day divider ("Today", "Yesterday", "Thu 22 Oct") over each
+day's first message, others' names over their messages (yours sit on the
+right without one), and "Seen" / "Seen by N" under your latest message
+from the read receipts.
 
 Inbox's compose icon (pencil on paper) opens `NewChat` (`/messages/new`,
 `GroupPeopleScreen`): search people you can message and tick them; one
@@ -196,9 +200,11 @@ opens the private chat, two or more create an unnamed group.
 group. Groups show as their name or their members' names (`groupLabel`).
 `GroupInfo` (`/groups/:groupId/info`, from the chat's header): optional
 name (creator), people (tap for a profile; × to remove, creator), Add
-people (creator), Leave group. The Community page has a **Community
-chat** button with an unread count; owner/admins get a ⋮ menu to turn it
-off/on, and "Delete for everyone" on anyone's message.
+people (creator), Leave group. A Community's **Chat** tab is its
+Community chat: the bar reads "Community chat" over "<name> · N members",
+the tab carries the unread count, an owner's or admin's messages show
+their role after the name ("Budi · Admin"), and owner/admins get ⋯ to
+turn the chat off/on and "Delete for everyone" on anyone's message.
 
 **The city picker** (`src/mobile/locations/CityPickerModal.tsx`) is the
 one way a place is chosen anywhere — a Community's location and a User's

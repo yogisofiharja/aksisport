@@ -21,6 +21,7 @@ import {
 import { sendLive, useLiveEvents } from '../../core/live/live';
 import { ReportSheet, type ReportTarget } from '../safety/ReportSheet';
 import type { ConversationMessage, ConversationRead } from '../../core/api/types';
+import { chatDayKey, chatDayLabel } from '../messages/chatDay';
 
 type Props = {
   // Where a message's image is served from — differs by kind of
@@ -41,6 +42,9 @@ type Props = {
   // Community chat, for its owner/admins (DP-021): remove anyone's
   // message for everyone.
   onModeratorRemove?: (messageId: string) => Promise<void>;
+  // Community chat: the sender's role there, shown after their name
+  // ("Budi · Admin"); undefined for a plain member.
+  senderRole?: (senderId: string) => string | undefined;
 };
 
 // Shared by DP-011 Session Chat and DP-013 Contact Organizer — the two
@@ -65,8 +69,8 @@ function formatMessageTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function ConversationThread({ imageUrl, messages, loading, onRefresh, myUserId, canPost, closedNotice, emptyText, placeholder, onSend, receipts = 'group', onModeratorRemove }: Props) {
-  const { t } = useTranslation();
+export function ConversationThread({ imageUrl, messages, loading, onRefresh, myUserId, canPost, closedNotice, emptyText, placeholder, onSend, receipts = 'group', onModeratorRemove, senderRole }: Props) {
+  const { t, lang } = useTranslation();
   const [draft, setDraft] = useState('');
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
   const [sending, setSending] = useState(false);
@@ -291,16 +295,25 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
             <Text className="text-ink-muted dark:text-ink-muted-dark text-center">{emptyText}</Text>
           </VStack>
         ) : (
-          messages.map((m) => {
+          messages.map((m, i) => {
             const isMine = m.senderId === myUserId;
+            const role = isMine ? undefined : senderRole?.(m.senderId);
+            // A divider over each day's first message.
+            const newDay = i === 0 || chatDayKey(messages[i - 1].createdAt) !== chatDayKey(m.createdAt);
             return (
               // Yours on the right, everyone else's on the left — like any
               // chat app. Your own name isn't repeated over your messages.
-              <VStack key={m.id} className={`gap-0.5 ${isMine ? 'items-end' : 'items-start'}`}>
+              <VStack key={m.id} className="gap-3">
+                {newDay && (
+                  <Box className="self-center px-2.5 py-0.5 rounded-full bg-surface-sunken dark:bg-surface-sunken-dark">
+                    <Text className="text-xs font-semibold text-ink-muted dark:text-ink-muted-dark">{chatDayLabel(m.createdAt, lang, t)}</Text>
+                  </Box>
+                )}
+              <VStack className={`gap-0.5 ${isMine ? 'items-end' : 'items-start'}`}>
                 <HStack className="items-baseline gap-2" style={{ maxWidth: '85%' }}>
                   {!isMine && (
-                    <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark" numberOfLines={1} style={{ flexShrink: 1 }}>
-                      {messageAuthorName(m)}
+                    <Text className="text-xs font-bold text-heat-strong dark:text-heat-strong-dark" numberOfLines={1} style={{ flexShrink: 1 }}>
+                      {role ? `${messageAuthorName(m)} · ${role}` : messageAuthorName(m)}
                     </Text>
                   )}
                   <Text className="text-xs text-ink-faint dark:text-ink-faint-dark">
@@ -334,6 +347,7 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
                     </Box>
                   </Pressable>
                 )}
+              </VStack>
               </VStack>
             );
           })

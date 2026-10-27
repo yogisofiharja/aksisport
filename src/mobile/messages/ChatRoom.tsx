@@ -16,7 +16,7 @@ type Props = {
   edges?: Edge[];
   onBack: () => void;
   // Header: picture, name, a line under it; tapping opens details; ⋮ menu.
-  avatar: ReactNode;
+  avatar?: ReactNode;
   title: string;
   subtitle?: string;
   onPressHeader?: () => void;
@@ -36,6 +36,8 @@ type Props = {
   unavailableText: string;
   receipts?: 'direct' | 'group';
   onModeratorRemove?: (messageId: string) => Promise<void>;
+  // The sender's role, after their name (Community chat).
+  senderRole?: (senderId: string) => string | undefined;
   // Sheets and dialogs that belong to this chat.
   children?: ReactNode;
 };
@@ -63,6 +65,7 @@ export function ChatRoom({
   unavailableText,
   receipts = 'group',
   onModeratorRemove,
+  senderRole,
   children,
 }: Props) {
   const { t } = useTranslation();
@@ -135,6 +138,7 @@ export function ChatRoom({
             onSend={handleSend}
             receipts={receipts}
             onModeratorRemove={onModeratorRemove}
+            senderRole={senderRole}
           />
         </View>
       )}
