@@ -656,31 +656,31 @@ they *additionally* appear in the Players tab's Confirmed/Checked
 In sub-section, same as any other participant; the Organizer card itself
 never has Remove or any other action.
 
-**Participants, split into sub-sections by status** (Milestone 2,
-replaces both the old flat list-of-rows layout and an even-older flat
-avatar grid): **Checked In** (`checked_in`) → **Confirmed**
-(`registered`) → **Waitlist** (`waitlist`) → **Requested**
-(`requested`) → **Cancelled** (`cancelled`) → **Other**
-(`checked_out`/`no_show`, no dedicated action anywhere in this screen
-today but shown rather than silently dropped). Each section header
-only renders when it has at least one participant. Each participant is a `PlayerCard` row (redesign, v0.27.0): initials
-(no `avatarUrl` on `SessionParticipant` yet; a guest's avatar is dashed),
-the name ("(You)" for the viewer), and a subline with the status, plus
-"Host" for the organizer and "Guest" for a guest. On a paid Session the
-row of a member who went through the payment step carries a Paid /
-Awaiting pill (`paymentStatus`, `core/sessions/paymentStatus.ts`); the
-host and guests never have one, since organizer-initiated places skip
-approval and payment (DP-012 v0.29.0), and the viewer's own "Your
-payment" card follows the same rule. Owner/admin, while the Session is active, also get
-the section's action as a small button — **Check in** on Confirmed
-(inside the Check-In Window), **Approve** on Requested — and a ⋯ that
-opens `PlayerRowSheet`: the player's payment (`ParticipantPayment`: the
-receipt and **Confirm payment** while awaited) and **Remove**. (A free
-Session never has Waitlist rows or payment pills: approval registers the
-member directly, v0.24.0.)
-Organizers tap a row to open the player's profile (DP-019). The section
-header shows `joinedCount`/`maxParticipants` next to the "Participants"
-title. Open spots below the rows are still the placeholder circles.
+**Participants, every status as circles** (DP-024): everyone — players
+and organizers alike — sees every participant, in every status, as a
+`PlayerCircle`. The first grid is who's playing: **Checked in**
+(`checked_in`, with a green check) then **Confirmed** (`registered`),
+followed by the open-spot placeholders. Below it, each other status gets
+its own labelled grid ("Requested · 2"), only when it has someone in it:
+**Requested** → **Waitlist** → **Checked out** → **No-show** →
+**Cancelled**; no-show and cancelled players are drawn faded. A circle
+shows initials (no `avatarUrl` on `SessionParticipant` yet; a guest's is
+dashed), the name ("You" for the viewer) and one line: Paid / Awaiting on
+a paid Session for a member who went through the payment step
+(`paymentStatus`, `core/sessions/paymentStatus.ts`), else "Host" or
+"Guest". The host and guests never have a payment line, since
+organizer-initiated places skip approval and payment (DP-012 v0.29.0),
+and the viewer's own "Your payment" card follows the same rule. (A free
+Session never has Waitlist players or payment lines: approval registers
+the member directly, v0.24.0.)
+
+Tapping any circle — the host's too — opens `PlayerRowSheet` for anyone:
+the status (with host or guest), **View profile** (DP-019) and the
+payment status. Owner/admin, while the Session is active, also get
+**Approve** and **Decline** on a request, **Check in** on a confirmed
+player (inside the Check-In Window), the receipt and **Confirm payment**
+while awaited (`ParticipantPayment`), and **Remove**. The section header
+shows `joinedCount`/`maxParticipants` next to the "Players" title.
 
 **Empty-slot placeholders** (Milestone 2, revised): once published *and*
 still active (`isPublished && isSessionActive` — none show once

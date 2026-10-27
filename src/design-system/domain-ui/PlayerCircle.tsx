@@ -16,6 +16,8 @@ type PlayerCircleProps = {
   initials: string;
   isGuest?: boolean;
   checkedIn?: boolean;
+  /** Someone no longer in (cancelled, didn't show): drawn faded. */
+  faded?: boolean;
   /** One short line under the name. */
   caption?: string;
   captionTone?: 'muted' | 'success' | 'warning';
@@ -34,6 +36,7 @@ export function PlayerCircle({
   initials,
   isGuest = false,
   checkedIn = false,
+  faded = false,
   caption,
   captionTone = 'muted',
   onPress,
@@ -46,7 +49,7 @@ export function PlayerCircle({
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={accessibilityLabel ?? [name, caption].filter(Boolean).join(', ')}
       className="items-center active:opacity-70"
-      style={{ width: 76 }}
+      style={{ width: 76, opacity: faded ? 0.5 : 1 }}
     >
       <View
         className={`w-16 h-16 rounded-full items-center justify-center ${

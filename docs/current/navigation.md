@@ -489,13 +489,13 @@ straight in with an owner/admin's invite; a pending request shows
   (`MatchesTab` read-only), a dark row "Play with <Community>" and Join
   community pinned at the bottom.
 
-**Players tab** (everyone): checked-in and confirmed players are circles
-(`PlayerCircle`) in one grid with the open spots — initials, a green check
-once checked in, the name and Host / Guest / Paid / Awaiting under it.
-Requests, the waitlist and cancelled players stay as rows; organizers
-approve requests there. Every circle — the host's too — opens the
-player's sheet (`PlayerRowSheet`) for anyone: their status (with host or
-guest), View profile and, on a priced Session, Paid / Awaiting. Organizers
-also get Check in (while the window is open), the receipt, Confirm payment
-and Remove.
+**Players tab** (everyone): every participant, in every status, is a
+circle (`PlayerCircle`). Checked-in and confirmed players share one grid
+with the open spots; below it Requested, Waitlist, Checked out, No-show
+and Cancelled each get their own grid ("Requested · 2"), the last two
+faded. Every circle — the host's too — opens the player's sheet
+(`PlayerRowSheet`) for anyone: their status (with host or guest), View
+profile and, on a priced Session, Paid / Awaiting. Organizers also get
+Approve / Decline on a request, Check in (while the window is open), the
+receipt, Confirm payment and Remove.
 

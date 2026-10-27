@@ -1106,19 +1106,15 @@ export function SessionDetailScreen({
             participants={participants}
             myUserId={profile?.id}
             isOwnerOrAdmin={isOwnerOrAdmin}
-            isSessionActive={isSessionActive}
             canAddParticipant={canAddParticipant}
             placeholderCount={placeholderCount}
-            busy={busy}
             myParticipation={myParticipation}
             paymentSummary={
               isFree ? undefined : (
                 <PaymentSummary sessionId={sessionId} session={session} myParticipant={myParticipant} onParticipantsChanged={load} />
               )
             }
-            onOpenProfile={setProfileParticipant}
             onOpenRowMenu={setRowMenuParticipant}
-            onApprove={handleApprove}
             onAddParticipant={openAddParticipant}
           />
         )}
@@ -1222,6 +1218,7 @@ export function SessionDetailScreen({
         isOwnerOrAdmin={isOwnerOrAdmin}
         canRemove={isOwnerOrAdmin && isSessionActive}
         canCheckIn={isOwnerOrAdmin && isSessionActive && checkInWindowOpen}
+        canApprove={isOwnerOrAdmin && isSessionActive}
         myUserId={profile?.id}
         busy={busy}
         onClose={() => setRowMenuParticipant(null)}
@@ -1229,6 +1226,7 @@ export function SessionDetailScreen({
         onRemove={handleDeleteParticipant}
         onViewProfile={setProfileParticipant}
         onCheckIn={handleCheckInParticipant}
+        onApprove={handleApprove}
       />
 
       <NativeShareModal data={shareData} onClose={() => setShareData(null)} />
