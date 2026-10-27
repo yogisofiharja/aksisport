@@ -116,22 +116,22 @@ func scanInvitation(row pgx.Row) (models.Invitation, error) {
 
 // RecordInvitation notes that toUser was invited to the target — in the
 // app, or by opening a link while signed in. One row per person per
-// target: a newer invite replaces the older one and is pending again.
+// target: a newer invite replaces the older one and is pending again —
+// except that opening a link never replaces a pending in-app invitation,
+// which stays on the friend's Home until they answer it.
 func RecordInvitation(ctx context.Context, pool *pgxpool.Pool, fromUser, toUser, targetType, targetID, clubID, via string, linkToken *string) (models.Invitation, error) {
-	var id string
-	err := pool.QueryRow(ctx,
+	if _, err := pool.Exec(ctx,
 		`INSERT INTO invitations (from_user, to_user, target_type, target_id, club_id, via, link_token)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 ON CONFLICT (to_user, target_type, target_id) DO UPDATE
 		   SET from_user = EXCLUDED.from_user, via = EXCLUDED.via, link_token = EXCLUDED.link_token,
 		       created_at = now(), responded_at = NULL, response = NULL
-		 RETURNING id`,
+		   WHERE NOT (EXCLUDED.via = 'link' AND invitations.via = 'app' AND invitations.responded_at IS NULL)`,
 		fromUser, toUser, targetType, targetID, clubID, via, linkToken,
-	).Scan(&id)
-	if err != nil {
+	); err != nil {
 		return models.Invitation{}, err
 	}
-	return GetInvitation(ctx, pool, id)
+	return GetInvitationFor(ctx, pool, toUser, targetType, targetID)
 }
 
 func GetInvitation(ctx context.Context, pool *pgxpool.Pool, id string) (models.Invitation, error) {

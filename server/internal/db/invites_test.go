@@ -215,3 +215,30 @@ func TestInviteCandidates(t *testing.T) {
 		t.Fatal("a dismissed invitation is still on Home")
 	}
 }
+
+// Opening a link never replaces a pending in-app invitation: it stays on
+// the friend's Home until they answer it.
+func TestInviteLinkKeepsAppInvitation(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	owner := testUser(t, pool, "owner")
+	friend := testUser(t, pool, "friend")
+	clubID := testClub(t, pool, owner, "public")
+	if _, err := RecordInvitation(ctx, pool, owner, friend, InviteTargetClub, clubID, clubID, "app", nil); err != nil {
+		t.Fatal(err)
+	}
+	link, err := GetOrCreateInviteLink(ctx, pool, InviteTargetClub, clubID, clubID, owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inv, err := RecordInvitation(ctx, pool, owner, friend, InviteTargetClub, clubID, clubID, "link", &link.Token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inv.Via != "app" {
+		t.Fatalf("via = %q after opening a link, want the in-app invitation kept", inv.Via)
+	}
+	if pending, _ := ListPendingInvitations(ctx, pool, friend); len(pending) != 1 {
+		t.Fatalf("Home has %d invitations, want 1", len(pending))
+	}
+}
