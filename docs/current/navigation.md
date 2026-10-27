@@ -121,7 +121,7 @@ or a regular member, or removes them; anyone but the owner can leave
 from their own row. Remove from community and Leave community sit last,
 in their own group, with a one-line consequence, and both ask to confirm. Add member (owner) is a Sheet searching
 every user (`GET /v1/users/search`), existing members left out. On a Session's
-Players tab, owner/admins tap any player's row for the same
+Players tab, owner/admins tap a player (a circle, or a row for a request) for the same
 sheet — the Session's sport first, a within/outside-range badge when the
 Session has a level range, and Approve/Decline for a pending request. `CreateClubScreen` asks for a location and a "Private
 community" switch; `ClubSettingsScreen` (owner) edits both under "Finding
@@ -488,4 +488,12 @@ straight in with an owner/admin's invite; a pending request shows
   tabs, "This session has ended. Here's how it went.", the Results
   (`MatchesTab` read-only), a dark row "Play with <Community>" and Join
   community pinned at the bottom.
+
+**Players tab** (everyone): checked-in and confirmed players are circles
+(`PlayerCircle`) in one grid with the open spots — initials, a green check
+once checked in, the name and Host / Guest / Paid / Awaiting under it.
+Requests, the waitlist and cancelled players stay as rows; organizers
+approve requests there. An organizer taps a player for their sheet
+(`PlayerRowSheet`): View profile, Check in (while the window is open),
+payment on a priced Session, Remove.
 

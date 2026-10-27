@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import { View } from 'react-native';
 import { Icon } from '../../../design-system/ui/Icon';
 import { Badge } from '../../../design-system/ui/Badge';
 import { IconButton } from '../../../design-system/ui/IconButton';
 import { PlayerCard } from '../../../design-system/domain-ui/PlayerCard';
+import { PlayerCircle } from '../../../design-system/domain-ui/PlayerCircle';
 import { Box, HStack, VStack } from '../../../../components/ui/box';
 import { Text } from '../../../../components/ui/text';
 import { Button, ButtonText } from '../../../../components/ui/button';
@@ -20,7 +22,6 @@ type Props = {
   myUserId?: string;
   isOwnerOrAdmin: boolean;
   isSessionActive: boolean;
-  checkInWindowOpen: boolean;
   canAddParticipant: boolean;
   placeholderCount: number;
   busy: boolean;
@@ -29,9 +30,8 @@ type Props = {
   /** Priced Session: amount, bank accounts and the viewer's payment. */
   paymentSummary?: ReactNode;
   onOpenProfile: (p: SessionParticipant) => void;
-  /** An organizer's ⋯ on a row: payment and Remove. */
+  /** An organizer opens a player: profile, Check in, payment, Remove. */
   onOpenRowMenu: (p: SessionParticipant) => void;
-  onCheckInParticipant: (participantId: string) => void;
   onApprove: (userId: string) => void;
   onAddParticipant: () => void;
 };
@@ -42,7 +42,6 @@ export function PlayersTab({
   myUserId,
   isOwnerOrAdmin,
   isSessionActive,
-  checkInWindowOpen,
   canAddParticipant,
   placeholderCount,
   busy,
@@ -50,7 +49,6 @@ export function PlayersTab({
   paymentSummary,
   onOpenProfile,
   onOpenRowMenu,
-  onCheckInParticipant,
   onApprove,
   onAddParticipant,
 }: Props) {
@@ -131,6 +129,40 @@ export function PlayersTab({
     );
   }
 
+  // A checked-in or confirmed player as a circle: the green check once
+  // they've checked in; under the name, their payment on a priced Session
+  // (Paid / Awaiting — never the host or a guest, DP-012 v0.29.0), else
+  // "Host" or "Guest".
+  function renderParticipantCircle(p: SessionParticipant) {
+    const status = paymentStatus(p, session);
+    const isGuest = !p.userId;
+    const isHost = Boolean(p.userId) && p.userId === session.createdBy;
+    const caption =
+      status === 'paid'
+        ? t('sessionPaymentStatusPaid')
+        : status === 'awaiting'
+          ? t('sessionPaymentStatusAwaiting')
+          : isHost
+            ? t('sessionHostLabel')
+            : isGuest
+              ? t('sessionAddParticipantGuestOption')
+              : undefined;
+    const name = p.displayName || p.username || p.guestName || '?';
+    return (
+      <PlayerCircle
+        key={p.id}
+        name={p.userId === myUserId ? t('sessionYou') : name}
+        initials={initialsFromName(name)}
+        isGuest={isGuest}
+        checkedIn={p.status === 'checked_in'}
+        caption={caption}
+        captionTone={status === 'paid' ? 'success' : status === 'awaiting' ? 'warning' : 'muted'}
+        onPress={isOwnerOrAdmin ? () => onOpenRowMenu(p) : undefined}
+        accessibilityLabel={[name, participantStatusLabel(p.status), caption].filter(Boolean).join(', ')}
+      />
+    );
+  }
+
   function renderParticipantSection(label: string, list: SessionParticipant[], action?: (p: SessionParticipant) => RowAction) {
     if (list.length === 0) return null;
     return (
@@ -157,22 +189,12 @@ export function PlayersTab({
           </Text>
         </HStack>
 
-        {renderParticipantSection(t('sessionSectionCheckedIn'), checkedInParticipants)}
-        {renderParticipantSection(
-          t('sessionSectionConfirmed'),
-          confirmedParticipants,
-          checkInWindowOpen ? (p) => ({ label: t('sessionCheckIn'), onPress: () => onCheckInParticipant(p.id) }) : undefined
-        )}
-        {renderParticipantSection(t('sessionSectionWaitlist'), waitlistParticipants)}
-        {renderParticipantSection(t('sessionSectionRequested'), requestedParticipants, (p) => ({
-          label: t('sessionApprove'),
-          onPress: () => onApprove(p.userId!),
-        }))}
-        {renderParticipantSection(t('sessionSectionCancelled'), cancelledParticipants)}
-        {renderParticipantSection(t('sessionSectionOther'), otherParticipants)}
-
-        {placeholderCount > 0 && (
-          <HStack className="flex-wrap items-start" style={{ rowGap: 16, columnGap: 12 }}>
+        {/* Who's playing: checked-in and confirmed players as circles, in
+            one grid with the open spots. Organizers tap a player for their
+            sheet (profile, Check in, payment, Remove). */}
+        {checkedInParticipants.length + confirmedParticipants.length + placeholderCount > 0 && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', rowGap: 16, columnGap: 12 }}>
+            {[...checkedInParticipants, ...confirmedParticipants].map(renderParticipantCircle)}
             {Array.from({ length: placeholderCount }).map((_, i) => (
               <VStack key={`placeholder-${i}`} className="items-center" style={{ width: 76 }}>
                 {/* An open spot. Organizers can tap it to add someone (hence
@@ -191,8 +213,17 @@ export function PlayersTab({
                 )}
               </VStack>
             ))}
-          </HStack>
+          </View>
         )}
+
+        {renderParticipantSection(t('sessionSectionWaitlist'), waitlistParticipants)}
+        {renderParticipantSection(t('sessionSectionRequested'), requestedParticipants, (p) => ({
+          label: t('sessionApprove'),
+          onPress: () => onApprove(p.userId!),
+        }))}
+        {renderParticipantSection(t('sessionSectionCancelled'), cancelledParticipants)}
+        {renderParticipantSection(t('sessionSectionOther'), otherParticipants)}
+
       </VStack>
     </VStack>
   );
