@@ -20,6 +20,25 @@ import { Platform } from 'react-native';
 
 let nextId = 0;
 
+// The open overlays, oldest first. One back closes only the topmost — a
+// dialog over a sheet closes just the dialog — whatever the history
+// entries' state says by then (React Navigation may replace the current
+// entry's state, dropping our marker).
+const open: { id: number; close: () => void }[] = [];
+// Backs this module triggers itself (closing an overlay another way),
+// which must not close the next overlay down.
+let ownBacks = 0;
+let listening = false;
+
+function onPopState() {
+  if (ownBacks > 0) {
+    ownBacks -= 1;
+    return;
+  }
+  const top = open.pop();
+  top?.close();
+}
+
 export function useBackToClose(visible: boolean, onClose: () => void) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -28,22 +47,22 @@ export function useBackToClose(visible: boolean, onClose: () => void) {
     if (Platform.OS !== 'web' || !visible || typeof window === 'undefined') return;
     const id = ++nextId;
     window.history.pushState({ ...(window.history.state ?? {}), aksiOverlay: id }, '');
-
-    let poppedByBack = false;
-    // Close only once history has gone back past this overlay's entry, so
-    // back on a dialog over a sheet closes just the dialog.
-    function onPopState() {
-      const current = window.history.state?.aksiOverlay;
-      if (typeof current === 'number' && current >= id) return;
-      poppedByBack = true;
-      window.removeEventListener('popstate', onPopState);
-      onCloseRef.current();
+    open.push({ id, close: () => onCloseRef.current() });
+    if (!listening) {
+      window.addEventListener('popstate', onPopState);
+      listening = true;
     }
-    window.addEventListener('popstate', onPopState);
 
     return () => {
-      window.removeEventListener('popstate', onPopState);
-      if (!poppedByBack && window.history.state?.aksiOverlay === id) window.history.back();
+      const index = open.findIndex((o) => o.id === id);
+      if (index < 0) return; // closed by back: its entry is already gone
+      open.splice(index, 1);
+      // Closed another way: remove its entry too — unless the app has
+      // already navigated on top of it.
+      if (window.history.state?.aksiOverlay === id) {
+        ownBacks += 1;
+        window.history.back();
+      }
     };
   }, [visible]);
 }
