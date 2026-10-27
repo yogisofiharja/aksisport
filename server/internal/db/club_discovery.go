@@ -82,9 +82,10 @@ const (
 
 // JoinClub is the self-service way in (DP-017). A public Club adds the
 // user as a member straight away; a private one records a pending join
-// request. Both are idempotent: already a member, or already waiting,
-// changes nothing. ErrNotFound if the Club doesn't exist.
-func JoinClub(ctx context.Context, pool *pgxpool.Pool, clubID, userID string) (JoinOutcome, error) {
+// request — unless straightIn (DP-028: an owner/admin invited them), which
+// adds them as a member too. Both are idempotent: already a member, or
+// already waiting, changes nothing. ErrNotFound if the Club doesn't exist.
+func JoinClub(ctx context.Context, pool *pgxpool.Pool, clubID, userID string, straightIn bool) (JoinOutcome, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return JoinUnchanged, err
@@ -110,7 +111,7 @@ func JoinClub(ctx context.Context, pool *pgxpool.Pool, clubID, userID string) (J
 		return JoinUnchanged, nil
 	}
 
-	if visibility == "private" {
+	if visibility == "private" && !straightIn {
 		tag, err := tx.Exec(ctx,
 			`INSERT INTO club_join_requests (club_id, user_id) VALUES ($1, $2)
 			 ON CONFLICT (club_id, user_id) WHERE status = 'pending' DO NOTHING`,

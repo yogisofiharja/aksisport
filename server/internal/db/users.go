@@ -55,6 +55,19 @@ func GetUserByFirebaseUID(ctx context.Context, pool *pgxpool.Pool, firebaseUID s
 	return u, err
 }
 
+func GetUserByID(ctx context.Context, pool *pgxpool.Pool, id string) (models.User, error) {
+	rows, err := pool.Query(ctx, "SELECT "+userColumns+" FROM users WHERE id = $1", id)
+	if err != nil {
+		return models.User{}, err
+	}
+	defer rows.Close()
+	u, err := pgx.CollectOneRow(rows, scanUser)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.User{}, ErrNotFound
+	}
+	return u, err
+}
+
 func GetUserByUsername(ctx context.Context, pool *pgxpool.Pool, username string) (models.User, error) {
 	rows, err := pool.Query(ctx, "SELECT "+userColumns+" FROM users WHERE username = $1", username)
 	if err != nil {

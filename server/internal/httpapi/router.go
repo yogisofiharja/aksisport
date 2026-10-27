@@ -56,6 +56,7 @@ func NewRouter(d Deps) *gin.Engine {
 	RegisterUserRoutes(v1, pool, verifier, d.Mailer, d.ClientIP)
 	RegisterAccountEmailRoutes(v1, pool, verifier, d.Mailer, d.Passwords, d.ClientIP)
 	RegisterClubRoutes(v1, pool, verifier, d.Notifier)
+	RegisterInviteRoutes(v1, pool, verifier, d.Notifier)
 	RegisterNotificationRoutes(v1, pool, verifier, d.Notifier)
 	RegisterDirectMessageRoutes(v1, pool, verifier, msgs)
 	RegisterMessagingRoutes(v1, pool, verifier, hub, d.AllowedOrigins)

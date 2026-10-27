@@ -521,6 +521,26 @@ timer (`RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES`, default 15) in
 `cmd/api/main.go`. The whole pass (generation, auto-start,
 auto-transition, overdue matches) also runs once when the API starts. See `lifecycle-recurring-schedule.md`.
 
+## Invites (DP-028)
+
+Tables `invite_links` and `invitations` (migration `0043`).
+
+| Method | Path | Auth | Who | Notes |
+|---|---|---|---|---|
+| GET | `/v1/clubs/:clubId/invite-link` | profile | any member | The caller's own link to the Community, made on first use. One live link per inviter per target (`token`: 22 URL-safe characters); it never expires. |
+| POST | `/v1/clubs/:clubId/invite-link/reset` | profile | owner/admin | Revokes every link for the Community; returns the caller's fresh one. Everyone else gets a fresh one next time they ask. |
+| GET | `/v1/sessions/:id/invite-link` | profile | anyone with Session access | Same, for a Session. 409 on a draft. |
+| POST | `/v1/sessions/:id/invite-link/reset` | profile | owner/admin | Same as the Community reset, for the Session. |
+| GET | `/v1/invites/:token` | profile | anyone signed in | Opens a link (the app's `/i/:token`): `{targetType, targetId, clubId, clubName, sessionName?, startsAt?, inviterId, inviterName, straightIn}`. Works after the Session ended. Records an `invitations` row (`via = link`) for anyone but the inviter. 410 `INVITE_REVOKED` "This invite link no longer works. Ask for a new one." after a reset; 404 for an unknown token, a deleted target or a draft. |
+
+`straightIn` and joining: `POST /v1/clubs/:clubId/join` lets the caller
+into a **private** Community without a request when they hold an
+invitation to it, or to one of its Sessions, from someone who is an
+owner/admin there **now** (`db.HasOrganizerInvite`), and that invitation
+didn't come through a link that has since been reset. Otherwise joining
+is unchanged (DP-017). Joining marks the caller's invitations to the
+Community `joined`.
+
 ## Error shape
 
 All errors: `{"error": "<message>"}`, sometimes with a `code` field

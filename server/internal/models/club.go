@@ -76,3 +76,31 @@ type ClubWithRole struct {
 	Club
 	Role string `json:"role"`
 }
+
+// InviteLink is a shareable invite to a Community or Session (DP-028).
+type InviteLink struct {
+	Token      string     `json:"token"`
+	TargetType string     `json:"targetType"`
+	TargetID   string     `json:"targetId"`
+	ClubID     string     `json:"clubId"`
+	CreatedBy  string     `json:"createdBy"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	RevokedAt  *time.Time `json:"revokedAt,omitempty"`
+}
+
+// Invitation: someone invited to a Community or Session, in the app or by
+// opening a link (DP-028).
+type Invitation struct {
+	ID          string     `json:"id"`
+	FromUserID  string     `json:"fromUserId"`
+	FromName    string     `json:"fromName"`
+	ToUserID    string     `json:"toUserId"`
+	TargetType  string     `json:"targetType"`
+	TargetID    string     `json:"targetId"`
+	ClubID      string     `json:"clubId"`
+	Via         string     `json:"via"`
+	LinkToken   *string    `json:"-"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	RespondedAt *time.Time `json:"respondedAt,omitempty"`
+	Response    *string    `json:"response,omitempty"`
+}

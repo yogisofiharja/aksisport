@@ -183,7 +183,14 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		clubID := c.Param("clubId")
 		user := authjwt.CurrentUser(c)
 		ctx := c.Request.Context()
-		outcome, err := dbpkg.JoinClub(ctx, pool, clubID, user.ID)
+		// DP-028: an owner/admin's invite lets them into a private
+		// Community without a request — checked now, not when sent.
+		straightIn, err := dbpkg.HasOrganizerInvite(ctx, pool, clubID, user.ID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		outcome, err := dbpkg.JoinClub(ctx, pool, clubID, user.ID, straightIn)
 		if errors.Is(err, dbpkg.ErrNotFound) {
 			respondError(c, http.StatusNotFound, "club not found")
 			return
@@ -196,6 +203,9 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		if err != nil {
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
+		}
+		if outcome == dbpkg.JoinJoined {
+			_ = dbpkg.MarkClubInvitationsJoined(ctx, pool, clubID, user.ID)
 		}
 		// DP-018 #1: a new request to a private Community tells its owner
 		// and admins. Asking again while waiting doesn't repeat it.
