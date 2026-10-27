@@ -22,6 +22,8 @@ describe('notificationText', () => {
     expect(n('payment_confirmed', { session: 'Sunday' })).toBe('notifPaymentConfirmed(Sunday)');
     expect(n('session_reminder', { session: 'Sunday', minutes: '120' })).toBe('notifSessionReminder(Sunday,startsIn(durationHours(2)))');
     expect(n('umpire_assigned', { session: 'Sunday' })).toBe('notifUmpireAssigned(Sunday)');
+    expect(n('community_invite', { name: 'Budi', club: 'Senayan TC' })).toBe('notifInvited(Budi,Senayan TC)');
+    expect(n('session_invite', { name: 'Budi', session: 'Sabtu' })).toBe('notifInvited(Budi,Sabtu)');
   });
 
   it('still says something for a type this version does not know', () => {

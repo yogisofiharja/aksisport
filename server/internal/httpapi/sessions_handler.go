@@ -558,6 +558,8 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
+		// DP-028: asking for a spot answers an invitation to the Session.
+		_ = dbpkg.RespondToInvitation(ctx, pool, user.ID, dbpkg.InviteTargetSession, sessionID, "joined")
 		// DP-018 #3: a new request (or one made again after cancelling)
 		// tells the Community's owner and admins; repeating a pending one
 		// doesn't.

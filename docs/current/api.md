@@ -531,6 +531,12 @@ Tables `invite_links` and `invitations` (migration `0043`).
 | POST | `/v1/clubs/:clubId/invite-link/reset` | profile | owner/admin | Revokes every link for the Community; returns the caller's fresh one. Everyone else gets a fresh one next time they ask. |
 | GET | `/v1/sessions/:id/invite-link` | profile | anyone with Session access | Same, for a Session. 409 on a draft. |
 | POST | `/v1/sessions/:id/invite-link/reset` | profile | owner/admin | Same as the Community reset, for the Session. |
+| GET | `/v1/clubs/:clubId/invitations/candidates?q=` | profile | any member | In-app invite search (2+ characters, 20 results, like `/users/search`), each marked `state`: `invite`, `invited` (a pending in-app invitation) or `in` (already a member). |
+| POST | `/v1/clubs/:clubId/invitations` | profile | any member | Body `{userId}`. Records an in-app invitation and notifies them (`community_invite`, Communities switch, opens `/clubs/:clubId`). 409 `ALREADY_IN` for a member. A newer invite replaces an older one. |
+| GET | `/v1/sessions/:id/invitations/candidates?q=` | profile | anyone with Session access | Same, for a Session: `in` = already asked, approved, playing or played. |
+| POST | `/v1/sessions/:id/invitations` | profile | anyone with Session access | Same, for a Session (`session_invite`, Sessions switch, opens `/sessions/:id`). 409 on a draft. Asking for a spot (`register`) marks the invitation `joined`. |
+| GET | `/v1/me/invitations` | profile | — | Home's Invited cards: unanswered in-app invitations, newest first, with the inviter's name, the Community and, for a Session, its name, start, duration, place and price. Sessions that ended or were cancelled drop out. |
+| POST | `/v1/invitations/:id/dismiss` | profile | the invitee | Not now. 204. |
 | GET | `/v1/invites/:token` | profile | anyone signed in | Opens a link (the app's `/i/:token`): `{targetType, targetId, clubId, clubName, sessionName?, startsAt?, inviterId, inviterName, straightIn}`. Works after the Session ended. Records an `invitations` row (`via = link`) for anyone but the inviter. 410 `INVITE_REVOKED` "This invite link no longer works. Ask for a new one." after a reset; 404 for an unknown token, a deleted target or a draft. |
 
 `straightIn` and joining: `POST /v1/clubs/:clubId/join` lets the caller

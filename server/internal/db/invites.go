@@ -212,3 +212,117 @@ func HasSessionVisitorAccess(ctx context.Context, pool *pgxpool.Pool, sessionID,
 	).Scan(&ok)
 	return ok, err
 }
+
+// Who is already "in" a target for in-app invites: a member of the
+// Community, or someone taking part in the Session (asked, approved,
+// playing or played).
+const (
+	inClubSQL    = `EXISTS(SELECT 1 FROM club_members WHERE club_id = $1 AND user_id = u.id)`
+	inSessionSQL = `EXISTS(SELECT 1 FROM session_participants WHERE session_id = $1 AND user_id = u.id
+	                       AND status IN ('requested', 'waitlist', 'registered', 'checked_in', 'checked_out'))`
+)
+
+// InviteCandidates is the in-app invite search (DP-028): users matching q,
+// each marked "in" (already a member / already playing), "invited" (a
+// pending in-app invitation) or "invite".
+func InviteCandidates(ctx context.Context, pool *pgxpool.Pool, targetType, targetID, q, callerID string) ([]models.InviteCandidate, error) {
+	in := inClubSQL
+	if targetType == InviteTargetSession {
+		in = inSessionSQL
+	}
+	rows, err := pool.Query(ctx,
+		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+in+`,
+		        EXISTS(SELECT 1 FROM invitations i WHERE i.to_user = u.id AND i.target_type = $3 AND i.target_id = $1
+		               AND i.via = 'app' AND i.responded_at IS NULL)
+		 FROM users u
+		 WHERE u.id != $2 AND (u.username ILIKE '%' || $4 || '%' OR u.display_name ILIKE '%' || $4 || '%')
+		 ORDER BY u.username ASC
+		 LIMIT 20`,
+		targetID, callerID, targetType, q,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := []models.InviteCandidate{}
+	for rows.Next() {
+		var c models.InviteCandidate
+		var in, invited bool
+		if err := rows.Scan(&c.ID, &c.Username, &c.DisplayName, &c.HasAvatar, &in, &invited); err != nil {
+			return nil, err
+		}
+		switch {
+		case in:
+			c.State = "in"
+		case invited:
+			c.State = "invited"
+		default:
+			c.State = "invite"
+		}
+		result = append(result, c)
+	}
+	return result, rows.Err()
+}
+
+// IsAlreadyIn: a member of the Community, or taking part in the Session.
+func IsAlreadyIn(ctx context.Context, pool *pgxpool.Pool, targetType, targetID, userID string) (bool, error) {
+	in := inClubSQL
+	if targetType == InviteTargetSession {
+		in = inSessionSQL
+	}
+	var ok bool
+	err := pool.QueryRow(ctx, `SELECT `+in+` FROM users u WHERE u.id = $2`, targetID, userID).Scan(&ok)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, ErrNotFound
+	}
+	return ok, err
+}
+
+// ListPendingInvitations is Home's "Invited" section: the caller's
+// unanswered in-app invitations, newest first, with what Home shows about
+// the target. Sessions that ended or were cancelled drop out.
+func ListPendingInvitations(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.InvitationCard, error) {
+	rows, err := pool.Query(ctx,
+		`SELECT i.id, i.from_user, COALESCE(NULLIF(fu.display_name, ''), fu.username), i.target_type, i.target_id, i.club_id,
+		        c.name, i.created_at, s.name, s.starts_at, s.duration_minutes, s.location, s.price_model, s.price_per_person, s.total_price
+		 FROM invitations i
+		 JOIN users fu ON fu.id = i.from_user
+		 JOIN clubs c ON c.id = i.club_id
+		 LEFT JOIN sessions s ON i.target_type = 'session' AND s.id = i.target_id
+		 WHERE i.to_user = $1 AND i.via = 'app' AND i.responded_at IS NULL
+		   AND (i.target_type = 'club' OR (s.id IS NOT NULL AND s.status IN ('open', 'in_progress')))
+		 ORDER BY i.created_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := []models.InvitationCard{}
+	for rows.Next() {
+		var c models.InvitationCard
+		var priceModel *string
+		if err := rows.Scan(&c.ID, &c.FromUserID, &c.FromName, &c.TargetType, &c.TargetID, &c.ClubID, &c.ClubName, &c.CreatedAt,
+			&c.SessionName, &c.StartsAt, &c.DurationMinutes, &c.Location, &priceModel, &c.PricePerPerson, &c.TotalPrice); err != nil {
+			return nil, err
+		}
+		if priceModel != nil {
+			c.PriceModel = *priceModel
+		}
+		result = append(result, c)
+	}
+	return result, rows.Err()
+}
+
+// DismissInvitation is Not now on Home: only the invitee's own.
+func DismissInvitation(ctx context.Context, pool *pgxpool.Pool, id, userID string) error {
+	tag, err := pool.Exec(ctx,
+		`UPDATE invitations SET responded_at = now(), response = 'dismissed' WHERE id = $1 AND to_user = $2`, id, userID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

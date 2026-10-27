@@ -63,6 +63,16 @@ func Render(locale string, n Notification) (title, body string) {
 			return "Wasit", "Kamu jadi wasit untuk " + p("session")
 		}
 		return "Umpire", "You're the umpire for " + p("session")
+	case TypeCommunityInvite:
+		if id {
+			return "Undangan", p("name") + " mengundangmu ke " + p("club") + "."
+		}
+		return "Invitation", p("name") + " invited you to " + p("club") + "."
+	case TypeSessionInvite:
+		if id {
+			return "Undangan", p("name") + " mengundangmu ke " + p("session") + "."
+		}
+		return "Invitation", p("name") + " invited you to " + p("session") + "."
 	case TypeCommunityJoinRequest:
 		if id {
 			return "Permintaan bergabung", p("name") + " ingin bergabung dengan " + p("club") + "."

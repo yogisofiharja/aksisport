@@ -29,6 +29,9 @@ const (
 	TypeSessionReminder       = "session_reminder"
 	// DP-023: an owner/admin made this person the Session's umpire.
 	TypeUmpireAssigned = "umpire_assigned"
+	// DP-028: someone invited this person in the app.
+	TypeCommunityInvite = "community_invite"
+	TypeSessionInvite   = "session_invite"
 
 	// Message pushes (DP-021) — pushed only, never recorded: conversations
 	// live in Inbox, not on the Notifications page.
@@ -53,9 +56,9 @@ var Categories = []string{CategoryCommunityRequests, CategorySessionRequests, Ca
 // no switch controls (message pushes, DP-021).
 func CategoryOf(notificationType string) string {
 	switch notificationType {
-	case TypeCommunityJoinRequest, TypeCommunityJoinApproved:
+	case TypeCommunityJoinRequest, TypeCommunityJoinApproved, TypeCommunityInvite:
 		return CategoryCommunityRequests
-	case TypeSessionJoinRequest, TypeSessionJoinApproved:
+	case TypeSessionJoinRequest, TypeSessionJoinApproved, TypeSessionInvite:
 		return CategorySessionRequests
 	case TypePaymentReceipt, TypePaymentConfirmed:
 		return CategoryPayments

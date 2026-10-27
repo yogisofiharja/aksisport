@@ -172,3 +172,46 @@ func TestInviteStraightIn(t *testing.T) {
 		}
 	})
 }
+
+func TestInviteCandidates(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	owner := testUser(t, pool, "owner")
+	member := testUser(t, pool, "candmember")
+	invited := testUser(t, pool, "candinvited")
+	fresh := testUser(t, pool, "candfresh")
+	clubID := testClub(t, pool, owner, "public")
+	testMember(t, pool, clubID, member, "member")
+	if _, err := RecordInvitation(ctx, pool, owner, invited, InviteTargetClub, clubID, clubID, "app", nil); err != nil {
+		t.Fatal(err)
+	}
+
+	list, err := InviteCandidates(ctx, pool, InviteTargetClub, clubID, "cand", owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	states := map[string]string{}
+	for _, c := range list {
+		states[c.ID] = c.State
+	}
+	want := map[string]string{member: "in", invited: "invited", fresh: "invite"}
+	for id, state := range want {
+		if states[id] != state {
+			t.Errorf("candidate %s: state %q, want %q", id, states[id], state)
+		}
+	}
+	if in, _ := IsAlreadyIn(ctx, pool, InviteTargetClub, clubID, member); !in {
+		t.Error("a member should count as already in")
+	}
+
+	pending, err := ListPendingInvitations(ctx, pool, invited)
+	if err != nil || len(pending) != 1 {
+		t.Fatalf("pending = %v, %v; want the one invitation", pending, err)
+	}
+	if err := DismissInvitation(ctx, pool, pending[0].ID, invited); err != nil {
+		t.Fatal(err)
+	}
+	if pending, _ := ListPendingInvitations(ctx, pool, invited); len(pending) != 0 {
+		t.Fatal("a dismissed invitation is still on Home")
+	}
+}

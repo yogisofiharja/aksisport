@@ -104,3 +104,33 @@ type Invitation struct {
 	RespondedAt *time.Time `json:"respondedAt,omitempty"`
 	Response    *string    `json:"response,omitempty"`
 }
+
+// InviteCandidate is a search result in Invite friends: State is "invite",
+// "invited" (a pending in-app invite) or "in" (already a member / already
+// playing).
+type InviteCandidate struct {
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	DisplayName *string `json:"displayName,omitempty"`
+	HasAvatar   bool    `json:"hasAvatar"`
+	State       string  `json:"state"`
+}
+
+// InvitationCard is one of Home's "Invited" cards.
+type InvitationCard struct {
+	ID              string     `json:"id"`
+	FromUserID      string     `json:"fromUserId"`
+	FromName        string     `json:"fromName"`
+	TargetType      string     `json:"targetType"`
+	TargetID        string     `json:"targetId"`
+	ClubID          string     `json:"clubId"`
+	ClubName        string     `json:"clubName"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	SessionName     *string    `json:"sessionName,omitempty"`
+	StartsAt        *time.Time `json:"startsAt,omitempty"`
+	DurationMinutes *int       `json:"durationMinutes,omitempty"`
+	Location        *string    `json:"location,omitempty"`
+	PriceModel      string     `json:"priceModel,omitempty"`
+	PricePerPerson  *int       `json:"pricePerPerson,omitempty"`
+	TotalPrice      *int       `json:"totalPrice,omitempty"`
+}

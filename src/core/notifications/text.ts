@@ -28,6 +28,10 @@ export function notificationText(n: AppNotification, t: T): string {
       return t('notifSessionReminder', p.session ?? '', startsIn(Number(p.minutes), t));
     case 'umpire_assigned':
       return t('notifUmpireAssigned', p.session ?? '');
+    case 'community_invite':
+      return t('notifInvited', p.name ?? '', p.club ?? '');
+    case 'session_invite':
+      return t('notifInvited', p.name ?? '', p.session ?? '');
     default:
       return t('notifGeneric');
   }
@@ -61,6 +65,9 @@ export function notificationIcon(type: string): ComponentProps<typeof Ionicons>[
       return 'alarm-outline';
     case 'umpire_assigned':
       return 'flag-outline';
+    case 'community_invite':
+    case 'session_invite':
+      return 'mail-outline';
     default:
       return 'notifications-outline';
   }

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -151,6 +152,138 @@ func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 			}
 		}
 		c.JSON(http.StatusOK, res)
+	})
+
+	registerInvitationRoutes(authed, pool, notifier)
+}
+
+
+// registerInvitationRoutes is DP-028's in-app invites: search Aksi users,
+// invite one (a notification and a card on their Home), answer it.
+func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notifier *notify.Service) {
+	candidates := func(c *gin.Context, targetType, targetID string) {
+		q := strings.TrimSpace(c.Query("q"))
+		if len([]rune(q)) < 2 {
+			c.JSON(http.StatusOK, []any{})
+			return
+		}
+		list, err := dbpkg.InviteCandidates(c.Request.Context(), pool, targetType, targetID, q, authjwt.CurrentUser(c).ID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, list)
+	}
+
+	// invite records the invitation and notifies the friend. Someone
+	// already in is refused: Invite friends shows them as already in.
+	invite := func(c *gin.Context, targetType, targetID, clubID string, n notify.Notification) {
+		ctx := c.Request.Context()
+		user := authjwt.CurrentUser(c)
+		var body struct {
+			UserID string `json:"userId"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil || body.UserID == "" || body.UserID == user.ID {
+			respondError(c, http.StatusBadRequest, "choose someone to invite")
+			return
+		}
+		in, err := dbpkg.IsAlreadyIn(ctx, pool, targetType, targetID, body.UserID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "user not found")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		if in {
+			c.JSON(http.StatusConflict, gin.H{"error": "already in", "code": "ALREADY_IN"})
+			return
+		}
+		inv, err := dbpkg.RecordInvitation(ctx, pool, user.ID, body.UserID, targetType, targetID, clubID, "app", nil)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		if notifier != nil {
+			n.Params["name"] = displayNameOf(user.DisplayName, user.Username)
+			notifier.Send(ctx, []string{body.UserID}, user.ID, n)
+		}
+		c.JSON(http.StatusCreated, inv)
+	}
+
+	authed.GET("/clubs/:clubId/invitations/candidates", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		if _, _, ok := requireMember(c, pool, clubID); !ok {
+			return
+		}
+		candidates(c, dbpkg.InviteTargetClub, clubID)
+	})
+
+	authed.POST("/clubs/:clubId/invitations", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		if _, _, ok := requireMember(c, pool, clubID); !ok {
+			return
+		}
+		club, err := dbpkg.GetClub(c.Request.Context(), pool, clubID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		invite(c, dbpkg.InviteTargetClub, clubID, clubID, notify.Notification{
+			Type: notify.TypeCommunityInvite, Params: map[string]string{"club": club.Name}, Path: "/clubs/" + clubID,
+		})
+	})
+
+	authed.GET("/sessions/:id/invitations/candidates", func(c *gin.Context) {
+		sess, _, ok := requireSessionAccess(c, pool, c.Param("id"))
+		if !ok {
+			return
+		}
+		candidates(c, dbpkg.InviteTargetSession, sess.ID)
+	})
+
+	authed.POST("/sessions/:id/invitations", func(c *gin.Context) {
+		sess, _, ok := requireSessionAccess(c, pool, c.Param("id"))
+		if !ok {
+			return
+		}
+		if sess.Status == "draft" {
+			respondError(c, http.StatusConflict, "publish the session before inviting people")
+			return
+		}
+		label, err := dbpkg.SessionLabel(c.Request.Context(), pool, sess.ID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		invite(c, dbpkg.InviteTargetSession, sess.ID, sess.ClubID, notify.Notification{
+			Type: notify.TypeSessionInvite, Params: map[string]string{"session": label}, Path: "/sessions/" + sess.ID,
+		})
+	})
+
+	// Home's "Invited" cards.
+	authed.GET("/me/invitations", func(c *gin.Context) {
+		list, err := dbpkg.ListPendingInvitations(c.Request.Context(), pool, authjwt.CurrentUser(c).ID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, list)
+	})
+
+	// Not now.
+	authed.POST("/invitations/:id/dismiss", func(c *gin.Context) {
+		err := dbpkg.DismissInvitation(c.Request.Context(), pool, c.Param("id"), authjwt.CurrentUser(c).ID)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "invitation not found")
+			return
+		}
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.Status(http.StatusNoContent)
 	})
 }
 

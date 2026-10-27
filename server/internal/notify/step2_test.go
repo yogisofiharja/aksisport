@@ -28,6 +28,7 @@ func TestStepTwoTexts(t *testing.T) {
 	for _, typ := range []string{
 		TypeCommunityJoinApproved, TypeSessionJoinRequest, TypeSessionJoinApproved,
 		TypePaymentReceipt, TypePaymentConfirmed, TypeSessionReminder, TypeUmpireAssigned,
+		TypeCommunityInvite, TypeSessionInvite,
 	} {
 		for _, locale := range []string{"en", "id"} {
 			title, body := Render(locale, Notification{Type: typ, Params: map[string]string{
@@ -62,6 +63,8 @@ func TestCategoryOf(t *testing.T) {
 		TypePaymentConfirmed:      CategoryPayments,
 		TypeSessionReminder:       CategorySessionReminders,
 		TypeUmpireAssigned:        CategorySessionReminders,
+		TypeCommunityInvite:       CategoryCommunityRequests,
+		TypeSessionInvite:         CategorySessionRequests,
 		TypeDirectMessage:         "",
 	}
 	for typ, category := range want {
