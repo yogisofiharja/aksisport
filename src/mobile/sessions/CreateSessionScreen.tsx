@@ -35,6 +35,7 @@ import type { MatchFormat } from '../../sports/tennis/scoringEngine';
 import { listSportIds, getSportModule } from '../../sports/registry';
 import { SessionForm } from './form/SessionForm';
 import { SessionCheck } from './form/SessionCheck';
+import { ScheduleCheck } from './form/ScheduleCheck';
 
 type Props = {
   clubId: string;
@@ -124,8 +125,9 @@ function templateValues(src: Session | RecurringSchedule): Partial<SessionFormVa
 }
 
 // Create / edit a Session or a Recurring Schedule (Aksi redesign › Create
-// a session): the form, then — creating a one-off Session — the check
-// screen (Publish / Save as draft / Discard). Leaving with anything typed
+// a session): the form, then — when creating — a check screen: Check your
+// session (Publish / Save as draft / Discard) or Check your schedule
+// (Create schedule / Discard). Leaving with anything typed
 // (✕, Android back, the browser's back) asks first.
 export function CreateSessionScreen({
   clubId,
@@ -296,11 +298,6 @@ export function CreateSessionScreen({
         });
         await offerSessionSync(editingScheduleId);
       });
-    } else if (values.isRecurring) {
-      run(async () => {
-        const schedule = await createRecurringSchedule(clubId, values.sport, recurrenceRule(), values.leadDays, templatePayload(values));
-        setLeave(() => () => onScheduleCreated(schedule));
-      });
     } else {
       setSaveError(null);
       setStep('check');
@@ -342,6 +339,14 @@ export function CreateSessionScreen({
     ]);
   }
 
+  // DP-007 v0.28.0: created from its check screen, published on its own.
+  function createSchedule() {
+    run(async () => {
+      const schedule = await createRecurringSchedule(clubId, values.sport, recurrenceRule(), values.leadDays, templatePayload(values));
+      setLeave(() => () => onScheduleCreated(schedule));
+    });
+  }
+
   function create(publish: boolean) {
     run(async () => {
       const session = await createSession(clubId, values.sport, sessionPayload());
@@ -371,6 +376,24 @@ export function CreateSessionScreen({
       <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
         <Loading fullScreen />
       </SafeAreaView>
+    );
+  }
+
+  if (step === 'check' && values.isRecurring) {
+    return (
+      <>
+        <ScheduleCheck
+          values={values}
+          clubName={clubName}
+          levels={levels}
+          submitting={submitting}
+          error={saveError}
+          onBack={() => setStep('form')}
+          onCreate={createSchedule}
+          onDiscard={() => setDiscardAction(() => onBack)}
+        />
+        {discardDialog}
+      </>
     );
   }
 

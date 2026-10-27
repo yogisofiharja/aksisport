@@ -100,6 +100,19 @@ mirroring the server's first occurrence): "First session: Sat 24 Oct,
 07:00. It opens on Wed 21 Oct." — or "It opens as soon as you create the
 schedule." when that moment has already passed.
 
+**Check your schedule** (DP-007 v0.28.0; `sessions/form/ScheduleCheck.tsx`):
+the form's button is Continue, which shows the Schedule read back before
+anything is saved — a WEEKLY `SummaryCard` with the name and rows
+Activity, Every ("Saturday · 07:00–09:00"), Where, Opens ("3 days ahead
+(Wednesday)"), First session, Players, Match format, Skill level, Price —
+and "Each session is published on its own, no draft step. You can skip a
+week or pause the schedule later." Actions: **Create schedule** (calls
+`createRecurringSchedule`) and **Discard** in red, which asks first in
+the same Dialog as closing the form ("Discard this schedule?", Keep
+editing / Discard). There is no Save as draft. Back returns to the form
+with everything kept. Editing a Schedule ("Edit schedule") skips this
+screen and saves directly, then offers Session Synchronization.
+
 ## Editing and Session Synchronization
 
 `RecurringScheduleDetailScreen`'s "Edit Schedule" opens
