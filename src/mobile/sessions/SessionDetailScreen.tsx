@@ -26,7 +26,7 @@ import {
   publishSession,
   registerForSession,
 } from '../../core/sessions/api';
-import { getClub, getClubPreview, listMembers } from '../../core/clubs/api';
+import { clubAvatarUrl, getClubPreview, joinClub, listMembers } from '../../core/clubs/api';
 import { getRecurringSchedule } from '../../core/recurringSchedules/api';
 import { createActivity, deleteActivity, listActivities } from '../../core/activities/api';
 import { listMySkillLevels, listSkillLevels } from '../../core/skillLevels/api';
@@ -57,6 +57,9 @@ import { formatIDR } from '../../core/currency';
 import { SessionMenuSheet, type SessionMenuItem } from './SessionMenuSheet';
 import { InviteSheet } from '../invites/InviteSheet';
 import { InvitedLine } from '../invites/InvitedLine';
+import { authHeader } from '../../core/api/client';
+import { ClubCard } from '../../design-system/domain-ui/ClubCard';
+import { shortCityName } from '../../core/locations/cityName';
 import { UmpireSheet } from './UmpireSheet';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { sessionLink, shareLink } from '../../platform/shareLink';
@@ -64,8 +67,8 @@ import type { MatchFormat, MatchMode, MatchState } from '../../sports/tennis/sco
 import { minParticipants } from '../../sports/tennis/rules';
 import type {
   ActivityDetail,
-  Club,
   ClubMember,
+  ClubPreview,
   RecurringSchedule,
   Session,
   SessionParticipant,
@@ -81,6 +84,8 @@ type Props = {
   onOpenMatch: (activityId: string) => void;
   onEdit: (sessionId: string) => void;
   onDiscarded: () => void;
+  // The Community row on Details, for a member (DP-028).
+  onOpenClub: (clubId: string) => void;
   // Set when arriving from the Inbox tab (DP-013 Contact Organizer) — the
   // memberUserId of the specific thread to jump straight into.
   openContactWith?: string;
@@ -108,7 +113,17 @@ function defaultTabFor(status: Session['lifecycleStatus']): SessionTab {
   return status === 'in_progress' || status === 'completed' ? 'matches' : 'details';
 }
 
-export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch, onEdit, onDiscarded, openContactWith, initialTab }: Props) {
+export function SessionDetailScreen({
+  sessionId,
+  onBack,
+  onAddMatch,
+  onOpenMatch,
+  onEdit,
+  onDiscarded,
+  onOpenClub,
+  openContactWith,
+  initialTab,
+}: Props) {
   const { t, lang } = useTranslation();
   const { profile } = useAuth();
   const [session, setSession] = useState<Session | null>(null);
@@ -149,7 +164,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // from the Inbox (openContactWith set), it opens straight into that
   // member's thread instead of the organizer's thread list.
   const [contactVisible, setContactVisible] = useState(Boolean(openContactWith));
-  const [club, setClub] = useState<Pick<Club, 'id' | 'name'> | null>(null);
+  const [club, setClub] = useState<ClubPreview | null>(null);
   // Only set when this Session was generated from a Recurring Schedule
   // (session.recurringScheduleId) — used for the Details tab's "Every
   // <weekday>" line.
@@ -174,13 +189,14 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
     try {
       const sess = await getSession(sessionId);
       // A Session-only participant (DP-028) can't read the Community's own
-      // routes: no member list, and its public preview for the name.
+      // routes, so no member list for them. The Community row on Details
+      // uses its preview, which anyone may read (DP-017).
       const visitor = sess.viewerRole === 'visitor';
       const [parts, members, acts, clubResult, schedule] = await Promise.all([
         listParticipants(sessionId),
         visitor ? Promise.resolve([] as ClubMember[]) : listMembers(sess.clubId),
         listActivities(sessionId),
-        visitor ? getClubPreview(sess.clubId) : getClub(sess.clubId),
+        getClubPreview(sess.clubId),
         // Only organizers may read a Recurring Schedule (DP-007), so for
         // a member this is refused — and it only feeds the "Every <day>"
         // label. It must never take the whole page down with it.
@@ -633,6 +649,12 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // everything else; handleCancel still asks to confirm.
   const [menuVisible, setMenuVisible] = useState(false);
   const [inviteVisible, setInviteVisible] = useState(false);
+  const [joiningClub, setJoiningClub] = useState(false);
+  // The Community picture needs auth headers.
+  const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
+  useEffect(() => {
+    authHeader().then(setImageHeaders);
+  }, []);
   // DP-026: the share card for a finished match in the list.
   const [shareData, setShareData] = useState<NativeShareData | null>(null);
 
@@ -841,6 +863,51 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // published-not-started" in docs/current/lifecycle-session.md.
   const canEditConfiguration = isOwnerOrAdmin && (session.lifecycleStatus === 'draft' || session.status === 'open');
 
+  // DP-028: the Community row that starts Details. A member opens the
+  // Community from it; anyone else gets Join on it — Join for a public
+  // Community, Request for a private one, or Join straight in with an
+  // owner/admin's invite.
+  async function handleJoinCommunity() {
+    if (!club || joiningClub) return;
+    setJoiningClub(true);
+    try {
+      const updated = await joinClub(club.id);
+      setClub(updated);
+      if (updated.viewerRole) await load();
+    } catch (err) {
+      appAlert(err instanceof Error ? err.message : t('authGenericError'));
+    } finally {
+      setJoiningClub(false);
+    }
+  }
+
+  const clubIsPrivate = club?.visibility === 'private';
+  const communityRow = club ? (
+    <ClubCard
+      variant="row"
+      name={club.name}
+      hasAvatar={club.hasAvatar}
+      avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id), headers: imageHeaders } : undefined}
+      subline={[
+        club.cityName ? shortCityName(club.cityName) : null,
+        t(clubIsPrivate ? 'clubPrivateBadge' : 'clubPublicBadge'),
+        t('clubMemberCount', club.memberCount),
+      ]
+        .filter(Boolean)
+        .join(' · ')}
+      viewerRole={club.viewerRole}
+      viewerRequestPending={club.viewerRequestPending}
+      onPress={club.viewerRole ? () => onOpenClub(club.id) : undefined}
+      action={
+        club.viewerRole || club.viewerRequestPending ? undefined : (
+          <Button size="sm" variant="outline" isDisabled={joiningClub} onPress={handleJoinCommunity}>
+            <ButtonText>{clubIsPrivate && !club.invite?.straightIn ? t('clubRequestShort') : t('inviteJoin')}</ButtonText>
+          </Button>
+        )
+      }
+    />
+  ) : null;
+
   // DP-028: any member invites to a published Session; a Session-only
   // participant doesn't.
   const canInvite = isPublished && session.viewerRole !== undefined && session.viewerRole !== 'visitor';
@@ -935,7 +1002,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         {activeTab === 'details' && (
           <DetailsTab
             session={session}
-            club={club}
+            communityRow={communityRow}
             recurringSchedule={recurringSchedule}
             minLevel={minLevel ?? undefined}
             maxLevel={maxLevel ?? undefined}

@@ -361,6 +361,7 @@ export function MainStack() {
             onOpenMatch={(activityId) => navigation.navigate('ActivityMatch', { activityId })}
             onEdit={(sessionId) => navigation.navigate('EditSession', { sessionId })}
             onDiscarded={() => navigation.goBack()}
+            onOpenClub={(clubId) => navigation.navigate('ClubDetail', { clubId })}
           />
         )}
       </Stack.Screen>

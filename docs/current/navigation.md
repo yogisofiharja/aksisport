@@ -469,3 +469,11 @@ link no longer works. Ask for a new one." with Go to Home.
   <Community>"; a member's invite shows "<Name> invited you." and joining
   works as before.
 
+**The Community on a Session's Details tab** (everyone): Details starts
+with a `ClubCard` row — logo or initials, name, "<city> · Public/Private
+· <n> members" (from the Community's preview, which anyone may read). A
+member taps it to open the Community. Anyone else gets a button on the
+row: Join for a public Community, Request for a private one, or Join
+straight in with an owner/admin's invite; a pending request shows
+"Requested". Joining reloads the Session as a member.
+

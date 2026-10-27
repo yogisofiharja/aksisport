@@ -10,11 +10,12 @@ import { initialsFromName } from '../../../core/initials';
 import { minParticipants } from '../../../sports/tennis/rules';
 import { weekdayLabel } from '../../recurringSchedules/weekday';
 import { activityTypeLabel } from '../sessionDisplay';
-import type { Club, RecurringSchedule, Session, SkillLevel } from '../../../core/api/types';
+import type { RecurringSchedule, Session, SkillLevel } from '../../../core/api/types';
 
 type Props = {
   session: Session;
-  club: Pick<Club, 'id' | 'name'> | null;
+  /** The Community row that starts the tab (DP-028). */
+  communityRow: ReactNode;
   recurringSchedule: RecurringSchedule | null;
   minLevel?: SkillLevel;
   maxLevel?: SkillLevel;
@@ -34,7 +35,7 @@ type Props = {
 
 export function DetailsTab({
   session,
-  club,
+  communityRow,
   recurringSchedule,
   minLevel,
   maxLevel,
@@ -52,10 +53,8 @@ export function DetailsTab({
   const { t } = useTranslation();
   return (
     <VStack className="gap-5">
+      {communityRow}
       <VStack className="gap-1">
-        {club && (
-          <Text className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark tracking-widest uppercase">{club.name}</Text>
-        )}
         {recurringSchedule && (
           <HStack className="items-center gap-1">
             <Icon name="repeat-outline" size="xs" color="muted" />

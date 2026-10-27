@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Image, Pressable, Text, View, type ImageSourcePropType } from 'react-native';
 import { initialsFromName } from '../../core/initials';
 import { useTranslation } from '../../i18n';
@@ -15,7 +16,9 @@ import { Typography } from '../ui/Typography';
  *   "· private" for a private Community. Trailing: "Joined" when the viewer
  *   has a role, "Requested" while their request is pending, otherwise a
  *   chevron. Tapping opens the Community page; Join lives there, never on
- *   the row.
+ *   the row — except on a Session's Details tab (DP-028), which passes its
+ *   own `subline` ("Jakarta Selatan · Public · 42 members") and, for a
+ *   non-member, a Join button as `action` in place of the trailing text.
  *
  * The avatar is the Community's image when `hasAvatar` and the screen
  * passes `avatarSource` (it needs auth headers, which only the screen
@@ -39,6 +42,10 @@ type ClubCardProps = {
   viewerRole?: string;
   /** Row only: the viewer asked to join and is waiting. */
   viewerRequestPending?: boolean;
+  /** Row only: replaces the built subline. */
+  subline?: string;
+  /** Row only: a trailing control (Join), in place of the badge/chevron. */
+  action?: ReactNode;
   onPress?: () => void;
   className?: string;
 };
@@ -70,6 +77,8 @@ export function ClubCard({
   isPrivate = false,
   viewerRole,
   viewerRequestPending = false,
+  subline: sublineOverride,
+  action,
   onPress,
   className = '',
 }: ClubCardProps) {
@@ -117,9 +126,11 @@ export function ClubCard({
     );
   }
 
-  const subline = [cityName, memberCount != null ? t('clubMemberCount', memberCount) : undefined, isPrivate ? t('cardPrivate') : undefined]
-    .filter(Boolean)
-    .join(' · ');
+  const subline =
+    sublineOverride ??
+    [cityName, memberCount != null ? t('clubMemberCount', memberCount) : undefined, isPrivate ? t('cardPrivate') : undefined]
+      .filter(Boolean)
+      .join(' · ');
   const trailing = viewerRole ? t('clubJoinedBadge') : viewerRequestPending ? t('clubRequestedBadge') : null;
 
   return (
@@ -140,7 +151,9 @@ export function ClubCard({
           </Typography>
         ) : null}
       </View>
-      {trailing ? (
+      {action ? (
+        action
+      ) : trailing ? (
         <Typography variant="body" color="muted" className="text-[13px] font-semibold">
           {trailing}
         </Typography>
