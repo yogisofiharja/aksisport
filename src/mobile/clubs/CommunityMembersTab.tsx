@@ -46,12 +46,12 @@ type Props = {
 // A Community's Members tab (Aksi redesign › Community · Members), the same
 // for every role (IA v1.1.0); organizer-only actions appear inside it.
 // Everyone is a circle, as on a Session's Players tab. Owners/admins see
-// join requests first (DP-017), each with when they asked; then "Owner &
-// admins", then "Members · N"; your own circle says "You". Tapping anyone
-// opens their sheet: View profile (DP-019) and what can be done — Approve
-// / Decline a request; the owner makes someone admin or a regular member,
-// or removes them (asks first); anyone but the owner leaves from their
-// own. The owner adds people from the app bar.
+// join requests first (DP-017), each with when they asked; then "Admins"
+// (the owner among them), then "Members · N"; your own circle says "You".
+// Tapping anyone opens their sheet: View profile (DP-019) and what can
+// be done — Approve / Decline a request; the owner makes someone admin or
+// a regular member, or removes them (asks first); anyone but the owner
+// leaves from their own. The owner adds people from the app bar.
 export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props) {
   const { t, lang } = useTranslation();
   const { profile } = useAuth();
