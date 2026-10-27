@@ -8,7 +8,7 @@ import { useAuth } from '../../core/auth/AuthContext';
 import { listJoinRequests, listMembers } from '../../core/clubs/api';
 import { getClubChat } from '../../core/messages/groups';
 import { useLiveEvents } from '../../core/live/live';
-import { ClubDetailScreen } from './ClubDetailScreen';
+import { CommunityHomeTab } from './CommunityHomeTab';
 import { ClubChatScreen } from './ClubChatScreen';
 import { ClubMembersScreen } from './ClubMembersScreen';
 import { SessionListScreen } from '../sessions/SessionListScreen';
@@ -106,13 +106,12 @@ export function CommunityScreen(props: CommunityScreenProps) {
     <View className="flex-1 bg-ground dark:bg-ground-dark">
       <View className="flex-1">
         {tab === 'home' && (
-          <ClubDetailScreen
+          <CommunityHomeTab
             clubId={clubId}
             edges={[...edges]}
             onBack={onExit}
             onOpenMembers={() => select('members')}
             onOpenSession={props.onOpenSession}
-            onOpenRecurringSchedules={props.onOpenRecurringSchedules}
             onOpenClubSettings={props.onOpenClubSettings}
             onOpenReports={props.onOpenReports}
             onLeft={props.onLeft}

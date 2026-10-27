@@ -230,7 +230,7 @@ In code: a new `ui/Avatar.tsx` (image or initials) with an `online` prop; `domai
 
 ### Alert
 
-An alert is an inline banner inside a screen that explains a state or asks for attention. In code: a new `feedback/Alert.tsx` (inline banner; not the `appAlert` host, which becomes the Toast).
+An alert is an inline banner inside a screen that explains a state or asks for attention. In code: `feedback/Alert.tsx` (inline banner; not the `appAlert` host, which becomes the Toast), with `tone` info / heat / danger, and `onPress` to make the whole banner the tap target with a chevron (a Community's "2 people want to join · Review").
 
 | Variant | When |
 | --- | --- |

@@ -831,6 +831,11 @@ const en: Dict = {
   communityTabSessions: "Sessions",
   communityTabChat: "Chat",
   communityTabMembers: "Members",
+  cardPlayersOf: (joined: number, max: number) => `${joined}/${max} players`,
+  communityMore: "Community options",
+  communityJoinRequests: (n: number) => n === 1 ? '1 person wants to join' : `${n} people want to join`,
+  communityReview: "Review",
+  communityChangePicture: "Change community picture",
 };
 
 const id: Dict = {
@@ -1656,6 +1661,11 @@ const id: Dict = {
   communityTabSessions: "Sesi",
   communityTabChat: "Obrolan",
   communityTabMembers: "Anggota",
+  cardPlayersOf: (joined: number, max: number) => `${joined}/${max} pemain`,
+  communityMore: "Pilihan komunitas",
+  communityJoinRequests: (n: number) => `${n} orang ingin bergabung`,
+  communityReview: "Tinjau",
+  communityChangePicture: "Ganti foto komunitas",
 };
 
 const dicts: Record<Lang, Dict> = { en, id };

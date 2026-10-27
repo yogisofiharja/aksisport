@@ -70,20 +70,26 @@ export function sessionHeroProps(session: Session, t: T, clubName: string): Omit
 }
 
 // Every other Session there as a compact row: the day block, then
-// "19:00 · venue · Community" and the status pill.
+// "19:00 · venue · Community" and the status pill. Inside a Community
+// (`clubName` null) the line is "19:00 · 6/12 players" instead.
 export function sessionRowProps(
   session: Session,
   t: T,
   lang: 'en' | 'id',
-  clubName: string,
+  clubName: string | null,
   now: Date = new Date()
 ): Omit<SessionCardProps, 'onPress' | 'className'> {
   const start = session.startsAt ? new Date(session.startsAt) : undefined;
   const locale = lang === 'id' ? 'id-ID' : 'en-GB';
+  const players =
+    session.maxParticipants != null && session.maxParticipants > 0
+      ? t('cardPlayersOf', session.joinedCount ?? 0, session.maxParticipants)
+      : t('cardPlayers', session.joinedCount ?? 0);
+  const detail = clubName === null ? [players] : [session.location, clubName];
   return {
     variant: 'row',
     title: session.name || sportLabel(session.sport, t),
-    subtitle: [start ? startTime(start) : undefined, session.location, clubName].filter(Boolean).join(' · '),
+    subtitle: [start ? startTime(start) : undefined, ...detail].filter(Boolean).join(' · '),
     day: start
       ? {
           weekday: start.toLocaleDateString(locale, { weekday: 'short' }).replace('.', ''),

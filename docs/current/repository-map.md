@@ -72,8 +72,10 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   │                            editing, absorbing the retired SkillLevelsScreen),
 │   │   │                            SettingsScreen (Theme/Language/Notifications/
 │   │   │                            Privacy/Logout)
-│   │   ├── clubs/                    CreateClubScreen, JoinClubScreen,
-│   │   │                            ClubDetailScreen, ClubMembersScreen
+│   │   ├── clubs/                    CreateClubScreen, ClubEntryScreen (member →
+│   │   │                            CommunityScreen's tabs: CommunityHomeTab,
+│   │   │                            Sessions, ClubChatScreen, ClubMembersScreen;
+│   │   │                            anyone else → ClubPreviewScreen), ClubSettingsScreen
 │   │   ├── sessions/                  SessionListScreen (Today/Upcoming, v0.6.3),
 │   │   │                            SessionHistoryScreen (Past; Club-scoped, or
 │   │   │                            cross-Club from Me), SessionDetailScreen,

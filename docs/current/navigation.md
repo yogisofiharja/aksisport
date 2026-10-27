@@ -86,14 +86,10 @@ the caller relates to the Community (DP-017):
   (private; then a "Request sent" state with "Cancel request");
 - an unknown id → a "Community not found" page.
 
-This is what a shared link opens. `ClubDetailScreen` and
+This is what a shared link opens. The Community's Home tab and
 `ClubPreviewScreen` both have a share icon (`src/platform/shareLink.ts`:
 the native share sheet, the browser's where it has one, otherwise the
-link is copied and a notice says so). `ClubDetailScreen` also shows the
-location under the name, a "Leave Community" link at the bottom for every
-member except the owner (with a confirmation saying what leaving means;
-the owner can only delete the Community, in Club Settings), and, to owner/admins of a Community with pending
-join requests, a card with their count that opens Members.
+link is copied and a notice says so).
 `ClubMembersScreen` lists those requests above the member list with
 Approve / Decline; tapping a request opens the requester's player profile
 (`PlayerProfileSheet`, DP-019: picture, name, username, online, joined
@@ -249,49 +245,40 @@ Every screen that isn't the initial route is reached via
 `navigation.navigate` (pushes) or `navigation.replace` (create/join
 flows, so the form screen isn't left in the back stack). "Back" is
 always `navigation.goBack()`. Deleting a Club (`ClubSettings`'s
-`onDeleted` — moved off `ClubDetail` in a later pass, see below)
+`onDeleted`)
 navigates back to `Personal` rather than `goBack()`, since there's no
 longer a `ClubList` route to land on.
 
-**ClubDetail — header**: a large avatar circle (Club picture if set,
-else initials) next to the Club's name — tappable to change only for
-the owner (`POST /v1/clubs/:clubId/avatar`), read-only for everyone
-else. Same self-service-only-for-the-owner rule the rest of Club-level
-settings already follow.
-
-**ClubDetail — "Current Focus"** (Milestone 3): above the Sessions/
-Members/Recurring Schedules buttons, `ClubDetailScreen` now shows a
-ranked list of this Club's own Sessions needing attention — the same
-ranking Home's cross-club "Attention" section uses
-(`currentFocusBuckets`, `src/core/sessions/currentFocus.ts`; same
-`statusLabel`/`sessionStatusColor` from `SessionListScreen.tsx`, same
-`SessionCard`), scoped to one Club instead of merged across all of
-them. Priority order, each category capped except Next: any
-`in_progress` Session; any other Session whose date is today
-(`sessionDateBucket`); the single soonest upcoming Session
-(deliberately just one, not every future Session — that's what the
-Sessions button/list is for); every Draft (owner/admin only —
-`listSessions` already excludes Drafts for a plain member
-server-side, DP-001, so nothing extra is needed here to keep one from
-leaking). Tapping a card pushes `SessionDetail` directly. Empty state
-text differs for an owner/admin ("create a session to get started") vs.
-a member (no such nudge, since they can't create one).
+**Community — Home tab** (`CommunityHomeTab`): the dark AppBar (back,
+share, ⋯) over `CommunityHeader` — the Community's picture or initials
+(tappable to change only for the owner, `POST
+/v1/clubs/:clubId/avatar`), the name, "<city> · Public/Private", the
+description, and up to three members' avatars stacked with "N members",
+which opens the Members tab. For an owner/admin, callouts follow: "N
+people want to join · Review" (opens Members) and "N reports to review"
+(opens `ClubReports`). Then **Current Focus** (Milestone 3), ranked by
+`currentFocusBuckets` (`src/core/sessions/currentFocus.ts`, shared with
+the main Home per UX-015): a live Session as its `SessionCard` (heat
+border, players, Open matches), then today's Sessions, the single
+soonest upcoming one and every Draft (owner/admin only — `listSessions`
+excludes Drafts for a plain member server-side, DP-001) as compact rows
+in one `ListGroup` (day block, name, "19:00 · 6/12 players", status
+pill). Empty state text differs for an owner/admin ("create a session
+to get started") vs. a member. The ⋯ menu is a Sheet: Settings (owner),
+Reports (owner/admin), Leave community (everyone but the owner, with a
+confirmation; the owner can only delete the Community, in Settings).
 
 **ClubSettings** (Milestone 5, DP-012; renamed from an earlier
 `ClubBankAccounts`-only pass once Delete Community moved here too):
-reached via a gear icon at the top-right of `ClubDetailScreen`'s
-header, next to the back button — shown only when the caller is the
+reached from the Home tab's ⋯ menu — shown only when the caller is the
 Club's owner (`isOwner`, not `isOwnerOrAdmin`; matches every other
 Club-level setting's permission). `ClubSettingsScreen.tsx` holds two
 sections: **Bank Accounts** (a plain list-plus-modal-form, mirrors
 `ClubMembersScreen`'s Add Member modal shape — a Club can list more
 than one; every priced Session's Players tab reads this same list),
-and a **Danger Zone** at the bottom with Delete Community — moved off
-`ClubDetailScreen`'s own home page deliberately, so it's no longer a
-low-friction text link sitting at the bottom of the screen an owner
-sees by default every time they open their Club. `ClubDetailScreen`
-itself no longer has an `onDeleted` prop at all; that callback now
-belongs to `ClubSettingsScreen`.
+and a **Danger Zone** at the bottom with Delete Community — kept off
+the Community's Home deliberately, so it's never a low-friction link on
+the screen an owner sees every time they open their Club.
 
 ## PersonalTabs (`src/navigation/PersonalTabs.tsx`, bottom-tabs, `headerShown: false`)
 
