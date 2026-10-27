@@ -241,9 +241,10 @@ as dead code along with it (`docs/current/api.md`).
 **The form** (Aksi redesign › Create a session; `CreateSessionScreen`
 with `sessions/form/SessionForm.tsx`): a form AppBar (✕, "New session"
 over the Community's name) and one scrolling column — Sport row, Activity
-type (Segmented), Session name, Location, Date | Time | Duration on one
-row (each opens a picker Sheet; the system dialog on Android), the "Make
-this recurring" and "I'll be playing too" switches with their hints,
+type (Segmented), Session name, Location, the "Make this recurring" switch
+(above the fields it changes, so it never moves), Date | Time | Duration
+on one row (each opens a picker Sheet; the system dialog on Android),
+"I'll be playing too" with its hint,
 Number of players (optional), *How matches are played* (format
 Segmented: Free Play · Fixed · Race To · Regular, its stepper or sets,
 single deuce), *Who can join* (skill level switch, From/To pickers,

@@ -37,7 +37,8 @@ type Picker = 'sport' | 'date' | 'time' | 'duration' | 'levelMin' | 'levelMax' |
 type FormatType = MatchFormat['type'];
 
 // The create / edit Session and Schedule form (Aksi redesign › Create a
-// session), one scrolling column: what, where and when, the two switches,
+// session), one scrolling column: what and where, "Make this recurring"
+// (before the fields it changes), when, host playing,
 // players, how matches are played, who can join, price, notes. With
 // "Make this recurring" on, Date becomes "Every" (a weekday), and "Open
 // days ahead" with the first Session's date follow. Problems show under
@@ -104,6 +105,15 @@ export function SessionForm({ values: v, update, errors, levels, editing, onFiel
         </Field>
       </View>
 
+      {/* Before the fields it changes, so it never moves. */}
+      {editing ? null : (
+        <SwitchField
+          label={t('recurringToggleLabel')}
+          hint={t(v.isRecurring ? 'recurringToggleHintOn' : 'recurringToggleHintOff')}
+          value={v.isRecurring}
+          onValueChange={(isRecurring) => update({ isRecurring })}
+        />
+      )}
       {v.isRecurring ? (
         <>
           <Field label={t('recurringEvery')}>
@@ -168,14 +178,6 @@ export function SessionForm({ values: v, update, errors, levels, editing, onFiel
         </View>
       )}
 
-      {editing ? null : (
-        <SwitchField
-          label={t('recurringToggleLabel')}
-          hint={t(v.isRecurring ? 'recurringToggleHintOn' : 'recurringToggleHintOff')}
-          value={v.isRecurring}
-          onValueChange={(isRecurring) => update({ isRecurring })}
-        />
-      )}
       <SwitchField
         label={t('sessionHostPlayingLabel')}
         hint={t('sessionHostPlayingHint')}
