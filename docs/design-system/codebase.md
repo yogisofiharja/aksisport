@@ -87,6 +87,7 @@ No change. The app's 4px scale (xs 4 … 4xl 48) is the same grid as `space-1` �
 | `ui/PasswordInput.tsx` | Input (password) | Show/hide eye inside the box. |
 | `ui/CodeInput.tsx` | Input (one-time code) | Six digit boxes; auto-advance, paste and autofill spread across them. |
 | `ui/Stepper.tsx` | Stepper | − value + in one outlined box; `adjustable` for screen readers. |
+| `domain-ui/SummaryCard.tsx` | Check your session / schedule card | A tag (DRAFT, WEEKLY), the name in Saira italic, label–value rows split by hairlines. |
 | `layout/AuthHero.tsx` | Log in hero | Asphalt with heat cuts and the ball, logo, Saira italic title, one line. Auth screens only. |
 | `ui/Card.tsx` | SessionCard (card shell) | `bg-surface`, `border border-border`, `rounded-xl` (12), no shadow. |
 | `ui/Typography.tsx` | Visual foundations › Type | Variants follow the new `typeRole`; headings use the display face. |

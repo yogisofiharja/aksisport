@@ -4,3 +4,4 @@ export * from './SessionCard';
 export * from './MatchCard';
 export * from './PlayerCard';
 export * from './RecurringScheduleCard';
+export * from './SummaryCard';

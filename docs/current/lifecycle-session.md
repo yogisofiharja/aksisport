@@ -256,9 +256,15 @@ messages update as the organizer types. Leaving with anything changed —
 in a Dialog: "Discard this session?" (or "…schedule?", or "Discard your
 changes?" when editing), Keep editing / Discard.
 
-**Ad-hoc creation goes through a check screen** (Milestone 2): Continue
+**Ad-hoc creation goes through a check screen** (Milestone 2; Aksi
+redesign › Check your session, `sessions/form/SessionCheck.tsx`): Continue
 only validates and shows what was entered, with **nothing persisted
-yet**. From there: **Publish** (`createSession()` then
+yet** — a `SummaryCard` with a DRAFT tag, the name, and rows Activity,
+When, Where, Players ("8 · you are playing"), Match format ("Race to 4 ·
+single deuce"), Skill level, Price and Notes, then "Publishing opens it
+for players to join. A draft is only visible to organizers." Publish
+(primary), Save as draft (secondary), Discard as red text last, which
+opens the same Dialog as closing the form. From there: **Publish** (`createSession()` then
 `publishSession()`), **Save as draft** (`createSession()` only) or
 **Discard** (just leaves — nothing exists to delete). Back returns to the
 form with everything kept. Editing an existing Session saves directly on
