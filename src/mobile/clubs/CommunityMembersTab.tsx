@@ -1,23 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { Edge } from 'react-native-safe-area-context';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
-import { HStack } from '../../design-system/layout/HStack';
 import { AppBar } from '../../design-system/layout/AppBar';
 import { Typography } from '../../design-system/ui/Typography';
 import { Icon } from '../../design-system/ui/Icon';
-import { IconButton } from '../../design-system/ui/IconButton';
-import { Chip } from '../../design-system/ui/Chip';
-import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Input, InputField, InputSlot } from '../../design-system/ui/Input';
 import { ListGroup, ListRow } from '../../design-system/ui/List';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
-import { PlayerCard } from '../../design-system/domain-ui/PlayerCard';
+import { PlayerCircle } from '../../design-system/domain-ui/PlayerCircle';
+import { initialsFromName } from '../../core/initials';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import {
@@ -36,6 +33,8 @@ import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { InviteSheet } from '../invites/InviteSheet';
 import { PersonAvatar } from '../messages/PersonAvatar';
 
+const GRID = { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', rowGap: 16, columnGap: 12 } as const;
+
 type Props = {
   clubId: string;
   edges?: Edge[];
@@ -46,13 +45,13 @@ type Props = {
 
 // A Community's Members tab (Aksi redesign › Community · Members), the same
 // for every role (IA v1.1.0); organizer-only actions appear inside it.
-// Owners/admins see join requests first (DP-017): "asked to join · 2 days
-// ago", Approve, and Decline behind ⋯. Then "Owner & admins", then
-// "Members · N"; your own row says "(you)". Tapping anyone opens their
-// player profile (DP-019). A row's ⋯ holds what can be done to that
-// member, as before: the owner makes someone admin or a regular member, or
-// removes them (asks first); anyone but the owner can leave from their own
-// row. The owner adds people from the app bar.
+// Everyone is a circle, as on a Session's Players tab. Owners/admins see
+// join requests first (DP-017), each with when they asked; then "Owner &
+// admins", then "Members · N"; your own circle says "You". Tapping anyone
+// opens their sheet: View profile (DP-019) and what can be done — Approve
+// / Decline a request; the owner makes someone admin or a regular member,
+// or removes them (asks first); anyone but the owner leaves from their
+// own. The owner adds people from the app bar.
 export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props) {
   const { t, lang } = useTranslation();
   const { profile } = useAuth();
@@ -62,7 +61,7 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
-  // The row whose ⋯ is open: a member, or a join request.
+  // Whose sheet is open: a member, or a join request.
   const [actionMember, setActionMember] = useState<ClubMember | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [actionRequest, setActionRequest] = useState<ClubJoinRequest | null>(null);
@@ -223,30 +222,20 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
     return m.userId === profile?.id && m.role !== 'owner';
   }
 
-  function memberRow(m: ClubMember) {
+  function memberCircle(m: ClubMember) {
     const name = m.displayName || m.username;
-    const hasActions = canManage(m) || canLeave(m);
+    const role = m.role === 'owner' ? t('clubRoleOwner') : m.role === 'admin' ? t('clubRoleAdmin') : undefined;
     return (
-      <Pressable key={m.userId} onPress={() => setProfileUserId(m.userId)} accessibilityRole="button" className="active:opacity-70">
-        <PlayerCard
-          inList
-          name={name}
-          nameNote={m.userId === profile?.id ? t('membersYou') : undefined}
-          subtitle={`@${m.username}`}
-          avatarSource={m.hasAvatar ? { uri: userAvatarUrl(m.userId), headers: imageHeaders } : undefined}
-          isOnline={m.isOnline}
-          trailing={
-            <HStack className="items-center" space="xs">
-              {m.role !== 'member' ? (
-                <Chip label={m.role === 'owner' ? t('clubRoleOwner') : t('clubRoleAdmin')} strong={m.role === 'owner'} className="self-center" />
-              ) : null}
-              {hasActions ? (
-                <IconButton icon="ellipsis-horizontal" label={t('membersActions', name)} size="md" onPress={() => setActionMember(m)} />
-              ) : null}
-            </HStack>
-          }
-        />
-      </Pressable>
+      <PlayerCircle
+        key={m.userId}
+        name={m.userId === profile?.id ? t('sessionYou') : name}
+        initials={initialsFromName(name)}
+        avatarSource={m.hasAvatar ? { uri: userAvatarUrl(m.userId), headers: imageHeaders } : undefined}
+        isOnline={m.isOnline}
+        caption={role}
+        onPress={() => setActionMember(m)}
+        accessibilityLabel={[name, role].filter(Boolean).join(', ')}
+      />
     );
   }
 
@@ -287,35 +276,22 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
           <Typography variant="overline" color="brand">
             {t('clubJoinRequestsTitle', joinRequests.length)}
           </Typography>
-          <ListGroup>
+          <View style={GRID}>
             {joinRequests.map((request) => {
               const name = request.displayName || request.username;
               return (
-                <Pressable
+                <PlayerCircle
                   key={request.id}
-                  onPress={() => setProfileRequest(request)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('playerProfileOpen')}
-                  className="active:opacity-70"
-                >
-                  <PlayerCard
-                    inList
-                    name={name}
-                    subtitle={t('membersAskedToJoin', timeAgo(request.createdAt, t, lang))}
-                    avatarSource={request.hasAvatar ? { uri: userAvatarUrl(request.userId), headers: imageHeaders } : undefined}
-                    trailing={
-                      <HStack className="items-center" space="xs">
-                        <IconButton icon="ellipsis-horizontal" label={t('membersActions', name)} size="md" onPress={() => setActionRequest(request)} />
-                        <Button size="md" isDisabled={busy} onPress={() => handleDecide(request, 'approve')}>
-                          <ButtonText>{t('clubJoinRequestApprove')}</ButtonText>
-                        </Button>
-                      </HStack>
-                    }
-                  />
-                </Pressable>
+                  name={name}
+                  initials={initialsFromName(name)}
+                  avatarSource={request.hasAvatar ? { uri: userAvatarUrl(request.userId), headers: imageHeaders } : undefined}
+                  caption={timeAgo(request.createdAt, t, lang)}
+                  onPress={() => setActionRequest(request)}
+                  accessibilityLabel={`${name}, ${t('membersAskedToJoin', timeAgo(request.createdAt, t, lang))}`}
+                />
               );
             })}
-          </ListGroup>
+          </View>
         </VStack>
       )}
 
@@ -330,7 +306,7 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
               <Typography variant="overline" color="muted">
                 {t('clubMembersSectionOrganizers')}
               </Typography>
-              <ListGroup>{organizers.map(memberRow)}</ListGroup>
+              <View style={GRID}>{organizers.map(memberCircle)}</View>
             </VStack>
           )}
           {regulars.length > 0 && (
@@ -338,17 +314,18 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
               <Typography variant="overline" color="muted">
                 {t('membersSectionMembers', regulars.length)}
               </Typography>
-              <ListGroup>{regulars.map(memberRow)}</ListGroup>
+              <View style={GRID}>{regulars.map(memberCircle)}</View>
             </VStack>
           )}
         </>
       )}
 
-      {/* A member's ⋯ */}
+      {/* A member's sheet */}
       <Sheet
         visible={actionMember !== null}
         onClose={() => setActionMember(null)}
         title={actionMember ? actionMember.displayName || actionMember.username : undefined}
+        description={actionMember ? [`@${actionMember.username}`, actionMember.role === 'owner' ? t('clubRoleOwner') : actionMember.role === 'admin' ? t('clubRoleAdmin') : undefined].filter(Boolean).join(' · ') : undefined}
       >
         {actionMember && (
           <VStack space="md">
@@ -398,11 +375,12 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
         )}
       </Sheet>
 
-      {/* A join request's ⋯: Decline lives here, Approve is on the row. */}
+      {/* A join request's sheet: View profile, Approve, Decline. */}
       <Sheet
         visible={actionRequest !== null}
         onClose={() => setActionRequest(null)}
         title={actionRequest ? actionRequest.displayName || actionRequest.username : undefined}
+        description={actionRequest ? t('membersAskedToJoin', timeAgo(actionRequest.createdAt, t, lang)) : undefined}
       >
         {actionRequest && (
           <ListGroup>
@@ -414,6 +392,15 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
                 const request = actionRequest;
                 setActionRequest(null);
                 setProfileRequest(request);
+              }}
+            />
+            <ListRow
+              icon="checkmark-circle-outline"
+              title={t('clubJoinRequestApprove')}
+              onPress={() => {
+                const request = actionRequest;
+                setActionRequest(null);
+                handleDecide(request, 'approve');
               }}
             />
             <ListRow

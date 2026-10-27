@@ -108,22 +108,24 @@ the native share sheet, the browser's where it has one, otherwise the
 link is copied and a notice says so).
 **Community — Members tab** (`CommunityMembersTab`), the same for every
 role: a large "Members · N" title (owner: add member in the bar), a
-member search, then for owners/admins the join requests first — each row
-"asked to join · 2 days ago" with Approve, and Decline behind its ⋯;
-tapping a request opens the requester's player profile
-(`PlayerProfileSheet`, DP-019: picture, name, username, online, joined
-date, skill level per sport) with Approve/Decline. Then "Owner & admins"
-(Owner and Admin tags) and "Members · N", each a `ListGroup` of
-`PlayerCard` rows (online dot, "@username", "(you)" on your own row).
-Tapping anyone opens their profile. A row's ⋯ holds what the viewer can
-do to that member, unchanged from before: the owner makes someone admin
-or a regular member, or removes them; anyone but the owner can leave
-from their own row. Remove from community and Leave community sit last,
-in their own group, with a one-line consequence, and both ask to confirm. Add member (owner) is a Sheet searching
-every user (`GET /v1/users/search`), existing members left out. On a Session's
-Players tab, owner/admins tap a player (a circle, or a row for a request) for the same
-sheet — the Session's sport first, a within/outside-range badge when the
-Session has a level range, and Approve/Decline for a pending request. `CreateClubScreen` asks for a location and a "Private
+member search, then everyone as a circle (`PlayerCircle`, as on a
+Session's Players tab: picture or initials, online dot). For
+owners/admins the join requests come first, each captioned with when
+they asked; tapping one opens a sheet ("asked to join · 2 days ago") with
+View profile, Approve and Decline, and the profile (`PlayerProfileSheet`,
+DP-019: picture, name, username, online, joined date, skill level per
+sport) also has Approve/Decline. Then "Owner & admins" (captioned Owner /
+Admin) and "Members · N"; your own circle says "You". Tapping a member
+opens their sheet ("@username · Admin"): View profile, and what the
+viewer can do to them — the owner makes someone admin or a regular
+member, or removes them; anyone but the owner leaves from their own.
+Remove from community and Leave community sit last, in their own group,
+with a one-line consequence, and both ask to confirm. Add member (owner)
+is a Sheet searching every user (`GET /v1/users/search`), existing
+members left out. On a Session's Players tab, anyone taps a player for
+their sheet, and View profile opens the same profile — the Session's
+sport first, a within/outside-range badge when the Session has a level
+range, and Approve/Decline for a pending request. `CreateClubScreen` asks for a location and a "Private
 community" switch; `ClubSettingsScreen` (owner) edits both under "Finding
 & joining".
 
