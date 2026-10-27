@@ -12,8 +12,9 @@ import (
 
 // CanViewPlayerProfile is DP-019's visibility rule: yourself; anyone you
 // share a Club with; and, for a Club's owner/admins, anyone with a pending
-// request to join that Club. (Someone asking to join a Session is already
-// a member of its Club, so the shared-Club rule covers them.)
+// request to join that Club. DP-028 adds Session-only participants: people
+// in the same Session see each other, and a Club's owner/admins see anyone
+// taking part in one of its Sessions.
 func CanViewPlayerProfile(ctx context.Context, pool *pgxpool.Pool, viewerID, targetID string) (bool, error) {
 	if viewerID == targetID {
 		return true, nil
@@ -26,6 +27,13 @@ func CanViewPlayerProfile(ctx context.Context, pool *pgxpool.Pool, viewerID, tar
 		) OR EXISTS(
 			SELECT 1 FROM club_join_requests r JOIN club_members mine ON mine.club_id = r.club_id
 			WHERE r.user_id = $2 AND r.status = 'pending' AND mine.user_id = $1 AND mine.role IN ('owner', 'admin')
+		) OR EXISTS(
+			SELECT 1 FROM session_participants a JOIN session_participants b ON b.session_id = a.session_id
+			WHERE a.user_id = $1 AND b.user_id = $2
+		) OR EXISTS(
+			SELECT 1 FROM session_participants p JOIN sessions s ON s.id = p.session_id
+			JOIN club_members mine ON mine.club_id = s.club_id
+			WHERE p.user_id = $2 AND mine.user_id = $1 AND mine.role IN ('owner', 'admin')
 		)`,
 		viewerID, targetID,
 	).Scan(&ok)

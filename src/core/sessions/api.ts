@@ -1,5 +1,6 @@
 import { apiFetch, apiUrl } from '../api/client';
 import type {
+  ClubBankAccount,
   ConversationMessage,
   JoinedSession,
   Session,
@@ -265,4 +266,10 @@ export function setSessionUmpire(sessionId: string, userId: string): Promise<Ses
     method: 'PUT',
     body: JSON.stringify({ userId }),
   });
+}
+
+// Where to send money for this Session (DP-012). Session-scoped, so a
+// Session-only participant (DP-028) can read it too.
+export function listSessionBankAccounts(sessionId: string): Promise<ClubBankAccount[]> {
+  return apiFetch(`/v1/sessions/${sessionId}/bank-accounts`);
 }

@@ -26,7 +26,7 @@ import {
   publishSession,
   registerForSession,
 } from '../../core/sessions/api';
-import { getClub, listMembers } from '../../core/clubs/api';
+import { getClub, getClubPreview, listMembers } from '../../core/clubs/api';
 import { getRecurringSchedule } from '../../core/recurringSchedules/api';
 import { createActivity, deleteActivity, listActivities } from '../../core/activities/api';
 import { listMySkillLevels, listSkillLevels } from '../../core/skillLevels/api';
@@ -147,7 +147,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // from the Inbox (openContactWith set), it opens straight into that
   // member's thread instead of the organizer's thread list.
   const [contactVisible, setContactVisible] = useState(Boolean(openContactWith));
-  const [club, setClub] = useState<Club | null>(null);
+  const [club, setClub] = useState<Pick<Club, 'id' | 'name'> | null>(null);
   // Only set when this Session was generated from a Recurring Schedule
   // (session.recurringScheduleId) — used for the Details tab's "Every
   // <weekday>" line.
@@ -171,11 +171,14 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   const load = useCallback(async () => {
     try {
       const sess = await getSession(sessionId);
+      // A Session-only participant (DP-028) can't read the Community's own
+      // routes: no member list, and its public preview for the name.
+      const visitor = sess.viewerRole === 'visitor';
       const [parts, members, acts, clubResult, schedule] = await Promise.all([
         listParticipants(sessionId),
-        listMembers(sess.clubId),
+        visitor ? Promise.resolve([] as ClubMember[]) : listMembers(sess.clubId),
         listActivities(sessionId),
-        getClub(sess.clubId),
+        visitor ? getClubPreview(sess.clubId) : getClub(sess.clubId),
         // Only organizers may read a Recurring Schedule (DP-007), so for
         // a member this is refused — and it only feeds the "Every <day>"
         // label. It must never take the whole page down with it.
@@ -183,7 +186,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
           ? getRecurringSchedule(sess.clubId, sess.recurringScheduleId).catch(() => null)
           : Promise.resolve(null),
       ]);
-      const myRole = members.find((m) => m.userId === profile?.id)?.role;
+      const myRole = sess.viewerRole ?? members.find((m) => m.userId === profile?.id)?.role;
       const amOwnerOrAdmin = myRole === 'owner' || myRole === 'admin';
 
       // Matches are generated from a snapshot of the eligible pool
@@ -758,7 +761,10 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   );
 
   const organizerMember = members.find((m) => m.userId === session.createdBy);
-  const organizerName = organizerMember?.displayName || organizerMember?.username || t('sessionHostLabel');
+  // A visitor has no member list; the host is usually among the players.
+  const organizerPlayer = participants.find((p) => p.userId === session.createdBy);
+  const organizerName =
+    organizerMember?.displayName || organizerMember?.username || organizerPlayer?.displayName || organizerPlayer?.username || t('sessionHostLabel');
 
   // A free Session has nothing to pay or confirm (DP-002 v0.24.0).
   const isFree = session.priceModel === 'free';

@@ -189,6 +189,9 @@ export type Session = {
   // Session — the creator by default; owners/admins hand it over.
   umpireUserId: string;
   umpireName?: string;
+  // The caller's role in the Session's Community, or 'visitor' for a
+  // Session-only participant (DP-028). Set by getSession only.
+  viewerRole?: ClubRole | 'visitor';
   createdAt: string;
   updatedAt: string;
   // DP-007: a core Session property, not an Organizer Preference — set

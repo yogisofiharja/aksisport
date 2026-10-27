@@ -49,6 +49,18 @@ picture, description, city, visibility, member count); everything
 else about a Club still requires membership. A private Club is findable
 and previewable like a public one — only joining is gated.
 
+**Session-only participants (DP-028)**: `requireSessionAccess` (and so
+`requireActivityAccess`) also lets in a non-member who has a participant
+row in that Session, or an invitation to it (in the app, or by opening its
+link). They get the role `visitor`: a plain player of that one Session
+(details, players, matches, session chat, payment, check-in, asking for a
+spot under the normal rules) and never an organizer. Every
+`/v1/clubs/:clubId/*` route still checks club membership and answers 403;
+`internal/httpapi/visitor_access_test.go` drives every one of them as a
+visitor. Payment details for them come from `GET /v1/sessions/:id/bank-accounts`.
+Profiles (DP-019) are also visible between people in the same Session,
+and to a Club's owner/admins for anyone taking part in one of its Sessions.
+
 ## Role capabilities (as enforced, not as documented in `docs/archive/prd.md`)
 
 | Action | Required role |

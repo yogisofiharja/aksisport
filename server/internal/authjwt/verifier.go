@@ -15,6 +15,16 @@ const firebaseJWKSURL = "https://www.googleapis.com/service_accounts/v1/jwk/secu
 type Verifier struct {
 	kf        keyfunc.Keyfunc
 	projectID string
+	// static maps fixed tokens to Firebase UIDs, for tests only
+	// (NewStaticVerifier); nil in a real Verifier.
+	static map[string]string
+}
+
+// NewStaticVerifier accepts exactly the given tokens, each standing for a
+// Firebase UID. For tests that drive the HTTP routes as different users;
+// never used by the server itself.
+func NewStaticVerifier(tokens map[string]string) *Verifier {
+	return &Verifier{static: tokens}
 }
 
 func NewVerifier(ctx context.Context, projectID string) (*Verifier, error) {
@@ -28,6 +38,12 @@ func NewVerifier(ctx context.Context, projectID string) (*Verifier, error) {
 // VerifyIDToken validates a Firebase ID token and returns the Firebase UID
 // (the token's `sub` claim) on success.
 func (v *Verifier) VerifyIDToken(tokenString string) (string, error) {
+	if v.static != nil {
+		if uid, ok := v.static[tokenString]; ok {
+			return uid, nil
+		}
+		return "", fmt.Errorf("unknown token")
+	}
 	claims := jwt.RegisteredClaims{}
 	token, err := jwt.ParseWithClaims(
 		tokenString,

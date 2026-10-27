@@ -237,9 +237,9 @@ func ListSessionsForClub(ctx context.Context, pool *pgxpool.Pool, clubID string,
 // History (DP-009): every published Session the user has joined, in any
 // Club, newest first. "Joined" is DP-002's headcount definition, same as
 // CountJoinedParticipants — a request still awaiting approval, a
-// cancellation, or a no-show isn't a Session they joined. Limited to
-// Clubs the user still belongs to, since opening a Session requires
-// membership (requireSessionAccess). Not filtered to past dates here:
+// cancellation, or a no-show isn't a Session they joined. Not limited to
+// Clubs the user belongs to: a Session-only participant (DP-028) can open
+// a Session they played in without being a member. Not filtered to past dates here:
 // "past" is judged against the viewer's local calendar day, same as the
 // Club-scoped history, so the client applies it.
 func ListJoinedSessionsForUser(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.JoinedSession, error) {
@@ -249,7 +249,6 @@ func ListJoinedSessionsForUser(ctx context.Context, pool *pgxpool.Pool, userID s
 		 WHERE status != 'draft'
 		   AND id IN (SELECT session_id FROM session_participants
 		              WHERE user_id = $1 AND status IN ('registered', 'checked_in', 'checked_out'))
-		   AND club_id IN (SELECT club_id FROM club_members WHERE user_id = $1)
 		 ORDER BY starts_at DESC NULLS LAST`,
 		userID,
 	)

@@ -6,7 +6,7 @@ import { Text } from '../../../components/ui/text';
 import { Button, ButtonText } from '../../../components/ui/button';
 import { useTranslation } from '../../i18n';
 import { authHeader } from '../../core/api/client';
-import { listClubBankAccounts } from '../../core/clubs/api';
+import { listSessionBankAccounts } from '../../core/sessions/api';
 import { participantReceiptUrl, uploadPaymentReceipt } from '../../core/sessions/api';
 import { formatIDR } from '../../core/currency';
 import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
@@ -50,7 +50,7 @@ export function PaymentSummary({ sessionId, session, myParticipant, onParticipan
 
   const loadBankAccounts = useCallback(async () => {
     try {
-      setBankAccounts(await listClubBankAccounts(session.clubId));
+      setBankAccounts(await listSessionBankAccounts(session.id));
     } catch {
       // stays empty; not fatal, the rest of the tab still renders
     }

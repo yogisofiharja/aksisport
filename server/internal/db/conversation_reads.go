@@ -67,9 +67,16 @@ func ConversationParticipantIDs(ctx context.Context, pool *pgxpool.Pool, convers
 		}
 		return conv, appendUnique(ids, *conv.MemberUserID), nil
 	default: // session_chat
+		// Members, plus the Session's own non-member players and invitees
+		// (DP-028), who can read this one chat.
 		ids, err := collectIDs(ctx, pool,
 			`SELECT m.user_id FROM club_members m JOIN sessions s ON s.club_id = m.club_id
-			 WHERE s.id = $1 AND (s.status <> 'draft' OR m.role IN ('owner', 'admin'))`, conv.SessionID)
+			 WHERE s.id = $1 AND (s.status <> 'draft' OR m.role IN ('owner', 'admin'))
+			 UNION
+			 SELECT v.user_id FROM sessions s
+			 JOIN (SELECT session_id, user_id FROM session_participants WHERE user_id IS NOT NULL
+			       UNION SELECT target_id, to_user FROM invitations WHERE target_type = 'session') v ON v.session_id = s.id
+			 WHERE s.id = $1 AND s.status <> 'draft'`, conv.SessionID)
 		return conv, ids, err
 	}
 }

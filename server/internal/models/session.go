@@ -43,6 +43,10 @@ type Session struct {
 	// UmpireName is the umpire's display name (or username), for "Umpire
 	// for this session · <Name>".
 	UmpireName *string   `json:"umpireName,omitempty"`
+	// ViewerRole is the caller's role in the Session's Community — owner,
+	// admin or member — or "visitor" for a Session-only participant
+	// (DP-028). Set by GET /sessions/:id only.
+	ViewerRole string `json:"viewerRole,omitempty"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 	// StartsAt is a core Session property (not an Organizer Preference,

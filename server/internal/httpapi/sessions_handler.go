@@ -20,7 +20,8 @@ import (
 )
 
 // requireSessionAccess loads the session and the caller's role in its
-// parent club. ok=false means a response has already been sent.
+// parent club — or "visitor" for a Session-only participant (DP-028).
+// ok=false means a response has already been sent.
 //
 // DP-001: a 'draft' session is invisible to members who aren't owner/admin
 // — treated as not-found rather than forbidden, so its existence isn't
@@ -38,15 +39,29 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 
 	user := authjwt.CurrentUser(c)
 	m, err := dbpkg.GetMembership(c.Request.Context(), pool, sess.ClubID, user.ID)
-	if errors.Is(err, dbpkg.ErrNotFound) {
-		respondError(c, http.StatusForbidden, "not a member of this club")
-		return dbSession{}, "", false
-	}
-	if err != nil {
+	switch {
+	case err == nil:
+		role = m.Role
+	case errors.Is(err, dbpkg.ErrNotFound):
+		// DP-028: a non-member may still see this one Session — as its
+		// participant, or because they were invited to it. They act as a
+		// plain player here ("visitor") and stay outside the Community:
+		// every /clubs/:clubId route still answers "not a member".
+		visitor, verr := dbpkg.HasSessionVisitorAccess(c.Request.Context(), pool, sess.ID, user.ID)
+		if verr != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return dbSession{}, "", false
+		}
+		if !visitor {
+			respondError(c, http.StatusForbidden, "not a member of this club")
+			return dbSession{}, "", false
+		}
+		role = dbpkg.SessionVisitorRole
+	default:
 		respondError(c, http.StatusInternalServerError, "internal error")
 		return dbSession{}, "", false
 	}
-	if sess.Status == "draft" && !isOwnerOrAdmin(m.Role) {
+	if sess.Status == "draft" && !isOwnerOrAdmin(role) {
 		respondError(c, http.StatusNotFound, "session not found")
 		return dbSession{}, "", false
 	}
@@ -54,7 +69,7 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 		ID: sess.ID, ClubID: sess.ClubID, Sport: sess.Sport, Status: sess.Status,
 		SkillLevelMinID: sess.SkillLevelMinID, SkillLevelMaxID: sess.SkillLevelMaxID, SkillLevelEnforcement: sess.SkillLevelEnforcement,
 		StartsAt: sess.StartsAt, DurationMinutes: sess.DurationMinutes, UmpireUserID: sess.UmpireUserID,
-	}, m.Role, true
+	}, role, true
 }
 
 // dbSession is a tiny local alias to avoid importing models directly here
@@ -360,7 +375,8 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 
 	authed.GET("/sessions/:id", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
 			return
 		}
 		session, err := dbpkg.GetSession(c.Request.Context(), pool, sessionID)
@@ -368,6 +384,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusInternalServerError, "internal error")
 			return
 		}
+		session.ViewerRole = role
 		c.JSON(http.StatusOK, session)
 	})
 
@@ -488,6 +505,22 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		c.Status(http.StatusNoContent)
+	})
+
+	// Where to send money for this Session (DP-012), for anyone who can see
+	// it — including a Session-only participant (DP-028), who can't read
+	// the Community's own /clubs/:clubId/bank-accounts.
+	authed.GET("/sessions/:id/bank-accounts", func(c *gin.Context) {
+		sess, _, ok := requireSessionAccess(c, pool, c.Param("id"))
+		if !ok {
+			return
+		}
+		accounts, err := dbpkg.ListClubBankAccounts(c.Request.Context(), pool, sess.ClubID)
+		if err != nil {
+			respondError(c, http.StatusInternalServerError, "internal error")
+			return
+		}
+		c.JSON(http.StatusOK, accounts)
 	})
 
 	authed.GET("/sessions/:id/participants", func(c *gin.Context) {

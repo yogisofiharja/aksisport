@@ -14,7 +14,7 @@ import type { Club, RecurringSchedule, Session, SkillLevel } from '../../../core
 
 type Props = {
   session: Session;
-  club: Club | null;
+  club: Pick<Club, 'id' | 'name'> | null;
   recurringSchedule: RecurringSchedule | null;
   minLevel?: SkillLevel;
   maxLevel?: SkillLevel;

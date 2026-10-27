@@ -541,6 +541,16 @@ didn't come through a link that has since been reset. Otherwise joining
 is unchanged (DP-017). Joining marks the caller's invitations to the
 Community `joined`.
 
+**Session-only participants**: `requireSessionAccess` lets in a
+non-member who is a participant of the Session or was invited to it,
+with role `visitor` (see `permissions.md`). `GET /v1/sessions/:id` returns
+the caller's `viewerRole` (`owner`/`admin`/`member`/`visitor`).
+`GET /v1/sessions/:id/bank-accounts` is the Community's bank accounts for
+anyone with Session access. `GET /v1/me/sessions` lists every Session the
+caller took part in, member of its Community or not. Session chat's live
+events go to members plus the Session's own players and invitees. Their
+matches count in their stats (no club filter; `TestSessionVisitorStatsCount`).
+
 ## Error shape
 
 All errors: `{"error": "<message>"}`, sometimes with a `code` field

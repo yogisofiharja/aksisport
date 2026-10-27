@@ -110,7 +110,9 @@ export function ActivityMatchScreen({ activityId, onDone, onBackToSession, onOpe
   async function loadSession(id: string) {
     const sess = await getSession(id);
     setSession(sess);
-    const members = await listMembers(sess.clubId).catch(() => []);
+    // A Session-only participant (DP-028) can't list members, and isn't
+    // an organizer anyway.
+    const members = sess.viewerRole === 'visitor' ? [] : await listMembers(sess.clubId).catch(() => []);
     setOrganizers(members.filter((m) => m.role === 'owner' || m.role === 'admin'));
     return sess;
   }

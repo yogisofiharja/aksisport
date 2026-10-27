@@ -194,3 +194,21 @@ func MarkClubInvitationsJoined(ctx context.Context, pool *pgxpool.Pool, clubID, 
 	)
 	return err
 }
+
+// SessionVisitorRole is the role a Session-only participant (DP-028) has
+// in requireSessionAccess: a plain player of that one Session, never an
+// organizer, and nothing in the Community.
+const SessionVisitorRole = "visitor"
+
+// HasSessionVisitorAccess: a non-member may see this Session because they
+// are (or were) a participant in it, or were invited to it — in the app,
+// or by opening its link.
+func HasSessionVisitorAccess(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (bool, error) {
+	var ok bool
+	err := pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM session_participants WHERE session_id = $1 AND user_id = $2)
+		     OR EXISTS(SELECT 1 FROM invitations WHERE target_type = 'session' AND target_id = $1 AND to_user = $2)`,
+		sessionID, userID,
+	).Scan(&ok)
+	return ok, err
+}
