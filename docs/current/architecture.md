@@ -41,7 +41,8 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
 - **Recurring Schedule generation** (DP-007) — the app's first background
   process. An in-process `time.Ticker` goroutine in `cmd/api/main.go`
   (interval `RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES`, default 15)
-  calls `internal/scheduling.GenerateDueSessions` on every tick. Not a
+  calls `internal/scheduling.GenerateDueSessions` (then DP-009's
+  auto-start and auto-transition) once at startup and on every tick. Not a
   separate binary/cron/job queue — this repo has no second deployment
   target, so generation lives in the same process as the HTTP server and
   shares its lifecycle (started after the server goroutine, stopped by the

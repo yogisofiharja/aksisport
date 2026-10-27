@@ -518,7 +518,8 @@ only of the Sessions it generates).
 Generation itself has no endpoint — it's a background process
 (`internal/scheduling.GenerateDueSessions`), ticking on an in-process
 timer (`RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES`, default 15) in
-`cmd/api/main.go`. See `lifecycle-recurring-schedule.md`.
+`cmd/api/main.go`. The whole pass (generation, auto-start,
+auto-transition, overdue matches) also runs once when the API starts. See `lifecycle-recurring-schedule.md`.
 
 ## Error shape
 

@@ -142,8 +142,27 @@ func main() {
 	// repo has no second deployment target today, and all three are
 	// idempotent/safe under any interval, including missed ticks (see
 	// GenerateDueSessions, AutoStartDueSessions, and
-	// AutoTransitionElapsedSessions).
+	// AutoTransitionElapsedSessions). The pass also runs once at startup,
+	// so Sessions whose time passed while the API was down are resolved
+	// at once rather than a full interval later.
+	scheduledPass := func() {
+		if err := scheduling.GenerateDueSessions(ctx, pool); err != nil {
+			log.Printf("recurring schedule generation: %v", err)
+		}
+		if err := scheduling.AutoStartDueSessions(ctx, pool); err != nil {
+			log.Printf("session auto-start: %v", err)
+		}
+		if err := scheduling.AutoTransitionElapsedSessions(ctx, pool); err != nil {
+			log.Printf("session auto-transition: %v", err)
+		}
+		if n, err := scheduling.UnfinishOverdueMatches(ctx, pool, liveScores); err != nil {
+			log.Printf("overdue live matches: %v", err)
+		} else if n > 0 {
+			log.Printf("overdue live matches: %d saved as unfinished", n)
+		}
+	}
 	go func() {
+		scheduledPass()
 		ticker := time.NewTicker(cfg.RecurringScheduleGenerationInterval)
 		defer ticker.Stop()
 		for {
@@ -151,20 +170,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if err := scheduling.GenerateDueSessions(ctx, pool); err != nil {
-					log.Printf("recurring schedule generation: %v", err)
-				}
-				if err := scheduling.AutoStartDueSessions(ctx, pool); err != nil {
-					log.Printf("session auto-start: %v", err)
-				}
-				if err := scheduling.AutoTransitionElapsedSessions(ctx, pool); err != nil {
-					log.Printf("session auto-transition: %v", err)
-				}
-				if n, err := scheduling.UnfinishOverdueMatches(ctx, pool, liveScores); err != nil {
-					log.Printf("overdue live matches: %v", err)
-				} else if n > 0 {
-					log.Printf("overdue live matches: %d saved as unfinished", n)
-				}
+				scheduledPass()
 			}
 		}
 	}()
