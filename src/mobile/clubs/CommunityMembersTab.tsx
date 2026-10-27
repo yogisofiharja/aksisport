@@ -139,10 +139,10 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
     setActionMember(null);
     const isSelf = member.userId === profile?.id;
     const name = member.displayName || member.username;
-    appAlert(isSelf ? t('clubLeaveClub') : t('membersRemoveConfirmTitle', name), isSelf ? t('clubLeaveConfirmDesc') : t('membersRemoveConfirmDesc'), [
+    appAlert(isSelf ? t('clubLeaveConfirmTitle', clubName) : t('membersRemoveConfirmTitle', name), isSelf ? t('clubLeaveConfirmDesc') : t('membersRemoveConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       {
-        text: isSelf ? t('clubLeaveClub') : t('membersRemove'),
+        text: isSelf ? t('clubLeaveConfirmAction') : t('membersRemove'),
         style: 'destructive',
         onPress: async () => {
           setBusy(true);
@@ -344,31 +344,50 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
         title={actionMember ? actionMember.displayName || actionMember.username : undefined}
       >
         {actionMember && (
-          <ListGroup>
-            <ListRow
-              icon="person-outline"
-              title={t('membersViewProfile')}
-              chevron
-              onPress={() => {
-                const id = actionMember.userId;
-                setActionMember(null);
-                setProfileUserId(id);
-              }}
-            />
-            {canManage(actionMember) ? (
+          <VStack space="md">
+            <ListGroup>
               <ListRow
-                icon={actionMember.role === 'admin' ? 'person-remove-outline' : 'shield-checkmark-outline'}
-                title={actionMember.role === 'admin' ? t('membersMakeMember') : t('membersMakeAdmin')}
-                onPress={() => handleChangeRole(actionMember, actionMember.role === 'admin' ? 'member' : 'admin')}
+                icon="person-outline"
+                title={t('membersViewProfile')}
+                chevron
+                onPress={() => {
+                  const id = actionMember.userId;
+                  setActionMember(null);
+                  setProfileUserId(id);
+                }}
               />
-            ) : null}
+              {canManage(actionMember) ? (
+                <ListRow
+                  icon={actionMember.role === 'admin' ? 'person-remove-outline' : 'shield-checkmark-outline'}
+                  title={actionMember.role === 'admin' ? t('membersMakeMember') : t('membersMakeAdmin')}
+                  onPress={() => handleChangeRole(actionMember, actionMember.role === 'admin' ? 'member' : 'admin')}
+                />
+              ) : null}
+            </ListGroup>
+            {/* Destructive actions last, in their own group; each confirms. */}
             {canManage(actionMember) ? (
-              <ListRow icon="close-circle-outline" title={t('membersRemove')} danger onPress={() => handleRemove(actionMember)} />
+              <ListGroup>
+                <ListRow
+                  icon="close-circle-outline"
+                  title={t('membersRemove')}
+                  subtitle={t('membersRemoveHint')}
+                  danger
+                  onPress={() => handleRemove(actionMember)}
+                />
+              </ListGroup>
             ) : null}
             {canLeave(actionMember) ? (
-              <ListRow icon="exit-outline" title={t('clubLeaveClub')} danger onPress={() => handleRemove(actionMember)} />
+              <ListGroup>
+                <ListRow
+                  icon="exit-outline"
+                  title={t('clubLeaveClub')}
+                  subtitle={t('clubLeaveHint')}
+                  danger
+                  onPress={() => handleRemove(actionMember)}
+                />
+              </ListGroup>
             ) : null}
-          </ListGroup>
+          </VStack>
         )}
       </Sheet>
 

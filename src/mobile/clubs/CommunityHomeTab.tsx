@@ -7,6 +7,7 @@ import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { AppBar } from '../../design-system/layout/AppBar';
 import { Typography } from '../../design-system/ui/Typography';
+import { Button, ButtonText } from '../../design-system/ui/Button';
 import { ListGroup, ListRow } from '../../design-system/ui/List';
 import { Loading } from '../../design-system/feedback/Loading';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
@@ -34,6 +35,7 @@ type Props = {
   onBack: () => void;
   onOpenMembers: () => void;
   onOpenSession: (sessionId: string) => void;
+  onCreateSession: () => void;
   onOpenClubSettings: () => void;
   onOpenReports: () => void;
   // After the caller has left this Community.
@@ -44,14 +46,16 @@ type Props = {
 // header (picture, name, "<city> · Public", members), callouts for an
 // owner/admin (join requests, reports), then Current Focus — the live
 // Session as its card, everything else (today, the next one, drafts) as
-// compact rows, ranked by currentFocusBuckets. Share is in the app bar;
-// Settings, Reports and Leave are behind its ⋯.
+// compact rows, ranked by currentFocusBuckets; with nothing to show, the
+// empty state (organizers get New session). Share is in the app bar;
+// Settings, Reports and Leave (last, on its own) are behind its ⋯.
 export function CommunityHomeTab({
   clubId,
   edges,
   onBack,
   onOpenMembers,
   onOpenSession,
+  onCreateSession,
   onOpenClubSettings,
   onOpenReports,
   onLeft,
@@ -153,7 +157,7 @@ export function CommunityHomeTab({
     appAlert(t('clubLeaveConfirmTitle', club.name), t('clubLeaveConfirmDesc'), [
       { text: t('clubCancel'), style: 'cancel' },
       {
-        text: t('clubLeaveClub'),
+        text: t('clubLeaveConfirmAction'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -236,7 +240,16 @@ export function CommunityHomeTab({
           {t('clubCurrentFocusTitle')}
         </Typography>
         {buckets.live.length + rows.length === 0 ? (
-          <EmptyState message={isOwnerOrAdmin ? t('clubCurrentFocusEmptyOrganizer') : t('clubCurrentFocusEmpty')} />
+          <EmptyState
+            illustration="no-sessions"
+            title={t('sessionsUpcomingEmptyTitle')}
+            message={isOwnerOrAdmin ? t('clubCurrentFocusEmptyOrganizer') : t('clubCurrentFocusEmpty')}
+            action={isOwnerOrAdmin ? (
+                <Button size="lg" onPress={onCreateSession}>
+                  <ButtonText>{t('sessionsNew')}</ButtonText>
+                </Button>
+              ) : undefined}
+          />
         ) : (
           <VStack space="sm">
             {buckets.live.map((session) => (
@@ -256,42 +269,48 @@ export function CommunityHomeTab({
       {/* ⋯: what isn't a tab. Settings for the owner, Reports for
           owners/admins, Leave for everyone but the owner. */}
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)} title={club.name}>
-        <ListGroup>
-          {isOwner ? (
-            <ListRow
-              icon="settings-outline"
-              title={t('clubSettingsTitle')}
-              chevron
-              onPress={() => {
-                setMenuOpen(false);
-                onOpenClubSettings();
-              }}
-            />
-          ) : null}
-          {isOwnerOrAdmin ? (
-            <ListRow
-              icon="flag-outline"
-              title={t('clubReportsTitle')}
-              subtitle={openReports > 0 ? t('clubReportsCallout', openReports) : undefined}
-              chevron
-              onPress={() => {
-                setMenuOpen(false);
-                onOpenReports();
-              }}
-            />
-          ) : null}
+        <VStack space="md">
+          <ListGroup>
+            {isOwner ? (
+              <ListRow
+                icon="settings-outline"
+                title={t('clubSettingsTitle')}
+                chevron
+                onPress={() => {
+                  setMenuOpen(false);
+                  onOpenClubSettings();
+                }}
+              />
+            ) : null}
+            {isOwnerOrAdmin ? (
+              <ListRow
+                icon="flag-outline"
+                title={t('clubReportsTitle')}
+                subtitle={openReports > 0 ? t('clubReportsCallout', openReports) : undefined}
+                chevron
+                onPress={() => {
+                  setMenuOpen(false);
+                  onOpenReports();
+                }}
+              />
+            ) : null}
+          </ListGroup>
+          {/* Destructive, last and on its own; it confirms before leaving. */}
           {!isOwner ? (
-            <ListRow
-              icon="exit-outline"
-              title={t('clubLeaveClub')}
-              danger
-              onPress={() => {
-                setMenuOpen(false);
-                handleLeave();
-              }}
-            />
+            <ListGroup>
+              <ListRow
+                icon="exit-outline"
+                title={t('clubLeaveClub')}
+                subtitle={t('clubLeaveHint')}
+                danger
+                onPress={() => {
+                  setMenuOpen(false);
+                  handleLeave();
+                }}
+              />
+            </ListGroup>
           ) : null}
-        </ListGroup>
+        </VStack>
       </Sheet>
     </ScrollPage>
   );

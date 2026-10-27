@@ -189,7 +189,7 @@ A list item is one row: lead (avatar or icon tile), title and subtitle, trailing
 - Trail: time + unread count (Inbox), a value + chevron (settings), or one small button (Confirm payment).
 - `--unread` bolds the title. `--danger` for Log out, Leave community.
 - Swipe actions are not used; long-press opens an action Sheet (report, delete), matching chat messages.
-- In code: `ui/List.tsx` — `ListGroup` (the card with hairlines between rows) and `ListRow` (icon tile in neutral, heat, success or info, or any `leading` node; title, subtitle and a small meta line; trailing node and chevron; `danger`). `framed="light"` / `"dark"` makes one row a card on its own (First run's Find a community is the dark one). Used on Home, Me, Settings, Notifications and Inbox; Members, Payment and `PlayerCard` have not moved onto it yet. Long lists use `FlatList`.
+- In code: `ui/List.tsx` — `ListGroup` (the card with hairlines between rows; draws nothing when all its rows are hidden) and `ListRow` (icon tile in neutral, heat, success or info, or any `leading` node; title, subtitle and a small meta line; trailing node and chevron; `danger`). `framed="light"` / `"dark"` makes one row a card on its own (First run's Find a community is the dark one). Used on Home, Me, Settings, Notifications and Inbox; Members, Payment and `PlayerCard` have not moved onto it yet. Long lists use `FlatList`.
 
 ### Chat
 

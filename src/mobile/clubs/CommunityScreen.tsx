@@ -111,6 +111,7 @@ export function CommunityScreen(props: CommunityScreenProps) {
             onBack={onExit}
             onOpenMembers={() => select('members')}
             onOpenSession={props.onOpenSession}
+            onCreateSession={props.onCreateSession}
             onOpenClubSettings={props.onOpenClubSettings}
             onOpenReports={props.onOpenReports}
             onLeft={props.onLeft}

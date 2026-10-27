@@ -101,8 +101,9 @@ date, skill level per sport) with Approve/Decline. Then "Owner & admins"
 `PlayerCard` rows (online dot, "@username", "(you)" on your own row).
 Tapping anyone opens their profile. A row's ⋯ holds what the viewer can
 do to that member, unchanged from before: the owner makes someone admin
-or a regular member, or removes them (asks first); anyone but the owner
-can leave from their own row. Add member (owner) is a Sheet searching
+or a regular member, or removes them; anyone but the owner can leave
+from their own row. Remove from community and Leave community sit last,
+in their own group, with a one-line consequence, and both ask to confirm. Add member (owner) is a Sheet searching
 every user (`GET /v1/users/search`), existing members left out. On a Session's
 Players tab, owner/admins tap any player's row for the same
 sheet — the Session's sport first, a within/outside-range badge when the
@@ -279,10 +280,12 @@ border, players, Open matches), then today's Sessions, the single
 soonest upcoming one and every Draft (owner/admin only — `listSessions`
 excludes Drafts for a plain member server-side, DP-001) as compact rows
 in one `ListGroup` (day block, name, "19:00 · 6/12 players", status
-pill). Empty state text differs for an owner/admin ("create a session
-to get started") vs. a member. The ⋯ menu is a Sheet: Settings (owner),
-Reports (owner/admin), Leave community (everyone but the owner, with a
-confirmation; the owner can only delete the Community, in Settings).
+pill). With nothing to show, an EmptyState with the no-sessions
+illustration ("No sessions coming up"); owner/admins also get a New
+session button. The ⋯ menu is a Sheet: Settings (owner), Reports
+(owner/admin), and last, in its own group, Leave community (everyone but
+the owner; asks to confirm — "Leave <name>?" — the owner can only
+delete the Community, in Settings).
 
 **ClubSettings** (Milestone 5, DP-012; renamed from an earlier
 `ClubBankAccounts`-only pass once Delete Community moved here too):

@@ -34,6 +34,8 @@ const tileIcon: Record<IconTone, ComponentProps<typeof Icon>['color']> = {
 
 export function ListGroup({ children, className = '' }: { children: ReactNode; className?: string }) {
   const rows = Children.toArray(children).filter(Boolean);
+  // A group whose rows are all hidden (a menu for a plain member) draws nothing.
+  if (rows.length === 0) return null;
   return (
     <View className={`bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl overflow-hidden ${className}`}>
       {rows.map((row, i) => (
