@@ -477,3 +477,15 @@ row: Join for a public Community, Request for a private one, or Join
 straight in with an owner/admin's invite; a pending request shows
 "Requested". Joining reloads the Session as a member.
 
+**After the Session** (DP-028), for someone who isn't in its Community:
+- Played in it (checked in): opening the Completed Session shows the
+  Sheet "Join <Community>?" once per device (`JoinCommunitySheet`, key
+  `aksi.joinPrompt.<sessionId>`): "You played <Session> with them. Join
+  to see their next sessions and chat with the group.", the Community's
+  "city · Public/Private · members", Join community (Request to join for
+  a private one without an organizer's invite) and Not now.
+- Didn't play (an invite link opened after it ended): instead of the
+  tabs, "This session has ended. Here's how it went.", the Results
+  (`MatchesTab` read-only), a dark row "Play with <Community>" and Join
+  community pinned at the bottom.
+

@@ -31,3 +31,9 @@ export function scheduleWhen(rule: Rule, t: T): string {
 export function scheduleShort(rule: Pick<Rule, 'weekday' | 'time'>, t: T): string {
   return `${t('sessionRecurringEvery', weekdayLabel(rule.weekday, t))} ${rule.time}`;
 }
+
+// "Saturday" ("Sabtu"), the full name, in the app's language.
+export function weekdayLong(weekday: number, lang: 'en' | 'id'): string {
+  // 4 Jan 1970 was a Sunday (weekday 0).
+  return new Date(1970, 0, 4 + weekday).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-GB', { weekday: 'long' });
+}

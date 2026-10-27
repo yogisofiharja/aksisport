@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
+import { Alert } from '../../design-system/feedback/Alert';
+import { ListRow } from '../../design-system/ui/List';
+import { weekdayLong } from '../recurringSchedules/weekday';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -57,6 +60,8 @@ import { formatIDR } from '../../core/currency';
 import { SessionMenuSheet, type SessionMenuItem } from './SessionMenuSheet';
 import { InviteSheet } from '../invites/InviteSheet';
 import { InvitedLine } from '../invites/InvitedLine';
+import { JoinCommunitySheet } from '../invites/JoinCommunitySheet';
+import { storageGet, storageSave } from '../../storage';
 import { authHeader } from '../../core/api/client';
 import { ClubCard } from '../../design-system/domain-ui/ClubCard';
 import { shortCityName } from '../../core/locations/cityName';
@@ -655,6 +660,27 @@ export function SessionDetailScreen({
   useEffect(() => {
     authHeader().then(setImageHeaders);
   }, []);
+  // DP-028: after the Session, a Session-only participant who played is
+  // offered "Join <Community>?" once (remembered on this device).
+  const [joinPromptVisible, setJoinPromptVisible] = useState(false);
+  const promptKey = `aksi.joinPrompt.${sessionId}`;
+  const promptEligible =
+    session?.viewerRole === 'visitor' &&
+    session.lifecycleStatus === 'completed' &&
+    (myParticipant?.status === 'checked_in' || myParticipant?.status === 'checked_out') &&
+    club !== null &&
+    !club.viewerRole &&
+    !club.viewerRequestPending;
+  useEffect(() => {
+    if (!promptEligible) return;
+    storageGet(promptKey)
+      .then((seen) => {
+        if (seen) return;
+        setJoinPromptVisible(true);
+        storageSave(promptKey, '1').catch(() => {});
+      })
+      .catch(() => {});
+  }, [promptEligible, promptKey]);
   // DP-026: the share card for a finished match in the list.
   const [shareData, setShareData] = useState<NativeShareData | null>(null);
 
@@ -955,6 +981,61 @@ export function SessionDetailScreen({
       : []),
   ];
 
+  // DP-028: a Session link opened after the Session ended, by someone who
+  // isn't in the Community and didn't play: how it went, and an offer to
+  // join the Community.
+  const playedHere = myParticipant?.status === 'checked_in' || myParticipant?.status === 'checked_out';
+  if (session.viewerRole === 'visitor' && session.lifecycleStatus === 'completed' && !playedHere && club) {
+    return (
+      <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+        <AppBar
+          title={session.name || session.sport}
+          context={[formatSessionWhen(session, lang, t('sessionSectionToday')), club.name].filter(Boolean).join(' · ') || undefined}
+          onBack={onBack}
+        />
+        <ScrollView contentContainerClassName="px-4 pt-4 pb-6 gap-4">
+          <Alert tone="info" icon="flag-outline" title={t('sessionEndedVisitor')} />
+          <MatchesTab
+            activities={activities}
+            isPublished
+            isOwnerOrAdmin={false}
+            isUmpire={false}
+            isSessionActive={false}
+            isCompleted
+            scoringOpen={false}
+            matchesOpen={false}
+            canRegenerate={false}
+            busy={busy}
+            myUserId={profile?.id}
+            onRegenerate={() => {}}
+            onAddMatch={() => {}}
+            onOpenMatch={onOpenMatch}
+            onShareMatch={handleShareMatch}
+          />
+          <ListRow
+            framed="dark"
+            title={t('playWithCommunity', club.name)}
+            subtitle={recurringSchedule ? t('playWithRecurring', weekdayLong(recurringSchedule.recurrenceRule.weekday, lang)) : t('playWithNext')}
+            strong
+          />
+        </ScrollView>
+        {club.viewerRole ? null : (
+          <ActionBar>
+            <Button size="lg" isDisabled={joiningClub || club.viewerRequestPending} onPress={handleJoinCommunity}>
+              <ButtonText>
+                {club.viewerRequestPending
+                  ? t('clubRequestedBadge')
+                  : club.visibility === 'private' && !club.invite?.straightIn
+                    ? t('clubRequestToJoin')
+                    : t('joinCommunity')}
+              </ButtonText>
+            </Button>
+          </ActionBar>
+        )}
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       {/* Persistent header — name, then "Wed 22 Oct · 19:00 · Community"
@@ -1077,6 +1158,20 @@ export function SessionDetailScreen({
         </ActionBar>
       )}
 
+      {club ? (
+        <JoinCommunitySheet
+          visible={joinPromptVisible}
+          club={club}
+          sessionName={session.name || session.sport}
+          avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id), headers: imageHeaders } : undefined}
+          busy={joiningClub}
+          onJoin={async () => {
+            await handleJoinCommunity();
+            setJoinPromptVisible(false);
+          }}
+          onNotNow={() => setJoinPromptVisible(false)}
+        />
+      ) : null}
       <SessionMenuSheet
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
