@@ -6,6 +6,22 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.31.0
+
+Approved by Yogi, 2026-10-27.
+
+- New DP-028: Inviting Friends — any member invites to a Community or one
+  of its Sessions by link, QR code or in-app (search, notification, Home
+  card). Links never expire; owners/admins can reset a target's links.
+  An owner/admin's invite (checked when used) lets a friend into a
+  private Community with no request. A friend invited to a Session can
+  join that Session only, as a normal player (same spot rules, pays,
+  stats count), and is offered "Join <Community>?" after it ends. Every
+  Session's Details tab starts with a Community row (Join for
+  non-members).
+
+---
+
 ## v0.30.0
 
 Approved by Yogi, 2026-10-21.

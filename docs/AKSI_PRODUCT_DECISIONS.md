@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.30.0
+Version: 0.31.0
 
 Status: Living Document
 
@@ -1893,6 +1893,66 @@ unchanged):
 - Applies to ad-hoc and generated Sessions.
 - Existing Sessions already in this state are cleaned up once, by the
   same rules.
+
+---
+
+## DP-028 — Inviting Friends
+
+Status
+
+Approved (2026-10-27)
+
+### Who can invite
+
+- **Any member** of the Community can invite, to the Community or to one of its Sessions.
+
+### Three ways to invite
+
+1. **Share a link** through the phone's share sheet (WhatsApp etc.), or copy it.
+2. **Show a QR code** of the same link, for someone standing next to you at the court.
+3. **Invite someone in the app**: search Aksi users by name or username; they get a notification, and Home shows an "Invited by <name>" card with Join.
+
+Each works for a **Community** and for a **Session**. "Invite friends" sits in the Community's and the Session's ⋯ menu and on the Members / Players tabs.
+
+### Links never expire
+
+- A Community's invite link works **forever**, so people can join at any time.
+- A Session's invite link also stays valid **after the Session ends**. Opened then, it shows the Session's results and offers to join the Community.
+- Owners and admins can **reset** a Community's or Session's link: every link for it stops working, and new ones are made. It's for when a link that skips approval has spread further than intended. Reset asks to confirm. Nothing else ever turns a link off.
+
+### What the friend goes through
+
+- Opening the link or QR: not logged in → **create an account (or log in) first** → then land on the Community or Session page with **Join**.
+- Already logged in → straight to that page.
+- A Session opened from an invite is the **same Session screen** everyone sees (DP-024), with one line above the tabs: "<Name> invited you to join session".
+
+### Who gets in without approval
+
+- **Community:** an invite **from an owner or admin** (link, QR or in-app) lets the friend into a private Community with no join request. Whether the inviter is an owner/admin is checked when the invite is used. An invite from a plain member brings them to the page; joining works as today (request where a request is needed).
+- **Session spot: same rules for everyone.** A friend's request for a spot follows the Session's normal rules — approval, payment (DP-012), strict skill level (DP-008), capacity — whoever invited them.
+
+### Joining a Session without joining the Community
+
+- A friend invited to a Session can join **that Session** without becoming a Community member (new: today Sessions are members-only).
+- They see only that Session: Details, Players, Matches and the Session chat. Not the Community's other Sessions, chat or members.
+- They are a normal player in that Session: they pay if it's priced (unlike organizer-added guests, DP-012), check in, and can be put in matches.
+- They appear in Players like anyone else, with **no "guest" label**. "Guest" stays the word for people an organizer adds by name, who have no account.
+- Their Session shows on their Home like any other.
+- **Their matches count in their own stats** like any player's, and stay counted if they later join the Community.
+- After the Session ends, the app offers **"Join <Community>?"** — Join (public), or Request / straight in (private, depending on who invited them). They can skip it.
+
+### The Community on the Session's Details tab
+
+Applies to everyone, not only invited friends.
+
+- The Details tab starts with a **Community row**: logo (or initials), name, and "<city> · Public/Private · <n> members".
+- **A member** taps the row to open the Community.
+- **Someone who isn't a member** sees a **Join** button on the row: Join for a public Community; for a private one, "Request" (or straight in with an organizer's invite, as above).
+
+### Scope
+
+- New: invite links (with reset), QR, in-app invites, Session-only participants, the Community row on Session Details.
+- Unchanged: Community visibility (DP-017), skill level, payments, umpire.
 
 ---
 
