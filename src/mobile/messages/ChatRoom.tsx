@@ -36,6 +36,8 @@ type Props = {
   unavailableText: string;
   receipts?: 'direct' | 'group';
   onModeratorRemove?: (messageId: string) => Promise<void>;
+  // The compose field's hint; "Write a message…" unless the chat says otherwise.
+  placeholder?: string;
   // The sender's role, after their name (Community chat).
   senderRole?: (senderId: string) => string | undefined;
   // Sheets and dialogs that belong to this chat.
@@ -66,6 +68,7 @@ export function ChatRoom({
   receipts = 'group',
   onModeratorRemove,
   senderRole,
+  placeholder,
   children,
 }: Props) {
   const { t } = useTranslation();
@@ -134,7 +137,7 @@ export function ChatRoom({
             canPost={canPost}
             closedNotice={closedNotice}
             emptyText={emptyText}
-            placeholder={t('sessionChatPlaceholder')}
+            placeholder={placeholder ?? t('chatPlaceholder')}
             onSend={handleSend}
             receipts={receipts}
             onModeratorRemove={onModeratorRemove}

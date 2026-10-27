@@ -157,7 +157,7 @@ export function CommunitySessionsTab({ clubId, edges, initialView, onBack, onOpe
             <EmptyState
               illustration="no-sessions"
               title={t('sessionsUpcomingEmptyTitle')}
-              message={t(isOwnerOrAdmin ? 'sessionEmptyState' : 'sessionEmptyStateMember')}
+              message={t(isOwnerOrAdmin ? 'sessionsEmptyOrganizer' : 'sessionsEmptyMember')}
             />
           ) : (
             <>

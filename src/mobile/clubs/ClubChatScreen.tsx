@@ -70,6 +70,7 @@ export function ClubChatScreen({ clubId, edges, onBack }: Props) {
       onBack={onBack}
       title={t('clubChatTitle')}
       subtitle={clubName ? t('clubChatContext', clubName, members.length) : undefined}
+      placeholder={clubName ? t('clubChatPlaceholder', clubName) : undefined}
       senderRole={(senderId) => {
         const role = members.find((m) => m.userId === senderId)?.role;
         return role === 'owner' ? t('clubRoleOwner') : role === 'admin' ? t('clubRoleAdmin') : undefined;

@@ -331,7 +331,7 @@ const en: Dict = {
   clubDeleteConfirmDesc: 'This removes the community and all its members. This cannot be undone.',
   clubCancel: 'Cancel',
   clubConfirm: 'Confirm',
-  clubSettingsTitle: 'Club Settings',
+  clubSettingsTitle: 'Community settings',
   clubDangerZoneTitle: 'Danger Zone',
   clubBankAccountsTitle: 'Bank Accounts',
   clubBankAccountsEmpty: 'No bank accounts yet — add one so members know where to send payment.',
@@ -347,8 +347,6 @@ const en: Dict = {
 
   // Sessions
   sessionListTitle: 'Sessions',
-  sessionEmptyState: 'No sessions yet — create one to get playing.',
-  sessionEmptyStateMember: 'No sessions yet — check back once the organizer schedules one.',
   sessionSectionToday: 'Today',
   sessionDraftRecoveryTitle: 'Continue where you left off',
   sessionDraftRecoveryDesc: (name: string) => `You have an unfinished draft: ${name}.`,
@@ -851,6 +849,10 @@ const en: Dict = {
   membersRemoveConfirmTitle: (name: string) => `Remove ${name}?`,
   membersRemoveConfirmDesc: "They'll lose access to this community's sessions and chat. They can ask to join again.",
   membersViewProfile: "View profile",
+  chatPlaceholder: "Write a message…",
+  clubChatPlaceholder: (name: string) => `Message ${name}`,
+  sessionsEmptyOrganizer: "Start one with New session.",
+  sessionsEmptyMember: "Check back once the organizer schedules one.",
 };
 
 const id: Dict = {
@@ -1178,7 +1180,7 @@ const id: Dict = {
   clubDeleteConfirmDesc: 'Ini akan menghapus komunitas beserta semua anggotanya. Tindakan ini tidak dapat dibatalkan.',
   clubCancel: 'Batal',
   clubConfirm: 'Konfirmasi',
-  clubSettingsTitle: 'Pengaturan Komunitas',
+  clubSettingsTitle: 'Pengaturan komunitas',
   clubDangerZoneTitle: 'Zona Berbahaya',
   clubBankAccountsTitle: 'Rekening Bank',
   clubBankAccountsEmpty: 'Belum ada rekening bank — tambahkan satu agar anggota tahu ke mana mengirim pembayaran.',
@@ -1194,8 +1196,6 @@ const id: Dict = {
 
   // Sessions
   sessionListTitle: 'Sesi',
-  sessionEmptyState: 'Belum ada sesi — buat satu untuk mulai main.',
-  sessionEmptyStateMember: 'Belum ada sesi — cek lagi nanti setelah penyelenggara membuat jadwal.',
   sessionSectionToday: 'Hari Ini',
   sessionDraftRecoveryTitle: 'Lanjutkan yang tertunda',
   sessionDraftRecoveryDesc: (name: string) => `Anda punya draf yang belum selesai: ${name}.`,
@@ -1696,6 +1696,10 @@ const id: Dict = {
   membersRemoveConfirmTitle: (name: string) => `Keluarkan ${name}?`,
   membersRemoveConfirmDesc: "Mereka kehilangan akses ke sesi dan obrolan komunitas ini. Mereka bisa meminta bergabung lagi.",
   membersViewProfile: "Lihat profil",
+  chatPlaceholder: "Tulis pesan…",
+  clubChatPlaceholder: (name: string) => `Kirim pesan ke ${name}`,
+  sessionsEmptyOrganizer: "Mulai dengan Sesi baru.",
+  sessionsEmptyMember: "Cek lagi setelah penyelenggara membuat jadwal.",
 };
 
 const dicts: Record<Lang, Dict> = { en, id };
