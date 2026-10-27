@@ -3,7 +3,6 @@ import { RefreshControl, View } from 'react-native';
 import { useFocusEffect, useLinkTo } from '@react-navigation/native';
 import { VStack } from '../../design-system/layout/VStack';
 import { Typography } from '../../design-system/ui/Typography';
-import { Button, ButtonText } from '../../design-system/ui/Button';
 import { EmptyState } from '../../design-system/feedback/EmptyState';
 import { useTranslation } from '../../i18n';
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from '../../core/notifications/api';
