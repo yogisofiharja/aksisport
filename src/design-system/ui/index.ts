@@ -15,3 +15,4 @@ export * from './Field';
 export * from './Stepper';
 export * from './CodeInput';
 export * from './PasswordInput';
+export * from './QrCode';

@@ -1,4 +1,5 @@
 import { Platform, Share } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 
 // Where the web app lives — the origin every shareable link points at.
 // In a browser that is simply wherever the app is running (so staging
@@ -19,6 +20,27 @@ export function clubLink(clubId: string): string {
 // route in navigation/linking.ts.
 export function sessionLink(sessionId: string): string {
   return `${appOrigin()}/sessions/${sessionId}`;
+}
+
+// An invite link (DP-028). The path matches the Invite route in
+// navigation/linking.ts.
+export function inviteLink(token: string): string {
+  return `${appOrigin()}/i/${token}`;
+}
+
+// The link without the scheme, for showing ("app.aksisport.com/i/k7Qp…").
+export function displayLink(url: string): string {
+  return url.replace(/^https?:\/\//, '');
+}
+
+// Copy link (DP-028): true when it reached the clipboard.
+export async function copyLink(url: string): Promise<boolean> {
+  try {
+    await Clipboard.setStringAsync(url);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export type ShareOutcome = 'shared' | 'copied' | 'failed';

@@ -86,6 +86,7 @@ No change. The app's 4px scale (xs 4 … 4xl 48) is the same grid as `space-1` �
 | `ui/Field.tsx` | Input › field, Select, Switch row | `Field` (label, control, hint / error / status), `SelectField`, `SwitchField`, `FormSection`. Errors show at the field, never in a banner. |
 | `ui/PasswordInput.tsx` | Input (password) | Show/hide eye inside the box. |
 | `ui/CodeInput.tsx` | Input (one-time code) | Six digit boxes; auto-advance, paste and autofill spread across them. |
+| `ui/QrCode.tsx` | QR | A QR code drawn with react-native-svg from the `qrcode` library's pattern; black on white with the quiet zone in both themes. |
 | `ui/Stepper.tsx` | Stepper | − value + in one outlined box; `adjustable` for screen readers. |
 | `domain-ui/SummaryCard.tsx` | Check your session / schedule card | A tag (DRAFT, WEEKLY), the name in Saira italic, label–value rows split by hairlines. |
 | `layout/AuthHero.tsx` | Log in hero | Asphalt with heat cuts and the ball, logo, Saira italic title, one line. Auth screens only. |

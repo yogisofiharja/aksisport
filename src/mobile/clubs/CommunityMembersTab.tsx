@@ -33,6 +33,7 @@ import { searchUsers, userAvatarUrl, authHeader } from '../../core/api/client';
 import { timeAgo } from '../../core/notifications/text';
 import type { ClubJoinRequest, ClubMember, UserSummary } from '../../core/api/types';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
+import { InviteSheet } from '../invites/InviteSheet';
 import { PersonAvatar } from '../messages/PersonAvatar';
 
 type Props = {
@@ -63,6 +64,7 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
   const [memberSearch, setMemberSearch] = useState('');
   // The row whose ⋯ is open: a member, or a join request.
   const [actionMember, setActionMember] = useState<ClubMember | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [actionRequest, setActionRequest] = useState<ClubJoinRequest | null>(null);
   // DP-019: whose profile is open — a member, or a requester (with Approve/Decline).
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
@@ -102,6 +104,7 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
 
   const me = members.find((m) => m.userId === profile?.id);
   const isOwner = me?.role === 'owner';
+  const isOrganizer = me?.role === 'owner' || me?.role === 'admin';
 
   async function refreshAfterChange() {
     await load();
@@ -257,7 +260,11 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
           context={clubName}
           largeTitle={members.length > 0 ? t('membersTitleCount', members.length) : t('clubMembersTitle')}
           onBack={onBack}
-          actions={isOwner ? [{ icon: 'person-add-outline', label: t('clubAddMember'), onPress: openAddMember }] : []}
+          actions={[
+            // DP-028: any member invites.
+            { icon: 'paper-plane-outline', label: t('inviteTitle'), onPress: () => setInviteOpen(true) },
+            ...(isOwner ? [{ icon: 'person-add-outline' as const, label: t('clubAddMember'), onPress: openAddMember }] : []),
+          ]}
         />
       }
       refreshControl={<RefreshControl refreshing={loading && members.length > 0} onRefresh={load} />}
@@ -465,6 +472,13 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
         </VStack>
       </Sheet>
 
+      <InviteSheet
+        visible={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        target={{ type: 'club', id: clubId }}
+        targetName={clubName}
+        canReset={isOrganizer}
+      />
       <PlayerProfileSheet userId={profileUserId} onClose={() => setProfileUserId(null)} />
       <PlayerProfileSheet
         userId={profileRequest?.userId ?? null}

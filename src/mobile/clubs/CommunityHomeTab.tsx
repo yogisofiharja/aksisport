@@ -15,6 +15,7 @@ import { Alert } from '../../design-system/feedback/Alert';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { SessionCard } from '../../design-system/domain-ui/SessionCard';
 import { CommunityHeader } from '../../design-system/domain-ui/CommunityHeader';
+import { InviteSheet } from '../invites/InviteSheet';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader, userAvatarUrl } from '../../core/api/client';
@@ -67,6 +68,7 @@ export function CommunityHomeTab({
   const [members, setMembers] = useState<ClubMember[]>([]);
   const [isOwner, setIsOwner] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -271,6 +273,15 @@ export function CommunityHomeTab({
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)} title={club.name}>
         <VStack space="md">
           <ListGroup>
+            {/* DP-028: any member invites. */}
+            <ListRow
+              icon="paper-plane-outline"
+              title={t('inviteTitle')}
+              onPress={() => {
+                setMenuOpen(false);
+                setInviteOpen(true);
+              }}
+            />
             {isOwner ? (
               <ListRow
                 icon="settings-outline"
@@ -312,6 +323,13 @@ export function CommunityHomeTab({
           ) : null}
         </VStack>
       </Sheet>
+      <InviteSheet
+        visible={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        target={{ type: 'club', id: clubId }}
+        targetName={club.name}
+        canReset={isOwnerOrAdmin}
+      />
     </ScrollPage>
   );
 }

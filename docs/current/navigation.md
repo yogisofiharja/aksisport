@@ -423,3 +423,23 @@ and is taken to that URL after signing in (`restoreIntendedUrl()`).
 
 The original standalone scorer is no longer in this codebase; it is
 served from the frozen `scorer` branch on Vercel only.
+
+## Invite friends (DP-028)
+
+`mobile/invites/InviteSheet.tsx`, one Sheet for a Community and a
+Session. Opens from the Community's ⋯ menu (first row) and the Members
+tab's app bar (paper-plane icon), and from the Session's ⋯ menu (first
+row; the ⋯ now opens for every member, organizer items stay
+owner/admin-only) and the Players tab's app bar. A Session-only
+participant doesn't get it (members invite).
+
+Rows: **Share invite link** (share sheet; copies where there is none),
+**Show QR code** (the same Sheet switches to "Scan to join": the QR of
+the link, the target's name and when, "Point their phone camera here…",
+Share link instead), **Copy link** (shows the link, then "Link copied").
+**Friends on Aksi**: search (2+ characters), each person with Invite,
+Invited, or "already in" / "already playing". For a Session, the note
+"Friends who aren't in <Community> can join this session only…". Owners
+and admins get **Reset link** last, in its own group, behind a Dialog
+("Reset the invite link?", Reset / Keep link).
+

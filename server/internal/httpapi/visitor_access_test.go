@@ -105,6 +105,10 @@ func TestSessionVisitorAccess(t *testing.T) {
 		if got := call(visitor, http.MethodPost, "/v1/sessions/"+sess.ID+"/invite-link/reset"); got != http.StatusForbidden {
 			t.Errorf("reset = %d, want 403", got)
 		}
+		// DP-028: members invite; a Session-only participant doesn't.
+		if got := call(visitor, http.MethodGet, "/v1/sessions/"+sess.ID+"/invite-link"); got != http.StatusForbidden {
+			t.Errorf("invite link = %d, want 403", got)
+		}
 	})
 
 	t.Run("every Community route answers 403 to the visitor", func(t *testing.T) {

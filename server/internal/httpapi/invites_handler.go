@@ -63,11 +63,12 @@ func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		resetInviteLinks(c, pool, dbpkg.InviteTargetClub, clubID, clubID)
 	})
 
-	// Anyone who can see the Session — a member, or a Session-only
-	// participant — has their own link to it. Not for a draft.
+	// Any member of the Session's Community has their own link to it
+	// (DP-028: members invite; a Session-only participant doesn't). Not
+	// for a draft.
 	authed.GET("/sessions/:id/invite-link", func(c *gin.Context) {
-		sess, _, ok := requireSessionAccess(c, pool, c.Param("id"))
-		if !ok {
+		sess, role, ok := requireSessionAccess(c, pool, c.Param("id"))
+		if !ok || !requireInviterRole(c, role) {
 			return
 		}
 		if sess.Status == "draft" {
@@ -236,16 +237,16 @@ func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notif
 	})
 
 	authed.GET("/sessions/:id/invitations/candidates", func(c *gin.Context) {
-		sess, _, ok := requireSessionAccess(c, pool, c.Param("id"))
-		if !ok {
+		sess, role, ok := requireSessionAccess(c, pool, c.Param("id"))
+		if !ok || !requireInviterRole(c, role) {
 			return
 		}
 		candidates(c, dbpkg.InviteTargetSession, sess.ID)
 	})
 
 	authed.POST("/sessions/:id/invitations", func(c *gin.Context) {
-		sess, _, ok := requireSessionAccess(c, pool, c.Param("id"))
-		if !ok {
+		sess, role, ok := requireSessionAccess(c, pool, c.Param("id"))
+		if !ok || !requireInviterRole(c, role) {
 			return
 		}
 		if sess.Status == "draft" {
@@ -285,6 +286,16 @@ func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notif
 		}
 		c.Status(http.StatusNoContent)
 	})
+}
+
+// requireInviterRole: DP-028 lets any member invite, not a Session-only
+// participant. Responds 403 for a visitor.
+func requireInviterRole(c *gin.Context, role string) bool {
+	if role == dbpkg.SessionVisitorRole {
+		respondError(c, http.StatusForbidden, "only members of the community can invite")
+		return false
+	}
+	return true
 }
 
 func resetInviteLinks(c *gin.Context, pool *pgxpool.Pool, targetType, targetID, clubID string) {

@@ -54,7 +54,8 @@ import { Button, ButtonText } from '../../design-system/ui/Button';
 import { umpireStart } from '../../core/sessions/umpire';
 import { priceLabel } from './sessionDisplay';
 import { formatIDR } from '../../core/currency';
-import { SessionMenuSheet } from './SessionMenuSheet';
+import { SessionMenuSheet, type SessionMenuItem } from './SessionMenuSheet';
+import { InviteSheet } from '../invites/InviteSheet';
 import { UmpireSheet } from './UmpireSheet';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { sessionLink, shareLink } from '../../platform/shareLink';
@@ -630,6 +631,7 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // inline — both are easy to misclick in the same scroll flow as
   // everything else; handleCancel still asks to confirm.
   const [menuVisible, setMenuVisible] = useState(false);
+  const [inviteVisible, setInviteVisible] = useState(false);
   // DP-026: the share card for a finished match in the list.
   const [shareData, setShareData] = useState<NativeShareData | null>(null);
 
@@ -838,6 +840,53 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
   // published-not-started" in docs/current/lifecycle-session.md.
   const canEditConfiguration = isOwnerOrAdmin && (session.lifecycleStatus === 'draft' || session.status === 'open');
 
+  // DP-028: any member invites to a published Session; a Session-only
+  // participant doesn't.
+  const canInvite = isPublished && session.viewerRole !== undefined && session.viewerRole !== 'visitor';
+
+  // The organizer's part of the ⋯ menu.
+  const organizerMenuItems: SessionMenuItem[] = [
+    ...(canJoinAsPlayer
+      ? [{ key: 'join', icon: 'person-add-outline' as const, label: t('sessionJoinAsPlayer'), onPress: handleRequestToJoin }]
+      : []),
+    ...(canEditConfiguration
+      ? [{ key: 'edit', icon: 'create-outline' as const, label: t('sessionEdit'), opensMore: true, onPress: () => onEdit(sessionId) }]
+      : []),
+    {
+      key: 'setup',
+      icon: 'options-outline' as const,
+      label: t('sessionMatchSetup'),
+      hint: t('sessionMatchSetupHint'),
+      opensMore: true,
+      onPress: () => setMatchSetupVisible(true),
+    },
+    ...(isSessionActive && isPublished
+      ? [
+          {
+            key: 'umpire',
+            icon: 'flag-outline' as const,
+            label: t('umpire'),
+            hint: session.umpireName,
+            opensMore: true,
+            onPress: () => setUmpireSheetVisible(true),
+          },
+        ]
+      : []),
+    { key: 'share', icon: 'share-outline' as const, label: t('sessionShareLink'), onPress: handleShareSession },
+    ...(isSessionActive && isPublished
+      ? [
+          {
+            key: 'cancel',
+            icon: 'close-circle-outline' as const,
+            label: t('sessionCancel'),
+            hint: t('sessionCancelHint'),
+            destructive: true,
+            onPress: handleCancel,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       {/* Persistent header — name, then "Wed 22 Oct · 19:00 · Community"
@@ -848,7 +897,13 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         title={session.name || session.sport}
         context={[formatSessionWhen(session, lang, t('sessionSectionToday')), club?.name].filter(Boolean).join(' · ') || undefined}
         onBack={onBack}
-        onMore={isOwnerOrAdmin ? () => setMenuVisible(true) : undefined}
+        // DP-028: Invite friends on the Players tab, for members.
+        actions={
+          canInvite && activeTab === 'players'
+            ? [{ icon: 'paper-plane-outline', label: t('inviteTitle'), onPress: () => setInviteVisible(true) }]
+            : undefined
+        }
+        onMore={isOwnerOrAdmin || canInvite ? () => setMenuVisible(true) : undefined}
       />
       {session.lifecycleStatus === 'in_progress' && (
         <LiveStrip
@@ -954,46 +1009,20 @@ export function SessionDetailScreen({ sessionId, onBack, onAddMatch, onOpenMatch
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
         items={[
-          ...(canJoinAsPlayer
-            ? [{ key: 'join', icon: 'person-add-outline' as const, label: t('sessionJoinAsPlayer'), onPress: handleRequestToJoin }]
+          ...(canInvite
+            ? [{ key: 'invite', icon: 'paper-plane-outline' as const, label: t('inviteTitle'), onPress: () => setInviteVisible(true) }]
             : []),
-          ...(canEditConfiguration
-            ? [{ key: 'edit', icon: 'create-outline' as const, label: t('sessionEdit'), opensMore: true, onPress: () => onEdit(sessionId) }]
-            : []),
-          {
-            key: 'setup',
-            icon: 'options-outline' as const,
-            label: t('sessionMatchSetup'),
-            hint: t('sessionMatchSetupHint'),
-            opensMore: true,
-            onPress: () => setMatchSetupVisible(true),
-          },
-          ...(isSessionActive && isPublished
-            ? [
-                {
-                  key: 'umpire',
-                  icon: 'flag-outline' as const,
-                  label: t('umpire'),
-                  hint: session.umpireName,
-                  opensMore: true,
-                  onPress: () => setUmpireSheetVisible(true),
-                },
-              ]
-            : []),
-          { key: 'share', icon: 'share-outline' as const, label: t('sessionShareLink'), onPress: handleShareSession },
-          ...(isSessionActive && isPublished
-            ? [
-                {
-                  key: 'cancel',
-                  icon: 'close-circle-outline' as const,
-                  label: t('sessionCancel'),
-                  hint: t('sessionCancelHint'),
-                  destructive: true,
-                  onPress: handleCancel,
-                },
-              ]
-            : []),
+          ...(isOwnerOrAdmin ? organizerMenuItems : []),
         ]}
+      />
+      <InviteSheet
+        visible={inviteVisible}
+        onClose={() => setInviteVisible(false)}
+        target={{ type: 'session', id: sessionId }}
+        targetName={session.name || session.sport}
+        targetWhen={formatSessionWhen(session, lang, t('sessionSectionToday'))?.replace(' · ', ', ')}
+        clubName={club?.name}
+        canReset={isOwnerOrAdmin}
       />
       <Sheet visible={matchSetupVisible} onClose={() => setMatchSetupVisible(false)} title={t('sessionMatchSetup')}>
         <MatchSetup
