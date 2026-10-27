@@ -25,7 +25,7 @@ Sizes: `ak-btn--sm` (32px, inside cards only), default (44px), `ak-btn--lg` (52p
 
 #### IconButton and FAB
 - `ak-icon-btn`: 44×44 round hit area, 24px icon, for app-bar actions. Always has `aria-label`. `--filled` for icons over photos or busy backgrounds. In code: a new `IconButton` beside `ui/Button.tsx`, with `accessibilityLabel`.
-- `ak-fab`: one extended floating button for the screen's create action (New session on a Community). Sits 16px above the tab bar, right-aligned. Never on a screen that already has a sticky action bar.
+- `ak-fab`: one extended floating button for the screen's create action (New session on a Community). Sits 16px above the tab bar, right-aligned. Never on a screen that already has a sticky action bar. In code: `ui/Fab.tsx` (heat, ink label, 56px, shadow); the screen pads its content so the last card scrolls clear of it.
 
 #### Rules
 - Never white text on heat: it is 3.6:1. Ink on heat is 5.2:1 and is the brand look.

@@ -11,7 +11,7 @@ import { useLiveEvents } from '../../core/live/live';
 import { CommunityHomeTab } from './CommunityHomeTab';
 import { ClubChatScreen } from './ClubChatScreen';
 import { ClubMembersScreen } from './ClubMembersScreen';
-import { SessionListScreen } from '../sessions/SessionListScreen';
+import { CommunitySessionsTab } from './CommunitySessionsTab';
 
 export type CommunityTab = 'home' | 'sessions' | 'chat' | 'members';
 export type SessionsView = 'upcoming' | 'past' | 'drafts';
@@ -31,7 +31,6 @@ export type CommunityScreenProps = {
   onOpenRecurringSchedules: () => void;
   onOpenClubSettings: () => void;
   onOpenReports: () => void;
-  onOpenPastSessions: () => void;
   /** After the caller has left this Community. */
   onLeft: () => void;
 };
@@ -118,7 +117,7 @@ export function CommunityScreen(props: CommunityScreenProps) {
           />
         )}
         {tab === 'sessions' && (
-          <SessionListScreen
+          <CommunitySessionsTab
             clubId={clubId}
             edges={[...edges]}
             initialView={props.initialSessionsView}
@@ -126,7 +125,6 @@ export function CommunityScreen(props: CommunityScreenProps) {
             onOpenSession={props.onOpenSession}
             onCreateSession={props.onCreateSession}
             onOpenRecurringSchedules={props.onOpenRecurringSchedules}
-            onOpenHistory={props.onOpenPastSessions}
           />
         )}
         {tab === 'chat' && <ClubChatScreen clubId={clubId} edges={[...edges]} onBack={onExit} />}

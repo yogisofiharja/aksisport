@@ -266,45 +266,43 @@ date to check) and mirrored server-side on both `POST
 rule is enforced at the API too, same reasoning as the duration bounds
 check.
 
-**Session History UI** (v0.6.3, revised Milestone 2 —
-`SessionListScreen`/`SessionHistoryScreen`, `core/sessions/sessionSchedule.ts`):
-the Club-scoped half of DP-009's Session History is now built.
-`sessionDateBucket()` buckets a Session — **status takes precedence
-over date**: Completed/Cancelled always bucket as `'past'` regardless
-of when they were scheduled (`sessionSchedule.test.ts`). Otherwise,
-buckets by calendar date (not exact time) relative to today.
-`'today'`/`'upcoming'` stay in `SessionListScreen`'s active list (split
-into two labeled sections, sorted soonest-first); `'past'` moves to
-`SessionHistoryScreen`, a read-only, most-recent-first view reachable
-via a "Past Sessions" link. (Earlier behavior bucketed purely by date,
-so a same-day Cancelled Session stayed in the active list — reversed
-per explicit product decision: "Today" is only for currently active/
-upcoming Sessions, not a historical record; once a Session is
-Completed or Cancelled it moves to Past immediately, not just once its
-date has passed.) This same fix also keeps cancelled/completed
-Sessions out of `HomeScreen`'s attention section, which filters on
-`sessionDateBucket(s) === 'today'` among other conditions.
+**A Community's Sessions tab** (`CommunitySessionsTab`,
+`core/sessions/sessionGroups.ts` over `sessionDateBucket()` in
+`core/sessions/sessionSchedule.ts`): a large "Sessions" title and a
+Segmented control — Upcoming · Past · Drafts (Drafts only for
+owners/admins, with its count). `sessionDateBucket()` buckets a Session
+— **status takes precedence over date**: Completed/Cancelled always
+bucket as `'past'` regardless of when they were scheduled
+(`sessionSchedule.test.ts`); otherwise by calendar date (not exact time)
+relative to today. **Upcoming** groups the rest under Today, This week
+(the next seven days) and Later, soonest first; **Past** is this
+Community's half of DP-009's Session History, most recent first (it
+replaced the separate Past Sessions screen; `/clubs/:clubId/sessions/past`
+opens this tab on Past); **Drafts** lists Drafts soonest first, and they
+appear nowhere else on the tab (`sessionGroups.test.ts`). For
+owners/admins, Upcoming starts with the Community's Recurring Schedules
+as one row ("2 recurring schedules · Every Sat 07:00 · Every Wed 19:00",
+or an invitation to set one up), which opens the schedule list, and New
+session is the floating button. (Earlier behavior bucketed purely by
+date, so a same-day Cancelled Session stayed in the active list —
+reversed per explicit product decision: once a Session is Completed or
+Cancelled it moves to Past immediately.) This same rule keeps
+cancelled/completed Sessions out of Home's "Right now".
 
-The cross-Club half is the same `SessionHistoryScreen` rendered without a
-`clubId` (route `MySessionHistory`, opened from `MeScreen`). It loads
-`GET /v1/me/sessions` — every Session the caller has joined across their
-Clubs — applies the same `'past'` bucket, and prefixes each card's
-subtitle with the Club's name.
+The cross-Club half is `SessionHistoryScreen` (route `MySessionHistory`,
+opened from `MeScreen`). It loads `GET /v1/me/sessions` — every Session
+the caller has joined across their Clubs — applies the same `'past'`
+bucket, and prefixes each card's subtitle with the Club's name.
 
 **Draft Recovery** (UX-005, Milestone 4): when the caller is owner/
-admin and this Club has at least one Draft Session, `SessionListScreen`
-shows a callout — yellow-tinted `Card`, distinct from the plain list
-rows above it — directly above the "Create Session" button: "Continue
-where you left off" plus the most-recently-created Draft's name and a
-"Continue Draft" button that opens it via the normal `onOpenSession`
-(no new route; a Draft's own Publish/Edit/Discard actions already live
-on `SessionDetailScreen`). Deliberately a nudge, not a gate — Create
-Session stays fully available underneath, with a small "Or start a new
-one below" line rather than removing the option. If more than one
-Draft exists (uncommon), only the newest gets the callout; the others
-remain reachable the same way they always were, as ordinary rows in
-the Today/Upcoming list above (Drafts are never excluded from that
-list — this callout is additional emphasis, not a replacement for it).
+admin and this Club has at least one Draft Session, the Sessions tab's
+Upcoming view shows a heat `Alert` under the Recurring Schedules row:
+"Continue where you left off" with the most-recently-created Draft's
+name and a "Continue Draft" link that opens it via the normal
+`onOpenSession` (a Draft's own Publish/Edit/Discard actions live on
+`SessionDetailScreen`). Deliberately a nudge, not a gate — New session
+stays available as the floating button. Every Draft, the newest
+included, is also on the Drafts view, whose count is on its segment.
 
 **`joinedCount`** (v0.6.3): `GET /sessions`/`GET /sessions/:id` now
 include a computed `joinedCount` — DP-002 headcount (registered +

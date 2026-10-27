@@ -10,18 +10,8 @@ import { RecurringScheduleCard } from '../../design-system/domain-ui/RecurringSc
 import { useTranslation } from '../../i18n';
 import { listRecurringSchedules } from '../../core/recurringSchedules/api';
 import type { RecurringSchedule } from '../../core/api/types';
-import { weekdayLabel } from './weekday';
+import { scheduleWhen } from './weekday';
 import { AppBar } from '../../design-system/layout/AppBar';
-
-// "Every Sat · 07:00–09:00": the weekday, start time and the end the
-// duration gives (wrapping past midnight).
-function scheduleWhen(rule: RecurringSchedule['recurrenceRule'], t: (key: string, ...args: any[]) => string): string {
-  const [h, m] = rule.time.split(':').map(Number);
-  const endMinutes = (h * 60 + m + rule.durationMinutes) % (24 * 60);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const end = `${pad(Math.floor(endMinutes / 60))}:${pad(endMinutes % 60)}`;
-  return `${t('sessionRecurringEvery', weekdayLabel(rule.weekday, t))} · ${rule.time}–${end}`;
-}
 
 type Props = {
   clubId: string;

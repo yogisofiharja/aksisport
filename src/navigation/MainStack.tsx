@@ -87,7 +87,6 @@ function communityProps(
     onOpenRecurringSchedules: () => navigation.navigate('RecurringScheduleList', { clubId }),
     onOpenClubSettings: () => navigation.navigate('ClubSettings', { clubId }),
     onOpenReports: () => navigation.navigate('ClubReports', { clubId }),
-    onOpenPastSessions: () => navigation.navigate('SessionHistory', { clubId }),
     onLeft: () => navigation.navigate('Personal', { screen: 'Home' }),
   };
 }
@@ -275,13 +274,8 @@ export function MainStack() {
       </Stack.Screen>
 
       <Stack.Screen name="SessionHistory">
-        {({ navigation, route }) => (
-          <SessionHistoryScreen
-            clubId={route.params.clubId}
-            onBack={() => navigation.goBack()}
-            onOpenSession={(sessionId) => navigation.navigate('SessionDetail', { sessionId })}
-          />
-        )}
+        {/* A Community's past Sessions are its Sessions tab, on Past. */}
+        {({ navigation, route }) => <ClubEntryScreen {...communityProps(navigation, route.params.clubId, 'sessions', 'past')} />}
       </Stack.Screen>
 
       <Stack.Screen name="MySessionHistory">

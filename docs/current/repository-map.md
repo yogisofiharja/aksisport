@@ -74,11 +74,10 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   │                            Privacy/Logout)
 │   │   ├── clubs/                    CreateClubScreen, ClubEntryScreen (member →
 │   │   │                            CommunityScreen's tabs: CommunityHomeTab,
-│   │   │                            Sessions, ClubChatScreen, ClubMembersScreen;
+│   │   │                            CommunitySessionsTab, ClubChatScreen, ClubMembersScreen;
 │   │   │                            anyone else → ClubPreviewScreen), ClubSettingsScreen
-│   │   ├── sessions/                  SessionListScreen (Today/Upcoming, v0.6.3),
-│   │   │                            SessionHistoryScreen (Past; Club-scoped, or
-│   │   │                            cross-Club from Me), SessionDetailScreen,
+│   │   ├── sessions/                  SessionHistoryScreen (cross-Club, from Me),
+│   │   │                            SessionDetailScreen,
 │   │   │                            CreateSessionScreen — unified ad-hoc/recurring
 │   │   │                            creation behind a "make this recurring" toggle
 │   │   │                            (v0.5.1; CreateRecurringScheduleScreen retired,
@@ -86,7 +85,7 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   │   ├── activities/                 AddMatchScreen (Generate Match/Generate Matches/
 │   │   │                              Custom Match tabs, v0.8.0; migrated to
 │   │   │                              design-system/* components, matching newer
-│   │   │                              screens like SessionListScreen — was on the
+│   │   │                              screens like the Community tabs — was on the
 │   │   │                              legacy components/ui/* set before), ActivityMatchScreen,
 │   │   │                              MatchFinishedScreen (Confirm result / Undo, DP-025),
 │   │   │                              ResultSavedScreen (after confirming), MatchResultScreen

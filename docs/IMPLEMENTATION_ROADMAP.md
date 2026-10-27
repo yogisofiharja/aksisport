@@ -80,7 +80,7 @@ Original scope: Draft → Publish → Prepare → Live Session → Complete
 Session as one cohesive organizer workflow.
 
 - **Draft Recovery** (UX-005) — ✅ done. A non-intrusive callout on
-  `SessionListScreen` nudging the organizer to continue an unfinished
+  a Community's Sessions tab nudging the organizer to continue an unfinished
   Draft before creating a new one.
 - **Live Session** consolidation — ✅ effectively already satisfied by
   Milestone 2's own work (Matches tab + fairness engine); no separate
