@@ -62,6 +62,12 @@ A text input collects one line (or a few, as Textarea) with a visible label and 
 - No browser focus ring on the web build (`global.css`): the field's own border shows focus.
 - Set `keyboardType` (`number-pad`, `email-address`, `phone-pad`), `autoComplete` and `textContentType` so the right keyboard and autofill appear.
 
+#### In code
+- `ui/Field.tsx`: `Field` (label, control, then the hint — or the error in `danger`, which replaces it — or a `success` status line such as "Username available"); `SelectField` (the Select trigger below); `SwitchField` (a setting row with its hint); `FormSection` (a Saira italic section title over a hairline).
+- `ui/PasswordInput.tsx`: an Input with a 44px show/hide eye.
+- `ui/CodeInput.tsx`: a one-time code as six 56px digit boxes, the digit in Saira. Typing advances, Backspace on an empty box goes back, a pasted or autofilled code fills every box (`codeInputValue.ts`); the last digit calls `onComplete`.
+- `ui/Stepper.tsx`: − value + in one 48px outlined box (Target games, Open days ahead).
+
 ### Select
 
 A select trigger shows the current choice; tapping it opens the options in a bottom Sheet on mobile.
@@ -287,6 +293,7 @@ Spot illustrations for empty, success and waiting states, drawn only from the br
 | `pending` | Join request sent, waiting for approval or payment confirmation |
 | `match-won` | Match result, Session completed summary |
 | `no-members` | Community with no members besides the owner |
+| `email` | Confirm your email: an envelope with a heat cut and the ball |
 
 #### Rules
 - 160 × 120 viewBox; show at 120 × 90 in an EmptyState, up to 160 × 120 on a full-screen confirmation. One per screen.

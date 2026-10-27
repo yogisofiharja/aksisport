@@ -1,25 +1,29 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, ScrollView } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, ButtonText } from '../../../components/ui/button';
-import { VStack } from '../../../components/ui/box';
-import { Heading, Text } from '../../../components/ui/text';
-import { Input, InputField } from '../../../components/ui/input';
-import { Pressable } from '../../../components/ui/pressable';
+import { Button, ButtonText } from '../../design-system/ui/Button';
+import { CodeInput } from '../../design-system/ui/CodeInput';
+import { Field } from '../../design-system/ui/Field';
+import { Input, InputField } from '../../design-system/ui/Input';
+import { PasswordInput } from '../../design-system/ui/PasswordInput';
+import { Typography } from '../../design-system/ui/Typography';
+import { AppBar } from '../../design-system/layout/AppBar';
 import { useTranslation } from '../../i18n';
 import { confirmPasswordReset, requestPasswordReset } from '../../core/api/client';
-import { PasswordField } from './PasswordField';
+import { MIN_PASSWORD_LENGTH } from '../../core/auth/signUpValidation';
 import { RESEND_COOLDOWN_SECONDS, useCountdown } from '../../core/useCountdown';
-import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
   onBackToLogin: () => void;
 };
 
+const CODE_LENGTH = 6;
+
 // Forgot password (DP-015): username or email -> emailed code -> new
 // password. The request step answers the same whether or not the account
 // exists, so the copy after it is deliberately conditional ("if that
-// account has a confirmed email…").
+// account has a confirmed email…"). Same fields as Create account and
+// Confirm your email: digit boxes for the code, errors under the field.
 export function ForgotPasswordScreen({ onBackToLogin }: Props) {
   const { t } = useTranslation();
   const [step, setStep] = useState<'request' | 'reset' | 'done'>('request');
@@ -49,7 +53,9 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
     }
   }
 
-  const canReset = code.length === 6 && password.length >= 6 && password === confirmPassword && !busy;
+  const tooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
+  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const canReset = code.length === CODE_LENGTH && password.length >= MIN_PASSWORD_LENGTH && password === confirmPassword && !busy;
 
   async function reset() {
     if (!canReset) return;
@@ -69,33 +75,30 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
     <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
       <AppBar onBack={onBackToLogin} />
       <KeyboardAvoidingView className="flex-1" behavior="padding">
-        <ScrollView contentContainerClassName="px-5 pt-4 pb-6 gap-6" keyboardShouldPersistTaps="handled">
-
+        <ScrollView contentContainerClassName="px-4 pt-4 pb-8 gap-5" keyboardShouldPersistTaps="handled">
           {step === 'request' && (
             <>
-              <VStack className="gap-2">
-                <Heading size="2xl">{t('forgotPasswordTitle')}</Heading>
-                <Text className="text-ink-muted dark:text-ink-muted-dark">{t('forgotPasswordDesc')}</Text>
-              </VStack>
-              <VStack className="gap-2">
-                <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authUsernameOrEmail')}</Text>
-                <Input>
+              <View className="gap-1">
+                <Typography variant="heading" accessibilityRole="header" className="font-display-hero text-[34px] leading-[38px]">
+                  {t('forgotPasswordTitle')}
+                </Typography>
+                <Typography variant="body" color="muted">
+                  {t('forgotPasswordDesc')}
+                </Typography>
+              </View>
+              <Field label={t('authUsernameOrEmail')} error={error}>
+                <Input isInvalid={Boolean(error)}>
                   <InputField
                     autoCapitalize="none"
                     autoCorrect={false}
+                    autoComplete="username"
                     value={identifier}
                     onChangeText={(v) => setIdentifier(v.toLowerCase())}
                     onSubmitEditing={request}
                   />
                 </Input>
-              </VStack>
-              {error && <Text className="text-sm text-red-500">{error}</Text>}
-              <Button
-                size="xl"
-                isDisabled={busy || !identifier.trim()}
-                className="w-full"
-                onPress={request}
-              >
+              </Field>
+              <Button size="lg" loading={busy} isDisabled={busy || !identifier.trim()} className="w-full" onPress={request}>
                 <ButtonText>{t('emailSendCode')}</ButtonText>
               </Button>
             </>
@@ -103,59 +106,76 @@ export function ForgotPasswordScreen({ onBackToLogin }: Props) {
 
           {step === 'reset' && (
             <>
-              <VStack className="gap-2">
-                <Heading size="2xl">{t('forgotPasswordResetTitle')}</Heading>
-                <Text className="text-ink-muted dark:text-ink-muted-dark">{t('forgotPasswordCodeSent')}</Text>
-              </VStack>
-              <VStack className="gap-2">
-                <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('emailCodeLabel')}</Text>
-                <Input>
-                  <InputField
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    placeholder="000000"
-                    value={code}
-                    onChangeText={(v) => setCode(v.replace(/\D/g, ''))}
-                  />
-                </Input>
-              </VStack>
-              <VStack className="gap-2">
-                <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('forgotPasswordNew')}</Text>
-                <PasswordField value={password} onChangeText={setPassword} />
-              </VStack>
-              <VStack className="gap-2">
-                <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authConfirmPassword')}</Text>
-                <PasswordField value={confirmPassword} onChangeText={setConfirmPassword} onSubmitEditing={reset} />
-                {confirmPassword.length > 0 && password !== confirmPassword && (
-                  <Text className="text-xs text-red-500">{t('authPasswordMismatch')}</Text>
+              <View className="gap-1">
+                <Typography variant="heading" accessibilityRole="header" className="font-display-hero text-[34px] leading-[38px]">
+                  {t('forgotPasswordResetTitle')}
+                </Typography>
+                <Typography variant="body" color="muted">
+                  {t('forgotPasswordCodeSent')}
+                </Typography>
+              </View>
+              <Field label={t('emailCodeLabel')} error={error}>
+                <CodeInput
+                  value={code}
+                  onChange={(next) => {
+                    setCode(next);
+                    setError(null);
+                  }}
+                  length={CODE_LENGTH}
+                  isInvalid={Boolean(error)}
+                  digitLabel={t('emailCodeDigit')}
+                />
+              </Field>
+              <Field label={t('forgotPasswordNew')} error={tooShort ? t('authPasswordTooShort') : null}>
+                <PasswordInput
+                  value={password}
+                  onChangeText={setPassword}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  isInvalid={tooShort}
+                  showLabel={t('authShowPassword')}
+                  hideLabel={t('authHidePassword')}
+                />
+              </Field>
+              <Field label={t('authConfirmPassword')} error={mismatch ? t('authPasswordMismatch') : null}>
+                <PasswordInput
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  onSubmitEditing={reset}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  isInvalid={mismatch}
+                  showLabel={t('authShowPassword')}
+                  hideLabel={t('authHidePassword')}
+                />
+              </Field>
+              <View className="flex-row flex-wrap items-center gap-x-1">
+                <Text className="text-sm font-sans text-ink-muted dark:text-ink-muted-dark">{t('emailNoCode')}</Text>
+                {resendIn > 0 ? (
+                  <Text className="text-sm font-sans-semibold text-ink-muted dark:text-ink-muted-dark">{t('emailResendIn', resendIn)}</Text>
+                ) : (
+                  <Pressable onPress={request} disabled={busy} accessibilityRole="button" className="active:opacity-60">
+                    <Text className="text-sm font-sans-bold text-heat-strong dark:text-heat-strong-dark">{t('emailResendCode')}</Text>
+                  </Pressable>
                 )}
-              </VStack>
-              {error && <Text className="text-sm text-red-500">{error}</Text>}
-              <Button
-                size="xl"
-                isDisabled={!canReset}
-                className="w-full"
-                onPress={reset}
-              >
+              </View>
+              <Button size="lg" loading={busy} isDisabled={!canReset} className="w-full" onPress={reset}>
                 <ButtonText>{t('forgotPasswordSubmit')}</ButtonText>
               </Button>
-              {resendIn > 0 ? (
-                <Text className="self-center font-bold text-ink-faint dark:text-ink-faint-dark">{t('emailResendIn', resendIn)}</Text>
-              ) : (
-                <Pressable className="self-center" onPress={request} disabled={busy}>
-                  <Text className="font-bold text-heat-strong dark:text-heat-strong-dark">{t('emailResendCode')}</Text>
-                </Pressable>
-              )}
             </>
           )}
 
           {step === 'done' && (
             <>
-              <VStack className="gap-2">
-                <Heading size="2xl">{t('forgotPasswordDoneTitle')}</Heading>
-                <Text className="text-ink-muted dark:text-ink-muted-dark">{t('forgotPasswordDoneDesc')}</Text>
-              </VStack>
-              <Button size="xl" className="w-full" onPress={onBackToLogin}>
+              <View className="gap-1">
+                <Typography variant="heading" accessibilityRole="header" className="font-display-hero text-[34px] leading-[38px]">
+                  {t('forgotPasswordDoneTitle')}
+                </Typography>
+                <Typography variant="body" color="muted">
+                  {t('forgotPasswordDoneDesc')}
+                </Typography>
+              </View>
+              <Button size="lg" className="w-full" onPress={onBackToLogin}>
                 <ButtonText>{t('authLogIn')}</ButtonText>
               </Button>
             </>

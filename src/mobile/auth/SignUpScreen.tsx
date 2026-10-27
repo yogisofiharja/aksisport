@@ -1,37 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, ButtonText } from '../../../components/ui/button';
-import { Box, VStack } from '../../../components/ui/box';
-import { Heading, Text } from '../../../components/ui/text';
-import { Input, InputField } from '../../../components/ui/input';
-import { Pressable } from '../../../components/ui/pressable';
+import { KeyboardAvoidingView, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, ButtonText } from '../../design-system/ui/Button';
+import { Field } from '../../design-system/ui/Field';
+import { IconButton } from '../../design-system/ui/IconButton';
+import { Input, InputField } from '../../design-system/ui/Input';
+import { PasswordInput } from '../../design-system/ui/PasswordInput';
+import { Typography } from '../../design-system/ui/Typography';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
-import { PasswordField } from './PasswordField';
 import { USERNAME_PATTERN } from '../../core/auth/firebaseAuth';
 import { checkUsername } from '../../core/api/client';
+import { signUpErrors, type SignUpErrors } from '../../core/auth/signUpValidation';
 
 type Props = {
   onNavigateToLogin: () => void;
 };
 
-// Loose on purpose — the emailed code is the real check. Mirrors the
-// server's own pattern (internal/account).
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 type Availability = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
+// Create account (Aksi redesign › Create account). Username availability
+// is checked as you type; every other problem shows under its own field,
+// in danger red, once Sign up is tapped (or, for a mismatched
+// confirmation, as soon as one is typed).
 export function SignUpScreen({ onNavigateToLogin }: Props) {
   const { t } = useTranslation();
   const { signUp } = useAuth();
+  const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [availability, setAvailability] = useState<Availability>('idle');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [attempted, setAttempted] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -60,106 +63,128 @@ export function SignUpScreen({ onNavigateToLogin }: Props) {
     };
   }, [username]);
 
-  const canSubmit =
-    availability === 'available' &&
-    EMAIL_PATTERN.test(email.trim()) &&
-    password.length >= 6 &&
-    password === confirmPassword &&
-    !submitting;
+  const errors: SignUpErrors = signUpErrors({ username, email, password, confirmPassword });
+  const usernameError =
+    availability === 'taken'
+      ? t('authUsernameTaken')
+      : availability === 'invalid'
+        ? t('authUsernameInvalid')
+        : attempted && errors.username
+          ? t('authFieldRequired')
+          : null;
+  const emailError = attempted && errors.email ? t(errors.email === 'required' ? 'authFieldRequired' : 'authEmailInvalid') : null;
+  const passwordError = attempted && errors.password ? t(errors.password === 'required' ? 'authFieldRequired' : 'authPasswordTooShort') : null;
+  // A mismatch shows as soon as the confirmation has something in it.
+  const confirmError =
+    errors.confirmPassword === 'mismatch' && confirmPassword.length > 0
+      ? t('authPasswordMismatch')
+      : attempted && errors.confirmPassword
+        ? t('authFieldRequired')
+        : null;
 
   async function handleSubmit() {
-    if (!canSubmit) return;
+    if (submitting) return;
+    setAttempted(true);
+    setServerError(null);
+    if (Object.keys(errors).length > 0 || availability !== 'available') return;
     setSubmitting(true);
-    setError(null);
     try {
       await signUp(username, password, email.trim());
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('authGenericError'));
+      setServerError(err instanceof Error ? err.message : t('authGenericError'));
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-ground dark:bg-ground-dark">
+      <View className="min-h-14 flex-row items-center px-1">
+        <IconButton icon="chevron-back" label={t('back')} onPress={onNavigateToLogin} />
+      </View>
       <KeyboardAvoidingView className="flex-1" behavior="padding">
-        <ScrollView contentContainerClassName="px-5 pt-8 pb-6 gap-6" keyboardShouldPersistTaps="handled">
-          <VStack className="gap-1">
-            <Heading size="2xl">{t('authSignUpTitle')}</Heading>
-          </VStack>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+          <View className="flex-1 px-4 gap-3.5">
+            <View>
+              <Typography variant="heading" accessibilityRole="header" className="font-display-hero text-[34px] leading-[38px]">
+                {t('authSignUpTitle')}
+              </Typography>
+              <Typography variant="body" color="muted" className="mt-1">
+                {t('authSignUpTagline')}
+              </Typography>
+            </View>
 
-          <VStack className="gap-2">
-            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authUsername')}</Text>
-            <Input>
-              <InputField
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder={t('authUsernamePlaceholder')}
-                value={username}
-                onChangeText={(v) => setUsername(v.toLowerCase())}
-                maxLength={20}
+            <Field
+              label={t('authUsername')}
+              error={usernameError}
+              status={availability === 'available' ? t('authUsernameAvailable') : null}
+              hint={availability === 'checking' ? t('authUsernameChecking') : undefined}
+            >
+              <Input isInvalid={Boolean(usernameError)}>
+                <InputField
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="username-new"
+                  textContentType="username"
+                  placeholder={t('authUsernamePlaceholder')}
+                  value={username}
+                  onChangeText={(v) => setUsername(v.toLowerCase())}
+                  maxLength={20}
+                />
+              </Input>
+            </Field>
+
+            <Field label={t('authEmail')} hint={t('authEmailHint')} error={emailError}>
+              <Input isInvalid={Boolean(emailError)}>
+                <InputField
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  keyboardType="email-address"
+                  placeholder={t('authEmailPlaceholder')}
+                  value={email}
+                  onChangeText={setEmail}
+                />
+              </Input>
+            </Field>
+
+            <Field label={t('authPassword')} error={passwordError}>
+              <PasswordInput
+                value={password}
+                onChangeText={setPassword}
+                autoComplete="new-password"
+                textContentType="newPassword"
+                isInvalid={Boolean(passwordError)}
+                showLabel={t('authShowPassword')}
+                hideLabel={t('authHidePassword')}
               />
-            </Input>
-            {availability === 'checking' && (
-              <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">{t('authUsernameChecking')}</Text>
-            )}
-            {availability === 'available' && (
-              <Text className="text-xs text-teal-600 dark:text-teal-400">{t('authUsernameAvailable')}</Text>
-            )}
-            {availability === 'taken' && (
-              <Text className="text-xs text-red-500">{t('authUsernameTaken')}</Text>
-            )}
-            {availability === 'invalid' && (
-              <Text className="text-xs text-red-500">{t('authUsernameInvalid')}</Text>
-            )}
-          </VStack>
+            </Field>
 
-          <VStack className="gap-2">
-            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authEmail')}</Text>
-            <Input>
-              <InputField
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                placeholder={t('authEmailPlaceholder')}
-                value={email}
-                onChangeText={setEmail}
+            <Field label={t('authConfirmPassword')} error={confirmError ?? serverError}>
+              <PasswordInput
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                onSubmitEditing={handleSubmit}
+                autoComplete="new-password"
+                textContentType="newPassword"
+                isInvalid={Boolean(confirmError)}
+                showLabel={t('authShowPassword')}
+                hideLabel={t('authHidePassword')}
               />
-            </Input>
-            <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">{t('authEmailHint')}</Text>
-          </VStack>
+            </Field>
+          </View>
 
-          <VStack className="gap-2">
-            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authPassword')}</Text>
-            <PasswordField value={password} onChangeText={setPassword} />
-          </VStack>
-
-          <VStack className="gap-2">
-            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('authConfirmPassword')}</Text>
-            <PasswordField value={confirmPassword} onChangeText={setConfirmPassword} />
-            {confirmPassword.length > 0 && password !== confirmPassword && (
-              <Text className="text-xs text-red-500">{t('authPasswordMismatch')}</Text>
-            )}
-          </VStack>
-
-          {error && <Text className="text-sm text-red-500">{error}</Text>}
-
-          <Button
-            size="xl"
-            isDisabled={!canSubmit}
-            className="w-full"
-            onPress={handleSubmit}
-          >
-            <ButtonText>{t('authSignUp')}</ButtonText>
-          </Button>
-
-          <Box className="items-center pt-2">
-            <Pressable onPress={onNavigateToLogin}>
-              <Text className="text-ink-muted dark:text-ink-muted-dark">
-                {t('authHaveAccount')} <Text className="font-bold text-heat-strong dark:text-heat-strong-dark">{t('authLogInLink')}</Text>
+          <View className="px-4 pt-3 gap-3 items-center" style={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}>
+            <Button size="lg" loading={submitting} isDisabled={submitting} className="w-full" onPress={handleSubmit}>
+              <ButtonText>{t('authSignUp')}</ButtonText>
+            </Button>
+            <Pressable onPress={onNavigateToLogin} accessibilityRole="link" className="py-1 active:opacity-60">
+              <Text className="text-sm font-sans text-ink-muted dark:text-ink-muted-dark">
+                {t('authHaveAccount')} <Text className="font-sans-bold text-heat-strong dark:text-heat-strong-dark">{t('authLogInLink')}</Text>
               </Text>
             </Pressable>
-          </Box>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -21,11 +21,21 @@ export type IllustrationName =
   | 'success'
   | 'pending'
   | 'match-won'
-  | 'no-members';
+  | 'no-members'
+  | 'email';
 
 type Palette = { heat: string; tint: string; ball: string; ink: string; sunken: string };
 
 const ART: Record<IllustrationName, (c: Palette) => ReactElement> = {
+  // Confirm your email: an envelope with the heat cut and the ball.
+  email: (c) => (
+    <>
+      <Rect x={6} y={30} width={120} height={80} rx={12} fill={c.tint} />
+      <Path d="M6 42 66 80 126 42" fill="none" stroke={c.ink} strokeWidth={6} strokeLinejoin="round" />
+      <Polygon points="96,110 116,110 152,54 132,54" fill={c.heat} />
+      <Circle cx={140} cy={26} r={11} fill={c.ball} />
+    </>
+  ),
   'no-sessions': (c) => (
     <>
       <Rect x={0} y={40} width={92} height={66} rx={12} fill={c.tint} />

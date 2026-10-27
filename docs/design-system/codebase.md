@@ -83,6 +83,11 @@ No change. The app's 4px scale (xs 4 … 4xl 48) is the same grid as `space-1` �
 | `ui/Button.tsx` | Button | `solid primary` → `bg-heat`, label `text-on-heat` (ink, not white); `solid secondary` → `bg-asphalt`; `outline` → `border border-border-strong`, ink label; `ghost` → `text-heat-strong`; `negative` → danger. Heights 32 / 44 / 52; `rounded-2xl` → `rounded-lg`; label weight `font-black` → `font-sans-semibold`. Update `spinnerColor` to the same tokens. |
 | `ui/Badge.tsx` | StatusPill, Chip | Keep `success`, `info`, `error` (→ danger), `muted`; add the lifecycle actions `draft`, `recruiting`, `ready`, `full`, `live`, `completed`, `cancelled`, with the dot. `warning` has no place in the new palette; map its uses to `info` or `heat-tint`. |
 | `ui/Input.tsx` | Input | 48px, `border-border-strong`, `rounded-lg`, 16px text, error state in danger with the hint below. |
+| `ui/Field.tsx` | Input › field, Select, Switch row | `Field` (label, control, hint / error / status), `SelectField`, `SwitchField`, `FormSection`. Errors show at the field, never in a banner. |
+| `ui/PasswordInput.tsx` | Input (password) | Show/hide eye inside the box. |
+| `ui/CodeInput.tsx` | Input (one-time code) | Six digit boxes; auto-advance, paste and autofill spread across them. |
+| `ui/Stepper.tsx` | Stepper | − value + in one outlined box; `adjustable` for screen readers. |
+| `layout/AuthHero.tsx` | Log in hero | Asphalt with heat cuts and the ball, logo, Saira italic title, one line. Auth screens only. |
 | `ui/Card.tsx` | SessionCard (card shell) | `bg-surface`, `border border-border`, `rounded-xl` (12), no shadow. |
 | `ui/Typography.tsx` | Visual foundations › Type | Variants follow the new `typeRole`; headings use the display face. |
 | `ui/Icon.tsx` | Iconography | 24px outline at 1.75 stroke; `ink-muted` at rest, `heat-strong` when active. |

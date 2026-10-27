@@ -18,6 +18,9 @@ import { AccountEmailScreen } from '../mobile/me/AccountEmailScreen';
 import { NotificationsScreen } from '../mobile/notifications/NotificationsScreen';
 import { NotificationSettingsScreen } from '../mobile/notifications/NotificationSettingsScreen';
 import { ComponentGalleryScreen } from '../mobile/dev/ComponentGalleryScreen';
+import { LoginScreen } from '../mobile/auth/LoginScreen';
+import { SignUpScreen } from '../mobile/auth/SignUpScreen';
+import { VerifyEmailScreen } from '../mobile/auth/VerifyEmailScreen';
 import type { SessionTabLink } from '../mobile/sessions/SessionDetailScreen';
 import { DirectMessageScreen } from '../mobile/messages/DirectMessageScreen';
 import { PlayerSportScreen } from '../mobile/profiles/PlayerSportScreen';
@@ -33,6 +36,7 @@ export type MainStackParamList = {
   Settings: undefined;
   NotificationSettings: undefined;
   DevComponents: undefined;
+  DevAuthScreen: { screen: 'login' | 'signup' | 'verify' };
   BlockedPlayers: undefined;
   AccountEmail: undefined;
   Notifications: undefined;
@@ -114,6 +118,20 @@ export function MainStack() {
       {__DEV__ && (
         <Stack.Screen name="DevComponents">
           {({ navigation }) => <ComponentGalleryScreen onBack={() => navigation.goBack()} />}
+        </Stack.Screen>
+      )}
+      {/* Development only: the auth screens, viewable while logged in. */}
+      {__DEV__ && (
+        <Stack.Screen name="DevAuthScreen">
+          {({ navigation, route }) =>
+            route.params.screen === 'signup' ? (
+              <SignUpScreen onNavigateToLogin={() => navigation.goBack()} />
+            ) : route.params.screen === 'verify' ? (
+              <VerifyEmailScreen initialEmail="yogi@example.com" />
+            ) : (
+              <LoginScreen onNavigateToSignUp={() => navigation.setParams({ screen: 'signup' })} onForgotPassword={() => {}} />
+            )
+          }
         </Stack.Screen>
       )}
 

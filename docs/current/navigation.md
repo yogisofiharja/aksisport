@@ -34,12 +34,28 @@ or correct the address; Log Out is the only other exit).
 
 ## AuthStack (native-stack, `headerShown: false`)
 
-- **Login** (initial route) → SignUp, ForgotPassword. The identifier
-  field takes a username or a confirmed email; the password field has a
-  show/hide toggle.
-- **SignUp** → Login. Username, email, password.
+No app bar on the auth screens. Field problems show under the field in
+danger red, never as alerts.
+
+- **Login** (initial route) → SignUp, ForgotPassword. A dark hero
+  (`AuthHero`: logo, "Welcome back", "Organize the game, then play it.")
+  over the form. The identifier field takes a username or a confirmed
+  email; the password field has a show/hide eye; "Forgot password?" on
+  the right; a failed log in shows under the password.
+- **SignUp** → Login (back arrow, or "Already have an account? Log in").
+  Username with a live availability line, email with its hint, password
+  with an eye, confirm password ("Passwords do not match" as soon as it
+  differs). Required / invalid email / too short (under 6) show under
+  their field once Sign up is tapped.
 - **ForgotPassword** → Login. Three steps in one screen: username or
-  email → code + new password → done.
+  email → code (digit boxes) + new password → done.
+
+**VerifyEmailScreen** (outside the stack): Log out top right, the
+envelope illustration, "Confirm your email", "We sent a 6-digit code to
+<email>…", six digit boxes (`CodeInput`: auto-advance, paste fills all
+six, one-time-code autofill; the last digit submits), "Didn't get it?
+Send a new code in 42s", Confirm. The same code step is the Me tab's
+add/change email (`EmailConfirmation`).
 
 ## App bar
 

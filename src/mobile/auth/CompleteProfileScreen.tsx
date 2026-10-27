@@ -1,8 +1,8 @@
 import { useState } from 'react';
+import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, ButtonText } from '../../../components/ui/button';
-import { VStack } from '../../../components/ui/box';
-import { Heading, Text } from '../../../components/ui/text';
+import { Button, ButtonText } from '../../design-system/ui/Button';
+import { Typography } from '../../design-system/ui/Typography';
 import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { emailToUsername } from '../../core/auth/firebaseAuth';
@@ -34,20 +34,23 @@ export function CompleteProfileScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark items-center justify-center px-6">
-      <VStack className="gap-4 items-center">
-        <Heading size="xl" className="text-center">{t('authCompleteProfileTitle')}</Heading>
-        <Text className="text-center text-ink-muted dark:text-ink-muted-dark">{t('authCompleteProfileDesc')}</Text>
-        {error && <Text className="text-sm text-red-500">{error}</Text>}
-        <Button
-          size="xl"
-          isDisabled={submitting || !username}
-          className="w-full"
-          onPress={handleContinue}
-        >
-          <ButtonText>{t('authContinue')}</ButtonText>
-        </Button>
-      </VStack>
+    <SafeAreaView className="flex-1 bg-ground dark:bg-ground-dark justify-center px-4">
+      <View className="gap-5">
+        <View className="gap-1">
+          <Typography variant="heading" accessibilityRole="header" className="font-display-hero text-[34px] leading-[38px]">
+            {t('authCompleteProfileTitle')}
+          </Typography>
+          <Typography variant="body" color="muted">
+            {t('authCompleteProfileDesc')}
+          </Typography>
+        </View>
+        <View className="gap-1.5">
+          <Button size="lg" loading={submitting} isDisabled={submitting || !username} className="w-full" onPress={handleContinue}>
+            <ButtonText>{t('authContinue')}</ButtonText>
+          </Button>
+          {error ? <Text className="text-xs leading-4 font-sans-semibold text-danger dark:text-danger-dark">{error}</Text> : null}
+        </View>
+      </View>
     </SafeAreaView>
   );
 }

@@ -62,7 +62,7 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │   ├── mobile/                   Native UI — two conventions coexist:
 │   │   ├── MobileMatchScreen.tsx    The live scoreboard, used by ActivityMatchScreen
 │   │   │                            (kept from the retired standalone scorer)
-│   │   ├── auth/                    SignUpScreen, LoginScreen, CompleteProfileScreen
+│   │   ├── auth/                    LoginScreen, SignUpScreen, VerifyEmailScreen, EmailConfirmation, ForgotPasswordScreen, CompleteProfileScreen
 │   │   ├── home/                     HomeScreen — Personal Context "My Communities" +
 │   │   │                            cross-club attention surfacing (Milestone 1;
 │   │   │                            supersedes the old ClubListScreen-as-root)
