@@ -6,7 +6,7 @@ import { Icon } from '../ui/Icon';
  * a Session's participant in any status, or a Community's member or
  * join request. A 64px circle with their initials — dashed for a guest —
  * and a green check on it once they've checked in, then the name and one
- * short line under it ("Host", "Paid", "Awaiting", "Guest", "Owner").
+ * short line under it ("Host", "Paid", "Awaiting", "Guest").
  * 76px wide, so it sits in the same grid as the open-spot circles.
  *
  * `avatarSource` shows their picture in place of the initials (it needs

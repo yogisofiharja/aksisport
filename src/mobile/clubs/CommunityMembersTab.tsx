@@ -224,7 +224,8 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
 
   function memberCircle(m: ClubMember) {
     const name = m.displayName || m.username;
-    const role = m.role === 'owner' ? t('clubRoleOwner') : m.role === 'admin' ? t('clubRoleAdmin') : undefined;
+    // No caption: the "Admins" heading already says it (the owner is one of them).
+    const role = m.role !== 'member' ? t('clubRoleAdmin') : undefined;
     return (
       <PlayerCircle
         key={m.userId}
@@ -232,7 +233,6 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
         initials={initialsFromName(name)}
         avatarSource={m.hasAvatar ? { uri: userAvatarUrl(m.userId), headers: imageHeaders } : undefined}
         isOnline={m.isOnline}
-        caption={role}
         onPress={() => setActionMember(m)}
         accessibilityLabel={[name, role].filter(Boolean).join(', ')}
       />
@@ -325,7 +325,7 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
         visible={actionMember !== null}
         onClose={() => setActionMember(null)}
         title={actionMember ? actionMember.displayName || actionMember.username : undefined}
-        description={actionMember ? [`@${actionMember.username}`, actionMember.role === 'owner' ? t('clubRoleOwner') : actionMember.role === 'admin' ? t('clubRoleAdmin') : undefined].filter(Boolean).join(' · ') : undefined}
+        description={actionMember ? [`@${actionMember.username}`, actionMember.role !== 'member' ? t('clubRoleAdmin') : undefined].filter(Boolean).join(' · ') : undefined}
       >
         {actionMember && (
           <VStack space="md">

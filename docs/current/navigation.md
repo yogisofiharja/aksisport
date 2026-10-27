@@ -114,9 +114,9 @@ owners/admins the join requests come first, each captioned with when
 they asked; tapping one opens a sheet ("asked to join · 2 days ago") with
 View profile, Approve and Decline, and the profile (`PlayerProfileSheet`,
 DP-019: picture, name, username, online, joined date, skill level per
-sport) also has Approve/Decline. Then "Admins" (captioned Owner /
-Admin) and "Members · N"; your own circle says "You". Tapping a member
-opens their sheet ("@username · Admin"): View profile, and what the
+sport) also has Approve/Decline. Then "Admins" (the owner among them, no caption under the
+circles) and "Members · N"; your own circle says "You". Tapping a member
+opens their sheet ("@username · Admin", the owner too): View profile, and what the
 viewer can do to them — the owner makes someone admin or a regular
 member, or removes them; anyone but the owner leaves from their own.
 Remove from community and Leave community sit last, in their own group,
