@@ -187,7 +187,7 @@ A list item is one row: lead (avatar or icon tile), title and subtitle, trailing
 - Minimum 56px tall; the whole row is the tap target when it navigates (chevron trail).
 - Lead: Avatar for people, a 40px `surface-sunken` icon tile for settings.
 - Trail: time + unread count (Inbox), a value + chevron (settings), or one small button (Confirm payment).
-- `--unread` bolds the title. `--danger` for Log out, Leave Community.
+- `--unread` bolds the title. `--danger` for Log out, Leave community.
 - Swipe actions are not used; long-press opens an action Sheet (report, delete), matching chat messages.
 - In code: `ui/List.tsx` — `ListGroup` (the card with hairlines between rows) and `ListRow` (icon tile in neutral, heat, success or info, or any `leading` node; title, subtitle and a small meta line; trailing node and chevron; `danger`). `framed="light"` / `"dark"` makes one row a card on its own (First run's Find a community is the dark one). Used on Home, Me, Settings, Notifications and Inbox; Members, Payment and `PlayerCard` have not moved onto it yet. Long lists use `FlatList`.
 
@@ -313,7 +313,7 @@ A bottom sheet slides up from the bottom for choices, confirmations with detail,
 #### Closing and cancelling
 - The button that dismisses a sheet says **Close** (an action menu) or a plain decline such as **Not now** (a sheet that asks something). It **never says "Cancel"**: in Aksi, cancel always means cancelling something real, such as a Session or a join request.
 - Close is an outlined block button at the very bottom of the sheet.
-- Destructive options (Cancel session, Remove member, Leave Community) go last in an action menu, in their own group set apart by a thick `surface-sunken` divider, in `danger` with a `danger-tint` icon tile and a one-line consequence ("Notifies all players. Asks you to confirm."). Tapping one opens a Dialog; nothing happens from the sheet itself.
+- Destructive options (Cancel session, Remove member, Leave community) go last in an action menu, in their own group set apart by a thick `surface-sunken` divider, in `danger` with a `danger-tint` icon tile and a one-line consequence ("Notifies all players. Asks you to confirm."). Tapping one opens a Dialog; nothing happens from the sheet itself.
 
 ### Dialog
 
