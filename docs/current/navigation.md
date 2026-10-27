@@ -493,7 +493,9 @@ straight in with an owner/admin's invite; a pending request shows
 (`PlayerCircle`) in one grid with the open spots — initials, a green check
 once checked in, the name and Host / Guest / Paid / Awaiting under it.
 Requests, the waitlist and cancelled players stay as rows; organizers
-approve requests there. An organizer taps a player for their sheet
-(`PlayerRowSheet`): View profile, Check in (while the window is open),
-payment on a priced Session, Remove.
+approve requests there. Every circle — the host's too — opens the
+player's sheet (`PlayerRowSheet`) for anyone: their status (with host or
+guest), View profile and, on a priced Session, Paid / Awaiting. Organizers
+also get Check in (while the window is open), the receipt, Confirm payment
+and Remove.
 

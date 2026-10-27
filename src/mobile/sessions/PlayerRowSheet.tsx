@@ -6,6 +6,14 @@ import { useTranslation } from '../../i18n';
 import { ParticipantPayment } from './SessionPayment';
 import type { Session, SessionParticipant } from '../../core/api/types';
 
+const STATUS_LABEL: Partial<Record<SessionParticipant['status'], string>> = {
+  checked_in: 'sessionSectionCheckedIn',
+  registered: 'sessionSectionConfirmed',
+  waitlist: 'sessionSectionWaitlist',
+  requested: 'sessionSectionRequested',
+  cancelled: 'sessionSectionCancelled',
+};
+
 type Props = {
   sessionId: string;
   session: Session;
@@ -23,9 +31,11 @@ type Props = {
   onCheckIn: (participantId: string) => void;
 };
 
-// An organizer opens a player in Players (DP-024): their profile (DP-019),
-// Check in while the window is open, their payment on a priced Session
-// (receipt, Confirm payment) and Remove.
+// A player opened from Players (DP-024) — by anyone, for any player,
+// the host too: who they are (status, host, guest), their profile
+// (DP-019) and their payment on a priced Session. Organizers also get
+// Check in while the window is open, the receipt, Confirm payment and
+// Remove.
 export function PlayerRowSheet({
   sessionId,
   session,
@@ -41,10 +51,19 @@ export function PlayerRowSheet({
   onViewProfile,
   onCheckIn,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const p = participant;
+  // "Checked in · host": what follows the status is lowercase.
+  const description = p
+    ? [
+        t(STATUS_LABEL[p.status] ?? 'sessionSectionOther'),
+        ...[p.userId && p.userId === session.createdBy ? t('sessionHostLabel') : undefined, p.userId ? undefined : t('sessionAddParticipantGuestOption')]
+          .filter(Boolean)
+          .map((part) => part!.toLocaleLowerCase(lang)),
+      ].join(' · ')
+    : undefined;
   return (
-    <Sheet visible={p !== null} onClose={onClose} title={p ? p.displayName || p.username || p.guestName : undefined}>
+    <Sheet visible={p !== null} onClose={onClose} title={p ? p.displayName || p.username || p.guestName : undefined} description={description}>
       {p && (p.userId || (canCheckIn && p.status === 'registered')) ? (
         <View className="mb-4">
           <ListGroup>

@@ -30,7 +30,8 @@ type Props = {
   /** Priced Session: amount, bank accounts and the viewer's payment. */
   paymentSummary?: ReactNode;
   onOpenProfile: (p: SessionParticipant) => void;
-  /** An organizer opens a player: profile, Check in, payment, Remove. */
+  /** Anyone opens a player's sheet: profile, payment; organizers also
+   *  Check in and Remove. */
   onOpenRowMenu: (p: SessionParticipant) => void;
   onApprove: (userId: string) => void;
   onAddParticipant: () => void;
@@ -157,7 +158,7 @@ export function PlayersTab({
         checkedIn={p.status === 'checked_in'}
         caption={caption}
         captionTone={status === 'paid' ? 'success' : status === 'awaiting' ? 'warning' : 'muted'}
-        onPress={isOwnerOrAdmin ? () => onOpenRowMenu(p) : undefined}
+        onPress={() => onOpenRowMenu(p)}
         accessibilityLabel={[name, participantStatusLabel(p.status), caption].filter(Boolean).join(', ')}
       />
     );
@@ -190,8 +191,8 @@ export function PlayersTab({
         </HStack>
 
         {/* Who's playing: checked-in and confirmed players as circles, in
-            one grid with the open spots. Organizers tap a player for their
-            sheet (profile, Check in, payment, Remove). */}
+            one grid with the open spots. Every player — the host too — opens
+            their sheet; organizers get Check in and Remove there. */}
         {checkedInParticipants.length + confirmedParticipants.length + placeholderCount > 0 && (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', rowGap: 16, columnGap: 12 }}>
             {[...checkedInParticipants, ...confirmedParticipants].map(renderParticipantCircle)}
