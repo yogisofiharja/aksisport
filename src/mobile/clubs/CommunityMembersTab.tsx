@@ -231,7 +231,7 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
         key={m.userId}
         name={m.userId === profile?.id ? t('sessionYou') : name}
         initials={initialsFromName(name)}
-        avatarSource={m.hasAvatar ? { uri: userAvatarUrl(m.userId), headers: imageHeaders } : undefined}
+        avatarSource={m.hasAvatar ? { uri: userAvatarUrl(m.userId, m.avatarVersion), headers: imageHeaders } : undefined}
         isOnline={m.isOnline}
         onPress={() => setActionMember(m)}
         accessibilityLabel={[name, role].filter(Boolean).join(', ')}
@@ -284,7 +284,7 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
                   key={request.id}
                   name={name}
                   initials={initialsFromName(name)}
-                  avatarSource={request.hasAvatar ? { uri: userAvatarUrl(request.userId), headers: imageHeaders } : undefined}
+                  avatarSource={request.hasAvatar ? { uri: userAvatarUrl(request.userId, request.avatarVersion), headers: imageHeaders } : undefined}
                   caption={timeAgo(request.createdAt, t, lang)}
                   onPress={() => setActionRequest(request)}
                   accessibilityLabel={`${name}, ${t('membersAskedToJoin', timeAgo(request.createdAt, t, lang))}`}
@@ -446,7 +446,7 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
                 {addableResults.map((u) => (
                   <ListRow
                     key={u.id}
-                    leading={<PersonAvatar userId={u.id} name={u.displayName || u.username} hasAvatar={u.hasAvatar} headers={imageHeaders} />}
+                    leading={<PersonAvatar userId={u.id} name={u.displayName || u.username} hasAvatar={u.hasAvatar} avatarVersion={u.avatarVersion} headers={imageHeaders} />}
                     title={u.displayName || u.username}
                     subtitle={`@${u.username}`}
                     trailing={addingUserId === u.id ? <ActivityIndicator size="small" /> : <Icon name="add" size="md" color="brand" />}

@@ -26,11 +26,11 @@ const userCitiesExpr = `(SELECT coalesce(json_agg(json_build_object('code', uc.c
 	FROM user_cities uc JOIN cities ci ON ci.code = uc.city_code JOIN provinces pr ON pr.code = ci.province_code
 	WHERE uc.user_id = users.id)`
 
-var userColumns = "id, firebase_uid, username, display_name, email, pending_email, email_required, city_code, " + cityNameExpr("users") + " AS city_name, " + userCitiesExpr + " AS cities, phone_number, avatar_url, (avatar_image_data IS NOT NULL) AS has_avatar, " + isOnlineExpr + " AS is_online, created_at, updated_at"
+var userColumns = "id, firebase_uid, username, display_name, email, pending_email, email_required, city_code, " + cityNameExpr("users") + " AS city_name, " + userCitiesExpr + " AS cities, phone_number, avatar_url, (avatar_image_data IS NOT NULL) AS has_avatar, " + imageVersionExpr("avatar_updated_at") + ", " + isOnlineExpr + " AS is_online, created_at, updated_at"
 
 func scanUser(row pgx.CollectableRow) (models.User, error) {
 	var u models.User
-	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PendingEmail, &u.EmailRequired, &u.CityCode, &u.CityName, &u.Cities, &u.PhoneNumber, &u.AvatarURL, &u.HasAvatar, &u.IsOnline, &u.CreatedAt, &u.UpdatedAt)
+	err := row.(pgx.Rows).Scan(&u.ID, &u.FirebaseUID, &u.Username, &u.DisplayName, &u.Email, &u.PendingEmail, &u.EmailRequired, &u.CityCode, &u.CityName, &u.Cities, &u.PhoneNumber, &u.AvatarURL, &u.HasAvatar, &u.AvatarVersion, &u.IsOnline, &u.CreatedAt, &u.UpdatedAt)
 	return u, err
 }
 
@@ -95,7 +95,7 @@ func UsernameTaken(ctx context.Context, pool *pgxpool.Pool, username string) (bo
 // never exposes email/phone to the searching caller.
 func SearchUsers(ctx context.Context, pool *pgxpool.Pool, q, excludeUserID string) ([]models.UserSummary, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT id, username, display_name, (avatar_image_data IS NOT NULL) AS has_avatar, `+isOnlineExpr+` AS is_online FROM users
+		`SELECT id, username, display_name, (avatar_image_data IS NOT NULL) AS has_avatar, `+imageVersionExpr("avatar_updated_at")+`, `+isOnlineExpr+` AS is_online FROM users
 		 WHERE id != $1 AND (username ILIKE '%' || $2 || '%' OR display_name ILIKE '%' || $2 || '%')
 		 ORDER BY username ASC
 		 LIMIT 20`,
@@ -108,7 +108,7 @@ func SearchUsers(ctx context.Context, pool *pgxpool.Pool, q, excludeUserID strin
 	result := []models.UserSummary{}
 	for rows.Next() {
 		var u models.UserSummary
-		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.HasAvatar, &u.IsOnline); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.HasAvatar, &u.AvatarVersion, &u.IsOnline); err != nil {
 			return nil, err
 		}
 		result = append(result, u)
@@ -141,6 +141,7 @@ func UploadUserAvatar(ctx context.Context, pool *pgxpool.Pool, userID string, im
 		`UPDATE users SET
 			avatar_image_data = $2,
 			avatar_image_content_type = $3,
+			avatar_updated_at = now(),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+userColumns,

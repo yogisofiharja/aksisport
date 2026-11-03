@@ -202,7 +202,7 @@ export function InviteSheet({ visible, onClose, target, targetName, targetWhen, 
                   ? `@${user.username} · ${t(target.type === 'session' ? 'inviteAlreadyPlaying' : 'inviteAlreadyIn')}`
                   : `@${user.username}`
               }
-              avatarSource={user.hasAvatar ? { uri: userAvatarUrl(user.id), headers: imageHeaders } : undefined}
+              avatarSource={user.hasAvatar ? { uri: userAvatarUrl(user.id, user.avatarVersion), headers: imageHeaders } : undefined}
               trailing={trailingFor(user)}
             />
           ))}

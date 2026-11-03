@@ -190,7 +190,7 @@ export function CommunityHomeTab({
     .slice(0, 3)
     .map((m) => ({
       name: m.displayName || m.username,
-      source: m.hasAvatar ? { uri: userAvatarUrl(m.userId), headers: imageHeaders } : undefined,
+      source: m.hasAvatar ? { uri: userAvatarUrl(m.userId, m.avatarVersion), headers: imageHeaders } : undefined,
     }));
   const subline = [club.cityName ? shortCityName(club.cityName) : null, t(club.visibility === 'private' ? 'clubPrivateBadge' : 'clubPublicBadge')]
     .filter(Boolean)
@@ -216,7 +216,7 @@ export function CommunityHomeTab({
           name={club.name}
           subline={subline}
           description={club.description}
-          logoSource={club.hasAvatar ? { uri: clubAvatarUrl(clubId), headers: imageHeaders } : undefined}
+          logoSource={club.hasAvatar ? { uri: clubAvatarUrl(clubId, club.avatarVersion), headers: imageHeaders } : undefined}
           onPressLogo={isOwner && !uploadingAvatar ? handleChangeAvatar : undefined}
           logoLabel={t('communityChangePicture')}
           people={people}

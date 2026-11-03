@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image } from 'react-native';
+import { ActivityIndicator } from 'react-native';
+import { Image } from '../../platform/Image';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { Box, HStack, VStack } from '../../../components/ui/box';
 import { Text } from '../../../components/ui/text';
@@ -127,7 +128,7 @@ export function PaymentSummary({ sessionId, session, myParticipant, onParticipan
             </Text>
             {myParticipant.hasReceipt && (
               <Image
-                source={{ uri: participantReceiptUrl(sessionId, myParticipant.id), headers: imageHeaders }}
+                source={{ uri: participantReceiptUrl(sessionId, myParticipant.id, myParticipant.receiptVersion), headers: imageHeaders }}
                 style={{ width: 120, height: 120, borderRadius: 12 }}
                 resizeMode="cover"
               />
@@ -173,7 +174,7 @@ export function ParticipantPayment({ sessionId, session, participant: p, isOwner
       </Text>
       {canSeeReceipt && (
         <Image
-          source={{ uri: participantReceiptUrl(sessionId, p.id), headers: imageHeaders }}
+          source={{ uri: participantReceiptUrl(sessionId, p.id, p.receiptVersion), headers: imageHeaders }}
           style={{ width: 220, height: 220, borderRadius: 12 }}
           resizeMode="cover"
         />

@@ -16,7 +16,7 @@ import (
 // their role if they are a member, and whether they have a request
 // pending. Callers append a WHERE (their own params start at $2).
 var clubPreviewSelect = `SELECT c.id, c.name, c.description, c.city_code, ` + cityNameExpr("c") + `, c.visibility,
-	(c.avatar_image_data IS NOT NULL),
+	(c.avatar_image_data IS NOT NULL), ` + imageVersionExpr("c.avatar_updated_at") + `,
 	(SELECT count(*) FROM club_members m WHERE m.club_id = c.id) AS member_count,
 	(SELECT m.role FROM club_members m WHERE m.club_id = c.id AND m.user_id = $1),
 	EXISTS(SELECT 1 FROM club_join_requests r WHERE r.club_id = c.id AND r.user_id = $1 AND r.status = 'pending')
@@ -24,7 +24,7 @@ var clubPreviewSelect = `SELECT c.id, c.name, c.description, c.city_code, ` + ci
 
 func scanClubPreview(row pgx.CollectableRow) (models.ClubPreview, error) {
 	var p models.ClubPreview
-	err := row.(pgx.Rows).Scan(&p.ID, &p.Name, &p.Description, &p.CityCode, &p.CityName, &p.Visibility, &p.HasAvatar, &p.MemberCount, &p.ViewerRole, &p.ViewerRequestPending)
+	err := row.(pgx.Rows).Scan(&p.ID, &p.Name, &p.Description, &p.CityCode, &p.CityName, &p.Visibility, &p.HasAvatar, &p.AvatarVersion, &p.MemberCount, &p.ViewerRole, &p.ViewerRequestPending)
 	return p, err
 }
 
@@ -158,7 +158,7 @@ func CancelJoinRequest(ctx context.Context, pool *pgxpool.Pool, clubID, userID s
 // ListPendingJoinRequests returns a Club's pending requests, oldest first.
 func ListPendingJoinRequests(ctx context.Context, pool *pgxpool.Pool, clubID string) ([]models.ClubJoinRequest, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT r.id, r.club_id, r.user_id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), r.created_at
+		`SELECT r.id, r.club_id, r.user_id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+imageVersionExpr("u.avatar_updated_at")+`, r.created_at
 		 FROM club_join_requests r
 		 JOIN users u ON u.id = r.user_id
 		 WHERE r.club_id = $1 AND r.status = 'pending'
@@ -172,7 +172,7 @@ func ListPendingJoinRequests(ctx context.Context, pool *pgxpool.Pool, clubID str
 	result := []models.ClubJoinRequest{}
 	for rows.Next() {
 		var r models.ClubJoinRequest
-		if err := rows.Scan(&r.ID, &r.ClubID, &r.UserID, &r.Username, &r.DisplayName, &r.HasAvatar, &r.CreatedAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.ClubID, &r.UserID, &r.Username, &r.DisplayName, &r.HasAvatar, &r.AvatarVersion, &r.CreatedAt); err != nil {
 			return nil, err
 		}
 		result = append(result, r)

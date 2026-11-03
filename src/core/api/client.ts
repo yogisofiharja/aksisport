@@ -155,8 +155,15 @@ export function uploadMyAvatar(image: { base64: string; contentType: string }): 
 // authHeader() as its request headers), same convention as
 // clubAvatarUrl/participantReceiptUrl. Visible to any authenticated user
 // with a profile, not scoped to a shared Club.
-export function userAvatarUrl(userId: string): string {
-  return apiUrl(`/v1/users/${userId}/avatar`);
+export function userAvatarUrl(userId: string, version?: number): string {
+  return imageUrlWithVersion(apiUrl(`/v1/users/${userId}/avatar`), version);
+}
+
+// `version` (an entity's avatarVersion/receiptVersion) changes with every
+// upload. Image responses are cached as immutable, so it's what makes a
+// replaced picture show instead of the cached old one.
+export function imageUrlWithVersion(url: string, version?: number): string {
+  return version ? `${url}?v=${version}` : url;
 }
 
 // DP-013 Contact Organizer's Inbox listing — every thread the caller is a

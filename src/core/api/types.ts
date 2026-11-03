@@ -33,6 +33,7 @@ export type UserProfile = {
   phoneNumber?: string;
   avatarUrl?: string;
   hasAvatar: boolean;
+  avatarVersion?: number;
   // Derived from recent activity (no push/websocket presence exists in
   // this app) — see isOnlineExpr in server's internal/db/users.go.
   isOnline: boolean;
@@ -71,6 +72,7 @@ export type Club = {
   visibility: ClubVisibility;
   inviteCode: string;
   hasAvatar: boolean;
+  avatarVersion?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -89,6 +91,7 @@ export type ClubPreview = {
   cityName?: string;
   visibility: ClubVisibility;
   hasAvatar: boolean;
+  avatarVersion?: number;
   memberCount: number;
   viewerRole?: ClubRole;
   viewerRequestPending: boolean;
@@ -105,6 +108,7 @@ export type ClubJoinRequest = {
   username: string;
   displayName?: string;
   hasAvatar: boolean;
+  avatarVersion?: number;
   createdAt: string;
 };
 
@@ -133,6 +137,7 @@ export type ClubMember = {
   displayName?: string;
   avatarUrl?: string;
   hasAvatar: boolean;
+  avatarVersion?: number;
   isOnline: boolean;
   role: ClubRole;
   joinedAt: string;
@@ -145,6 +150,7 @@ export type UserSummary = {
   username: string;
   displayName?: string;
   hasAvatar: boolean;
+  avatarVersion?: number;
   isOnline: boolean;
 };
 
@@ -272,6 +278,7 @@ export type SessionParticipant = {
   // at a time via participantReceiptUrl, and only by the uploader
   // themselves or an owner/admin).
   hasReceipt: boolean;
+  receiptVersion?: number;
 };
 
 // 'unfinished': stopped before it was decided (DP-025 End match early,
@@ -452,6 +459,7 @@ export type DirectThread = {
   otherUsername: string;
   otherDisplayName?: string;
   otherHasAvatar: boolean;
+  otherAvatarVersion?: number;
   otherIsOnline: boolean;
   lastMessageBody: string;
   lastMessageHasImage: boolean;
@@ -495,6 +503,7 @@ export type PlayerProfile = {
   username: string;
   displayName?: string;
   hasAvatar: boolean;
+  avatarVersion?: number;
   isOnline: boolean;
   joinedAt: string;
   skillLevels: UserSkillLevel[];
@@ -508,6 +517,7 @@ export type BlockedUser = {
   username: string;
   displayName?: string;
   hasAvatar: boolean;
+  avatarVersion?: number;
   blockedAt: string;
 };
 
@@ -556,6 +566,7 @@ export type GroupMember = {
   username: string;
   displayName?: string;
   hasAvatar: boolean;
+  avatarVersion?: number;
 };
 
 export type GroupChat = {

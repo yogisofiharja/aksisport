@@ -12,10 +12,11 @@ const (
 )
 
 type GroupMember struct {
-	UserID      string  `json:"userId"`
-	Username    string  `json:"username"`
-	DisplayName *string `json:"displayName,omitempty"`
-	HasAvatar   bool    `json:"hasAvatar"`
+	UserID        string  `json:"userId"`
+	Username      string  `json:"username"`
+	DisplayName   *string `json:"displayName,omitempty"`
+	HasAvatar     bool    `json:"hasAvatar"`
+	AvatarVersion *int64  `json:"avatarVersion,omitempty"`
 }
 
 // GroupChat is a group with who is in it. CreatedBy manages it: name,
@@ -49,8 +50,9 @@ type GroupThread struct {
 
 // UserSummaryLite is a person to pick when starting a conversation.
 type UserSummaryLite struct {
-	UserID      string  `json:"userId"`
-	Username    string  `json:"username"`
-	DisplayName *string `json:"displayName,omitempty"`
-	HasAvatar   bool    `json:"hasAvatar"`
+	UserID        string  `json:"userId"`
+	Username      string  `json:"username"`
+	DisplayName   *string `json:"displayName,omitempty"`
+	HasAvatar     bool    `json:"hasAvatar"`
+	AvatarVersion *int64  `json:"avatarVersion,omitempty"`
 }

@@ -140,7 +140,7 @@ export function GroupPeopleScreen({ groupId, onBack, onDone, onDirect }: Props) 
                 onPress={() => toggle(p)}
                 className={`flex-row items-center gap-3 rounded-2xl p-3 bg-surface dark:bg-surface-dark active:opacity-70 ${already ? 'opacity-50' : ''}`}
               >
-                <PersonAvatar userId={p.userId} name={name} hasAvatar={p.hasAvatar} headers={imageHeaders} />
+                <PersonAvatar userId={p.userId} name={name} hasAvatar={p.hasAvatar} avatarVersion={p.avatarVersion} headers={imageHeaders} />
                 <VStack style={{ flex: 1 }}>
                   <Typography variant="body" className="font-bold" numberOfLines={1}>
                     {name}

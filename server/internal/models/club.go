@@ -19,10 +19,11 @@ type Club struct {
 	// HasAvatar is computed (avatar_image_data IS NOT NULL) — same pattern
 	// as SessionParticipant.HasReceipt. Owner-only to set, visible to any
 	// member.
-	HasAvatar bool      `json:"hasAvatar"`
-	CreatedBy string    `json:"createdBy"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	HasAvatar     bool      `json:"hasAvatar"`
+	AvatarVersion *int64    `json:"avatarVersion,omitempty"`
+	CreatedBy     string    `json:"createdBy"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 // ClubBankAccount (Milestone 5, Session Finance) — a Club can list more
@@ -45,14 +46,15 @@ type ClubBankAccount struct {
 // it, so one response is enough to decide between "open", "join",
 // "request" and "request pending".
 type ClubPreview struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-	CityCode    *string `json:"cityCode,omitempty"`
-	CityName    *string `json:"cityName,omitempty"`
-	Visibility  string  `json:"visibility"`
-	HasAvatar   bool    `json:"hasAvatar"`
-	MemberCount int     `json:"memberCount"`
+	ID            string  `json:"id"`
+	Name          string  `json:"name"`
+	Description   *string `json:"description,omitempty"`
+	CityCode      *string `json:"cityCode,omitempty"`
+	CityName      *string `json:"cityName,omitempty"`
+	Visibility    string  `json:"visibility"`
+	HasAvatar     bool    `json:"hasAvatar"`
+	AvatarVersion *int64  `json:"avatarVersion,omitempty"`
+	MemberCount   int     `json:"memberCount"`
 	// ViewerRole is the caller's role if they are a member, else nil.
 	ViewerRole *string `json:"viewerRole,omitempty"`
 	// ViewerRequestPending: the caller has asked to join and is waiting.
@@ -72,13 +74,14 @@ type ClubInvite struct {
 
 // ClubJoinRequest is a pending request as an owner/admin sees it.
 type ClubJoinRequest struct {
-	ID          string    `json:"id"`
-	ClubID      string    `json:"clubId"`
-	UserID      string    `json:"userId"`
-	Username    string    `json:"username"`
-	DisplayName *string   `json:"displayName,omitempty"`
-	HasAvatar   bool      `json:"hasAvatar"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID            string    `json:"id"`
+	ClubID        string    `json:"clubId"`
+	UserID        string    `json:"userId"`
+	Username      string    `json:"username"`
+	DisplayName   *string   `json:"displayName,omitempty"`
+	HasAvatar     bool      `json:"hasAvatar"`
+	AvatarVersion *int64    `json:"avatarVersion,omitempty"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 // ClubWithRole is a Club plus the requesting user's role in it — the shape
@@ -120,11 +123,12 @@ type Invitation struct {
 // "invited" (a pending in-app invite) or "in" (already a member / already
 // playing).
 type InviteCandidate struct {
-	ID          string  `json:"id"`
-	Username    string  `json:"username"`
-	DisplayName *string `json:"displayName,omitempty"`
-	HasAvatar   bool    `json:"hasAvatar"`
-	State       string  `json:"state"`
+	ID            string  `json:"id"`
+	Username      string  `json:"username"`
+	DisplayName   *string `json:"displayName,omitempty"`
+	HasAvatar     bool    `json:"hasAvatar"`
+	AvatarVersion *int64  `json:"avatarVersion,omitempty"`
+	State         string  `json:"state"`
 }
 
 // InvitationCard is one of Home's "Invited" cards.

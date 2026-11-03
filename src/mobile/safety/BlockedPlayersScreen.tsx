@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
+import { Image } from '../../platform/Image';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
@@ -72,7 +73,7 @@ export function BlockedPlayersScreen({ onBack }: Props) {
                 <HStack className="items-center" space="md">
                   <View className="w-10 h-10 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark">
                     {b.hasAvatar ? (
-                      <Image source={{ uri: userAvatarUrl(b.userId), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
+                      <Image source={{ uri: userAvatarUrl(b.userId, b.avatarVersion), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
                     ) : (
                       <Typography variant="body" className="text-sm font-extrabold text-ink-muted dark:text-ink-muted-dark">
                         {initialsFromName(name)}

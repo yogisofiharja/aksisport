@@ -1,4 +1,4 @@
-import { apiFetch, apiUrl } from '../api/client';
+import { apiFetch, apiUrl, imageUrlWithVersion } from '../api/client';
 import type {
   Club,
   ClubBankAccount,
@@ -91,8 +91,8 @@ export function uploadClubAvatar(clubId: string, image: { base64: string; conten
 // Not fetched via apiFetch — a URL for an `<Image>` source (with
 // authHeader() as its request headers), same convention as
 // participantReceiptUrl/conversationMessageImageUrl.
-export function clubAvatarUrl(clubId: string): string {
-  return apiUrl(`/v1/clubs/${clubId}/avatar`);
+export function clubAvatarUrl(clubId: string, version?: number): string {
+  return imageUrlWithVersion(apiUrl(`/v1/clubs/${clubId}/avatar`), version);
 }
 
 export function listMembers(clubId: string): Promise<ClubMember[]> {

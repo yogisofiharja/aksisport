@@ -22,12 +22,12 @@ func generateInviteCode() string {
 	return string(b)
 }
 
-var clubColumns = "id, name, description, city_code, " + cityNameExpr("clubs") + " AS city_name, visibility, invite_code, (avatar_image_data IS NOT NULL) AS has_avatar, created_by, created_at, updated_at"
+var clubColumns = "id, name, description, city_code, " + cityNameExpr("clubs") + " AS city_name, visibility, invite_code, (avatar_image_data IS NOT NULL) AS has_avatar, " + imageVersionExpr("avatar_updated_at") + ", created_by, created_at, updated_at"
 
 // clubScanTargets lists Scan destinations in clubColumns' order — shared
 // so a query selecting clubColumns plus extra columns appends its own.
 func clubScanTargets(c *models.Club) []any {
-	return []any{&c.ID, &c.Name, &c.Description, &c.CityCode, &c.CityName, &c.Visibility, &c.InviteCode, &c.HasAvatar, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt}
+	return []any{&c.ID, &c.Name, &c.Description, &c.CityCode, &c.CityName, &c.Visibility, &c.InviteCode, &c.HasAvatar, &c.AvatarVersion, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt}
 }
 
 func scanClub(row pgx.CollectableRow) (models.Club, error) {
@@ -160,6 +160,7 @@ func UploadClubAvatar(ctx context.Context, pool *pgxpool.Pool, clubID string, im
 		`UPDATE clubs SET
 			avatar_image_data = $2,
 			avatar_image_content_type = $3,
+			avatar_updated_at = now(),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+clubColumns,

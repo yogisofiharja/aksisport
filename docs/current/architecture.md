@@ -23,8 +23,15 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
     `src/platform/webSelectStyle.ts` (themes the bare `<select>` the
     dropdown renders on web), `design-system/feedback/appAlert.tsx` (`Alert.alert` is a
     no-op on web, so prompts go through `appAlert`, which shows an in-app
-    modal there), and the `.web.ts` utilities next to `audio`, `tts`,
-    `storage`, `imagePicker`.
+    modal there), `src/platform/Image(.web).tsx` (react-native-web's
+    `Image` drops `source.headers`, so on web an auth-protected image —
+    avatar, receipt, chat photo — is fetched with the bearer token and
+    shown via a `blob:` URL; anything rendering such an image imports
+    `Image` from here, not `react-native`), and the `.web.ts` utilities
+    next to `audio`, `tts`, `storage`, `imagePicker` (both picker builds
+    re-export `parseDataUrl` from `src/imageData.ts`; the web picker
+    re-encodes images the server would reject — over 5MB, or not
+    JPEG/PNG/WebP — to JPEG).
 - **Legacy scorer** — the original no-login tennis scorer. It is served
   only by Vercel, from the frozen `scorer` branch, and is no longer in
   this codebase.

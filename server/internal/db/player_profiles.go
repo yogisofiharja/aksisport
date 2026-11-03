@@ -43,10 +43,10 @@ func CanViewPlayerProfile(ctx context.Context, pool *pgxpool.Pool, viewerID, tar
 func GetPlayerProfile(ctx context.Context, pool *pgxpool.Pool, userID string) (models.PlayerProfile, error) {
 	var p models.PlayerProfile
 	err := pool.QueryRow(ctx,
-		`SELECT id, username, display_name, (avatar_image_data IS NOT NULL), `+isOnlineExpr+`, created_at
+		`SELECT id, username, display_name, (avatar_image_data IS NOT NULL), `+imageVersionExpr("avatar_updated_at")+`, `+isOnlineExpr+`, created_at
 		 FROM users WHERE id = $1`,
 		userID,
-	).Scan(&p.ID, &p.Username, &p.DisplayName, &p.HasAvatar, &p.IsOnline, &p.JoinedAt)
+	).Scan(&p.ID, &p.Username, &p.DisplayName, &p.HasAvatar, &p.AvatarVersion, &p.IsOnline, &p.JoinedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.PlayerProfile{}, ErrNotFound
 	}

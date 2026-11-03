@@ -913,7 +913,7 @@ export function SessionDetailScreen({
       variant="row"
       name={club.name}
       hasAvatar={club.hasAvatar}
-      avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id), headers: imageHeaders } : undefined}
+      avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id, club.avatarVersion), headers: imageHeaders } : undefined}
       subline={[
         club.cityName ? shortCityName(club.cityName) : null,
         t(clubIsPrivate ? 'clubPrivateBadge' : 'clubPublicBadge'),
@@ -1157,7 +1157,7 @@ export function SessionDetailScreen({
           visible={joinPromptVisible}
           club={club}
           sessionName={session.name || session.sport}
-          avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id), headers: imageHeaders } : undefined}
+          avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id, club.avatarVersion), headers: imageHeaders } : undefined}
           busy={joiningClub}
           onJoin={async () => {
             await handleJoinCommunity();

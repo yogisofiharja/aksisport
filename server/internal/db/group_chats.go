@@ -56,7 +56,7 @@ func GetGroupChat(ctx context.Context, pool *pgxpool.Pool, conversationID string
 		return g, err
 	}
 	rows, err := pool.Query(ctx,
-		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL)
+		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+imageVersionExpr("u.avatar_updated_at")+`
 		 FROM conversation_members m JOIN users u ON u.id = m.user_id
 		 WHERE m.conversation_id = $1 ORDER BY m.added_at, u.username`, g.ID)
 	if err != nil {
@@ -66,7 +66,7 @@ func GetGroupChat(ctx context.Context, pool *pgxpool.Pool, conversationID string
 	g.Members = []models.GroupMember{}
 	for rows.Next() {
 		var m models.GroupMember
-		if err := rows.Scan(&m.UserID, &m.Username, &m.DisplayName, &m.HasAvatar); err != nil {
+		if err := rows.Scan(&m.UserID, &m.Username, &m.DisplayName, &m.HasAvatar, &m.AvatarVersion); err != nil {
 			return g, err
 		}
 		g.Members = append(g.Members, m)
@@ -155,7 +155,7 @@ func ListMyGroupThreads(ctx context.Context, pool *pgxpool.Pool, userID string) 
 // username or display name, blocked people (either way) left out.
 func ListMessageableUsers(ctx context.Context, pool *pgxpool.Pool, userID, query string) ([]models.UserSummaryLite, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL)
+		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+imageVersionExpr("u.avatar_updated_at")+`
 		 FROM users u
 		 WHERE u.id <> $1
 		   AND (EXISTS (SELECT 1 FROM club_members a JOIN club_members b ON b.club_id = a.club_id WHERE a.user_id = $1 AND b.user_id = u.id)
@@ -173,7 +173,7 @@ func ListMessageableUsers(ctx context.Context, pool *pgxpool.Pool, userID, query
 	result := []models.UserSummaryLite{}
 	for rows.Next() {
 		var u models.UserSummaryLite
-		if err := rows.Scan(&u.UserID, &u.Username, &u.DisplayName, &u.HasAvatar); err != nil {
+		if err := rows.Scan(&u.UserID, &u.Username, &u.DisplayName, &u.HasAvatar, &u.AvatarVersion); err != nil {
 			return nil, err
 		}
 		result = append(result, u)

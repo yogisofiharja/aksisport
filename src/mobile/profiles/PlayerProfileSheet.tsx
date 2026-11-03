@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
+import { Image } from '../../platform/Image';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Icon } from '../../design-system/ui/Icon';
@@ -127,7 +128,7 @@ export function PlayerProfileSheet({ userId, onClose, sport, levelRange, actions
                 <View className={`rounded-full ${profile.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
                   <View className="w-16 h-16 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark">
                     {profile.hasAvatar ? (
-                      <Image source={{ uri: userAvatarUrl(profile.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
+                      <Image source={{ uri: userAvatarUrl(profile.id, profile.avatarVersion), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
                     ) : (
                       <Typography variant="body" className="text-lg font-extrabold text-ink-muted dark:text-ink-muted-dark">
                         {initialsFromName(name)}

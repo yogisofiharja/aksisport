@@ -74,7 +74,7 @@ func GetDirectMessageImage(ctx context.Context, pool *pgxpool.Pool, userID, mess
 // most recently active first, each with its latest message.
 func ListMyDirectThreads(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.DirectThread, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+isOnlineExpr+`,
+		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+imageVersionExpr("u.avatar_updated_at")+`, `+isOnlineExpr+`,
 		        last.body, last.has_image, last.sender_id, last.created_at, last.gone, c.id, `+unreadForUser+`
 		 FROM conversations c
 		 JOIN users u ON u.id = CASE WHEN c.user_low = $1 THEN c.user_high ELSE c.user_low END
@@ -94,7 +94,7 @@ func ListMyDirectThreads(ctx context.Context, pool *pgxpool.Pool, userID string)
 	result := []models.DirectThread{}
 	for rows.Next() {
 		var t models.DirectThread
-		if err := rows.Scan(&t.OtherUserID, &t.OtherUsername, &t.OtherDisplayName, &t.OtherHasAvatar, &t.OtherIsOnline,
+		if err := rows.Scan(&t.OtherUserID, &t.OtherUsername, &t.OtherDisplayName, &t.OtherHasAvatar, &t.OtherAvatarVersion, &t.OtherIsOnline,
 			&t.LastMessageBody, &t.LastMessageHasImage, &t.LastMessageSenderID, &t.LastMessageAt, &t.LastMessageDeleted, &t.ConversationID, &t.UnreadCount); err != nil {
 			return nil, err
 		}

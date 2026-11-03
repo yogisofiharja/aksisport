@@ -20,6 +20,9 @@ type SessionParticipant struct {
 	// participant or an owner/admin (narrower than every other read in
 	// this domain, which any club member can see).
 	HasReceipt bool `json:"hasReceipt"`
+	// ReceiptVersion changes with every upload — clients add it to the
+	// receipt URL (?v=) so a replaced receipt never shows a cached copy.
+	ReceiptVersion *int64 `json:"receiptVersion,omitempty"`
 }
 
 // ParticipantReceiptImage is the byte-serving shape for a payment

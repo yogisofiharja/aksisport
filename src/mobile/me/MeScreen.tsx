@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { Image } from '../../platform/Image';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
@@ -190,7 +191,7 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
         >
           <View className="w-[76px] h-[76px] rounded-full items-center justify-center overflow-hidden bg-asphalt dark:bg-asphalt-dark">
             {profile?.hasAvatar ? (
-              <Image source={{ uri: userAvatarUrl(profile.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
+              <Image source={{ uri: userAvatarUrl(profile.id, profile.avatarVersion), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
             ) : (
               <Text className="font-display text-[26px] text-on-asphalt">{initialsFromName(name)}</Text>
             )}

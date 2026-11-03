@@ -1,4 +1,5 @@
-import { Image, Pressable, Text, View, type ImageSourcePropType } from 'react-native';
+import { Pressable, Text, View, type ImageSourcePropType } from 'react-native';
+import { Image } from '../../platform/Image';
 import Svg, { Polygon } from 'react-native-svg';
 import { initialsFromName } from '../../core/initials';
 import { color } from '../foundation/colors';

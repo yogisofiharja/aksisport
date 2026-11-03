@@ -245,7 +245,7 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
                   variant="tile"
                   name={club.name}
                   hasAvatar={club.hasAvatar}
-                  avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id), headers: imageHeaders } : undefined}
+                  avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id, club.avatarVersion), headers: imageHeaders } : undefined}
                   roleLabel={roleLabel(club.role, t)}
                   cityName={club.cityName ? shortCityName(club.cityName) : undefined}
                   onPress={() => onOpenClub(club.id)}

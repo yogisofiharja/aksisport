@@ -65,7 +65,7 @@ export function DirectMessageScreen({ userId, onBack }: Props) {
       onBack={onBack}
       avatar={
         <View className={`rounded-full ${other?.isOnline ? 'border-2 border-green-500 p-0.5' : ''}`}>
-          <PersonAvatar userId={userId} name={name || '?'} hasAvatar={!!other?.hasAvatar} headers={imageHeaders} size={36} />
+          <PersonAvatar userId={userId} name={name || '?'} hasAvatar={!!other?.hasAvatar} avatarVersion={other?.avatarVersion} headers={imageHeaders} size={36} />
         </View>
       }
       title={name}

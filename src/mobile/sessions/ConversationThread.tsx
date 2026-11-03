@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView } from 'react-native';
+import { ActivityIndicator, AppState, KeyboardAvoidingView, Platform, RefreshControl, ScrollView } from 'react-native';
+import { Image } from '../../platform/Image';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { Icon } from '../../design-system/ui/Icon';
 import { color } from '../../design-system/foundation/colors';

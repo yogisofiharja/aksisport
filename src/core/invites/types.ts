@@ -13,6 +13,7 @@ export type InviteCandidate = {
   username: string;
   displayName?: string;
   hasAvatar: boolean;
+  avatarVersion?: number;
   // invite: can be invited · invited: already has a pending invite ·
   // in: already a member / already playing.
   state: 'invite' | 'invited' | 'in';

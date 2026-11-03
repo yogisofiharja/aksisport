@@ -157,7 +157,7 @@ export function InboxScreen({ onOpenSession, onOpenDirectMessage, onOpenGroup, o
                       leading={
                         // DP-014: the success ring marks someone online.
                         <View className={`rounded-full p-0.5 border-2 ${thread.otherIsOnline ? 'border-success dark:border-success-dark' : 'border-transparent'}`}>
-                          <PersonAvatar userId={thread.otherUserId} name={name} hasAvatar={thread.otherHasAvatar} headers={imageHeaders} size={36} />
+                          <PersonAvatar userId={thread.otherUserId} name={name} hasAvatar={thread.otherHasAvatar} avatarVersion={thread.otherAvatarVersion} headers={imageHeaders} size={36} />
                         </View>
                       }
                       title={name}

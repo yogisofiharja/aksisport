@@ -1,4 +1,4 @@
-import { apiFetch, apiUrl } from '../api/client';
+import { apiFetch, apiUrl, imageUrlWithVersion } from '../api/client';
 import type {
   ClubBankAccount,
   ConversationMessage,
@@ -136,8 +136,8 @@ export function uploadPaymentReceipt(sessionId: string, image: { base64: string;
 // Not fetched via apiFetch — a URL for an `<Image>` source (with
 // authHeader() as its request headers). The server only serves these
 // bytes to the uploading participant themselves or an owner/admin.
-export function participantReceiptUrl(sessionId: string, participantId: string): string {
-  return apiUrl(`/v1/sessions/${sessionId}/participants/${participantId}/receipt`);
+export function participantReceiptUrl(sessionId: string, participantId: string, version?: number): string {
+  return imageUrlWithVersion(apiUrl(`/v1/sessions/${sessionId}/participants/${participantId}/receipt`), version);
 }
 
 // Owner/admin removes a participant entirely (e.g. declining a join

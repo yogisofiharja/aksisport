@@ -159,7 +159,7 @@ export function GroupInfoScreen({ groupId, onBack, onAddPeople, onLeft }: Props)
               return (
                 <Card key={m.userId} pressable={!isMe} onPress={() => !isMe && setProfileUserId(m.userId)}>
                   <HStack className="items-center" space="md">
-                    <PersonAvatar userId={m.userId} name={name} hasAvatar={m.hasAvatar} headers={imageHeaders} />
+                    <PersonAvatar userId={m.userId} name={name} hasAvatar={m.hasAvatar} avatarVersion={m.avatarVersion} headers={imageHeaders} />
                     <VStack style={{ flex: 1 }}>
                       <Typography variant="body" className="font-bold" numberOfLines={1}>
                         {isMe ? `${name} (${t('sessionYou')})` : name}

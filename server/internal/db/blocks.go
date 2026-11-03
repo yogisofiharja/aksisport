@@ -70,7 +70,7 @@ func BlockedBy(ctx context.Context, pool *pgxpool.Pool, userID string, among []s
 
 func ListMyBlocks(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.BlockedUser, error) {
 	rows, err := pool.Query(ctx,
-		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), b.created_at
+		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+imageVersionExpr("u.avatar_updated_at")+`, b.created_at
 		 FROM user_blocks b JOIN users u ON u.id = b.blocked_id
 		 WHERE b.blocker_id = $1 ORDER BY b.created_at DESC`, userID)
 	if err != nil {
@@ -80,7 +80,7 @@ func ListMyBlocks(ctx context.Context, pool *pgxpool.Pool, userID string) ([]mod
 	result := []models.BlockedUser{}
 	for rows.Next() {
 		var b models.BlockedUser
-		if err := rows.Scan(&b.UserID, &b.Username, &b.DisplayName, &b.HasAvatar, &b.BlockedAt); err != nil {
+		if err := rows.Scan(&b.UserID, &b.Username, &b.DisplayName, &b.HasAvatar, &b.AvatarVersion, &b.BlockedAt); err != nil {
 			return nil, err
 		}
 		result = append(result, b)

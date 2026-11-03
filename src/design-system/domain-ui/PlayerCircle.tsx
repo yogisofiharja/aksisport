@@ -1,4 +1,5 @@
-import { Image, Pressable, Text, View, type ImageSourcePropType } from 'react-native';
+import { Pressable, Text, View, type ImageSourcePropType } from 'react-native';
+import { Image } from '../../platform/Image';
 import { Icon } from '../ui/Icon';
 
 /**

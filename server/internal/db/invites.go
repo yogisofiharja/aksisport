@@ -231,7 +231,7 @@ func InviteCandidates(ctx context.Context, pool *pgxpool.Pool, targetType, targe
 		in = inSessionSQL
 	}
 	rows, err := pool.Query(ctx,
-		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+in+`,
+		`SELECT u.id, u.username, u.display_name, (u.avatar_image_data IS NOT NULL), `+imageVersionExpr("u.avatar_updated_at")+`, `+in+`,
 		        EXISTS(SELECT 1 FROM invitations i WHERE i.to_user = u.id AND i.target_type = $3 AND i.target_id = $1
 		               AND i.via = 'app' AND i.responded_at IS NULL)
 		 FROM users u
@@ -248,7 +248,7 @@ func InviteCandidates(ctx context.Context, pool *pgxpool.Pool, targetType, targe
 	for rows.Next() {
 		var c models.InviteCandidate
 		var in, invited bool
-		if err := rows.Scan(&c.ID, &c.Username, &c.DisplayName, &c.HasAvatar, &in, &invited); err != nil {
+		if err := rows.Scan(&c.ID, &c.Username, &c.DisplayName, &c.HasAvatar, &c.AvatarVersion, &in, &invited); err != nil {
 			return nil, err
 		}
 		switch {

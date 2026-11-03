@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
+import { Image } from '../../platform/Image';
 import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
@@ -92,7 +93,7 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
       <VStack space="md" style={{ alignItems: 'center' }}>
         <View className="w-24 h-24 rounded-full items-center justify-center overflow-hidden bg-surface-sunken dark:bg-surface-sunken-dark border-2 border-border dark:border-border-dark">
           {club.hasAvatar ? (
-            <Image source={{ uri: clubAvatarUrl(club.id), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
+            <Image source={{ uri: clubAvatarUrl(club.id, club.avatarVersion), headers: imageHeaders }} style={{ width: '100%', height: '100%' }} />
           ) : (
             <Typography variant="body" className="text-2xl font-extrabold text-ink-muted dark:text-ink-muted-dark">
               {initialsFromName(club.name)}

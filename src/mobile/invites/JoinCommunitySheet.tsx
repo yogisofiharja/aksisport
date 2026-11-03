@@ -1,4 +1,5 @@
-import { Image, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { Image } from '../../platform/Image';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { Button, ButtonText } from '../../design-system/ui/Button';
 import { Typography } from '../../design-system/ui/Typography';

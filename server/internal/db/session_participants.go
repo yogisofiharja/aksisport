@@ -10,14 +10,14 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
-const participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.checked_out_at, sp.joined_at, (sp.receipt_image_data IS NOT NULL)
+var participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.checked_out_at, sp.joined_at, (sp.receipt_image_data IS NOT NULL), ` + imageVersionExpr("sp.receipt_uploaded_at") + `
 	 FROM session_participants sp LEFT JOIN users u ON u.id = sp.user_id`
 
 func scanParticipant(row pgx.CollectableRow) (models.SessionParticipant, error) {
 	var p models.SessionParticipant
 	err := row.(pgx.Rows).Scan(
 		&p.ID, &p.SessionID, &p.UserID, &p.GuestName, &p.Username, &p.DisplayName, &p.Status,
-		&p.CheckedInAt, &p.CheckedOutAt, &p.JoinedAt, &p.HasReceipt,
+		&p.CheckedInAt, &p.CheckedOutAt, &p.JoinedAt, &p.HasReceipt, &p.ReceiptVersion,
 	)
 	return p, err
 }

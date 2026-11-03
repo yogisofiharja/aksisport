@@ -336,7 +336,14 @@ this app). A list/get response never embeds the bytes, only a computed
 own authenticated endpoint (`GET .../avatar`), same reasoning as
 `hasReceipt`/receipt images — a polled or frequently-refetched list
 response should never re-transfer image bytes for a picture already on
-screen. `User.avatarUrl` / `ClubMember.avatarUrl` / `Club` having no
+screen. Wherever `hasAvatar` (or `otherHasAvatar`, `hasReceipt`) is
+returned, `avatarVersion` (`otherAvatarVersion`, `receiptVersion`) comes
+with it when there is an image: the upload time in milliseconds
+(`users.avatar_updated_at`, `clubs.avatar_updated_at`,
+`session_participants.receipt_uploaded_at`). Image responses are cached
+as `immutable` for a year, so clients add it to the image URL (`?v=`,
+ignored by the server) and a replaced picture or receipt gets a new URL
+instead of showing the cached old one. `User.avatarUrl` / `ClubMember.avatarUrl` / `Club` having no
 `avatarUrl` at all are leftovers from an earlier, never-wired
 string-URL stub (nothing ever set or read it through a real upload
 path) — left in place, unused, rather than ripped out as part of this

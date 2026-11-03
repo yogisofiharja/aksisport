@@ -32,6 +32,7 @@ type DirectThread struct {
 	OtherUsername       string    `json:"otherUsername"`
 	OtherDisplayName    *string   `json:"otherDisplayName,omitempty"`
 	OtherHasAvatar      bool      `json:"otherHasAvatar"`
+	OtherAvatarVersion  *int64    `json:"otherAvatarVersion,omitempty"`
 	OtherIsOnline       bool      `json:"otherIsOnline"`
 	LastMessageBody     string    `json:"lastMessageBody"`
 	LastMessageHasImage bool      `json:"lastMessageHasImage"`

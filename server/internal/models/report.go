@@ -4,11 +4,12 @@ import "time"
 
 // BlockedUser is one row of the caller's blocked list (DP-021).
 type BlockedUser struct {
-	UserID      string    `json:"userId"`
-	Username    string    `json:"username"`
-	DisplayName *string   `json:"displayName,omitempty"`
-	HasAvatar   bool      `json:"hasAvatar"`
-	BlockedAt   time.Time `json:"blockedAt"`
+	UserID        string    `json:"userId"`
+	Username      string    `json:"username"`
+	DisplayName   *string   `json:"displayName,omitempty"`
+	HasAvatar     bool      `json:"hasAvatar"`
+	AvatarVersion *int64    `json:"avatarVersion,omitempty"`
+	BlockedAt     time.Time `json:"blockedAt"`
 }
 
 // ClubReport is a report as a Community's owner/admins see it (DP-021).

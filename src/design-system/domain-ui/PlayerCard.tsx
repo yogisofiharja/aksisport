@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Image, View, type ImageSourcePropType } from 'react-native';
+import { View, type ImageSourcePropType } from 'react-native';
+import { Image } from '../../platform/Image';
 import { initialsFromName } from '../../core/initials';
 import { Typography } from '../ui/Typography';
 

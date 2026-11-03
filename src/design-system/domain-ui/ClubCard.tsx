@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Image, Pressable, Text, View, type ImageSourcePropType } from 'react-native';
+import { Pressable, Text, View, type ImageSourcePropType } from 'react-native';
+import { Image } from '../../platform/Image';
 import { initialsFromName } from '../../core/initials';
 import { useTranslation } from '../../i18n';
 import { Icon } from '../ui/Icon';

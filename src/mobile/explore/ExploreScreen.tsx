@@ -132,7 +132,7 @@ export function ExploreScreen({ onOpenClub, onCreateClub }: Props) {
         key={club.id}
         name={club.name}
         hasAvatar={club.hasAvatar}
-        avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id), headers: imageHeaders } : undefined}
+        avatarSource={club.hasAvatar ? { uri: clubAvatarUrl(club.id, club.avatarVersion), headers: imageHeaders } : undefined}
         cityName={club.cityName ? shortCityName(club.cityName) : undefined}
         memberCount={club.memberCount}
         isPrivate={club.visibility === 'private'}
