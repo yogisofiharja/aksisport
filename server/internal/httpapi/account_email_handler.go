@@ -84,7 +84,7 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 		}
 		taken, err := dbpkg.EmailConfirmedByAnother(ctx, pool, email, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if taken {
@@ -110,7 +110,7 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 		}
 		updated, err := dbpkg.GetUserByFirebaseUID(ctx, pool, user.FirebaseUID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, updated)
@@ -132,7 +132,7 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		updated, err := dbpkg.SetConfirmedEmail(ctx, pool, user.ID, email)
@@ -141,7 +141,7 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// Changing (not first adding) an email: tell the address that was
@@ -182,7 +182,7 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"loginEmail": account.LoginEmailForUsername(user.Username)})
@@ -240,7 +240,7 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if _, err := dbpkg.RedeemEmailCode(ctx, pool, user.ID, account.PurposeResetPassword, account.HashCode(user.ID, account.PurposeResetPassword, body.Code)); err != nil {
@@ -248,7 +248,7 @@ func RegisterAccountEmailRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 				respondError(c, http.StatusBadRequest, invalid)
 				return
 			}
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// The code is spent at this point. If Firebase refuses the change

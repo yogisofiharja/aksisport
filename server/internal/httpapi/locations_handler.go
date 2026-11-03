@@ -23,12 +23,12 @@ func RegisterLocationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		ctx := c.Request.Context()
 		provinces, err := dbpkg.ListProvinces(ctx, pool)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		cities, err := dbpkg.ListCities(ctx, pool)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Header("Cache-Control", "private, max-age=86400")

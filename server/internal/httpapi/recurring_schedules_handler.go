@@ -26,7 +26,7 @@ func requireRecurringScheduleAccess(c *gin.Context, pool *pgxpool.Pool, clubID, 
 		return models.RecurringSchedule{}, false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return models.RecurringSchedule{}, false
 	}
 
@@ -37,7 +37,7 @@ func requireRecurringScheduleAccess(c *gin.Context, pool *pgxpool.Pool, clubID, 
 		return models.RecurringSchedule{}, false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return models.RecurringSchedule{}, false
 	}
 	if !isOwnerOrAdmin(m.Role) {
@@ -84,7 +84,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if !isOwnerOrAdmin(m.Role) {
@@ -144,7 +144,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			TotalPrice:     totalPrice,
 		})
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusCreated, sched)
@@ -159,7 +159,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if !isOwnerOrAdmin(m.Role) {
@@ -168,7 +168,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 		}
 		schedules, err := dbpkg.ListRecurringSchedulesForClub(c.Request.Context(), pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, schedules)
@@ -248,7 +248,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			TotalPrice:      totalPrice,
 		})
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, sched)
@@ -264,7 +264,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 		}
 		counts, err := dbpkg.PreviewSessionSync(c.Request.Context(), pool, c.Param("id"))
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, counts)
@@ -276,7 +276,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 		}
 		counts, err := dbpkg.SyncGeneratedSessions(c.Request.Context(), pool, c.Param("id"))
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, counts)
@@ -288,7 +288,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 		}
 		sched, err := dbpkg.SetRecurringScheduleStatus(c.Request.Context(), pool, c.Param("id"), "paused")
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, sched)
@@ -300,7 +300,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 		}
 		sched, err := dbpkg.SetRecurringScheduleStatus(c.Request.Context(), pool, c.Param("id"), "active")
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, sched)
@@ -311,7 +311,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			return
 		}
 		if err := dbpkg.DeleteRecurringSchedule(c.Request.Context(), pool, c.Param("id")); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -334,11 +334,11 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			return
 		}
 		if err := dbpkg.SkipOccurrence(c.Request.Context(), pool, scheduleID, body.OccurrenceStartsAt); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if err := dbpkg.DeleteGeneratedSession(c.Request.Context(), pool, scheduleID, body.OccurrenceStartsAt); err != nil && !errors.Is(err, dbpkg.ErrNotFound) {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -369,7 +369,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, session)
@@ -399,17 +399,17 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 
 		rule, err := scheduling.ParseRecurrenceRule(sched.RecurrenceRule)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		occurrences, err := scheduling.OccurrencesInRange(rule, sched.CreatedAt, sched.EndDate, from, to)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		statuses, err := dbpkg.OccurrenceStatuses(c.Request.Context(), pool, scheduleID, occurrences)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 

@@ -26,12 +26,12 @@ func canDirectMessage(c *gin.Context, pool *pgxpool.Pool, viewerID, otherID stri
 	if _, err := dbpkg.GetDirectConversationID(ctx, pool, viewerID, otherID); err == nil {
 		return true
 	} else if !errors.Is(err, dbpkg.ErrNotFound) {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return false
 	}
 	allowed, err := dbpkg.CanViewPlayerProfile(ctx, pool, viewerID, otherID)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return false
 	}
 	if !allowed {
@@ -50,7 +50,7 @@ func RegisterDirectMessageRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifi
 	profiled.GET("/me/direct-threads", func(c *gin.Context) {
 		threads, err := dbpkg.ListMyDirectThreads(c.Request.Context(), pool, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, threads)
@@ -69,12 +69,12 @@ func RegisterDirectMessageRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifi
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		messages, err := dbpkg.ListConversationMessages(ctx, pool, convID, me.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, messages)
@@ -91,7 +91,7 @@ func RegisterDirectMessageRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifi
 		// DP-021: you can't message someone you blocked (unblock first)…
 		iBlocked, err := dbpkg.HasBlocked(ctx, pool, me.ID, otherID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if iBlocked {
@@ -102,7 +102,7 @@ func RegisterDirectMessageRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifi
 		// from them instead.
 		theyBlocked, err := dbpkg.HasBlocked(ctx, pool, otherID, me.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		body, imageData, imageContentType, ok := parseConversationMessageBody(c)
@@ -111,14 +111,14 @@ func RegisterDirectMessageRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifi
 		}
 		convID, err := dbpkg.GetOrCreateDirectConversationID(ctx, pool, me.ID, otherID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		message, err := dbpkg.CreateConversationMessage(ctx, pool, dbpkg.CreateConversationMessageParams{
 			ConversationID: convID, SenderID: me.ID, Body: body, ImageData: imageData, ImageContentType: imageContentType, Withheld: theyBlocked,
 		})
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		msgs.announce(ctx, me, message)
@@ -133,7 +133,7 @@ func RegisterDirectMessageRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifi
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Header("Cache-Control", "private, max-age=31536000, immutable")

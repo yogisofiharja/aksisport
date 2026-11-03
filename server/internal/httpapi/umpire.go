@@ -66,7 +66,7 @@ func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		user := authjwt.CurrentUser(c)
 		targetStatus, err := dbpkg.GetParticipantStatus(ctx, pool, sessionID, body.UserID)
 		if err != nil && !errors.Is(err, dbpkg.ErrNotFound) {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if code, msg := umpireAssignmentProblem(sess.Status, role, user.ID, body.UserID, targetStatus); code != 0 {
@@ -76,7 +76,7 @@ func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		if body.UserID != sess.UmpireUserID {
 			liveIDs, err := dbpkg.SetSessionUmpire(ctx, pool, sessionID, body.UserID)
 			if err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 			handOverLiveMatches(ctx, pool, liveMatches, liveIDs, body.UserID)
@@ -87,7 +87,7 @@ func RegisterUmpireRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		}
 		updated, err := dbpkg.GetSession(ctx, pool, sessionID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, updated)

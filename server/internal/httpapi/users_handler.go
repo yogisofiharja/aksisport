@@ -36,7 +36,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		taken, err := dbpkg.UsernameTaken(c.Request.Context(), pool, username)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"available": !taken})
@@ -78,7 +78,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 				respondError(c, http.StatusConflict, "this email is already used by another account")
 				return
 			} else if !errors.Is(err, dbpkg.ErrNotFound) {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 			pendingEmail = &email
@@ -88,7 +88,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			respondError(c, http.StatusConflict, "profile already exists")
 			return
 		} else if !errors.Is(err, dbpkg.ErrNotFound) {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 
@@ -115,7 +115,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, user)
@@ -164,7 +164,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			AvatarURL:   body.AvatarURL,
 		})
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, user)
@@ -198,7 +198,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 	profiled.DELETE("/me/cities/:cityCode", func(c *gin.Context) {
 		current := authjwt.CurrentUser(c)
 		if err := dbpkg.RemoveUserCity(c.Request.Context(), pool, current.ID, c.Param("cityCode")); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		respondMe(c, pool, current.FirebaseUID)
@@ -233,7 +233,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		current := authjwt.CurrentUser(c)
 		user, err := dbpkg.UploadUserAvatar(c.Request.Context(), pool, current.ID, decoded, body.ImageContentType)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, user)
@@ -252,7 +252,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		ctx := c.Request.Context()
 		allowed, err := dbpkg.CanViewPlayerProfile(ctx, pool, viewer.ID, targetID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if !allowed {
@@ -265,11 +265,11 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if profile.BlockedByMe, err = dbpkg.HasBlocked(ctx, pool, viewer.ID, targetID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, profile)
@@ -282,7 +282,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Header("Cache-Control", "private, max-age=31536000, immutable")
@@ -297,7 +297,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		current := authjwt.CurrentUser(c)
 		threads, err := dbpkg.ListMyContactThreads(c.Request.Context(), pool, current.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, threads)
@@ -317,7 +317,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		current := authjwt.CurrentUser(c)
 		users, err := dbpkg.SearchUsers(c.Request.Context(), pool, q, current.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, users)
@@ -328,7 +328,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 func respondMe(c *gin.Context, pool *pgxpool.Pool, firebaseUID string) {
 	user, err := dbpkg.GetUserByFirebaseUID(c.Request.Context(), pool, firebaseUID)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, user)
@@ -339,5 +339,5 @@ func respondCityError(c *gin.Context, err error) {
 		respondError(c, http.StatusConflict, fmt.Sprintf("you can keep at most %d towns — remove one first", dbpkg.MaxUserCities))
 		return
 	}
-	respondError(c, http.StatusInternalServerError, "internal error")
+	respondInternal(c, err)
 }

@@ -29,7 +29,7 @@ func RegisterNotificationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 	profiled.GET("/me/notification-settings", func(c *gin.Context) {
 		settings, err := dbpkg.NotificationSettings(c.Request.Context(), pool, authjwt.CurrentUser(c).ID, notify.Categories)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, settings)
@@ -56,13 +56,13 @@ func RegisterNotificationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 		me := authjwt.CurrentUser(c).ID
 		for category, enabled := range req {
 			if err := dbpkg.SetNotificationSetting(ctx, pool, me, category, enabled); err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 		}
 		settings, err := dbpkg.NotificationSettings(ctx, pool, me, notify.Categories)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, settings)
@@ -108,7 +108,7 @@ func RegisterNotificationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 			return
 		}
 		if err := dbpkg.UpsertPushSubscription(c.Request.Context(), pool, sub); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -125,7 +125,7 @@ func RegisterNotificationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 			return
 		}
 		if err := dbpkg.DeletePushSubscription(c.Request.Context(), pool, authjwt.CurrentUser(c).ID, body.Address); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -138,7 +138,7 @@ func RegisterNotificationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 		}
 		list, err := dbpkg.ListNotifications(c.Request.Context(), pool, authjwt.CurrentUser(c).ID, limit)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, list)
@@ -147,7 +147,7 @@ func RegisterNotificationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 	profiled.GET("/me/notifications/unread-count", func(c *gin.Context) {
 		count, err := dbpkg.CountUnreadNotifications(c.Request.Context(), pool, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"count": count})
@@ -155,7 +155,7 @@ func RegisterNotificationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 
 	profiled.POST("/me/notifications/read-all", func(c *gin.Context) {
 		if err := dbpkg.MarkAllNotificationsRead(c.Request.Context(), pool, authjwt.CurrentUser(c).ID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -168,7 +168,7 @@ func RegisterNotificationRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifie
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)

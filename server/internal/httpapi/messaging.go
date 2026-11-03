@@ -107,7 +107,7 @@ func requireConversationParticipant(c *gin.Context, pool *pgxpool.Pool, conversa
 		return nil, false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return nil, false
 	}
 	me := authjwt.CurrentUser(c).ID
@@ -129,7 +129,7 @@ func RegisterMessagingRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *
 	profiled.GET("/me/unread-messages", func(c *gin.Context) {
 		count, err := dbpkg.CountUnreadMessages(c.Request.Context(), pool, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"count": count})
@@ -141,7 +141,7 @@ func RegisterMessagingRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *
 		ctx := c.Request.Context()
 		conversationID, count, err := dbpkg.SessionChatUnread(ctx, pool, c.Param("id"), authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if conversationID == "" {
@@ -180,7 +180,7 @@ func RegisterMessagingRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *
 		}
 		updated, err := dbpkg.EditConversationMessage(c.Request.Context(), pool, message.ID, body)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		hub.Publish(messageAudience(message, participants), live.Event{Type: "message.updated", Data: gin.H{"conversationId": message.ConversationID, "messageId": message.ID}})
@@ -203,7 +203,7 @@ func RegisterMessagingRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *
 				return
 			}
 			if err := dbpkg.DeleteConversationMessageForEveryone(ctx, pool, message.ID); err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 			hub.Publish(messageAudience(message, participants), live.Event{Type: "message.updated", Data: gin.H{"conversationId": message.ConversationID, "messageId": message.ID}})
@@ -216,14 +216,14 @@ func RegisterMessagingRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if _, ok := requireConversationParticipant(c, pool, message.ConversationID); !ok {
 			return
 		}
 		if err := dbpkg.HideConversationMessage(ctx, pool, message.ID, me); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// Your other devices.
@@ -242,14 +242,14 @@ func RegisterMessagingRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *
 		me := authjwt.CurrentUser(c).ID
 		at, err := dbpkg.MarkConversationRead(c.Request.Context(), pool, conversationID, me)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// Not to anyone the reader blocked: blocking is silent, and a
 		// "Seen" would give it away (DP-021).
 		blocked, err := dbpkg.BlockedBy(c.Request.Context(), pool, me, participants)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		hub.Publish(withoutIDs(participants, blocked), live.Event{Type: "read", Data: gin.H{"conversationId": conversationID, "userId": me, "lastReadAt": at}})
@@ -266,13 +266,13 @@ func RegisterMessagingRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *
 		ctx := c.Request.Context()
 		reads, err := dbpkg.ListConversationReads(ctx, pool, conversationID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// Leave out people who blocked the caller (DP-021).
 		blockers, err := dbpkg.BlockersOf(ctx, pool, authjwt.CurrentUser(c).ID, participants)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		visible := []models.ConversationRead{}
@@ -400,7 +400,7 @@ func loadOwnMessage(c *gin.Context, pool *pgxpool.Pool) (models.ConversationMess
 		return message, nil, false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return message, nil, false
 	}
 	if message.SenderID != authjwt.CurrentUser(c).ID {

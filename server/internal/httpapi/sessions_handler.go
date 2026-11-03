@@ -33,7 +33,7 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 		return dbSession{}, "", false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return dbSession{}, "", false
 	}
 
@@ -49,7 +49,7 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 		// every /clubs/:clubId route still answers "not a member".
 		visitor, verr := dbpkg.HasSessionVisitorAccess(c.Request.Context(), pool, sess.ID, user.ID)
 		if verr != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, verr)
 			return dbSession{}, "", false
 		}
 		if !visitor {
@@ -58,7 +58,7 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 		}
 		role = dbpkg.SessionVisitorRole
 	default:
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return dbSession{}, "", false
 	}
 	if sess.Status == "draft" && !isOwnerOrAdmin(role) {
@@ -228,7 +228,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if !isOwnerOrAdmin(m.Role) {
@@ -317,7 +317,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			TotalPrice:     totalPrice,
 		})
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// Host Playing: the organizer's own declared intent to play, not a
@@ -330,7 +330,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		// same trust already extended to organizer-added members.
 		if *body.HostPlaying {
 			if _, err := dbpkg.AddRegisteredParticipant(c.Request.Context(), pool, session.ID, user.ID); err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 		}
@@ -346,7 +346,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// DP-001: only owner/admin see draft sessions in the list —
@@ -355,7 +355,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		// helper's signature for every one of its other call sites.
 		sessions, err := dbpkg.ListSessionsForClub(c.Request.Context(), pool, clubID, isOwnerOrAdmin(m.Role))
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, sessions)
@@ -367,7 +367,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		user := authjwt.CurrentUser(c)
 		sessions, err := dbpkg.ListJoinedSessionsForUser(c.Request.Context(), pool, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, sessions)
@@ -381,7 +381,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		session, err := dbpkg.GetSession(c.Request.Context(), pool, sessionID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		session.ViewerRole = role
@@ -478,7 +478,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			TotalPrice:     totalPrice,
 		})
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, session)
@@ -506,7 +506,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 				respondError(c, http.StatusConflict, "only a draft session can be discarded")
 				return
 			}
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -522,7 +522,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		accounts, err := dbpkg.ListClubBankAccounts(c.Request.Context(), pool, sess.ClubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, accounts)
@@ -535,7 +535,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		participants, err := dbpkg.ListParticipants(c.Request.Context(), pool, sessionID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, participants)
@@ -560,7 +560,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		before, beforeErr := dbpkg.GetParticipantStatus(ctx, pool, sessionID, user.ID)
 		p, err := dbpkg.RegisterParticipant(ctx, pool, sessionID, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// DP-028: asking for a spot answers an invitation to the Session.
@@ -602,7 +602,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// DP-018 #4: approved — on a paid Session, now pay to claim the
@@ -642,7 +642,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// DP-018 #6: the spot is claimed.
@@ -690,7 +690,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// DP-018 #5: a receipt to check.
@@ -718,7 +718,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		user := authjwt.CurrentUser(c)
@@ -754,7 +754,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 				respondError(c, http.StatusNotFound, "participant not found")
 				return
 			}
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -786,7 +786,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, p)
@@ -814,7 +814,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		p, err := dbpkg.AddRegisteredParticipant(c.Request.Context(), pool, sessionID, targetUserID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, p)
@@ -854,7 +854,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, p)
@@ -872,7 +872,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		user := authjwt.CurrentUser(c)
 		p, err := dbpkg.CheckOut(c.Request.Context(), pool, sessionID, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, p)
@@ -886,7 +886,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		user := authjwt.CurrentUser(c)
 		p, err := dbpkg.CancelParticipant(c.Request.Context(), pool, sessionID, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, p)
@@ -907,7 +907,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		p, err := dbpkg.MarkNoShow(c.Request.Context(), pool, sessionID, targetUserID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, p)
@@ -936,7 +936,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		p, err := dbpkg.AddGuestParticipant(c.Request.Context(), pool, sessionID, body.GuestName)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusCreated, p)
@@ -959,7 +959,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		messages, err := listConversation(c, pool, models.ConversationKindSessionChat, sessionID, nil)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, messages)
@@ -982,7 +982,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		user := authjwt.CurrentUser(c)
 		message, err := postConversationMessage(c, pool, models.ConversationKindSessionChat, sessionID, nil, user.ID, trimmed, imageData, imageContentType)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		msgs.announce(c.Request.Context(), user, message)
@@ -1009,7 +1009,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		messages, err := listConversation(c, pool, models.ConversationKindSessionContact, sessionID, &memberUserID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, messages)
@@ -1033,7 +1033,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		message, err := postConversationMessage(c, pool, models.ConversationKindSessionContact, sessionID, &memberUserID, user.ID, trimmed, imageData, imageContentType)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		msgs.announce(c.Request.Context(), user, message)
@@ -1054,7 +1054,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		threads, err := dbpkg.ListSessionContactThreads(c.Request.Context(), pool, sessionID, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, threads)
@@ -1079,7 +1079,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if conv.Kind == models.ConversationKindSessionContact {

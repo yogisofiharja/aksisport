@@ -288,6 +288,10 @@ journalctl -u aksi-api-production -f
 journalctl -u aksi-web-production -n 100
 ```
 
+Every 500 from the API is logged with its cause on a line starting
+`ERROR`, so `journalctl -u aksi-api-staging | grep ERROR` lists them.
+Panics are logged with a stack trace, starting `[Recovery]`.
+
 ### 15. Narrow sudoers rule
 
 CI needs to restart the systemd units without a password, but only those four commands:

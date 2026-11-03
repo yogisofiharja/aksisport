@@ -49,7 +49,7 @@ func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		}
 		link, err := dbpkg.GetOrCreateInviteLink(c.Request.Context(), pool, dbpkg.InviteTargetClub, clubID, clubID, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, link)
@@ -77,7 +77,7 @@ func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		}
 		link, err := dbpkg.GetOrCreateInviteLink(c.Request.Context(), pool, dbpkg.InviteTargetSession, sess.ID, sess.ClubID, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, link)
@@ -112,7 +112,7 @@ func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 
@@ -129,26 +129,26 @@ func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 				return
 			}
 			if err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 			res.SessionName, res.StartsAt = sess.Name, sess.StartsAt
 		}
 		inviter, err := dbpkg.GetUserByID(ctx, pool, link.CreatedBy)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		res.InviterName = displayNameOf(inviter.DisplayName, inviter.Username)
 		if res.StraightIn, err = dbpkg.InviterIsOrganizer(ctx, pool, link.ClubID, link.CreatedBy); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 
 		if link.CreatedBy != user.ID {
 			token := link.Token
 			if _, err := dbpkg.RecordInvitation(ctx, pool, link.CreatedBy, user.ID, link.TargetType, link.TargetID, link.ClubID, "link", &token); err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 		}
@@ -170,7 +170,7 @@ func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notif
 		}
 		list, err := dbpkg.InviteCandidates(c.Request.Context(), pool, targetType, targetID, q, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, list)
@@ -194,7 +194,7 @@ func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notif
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if in {
@@ -203,7 +203,7 @@ func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notif
 		}
 		inv, err := dbpkg.RecordInvitation(ctx, pool, user.ID, body.UserID, targetType, targetID, clubID, "app", nil)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if notifier != nil {
@@ -228,7 +228,7 @@ func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notif
 		}
 		club, err := dbpkg.GetClub(c.Request.Context(), pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		invite(c, dbpkg.InviteTargetClub, clubID, clubID, notify.Notification{
@@ -255,7 +255,7 @@ func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notif
 		}
 		label, err := dbpkg.SessionLabel(c.Request.Context(), pool, sess.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		invite(c, dbpkg.InviteTargetSession, sess.ID, sess.ClubID, notify.Notification{
@@ -267,7 +267,7 @@ func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notif
 	authed.GET("/me/invitations", func(c *gin.Context) {
 		list, err := dbpkg.ListPendingInvitations(c.Request.Context(), pool, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, list)
@@ -281,7 +281,7 @@ func registerInvitationRoutes(authed *gin.RouterGroup, pool *pgxpool.Pool, notif
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -300,13 +300,13 @@ func requireInviterRole(c *gin.Context, role string) bool {
 
 func resetInviteLinks(c *gin.Context, pool *pgxpool.Pool, targetType, targetID, clubID string) {
 	if _, err := dbpkg.ResetInviteLinks(c.Request.Context(), pool, targetType, targetID); err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return
 	}
 	// The caller gets their fresh link straight away.
 	link, err := dbpkg.GetOrCreateInviteLink(c.Request.Context(), pool, targetType, targetID, clubID, authjwt.CurrentUser(c).ID)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, link)

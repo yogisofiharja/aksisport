@@ -28,7 +28,7 @@ func RegisterSkillLevelRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier 
 		}
 		levels, err := dbpkg.ListSkillLevels(c.Request.Context(), pool, sport)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, levels)
@@ -38,7 +38,7 @@ func RegisterSkillLevelRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier 
 		user := authjwt.CurrentUser(c)
 		levels, err := dbpkg.ListMySkillLevels(c.Request.Context(), pool, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, levels)
@@ -66,7 +66,7 @@ func RegisterSkillLevelRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier 
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, level)
@@ -120,17 +120,17 @@ func enforceStrictSkillLevel(c *gin.Context, pool *pgxpool.Pool, sess dbSession,
 		return false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return false
 	}
 	minLevel, err := dbpkg.GetSkillLevelByID(ctx, pool, *sess.SkillLevelMinID)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return false
 	}
 	maxLevel, err := dbpkg.GetSkillLevelByID(ctx, pool, *sess.SkillLevelMaxID)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return false
 	}
 	if playerLevel.SkillLevelRank < minLevel.Rank || playerLevel.SkillLevelRank > maxLevel.Rank {

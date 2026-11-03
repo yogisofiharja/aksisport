@@ -23,7 +23,7 @@ func requireActivityAccess(c *gin.Context, pool *pgxpool.Pool, activityID string
 		return "", "", "", false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return "", "", "", false
 	}
 	_, role, ok = requireSessionAccess(c, pool, activity.SessionID)
@@ -77,7 +77,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		user := authjwt.CurrentUser(c)
 		activity, err := dbpkg.CreateActivity(c.Request.Context(), pool, sessionID, session.Sport, body.Config, participants, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusCreated, activity)
@@ -90,7 +90,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		}
 		activities, err := dbpkg.ListActivitiesForSession(c.Request.Context(), pool, sessionID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, activities)
@@ -103,7 +103,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		}
 		detail, err := dbpkg.GetActivityDetail(c.Request.Context(), pool, activityID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, detail)
@@ -132,7 +132,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -148,7 +148,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 		// MatchEarlyStart before its start time (10 minutes in live use).
 		sess, err := dbpkg.GetSession(c.Request.Context(), pool, sessionID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if !dbpkg.MatchesOpen(sess, time.Now()) {
@@ -171,7 +171,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// A match started before the start time means the Session is under
@@ -208,7 +208,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, updated)
@@ -239,7 +239,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, updated)
@@ -251,7 +251,7 @@ func RegisterActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *a
 func requireUmpire(c *gin.Context, pool *pgxpool.Pool, sessionID, msg string) bool {
 	sess, err := dbpkg.GetSession(c.Request.Context(), pool, sessionID)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return false
 	}
 	if !isSessionUmpire(sess.UmpireUserID, authjwt.CurrentUser(c).ID) {

@@ -26,7 +26,7 @@ func requireMember(c *gin.Context, pool *pgxpool.Pool, clubID string) (member bo
 		return false, false, false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return false, false, false
 	}
 	return true, m.Role == "owner", true
@@ -42,7 +42,7 @@ func requireCity(c *gin.Context, pool *pgxpool.Pool, cityCode string) bool {
 	}
 	exists, err := dbpkg.CityExists(c.Request.Context(), pool, cityCode)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return false
 	}
 	if !exists {
@@ -64,7 +64,7 @@ func requireOwnerOrAdmin(c *gin.Context, pool *pgxpool.Pool, clubID string) bool
 		return false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return false
 	}
 	if !isOwnerOrAdmin(m.Role) {
@@ -107,7 +107,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		user := authjwt.CurrentUser(c)
 		club, err := dbpkg.CreateClub(c.Request.Context(), pool, strings.TrimSpace(body.Name), body.Description, cityCode, visibility, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusCreated, club)
@@ -117,7 +117,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		user := authjwt.CurrentUser(c)
 		clubs, err := dbpkg.ListClubsForUser(c.Request.Context(), pool, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, clubs)
@@ -138,7 +138,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		user := authjwt.CurrentUser(c)
 		clubs, err := dbpkg.SearchClubs(c.Request.Context(), pool, user.ID, q)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, clubs)
@@ -154,7 +154,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		clubs, err := dbpkg.ListClubsInCity(c.Request.Context(), pool, user.ID, *user.CityCode)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, clubs)
@@ -170,7 +170,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		// DP-028: a non-member sees who invited them and whether it lets
@@ -194,7 +194,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		// Community without a request — checked now, not when sent.
 		straightIn, err := dbpkg.HasOrganizerInvite(ctx, pool, clubID, user.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		outcome, err := dbpkg.JoinClub(ctx, pool, clubID, user.ID, straightIn)
@@ -203,12 +203,12 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		preview, err := dbpkg.GetClubPreview(ctx, pool, user.ID, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if outcome == dbpkg.JoinJoined {
@@ -232,7 +232,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 	authed.DELETE("/clubs/:clubId/join-request", func(c *gin.Context) {
 		user := authjwt.CurrentUser(c)
 		if err := dbpkg.CancelJoinRequest(c.Request.Context(), pool, c.Param("clubId"), user.ID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -245,7 +245,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		requests, err := dbpkg.ListPendingJoinRequests(c.Request.Context(), pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, requests)
@@ -265,7 +265,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 				return
 			}
 			if err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 			// DP-018 #2: tell the person they're in. A decline is not
@@ -298,7 +298,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, club)
@@ -335,7 +335,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			Name: body.Name, Description: body.Description, CityCode: body.CityCode, Visibility: body.Visibility,
 		})
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, club)
@@ -352,7 +352,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err := dbpkg.DeleteClub(c.Request.Context(), pool, clubID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -395,7 +395,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		club, err := dbpkg.UploadClubAvatar(c.Request.Context(), pool, clubID, decoded, body.ImageContentType)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, club)
@@ -411,7 +411,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Header("Cache-Control", "private, max-age=31536000, immutable")
@@ -425,7 +425,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		members, err := dbpkg.ListMembers(c.Request.Context(), pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, members)
@@ -459,7 +459,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusCreated, member)
@@ -489,7 +489,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, member)
@@ -514,13 +514,13 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if target.Role == "owner" {
 			count, err := dbpkg.CountOwners(c.Request.Context(), pool, clubID)
 			if err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 			if count <= 1 {
@@ -530,7 +530,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 
 		if err := dbpkg.RemoveMember(c.Request.Context(), pool, clubID, targetUserID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -547,7 +547,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		accounts, err := dbpkg.ListClubBankAccounts(c.Request.Context(), pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, accounts)
@@ -574,7 +574,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		account, err := dbpkg.CreateClubBankAccount(c.Request.Context(), pool, clubID, body.BankName, body.AccountNumber, body.AccountName)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusCreated, account)
@@ -605,7 +605,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, account)
@@ -626,7 +626,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 				respondError(c, http.StatusNotFound, "bank account not found")
 				return
 			}
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)

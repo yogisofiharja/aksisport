@@ -9,6 +9,14 @@ user row must exist).
 CORS: `Access-Control-Allow-Origin` is a single configured value
 (`ALLOWED_ORIGINS` env var), methods `GET, POST, PATCH, DELETE, OPTIONS`.
 
+Errors: an unexpected failure answers 500 `{"error": "internal error"}`
+and never shows the cause to the client. Handlers report it through
+`respondInternal(c, err)`, and `errorLogMiddleware`
+(`server/internal/httpapi/error_log.go`) writes one log line per 5xx:
+`ERROR <status> <method> <route> user=<id or ->: <error>`, with the path
+logged without its query string. Panics are logged with a stack trace by
+Gin's recovery middleware.
+
 ## Health
 
 | Method | Path | Auth | Notes |

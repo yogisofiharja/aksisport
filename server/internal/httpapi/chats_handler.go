@@ -38,7 +38,7 @@ func requireGroup(c *gin.Context, pool *pgxpool.Pool) (models.GroupChat, bool) {
 		return group, false
 	}
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return group, false
 	}
 	me := authjwt.CurrentUser(c).ID
@@ -65,7 +65,7 @@ func checkNewGroupMembers(c *gin.Context, pool *pgxpool.Pool, userIDs []string, 
 	me := authjwt.CurrentUser(c).ID
 	allowed, err := dbpkg.MessageableUserIDs(c.Request.Context(), pool, me, userIDs)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "internal error")
+		respondInternal(c, err)
 		return nil, false
 	}
 	unique := []string{}
@@ -97,7 +97,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 	profiled.GET("/me/messageable-users", func(c *gin.Context) {
 		users, err := dbpkg.ListMessageableUsers(c.Request.Context(), pool, authjwt.CurrentUser(c).ID, strings.TrimSpace(c.Query("q")))
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, users)
@@ -113,7 +113,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if _, ok := requireConversationParticipant(c, pool, message.ConversationID); !ok {
@@ -125,7 +125,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Header("Cache-Control", "private, max-age=31536000, immutable")
@@ -137,7 +137,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 	profiled.GET("/me/groups", func(c *gin.Context) {
 		threads, err := dbpkg.ListMyGroupThreads(c.Request.Context(), pool, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, threads)
@@ -168,12 +168,12 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		ctx := c.Request.Context()
 		id, err := dbpkg.CreateGroupChat(ctx, pool, authjwt.CurrentUser(c).ID, title, members)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		group, err := dbpkg.GetGroupChat(ctx, pool, id)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		announceGroup(hub, group, nil)
@@ -205,7 +205,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err := dbpkg.RenameGroupChat(c.Request.Context(), pool, group.ID, title); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		announceGroup(hub, group, nil)
@@ -240,12 +240,12 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		ctx := c.Request.Context()
 		if err := dbpkg.AddGroupMembers(ctx, pool, group.ID, members); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		updated, err := dbpkg.GetGroupChat(ctx, pool, group.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		announceGroup(hub, updated, nil)
@@ -263,7 +263,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err := dbpkg.RemoveGroupMember(c.Request.Context(), pool, group.ID, target); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		announceGroup(hub, group, nil)
@@ -277,7 +277,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		messages, err := dbpkg.ListConversationMessages(c.Request.Context(), pool, group.ID, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, messages)
@@ -298,7 +298,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			ConversationID: group.ID, SenderID: me.ID, Body: body, ImageData: imageData, ImageContentType: imageContentType,
 		})
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		msgs.announce(ctx, me, message)
@@ -316,12 +316,12 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		ctx := c.Request.Context()
 		enabled, err := dbpkg.GetClubChatEnabled(ctx, pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		unread, err := dbpkg.ClubChatUnread(ctx, pool, clubID, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"enabled": enabled, "unreadCount": unread})
@@ -341,7 +341,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		ctx := c.Request.Context()
 		if err := dbpkg.SetClubChatEnabled(ctx, pool, clubID, *req.Enabled); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if members, err := dbpkg.ListClubMemberIDs(ctx, pool, clubID); err == nil {
@@ -362,12 +362,12 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		messages, err := dbpkg.ListConversationMessages(ctx, pool, convID, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, messages)
@@ -381,7 +381,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		ctx := c.Request.Context()
 		enabled, err := dbpkg.GetClubChatEnabled(ctx, pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if !enabled {
@@ -394,7 +394,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		convID, err := dbpkg.GetOrCreateClubConversationID(ctx, pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		me := authjwt.CurrentUser(c)
@@ -402,7 +402,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			ConversationID: convID, SenderID: me.ID, Body: body, ImageData: imageData, ImageContentType: imageContentType,
 		})
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		msgs.announce(ctx, me, message)
@@ -419,7 +419,7 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		ctx := c.Request.Context()
 		convID, err := dbpkg.GetClubConversationID(ctx, pool, clubID)
 		if err != nil && !errors.Is(err, dbpkg.ErrNotFound) {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		message, err := dbpkg.GetConversationMessage(ctx, pool, c.Param("messageId"))
@@ -428,11 +428,11 @@ func RegisterChatRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if err := dbpkg.RemoveMessage(ctx, pool, message.ID, authjwt.CurrentUser(c).ID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if members, err := dbpkg.ListClubMemberIDs(ctx, pool, clubID); err == nil {

@@ -28,7 +28,7 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 	profiled.GET("/me/blocks", func(c *gin.Context) {
 		blocks, err := dbpkg.ListMyBlocks(c.Request.Context(), pool, authjwt.CurrentUser(c).ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, blocks)
@@ -43,7 +43,7 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 			return
 		}
 		if err := dbpkg.BlockUser(c.Request.Context(), pool, me.ID, otherID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -51,7 +51,7 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 
 	profiled.DELETE("/users/:userId/block", func(c *gin.Context) {
 		if err := dbpkg.UnblockUser(c.Request.Context(), pool, authjwt.CurrentUser(c).ID, c.Param("userId")); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -86,7 +86,7 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 				return
 			}
 			if err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 			if _, ok := requireConversationParticipant(c, pool, message.ConversationID); !ok {
@@ -98,7 +98,7 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 			}
 			conv, _, err := dbpkg.ConversationParticipantIDs(ctx, pool, message.ConversationID)
 			if err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 			kind := conv.Kind
@@ -112,7 +112,7 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 			if conv.SessionID != "" {
 				clubID, err := dbpkg.SessionClubID(ctx, pool, conv.SessionID)
 				if err != nil {
-					respondError(c, http.StatusInternalServerError, "internal error")
+					respondInternal(c, err)
 					return
 				}
 				params.ClubIDs = []string{clubID}
@@ -134,13 +134,13 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		if params.ClubIDs == nil {
 			shared, err := dbpkg.SharedClubIDs(ctx, pool, me.ID, params.ReportedUserID)
 			if err != nil {
-				respondError(c, http.StatusInternalServerError, "internal error")
+				respondInternal(c, err)
 				return
 			}
 			params.ClubIDs = shared
 		}
 		if _, err := dbpkg.CreateReport(ctx, pool, params); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -155,7 +155,7 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		}
 		reports, err := dbpkg.ListOpenClubReports(c.Request.Context(), pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, reports)
@@ -168,7 +168,7 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		}
 		n, err := dbpkg.CountOpenClubReports(c.Request.Context(), pool, clubID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"count": n})
@@ -185,11 +185,11 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 			respondError(c, http.StatusNotFound, "report not found")
 			return
 		} else if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if err := dbpkg.ResolveClubReport(ctx, pool, clubID, c.Param("reportId"), authjwt.CurrentUser(c).ID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.Status(http.StatusNoContent)
@@ -211,7 +211,7 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 			return
 		}
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if report.Message == nil || !report.Message.CanRemove || report.Message.ID == nil {
@@ -220,15 +220,15 @@ func RegisterSafetyRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		}
 		message, err := dbpkg.GetMessageForReport(ctx, pool, *report.Message.ID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if err := dbpkg.RemoveMessage(ctx, pool, message.ID, me.ID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if err := dbpkg.ResolveClubReport(ctx, pool, clubID, report.ID, me.ID); err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if _, participants, err := dbpkg.ConversationParticipantIDs(ctx, pool, message.ConversationID); err == nil {

@@ -30,7 +30,7 @@ func RegisterPlayerActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verif
 		ctx := c.Request.Context()
 		allowed, err := dbpkg.CanViewPlayerProfile(ctx, pool, viewer.ID, targetID)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		if !allowed {
@@ -39,7 +39,7 @@ func RegisterPlayerActivityRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verif
 		}
 		activity, err := dbpkg.GetPlayerSportActivity(ctx, pool, targetID, sport)
 		if err != nil {
-			respondError(c, http.StatusInternalServerError, "internal error")
+			respondInternal(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, activity)
