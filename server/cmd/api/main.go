@@ -4,12 +4,14 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
 
+	"github.com/yogisofiharja/aksi-server/internal/alert"
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	"github.com/yogisofiharja/aksi-server/internal/config"
 	"github.com/yogisofiharja/aksi-server/internal/db"
@@ -34,22 +36,45 @@ func main() {
 		log.Fatal("FIREBASE_PROJECT_ID is required")
 	}
 
+	// Error alerts. Set up first so a failure during start-up is reported
+	// too: fatalf alerts, waits for the alert to go out, then exits. The
+	// token is never logged.
+	closeAlerts := func() {}
+	fatalf := func(format string, args ...any) {
+		alert.Errorf(format, args...)
+		closeAlerts()
+		os.Exit(1)
+	}
+	switch {
+	case cfg.TelegramBotToken == "" && cfg.TelegramChatID == "":
+		log.Print("alerts: off (TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are not set): errors are only logged")
+	case cfg.TelegramBotToken == "" || cfg.TelegramChatID == "":
+		log.Print("alerts: off: set both TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID")
+	default:
+		tg := alert.NewTelegram(cfg.TelegramBotToken, cfg.TelegramChatID, cfg.AlertLabel)
+		defer tg.Close()
+		closeAlerts = tg.Close
+		alert.SetReporter(tg)
+		tg.Notice("API started. Errors from this server will be posted here.")
+		log.Printf("alerts: sending to Telegram chat %s as [%s]", cfg.TelegramChatID, cfg.AlertLabel)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	if err := db.RunMigrations("file://migrations", cfg.DatabaseURL); err != nil {
-		log.Fatalf("running migrations: %v", err)
+		fatalf("running migrations: %v", err)
 	}
 
 	pool, err := db.NewPool(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("connecting to postgres: %v", err)
+		fatalf("connecting to postgres: %v", err)
 	}
 	defer pool.Close()
 
 	verifier, err := authjwt.NewVerifier(ctx, cfg.FirebaseProject)
 	if err != nil {
-		log.Fatalf("setting up firebase token verifier: %v", err)
+		fatalf("setting up firebase token verifier: %v", err)
 	}
 
 	// DP-015 account email goes out through Resend when its key is set;
@@ -96,7 +121,7 @@ func main() {
 	// in the database: browsers bind their subscriptions to it.
 	vapidPublic, vapidPrivate, err := db.GetOrCreateServerKeys(ctx, pool, "vapid_public_key", "vapid_private_key", notify.GenerateVAPIDKeys)
 	if err != nil {
-		log.Fatalf("loading web push keys: %v", err)
+		fatalf("loading web push keys: %v", err)
 	}
 	db.MatchEarlyStart = cfg.MatchEarlyStart
 	hub := live.NewHub()
@@ -133,7 +158,7 @@ func main() {
 	go func() {
 		log.Printf("aksi-server listening on :%s", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			fatalf("server error: %v", err)
 		}
 	}()
 
@@ -147,16 +172,16 @@ func main() {
 	// at once rather than a full interval later.
 	scheduledPass := func() {
 		if err := scheduling.GenerateDueSessions(ctx, pool); err != nil {
-			log.Printf("recurring schedule generation: %v", err)
+			alert.Errorf("recurring schedule generation: %v", err)
 		}
 		if err := scheduling.AutoStartDueSessions(ctx, pool); err != nil {
-			log.Printf("session auto-start: %v", err)
+			alert.Errorf("session auto-start: %v", err)
 		}
 		if err := scheduling.AutoTransitionElapsedSessions(ctx, pool); err != nil {
-			log.Printf("session auto-transition: %v", err)
+			alert.Errorf("session auto-transition: %v", err)
 		}
 		if n, err := scheduling.UnfinishOverdueMatches(ctx, pool, liveScores); err != nil {
-			log.Printf("overdue live matches: %v", err)
+			alert.Errorf("overdue live matches: %v", err)
 		} else if n > 0 {
 			log.Printf("overdue live matches: %d saved as unfinished", n)
 		}

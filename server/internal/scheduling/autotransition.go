@@ -2,10 +2,10 @@ package scheduling
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/yogisofiharja/aksi-server/internal/alert"
 	"github.com/yogisofiharja/aksi-server/internal/db"
 )
 
@@ -23,7 +23,7 @@ func AutoStartDueSessions(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 	for _, sess := range sessions {
 		if err := db.SetSessionStatus(ctx, pool, sess.ID, "in_progress"); err != nil {
-			log.Printf("session %s: auto-start failed: %v", sess.ID, err)
+			alert.Errorf("session %s: auto-start failed: %v", sess.ID, err)
 		}
 	}
 	return nil
@@ -44,12 +44,12 @@ func AutoTransitionElapsedSessions(ctx context.Context, pool *pgxpool.Pool) erro
 		if sess.Status == "in_progress" {
 			// DP-027: its queued matches become Not played with it.
 			if _, err := db.CompleteElapsedSession(ctx, pool, sess.ID); err != nil {
-				log.Printf("session %s: auto-transition to completed failed: %v", sess.ID, err)
+				alert.Errorf("session %s: auto-transition to completed failed: %v", sess.ID, err)
 			}
 			continue
 		}
 		if err := db.SetSessionStatus(ctx, pool, sess.ID, "cancelled"); err != nil {
-			log.Printf("session %s: auto-transition to cancelled failed: %v", sess.ID, err)
+			alert.Errorf("session %s: auto-transition to cancelled failed: %v", sess.ID, err)
 		}
 	}
 	return nil

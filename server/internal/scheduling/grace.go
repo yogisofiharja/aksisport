@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/yogisofiharja/aksi-server/internal/alert"
 	"github.com/yogisofiharja/aksi-server/internal/db"
 )
 
@@ -36,7 +37,7 @@ func saveUnfinished(ctx context.Context, pool *pgxpool.Pool, live LiveScores, ma
 		if live == nil {
 			log.Printf("match %s: no live score reader; saving it as unfinished with the server's last state", m.ActivityID)
 		} else if state, history, found, err := live.LastScore(ctx, m.ActivityID); err != nil {
-			log.Printf("match %s: reading its live score failed (%v); saving it as unfinished with the server's last state", m.ActivityID, err)
+			alert.Errorf("match %s: reading its live score failed (%v); saving it as unfinished with the server's last state", m.ActivityID, err)
 		} else if !found {
 			log.Printf("match %s: no live score; saving it as unfinished with the server's last state", m.ActivityID)
 		} else {
@@ -47,7 +48,7 @@ func saveUnfinished(ctx context.Context, pool *pgxpool.Pool, live LiveScores, ma
 		}
 		changed, err := db.SaveUnfinished(ctx, pool, m.ActivityID, result, pointLog)
 		if err != nil {
-			log.Printf("match %s: saving as unfinished failed: %v", m.ActivityID, err)
+			alert.Errorf("match %s: saving as unfinished failed: %v", m.ActivityID, err)
 			continue
 		}
 		if changed {

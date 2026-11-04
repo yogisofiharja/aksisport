@@ -2,10 +2,10 @@ package notify
 
 import (
 	"context"
-	"log"
 	"strconv"
 	"time"
 
+	"github.com/yogisofiharja/aksi-server/internal/alert"
 	"github.com/yogisofiharja/aksi-server/internal/db"
 )
 
@@ -20,7 +20,7 @@ const ReminderLead = 2 * time.Hour
 func (s *Service) SendDueReminders(ctx context.Context) {
 	due, err := db.ClaimDueReminders(ctx, s.pool, ReminderLead)
 	if err != nil {
-		log.Printf("notify: session reminders: %v", err)
+		alert.Errorf("notify: session reminders: %v", err)
 		return
 	}
 	for _, r := range due {

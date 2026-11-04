@@ -41,7 +41,7 @@ func NewRouter(d Deps) *gin.Engine {
 	_ = r.SetTrustedProxies(nil)
 	// /v1/live carries the sign-in token in its query string (WebSockets
 	// can't send headers from a browser) — never write it to the log.
-	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/v1/live"}}), gin.Recovery(), errorLogMiddleware(), corsMiddleware(d.AllowedOrigins))
+	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/v1/live"}}), recoveryMiddleware(), errorLogMiddleware(), corsMiddleware(d.AllowedOrigins))
 
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

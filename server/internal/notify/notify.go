@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/yogisofiharja/aksi-server/internal/alert"
 	"github.com/yogisofiharja/aksi-server/internal/db"
 )
 
@@ -110,7 +111,7 @@ func (s *Service) Send(ctx context.Context, recipients []string, actor string, n
 	}
 	ids, err := db.InsertNotifications(ctx, s.pool, to, n.Type, n.Params, n.Path)
 	if err != nil {
-		log.Printf("notify: recording %s: %v", n.Type, err)
+		alert.Errorf("notify: recording %s: %v", n.Type, err)
 		return
 	}
 	if s.OnRecorded != nil {
@@ -146,7 +147,7 @@ func (s *Service) push(userIDs []string, notificationIDs map[string]string, n No
 	if category := CategoryOf(n.Type); category != "" {
 		off, err := db.UsersWithCategoryOff(ctx, s.pool, userIDs, category)
 		if err != nil {
-			log.Printf("notify: loading settings: %v", err)
+			alert.Errorf("notify: loading settings: %v", err)
 			return
 		}
 		kept := userIDs[:0:0]
@@ -163,7 +164,7 @@ func (s *Service) push(userIDs []string, notificationIDs map[string]string, n No
 
 	subs, err := db.ListPushSubscriptions(ctx, s.pool, userIDs)
 	if err != nil {
-		log.Printf("notify: loading devices: %v", err)
+		alert.Errorf("notify: loading devices: %v", err)
 		return
 	}
 	var expoMessages []expoMessage
@@ -205,6 +206,6 @@ func (s *Service) push(userIDs []string, notificationIDs map[string]string, n No
 
 func (s *Service) forget(ctx context.Context, address string) {
 	if err := db.ForgetPushAddress(ctx, s.pool, address); err != nil {
-		log.Printf("notify: forgetting a gone device: %v", err)
+		alert.Errorf("notify: forgetting a gone device: %v", err)
 	}
 }

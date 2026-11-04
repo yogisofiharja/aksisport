@@ -15,7 +15,19 @@ and never shows the cause to the client. Handlers report it through
 (`server/internal/httpapi/error_log.go`) writes one log line per 5xx:
 `ERROR <status> <method> <route> user=<id or ->: <error>`, with the path
 logged without its query string. Panics are logged with a stack trace by
-Gin's recovery middleware.
+`recoveryMiddleware` (Gin's recovery plus an alert).
+
+Alerts (`server/internal/alert`): every 5xx line, every panic (with its
+stack) and every failed background job (schedule generation, Session
+auto-start and auto-transition, overdue matches, notification recording,
+reminders, and fatal start-up errors) also goes to a Telegram chat when
+`TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are set. Messages start with
+`[ALERT_LABEL]`. Repeats of one error (same status and route, or same
+background failure) are sent once per 10 minutes, then summarised with a
+count. Sending happens off the request path; when Telegram is slow or
+down, alerts are dropped and the drop is counted, never retried.
+Start-up posts one "API started" message, which shows the setup works.
+Unset, errors are only logged.
 
 ## Health
 

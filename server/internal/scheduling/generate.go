@@ -3,11 +3,11 @@ package scheduling
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/yogisofiharja/aksi-server/internal/alert"
 	"github.com/yogisofiharja/aksi-server/internal/db"
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
@@ -43,7 +43,7 @@ func GenerateDueSessions(ctx context.Context, pool *pgxpool.Pool) error {
 		if err := generateForSchedule(ctx, pool, sched, now); err != nil {
 			// One bad Schedule (e.g. an unparseable recurrence rule) must
 			// not stop generation for every other Schedule.
-			log.Printf("recurring schedule %s: generation failed: %v", sched.ID, err)
+			alert.Errorf("recurring schedule %s: generation failed: %v", sched.ID, err)
 		}
 	}
 	return nil
@@ -78,7 +78,7 @@ func generateForSchedule(ctx context.Context, pool *pgxpool.Pool, sched models.R
 			// A concurrent generation run racing on the same occurrence
 			// hits the unique index and lands here — not fatal, the other
 			// run already generated it.
-			log.Printf("recurring schedule %s: generating occurrence %v failed: %v", sched.ID, occ, err)
+			alert.Errorf("recurring schedule %s: generating occurrence %v failed: %v", sched.ID, occ, err)
 			continue
 		}
 	}

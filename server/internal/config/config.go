@@ -41,6 +41,14 @@ type Config struct {
 	// ExpoAccessToken is optional — only if the Expo project turns on
 	// enhanced push security.
 	ExpoAccessToken string
+	// TelegramBotToken and TelegramChatID turn on error alerts: every 5xx,
+	// panic and failed background job is pushed to that chat. Both unset
+	// (local development): errors are only logged.
+	TelegramBotToken string
+	TelegramChatID   string
+	// AlertLabel names this server at the top of each alert ("staging",
+	// "production"), so environments sharing one chat can be told apart.
+	AlertLabel string
 	// RecurringScheduleGenerationInterval: how often the background ticker
 	// runs — DP-007 due-occurrence generation and DP-009 elapsed-Session
 	// auto-transition both ride the same tick. Generation lead time is
@@ -67,6 +75,9 @@ func Load() Config {
 		TrustedProxies:                      getEnv("TRUSTED_PROXIES", "127.0.0.1,::1"),
 		VAPIDSubject:                        getEnv("VAPID_SUBJECT", "https://app.aksisport.com"),
 		ExpoAccessToken:                     os.Getenv("EXPO_ACCESS_TOKEN"),
+		TelegramBotToken:                    os.Getenv("TELEGRAM_BOT_TOKEN"),
+		TelegramChatID:                      os.Getenv("TELEGRAM_CHAT_ID"),
+		AlertLabel:                          getEnv("ALERT_LABEL", "local"),
 		RecurringScheduleGenerationInterval: getEnvMinutes("RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES", 15),
 		MatchEarlyStart:                     getEnvMinutes("MATCH_EARLY_START_MINUTES", 10),
 	}

@@ -148,6 +148,9 @@ Real, live work that fell outside the six-milestone roadmap above:
 - **Deployment infrastructure** — `c83efc1`. Production/staging on a
   single VPS (systemd + Caddy + GitHub Actions), fully separate
   environments and databases.
+- **Error alerts** — 500s, panics and failed background jobs are pushed
+  to a Telegram chat when `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` are set
+  (`server/internal/alert`). Client crash reports are not sent.
 - **"Join with Code" removed** — part of `7e5ddd3`. Deliberate removal
   (screen, routes, invite-code display/regenerate UI). The gap it left —
   no self-service way to join — is closed by DP-017 below.

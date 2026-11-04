@@ -223,6 +223,11 @@ CLIENT_IP_HEADER=CF-Connecting-IP
 # https://app.aksisport.com). EXPO_ACCESS_TOKEN only if the Expo project
 # turns on enhanced push security.
 # VAPID_SUBJECT=mailto:admin@aksisport.com
+# Error alerts to Telegram (optional, see "Error alerts" below). Staging
+# uses ALERT_LABEL=staging; both may share one chat.
+# TELEGRAM_BOT_TOKEN=<bot-token>
+# TELEGRAM_CHAT_ID=<chat-id>
+# ALERT_LABEL=production
 EOF
 
 sudo tee /etc/aksi/production-web.env <<'EOF'
@@ -294,6 +299,22 @@ journalctl -u aksi-web-production -n 100
 Every 500 from the API is logged with its cause on a line starting
 `ERROR`, so `journalctl -u aksi-api-staging | grep ERROR` lists them.
 Panics are logged with a stack trace, starting `[Recovery]`.
+
+**Error alerts.** With `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in the
+environment file, the same errors (plus panics and failed background jobs)
+are pushed to a Telegram chat. To set it up once:
+
+1. In Telegram, message `@BotFather`, send `/newbot`, and keep the token
+   it answers with. Treat it as a password.
+2. Add the bot to the chat (or group) that should get alerts and send any
+   message there.
+3. Open `https://api.telegram.org/bot<token>/getUpdates` in a browser;
+   the chat's `"id"` (negative for a group) is `TELEGRAM_CHAT_ID`.
+4. Add both, plus `ALERT_LABEL=production` or `staging`, to
+   `/etc/aksi/<env>.env` and restart the API. It posts "API started" to
+   the chat; `journalctl` shows `alerts: sending to Telegram chat …` (or
+   why alerts are off). A failed send is logged as `alert: telegram: …`
+   with Telegram's reason, never the token.
 
 ### 15. Narrow sudoers rule
 

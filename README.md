@@ -34,7 +34,8 @@ make run
 
 Optional settings in `server/.env.example`: `RESEND_API_KEY` and
 `MAIL_FROM` for email, `FIREBASE_SERVICE_ACCOUNT_FILE` for password
-changes, `CLIENT_IP_HEADER` / `TRUSTED_PROXIES` behind a proxy. Keep
+changes, `CLIENT_IP_HEADER` / `TRUSTED_PROXIES` behind a proxy,
+`TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` for error alerts. Keep
 secrets out of the repository.
 
 ## Tests
