@@ -1130,6 +1130,19 @@ are organizer-initiated and skip approval and payment (DP-002), so their
 rows show no Paid / Awaiting, and any count of who has paid leaves them
 out. Only members who go through the payment step have one.
 
+**Payment step clarity** (2026-11-04, from an end-to-end walkthrough):
+- Status reads **Not paid → Receipt sent → Paid**; the Waitlist section
+  is labelled **Awaiting payment**.
+- Each viewer sees what is theirs: a player who still has to pay gets
+  the amount and the upload; once paid, their confirmation and receipt
+  (no amount or Replace); organizers never see an amount due. The bank
+  accounts, each with a Copy button, stay visible to everyone.
+- Receipts open at full size, so organizers can read them.
+- Organizers get a "requests to join · receipts to check" callout on
+  the Session, and are warned when a priced Session's Community has no
+  bank account (on the check step and on the Session). The warning does
+  not block publishing.
+
 ### Scope
 
 Still no payment gateway, no automated charge, no tracking of *how

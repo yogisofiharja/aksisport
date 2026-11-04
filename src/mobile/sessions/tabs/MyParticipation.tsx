@@ -18,6 +18,8 @@ type Props = {
   maxLevelName?: string;
   onCancelMyParticipation: () => void;
   onCheckOut: () => void;
+  /** The approved-but-unpaid notice; off where the payment card shows. */
+  showPaymentNotice: boolean;
 };
 
 // The caller's own place in this Session — ask to join, the state of
@@ -50,6 +52,7 @@ export function MyParticipation({
   maxLevelName,
   onCancelMyParticipation,
   onCheckOut,
+  showPaymentNotice,
 }: Props) {
   const { t } = useTranslation();
   if (!isPublished) return null;
@@ -65,14 +68,18 @@ export function MyParticipation({
         <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('sessionRequestedNotice')}</Text>
       </Box>
       <Pressable className="items-center py-1 active:opacity-60" onPress={onCancelMyParticipation} disabled={busy}>
-        <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
+        <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyRequest')}</Text>
       </Pressable>
     </VStack>
   ) : myParticipant?.status === 'waitlist' ? (
     <VStack className="gap-2">
-      <Box className="bg-heat-tint dark:bg-heat-tint-dark rounded-2xl p-4 items-center">
-        <Text className="text-sm text-ink dark:text-ink-dark">{t('sessionWaitlistedNotice')}</Text>
-      </Box>
+      {showPaymentNotice && (
+        <Box className="bg-heat-tint dark:bg-heat-tint-dark rounded-2xl p-4 items-center">
+          <Text className="text-sm text-ink dark:text-ink-dark">
+            {t(myParticipant.hasReceipt ? 'sessionPaymentReceiptSentHint' : 'sessionWaitlistedNotice')}
+          </Text>
+        </Box>
+      )}
       <Pressable className="items-center py-1 active:opacity-60" onPress={onCancelMyParticipation} disabled={busy}>
         <Text className="text-red-500 font-bold text-sm">{t('sessionCancelMyParticipation')}</Text>
       </Pressable>

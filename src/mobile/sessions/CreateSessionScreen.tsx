@@ -11,7 +11,7 @@ import { Button, ButtonText } from '../../design-system/ui/Button';
 import { FieldError } from '../../design-system/ui/Field';
 import { useTranslation } from '../../i18n';
 import { createSession, getSession, publishSession, updateSession } from '../../core/sessions/api';
-import { getClub } from '../../core/clubs/api';
+import { getClub, listClubBankAccounts } from '../../core/clubs/api';
 import {
   createRecurringSchedule,
   getRecurringSchedule,
@@ -152,6 +152,9 @@ export function CreateSessionScreen({
   const [attempted, setAttempted] = useState(false);
   const [step, setStep] = useState<'form' | 'check'>('form');
   const [clubName, setClubName] = useState('');
+  // Whether the Community has somewhere for players to pay; null while
+  // unknown. A priced Session without one gets a warning on the check step.
+  const [hasBankAccount, setHasBankAccount] = useState<boolean | null>(null);
   const [levels, setLevels] = useState<SkillLevel[]>([]);
   const [loadingExisting, setLoadingExisting] = useState(editing);
   const [submitting, setSubmitting] = useState(false);
@@ -193,6 +196,12 @@ export function CreateSessionScreen({
     });
   }
 
+  function checkBankAccounts(id: string) {
+    listClubBankAccounts(id)
+      .then((accounts) => setHasBankAccount(accounts.length > 0))
+      .catch(() => {});
+  }
+
   useEffect(() => {
     if (editingSessionId) {
       getSession(editingSessionId)
@@ -206,6 +215,7 @@ export function CreateSessionScreen({
           getClub(sess.clubId)
             .then((club) => setClubName(club.name))
             .catch(() => {});
+          checkBankAccounts(sess.clubId);
         })
         .catch(() => setSaveError(t('authGenericError')))
         .finally(() => setLoadingExisting(false));
@@ -214,6 +224,7 @@ export function CreateSessionScreen({
     getClub(clubId)
       .then((club) => setClubName(club.name))
       .catch(() => {});
+    checkBankAccounts(clubId);
     if (editingScheduleId) {
       getRecurringSchedule(clubId, editingScheduleId)
         .then((sched) => {
@@ -388,6 +399,7 @@ export function CreateSessionScreen({
           levels={levels}
           submitting={submitting}
           error={saveError}
+          noBankAccount={values.priceModel !== 'free' && hasBankAccount === false}
           onBack={() => setStep('form')}
           onCreate={createSchedule}
           onDiscard={() => setDiscardAction(() => onBack)}
@@ -406,6 +418,7 @@ export function CreateSessionScreen({
           levels={levels}
           submitting={submitting}
           error={saveError}
+          noBankAccount={values.priceModel !== 'free' && hasBankAccount === false}
           onBack={() => setStep('form')}
           onPublish={() => create(true)}
           onSaveDraft={() => create(false)}

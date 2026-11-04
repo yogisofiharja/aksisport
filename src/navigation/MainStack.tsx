@@ -362,6 +362,7 @@ export function MainStack() {
             onEdit={(sessionId) => navigation.navigate('EditSession', { sessionId })}
             onDiscarded={() => navigation.goBack()}
             onOpenClub={(clubId) => navigation.navigate('ClubDetail', { clubId })}
+            onOpenClubSettings={(clubId) => navigation.navigate('ClubSettings', { clubId })}
           />
         )}
       </Stack.Screen>

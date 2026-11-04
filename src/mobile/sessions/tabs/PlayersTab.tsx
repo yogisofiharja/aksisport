@@ -84,7 +84,7 @@ export function PlayersTab({
       status === 'paid'
         ? t('sessionPaymentStatusPaid')
         : status === 'awaiting'
-          ? t('sessionPaymentStatusAwaiting')
+          ? t(p.hasReceipt ? 'sessionPaymentStatusReceiptSent' : 'sessionPaymentStatusAwaiting')
           : isHost
             ? t('sessionHostLabel')
             : isGuest

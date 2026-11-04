@@ -493,11 +493,14 @@ straight in with an owner/admin's invite; a pending request shows
 
 **Players tab** (everyone): every participant, in every status, is a
 circle (`PlayerCircle`). Checked-in and confirmed players share one grid
-with the open spots; below it Requested, Waitlist, Checked out, No-show
+with the open spots; below it Requested, Awaiting payment, Checked out, No-show
 and Cancelled each get their own grid ("Requested · 2"), the last two
 faded. Every circle — the host's too — opens the player's sheet
 (`PlayerRowSheet`) for anyone: their status (with host or guest), View
-profile and, on a priced Session, Paid / Awaiting. Organizers also get
-Approve / Decline on a request, Check in (while the window is open), the
-receipt, Confirm payment and Remove.
+profile and, on a priced Session, Paid / Receipt sent / Not paid.
+Organizers also get Approve / Decline on a request, Check in (while the
+window is open), the receipt (full size on a tap), Confirm payment and
+Remove. Organizers see a "requests to join · receipts to check" callout
+on Details and Players, which opens the first one, and its count on the
+Players tab.
 

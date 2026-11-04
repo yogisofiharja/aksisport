@@ -636,9 +636,11 @@ above); this area keeps the notices and the ways to give up a spot:
   which is explained here (Request to join itself is the bottom action;
   the Guidance-mode confirm dialog opens from it).
 - `requested` → a muted notice ("waiting for organizer approval") plus a
-  "Cancel my spot" link.
-- `waitlist` → a yellow notice ("approved — complete payment to claim
-  your spot") plus a "Cancel my spot" link.
+  "Cancel request" link (its confirm asks "Cancel your request?").
+- `waitlist` → a heat notice ("You're approved! Pay to claim your
+  spot.", or once a receipt is sent, "The organizer will check your
+  receipt…") plus a "Cancel my spot" link. The notice is left out on
+  Players, where the viewer's payment card says the same.
 - `registered` → the "check-in opens/closes" notice outside the
   Check-In Window (inside it, Check in is the bottom action), plus a
   "Cancel my spot" link.
@@ -662,11 +664,11 @@ and organizers alike — sees every participant, in every status, as a
 (`checked_in`, with a green check) then **Confirmed** (`registered`),
 followed by the open-spot placeholders. Below it, each other status gets
 its own labelled grid ("Requested · 2"), only when it has someone in it:
-**Requested** → **Waitlist** → **Checked out** → **No-show** →
+**Requested** → **Awaiting payment** (`waitlist`) → **Checked out** → **No-show** →
 **Cancelled**; no-show and cancelled players are drawn faded. A circle
 shows initials (no `avatarUrl` on `SessionParticipant` yet; a guest's is
-dashed), the name ("You" for the viewer) and one line: Paid / Awaiting on
-a paid Session for a member who went through the payment step
+dashed), the name ("You" for the viewer) and one line: Paid / Receipt
+sent / Not paid on a paid Session for a member who went through the payment step
 (`paymentStatus`, `core/sessions/paymentStatus.ts`), else "Host" or
 "Guest". The host and guests never have a payment line, since
 organizer-initiated places skip approval and payment (DP-012 v0.29.0),
@@ -679,7 +681,28 @@ the status (with host or guest), **View profile** (DP-019) and the
 payment status. Owner/admin, while the Session is active, also get
 **Approve** and **Decline** on a request, **Check in** on a confirmed
 player (inside the Check-In Window), the receipt and **Confirm payment**
-while awaited (`ParticipantPayment`), and **Remove**. The section header
+while awaited (`ParticipantPayment`), and **Remove**. A receipt
+opens at full size on a tap (`design-system/feedback/ImageViewer`; chat
+photos open the same way).
+
+**Organizer to-do** (owner/admin, published and active): a heat callout
+on Details and Players — "1 request to join · 2 receipts to check ·
+Review" — opens the first one's sheet (requests first); the same count
+rides on the Players tab (`organizerToDo`,
+`core/sessions/paymentStatus.ts`). A priced Session whose Community has
+no bank account shows organizers "No bank account yet, so players can't
+pay" on Details and in Players (with Add bank account for the owner,
+which opens Community settings), and on the create form's check step.
+
+**Payment area** (top of Players, priced Session, `PaymentSummary`):
+- A player who still has to pay: "Your payment" — Not paid with the
+  amount and what to do, or Receipt sent with the receipt and Replace
+  receipt — then the bank accounts, each with a Copy button for the
+  number. Their bottom action is Pay (to Players), which on Players reads
+  Upload receipt; once a receipt is sent there is no bottom action.
+- A player who has paid: Paid, "Payment confirmed" and the receipt —
+  no amount, no Replace; the bank accounts stay below.
+- Organizers and anyone else: the bank accounts only (no amount due). The section header
 shows `joinedCount`/`maxParticipants` next to the "Players" title.
 
 **Empty-slot placeholders** (Milestone 2, revised): once published *and*

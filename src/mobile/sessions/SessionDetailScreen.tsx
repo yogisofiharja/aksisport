@@ -26,6 +26,7 @@ import {
   discardDraftSession,
   getSession,
   listParticipants,
+  listSessionBankAccounts,
   publishSession,
   registerForSession,
 } from '../../core/sessions/api';
@@ -40,7 +41,8 @@ import { offerPush } from '../../core/notifications/offerPush';
 import { useSessionChatUnread } from '../../core/messages/useSessionChatUnread';
 import { Segmented } from '../../design-system/ui/Segmented';
 import { SessionContactOrganizer } from './SessionContactOrganizer';
-import { PaymentSummary } from './SessionPayment';
+import { PaymentSummary, useReceiptUpload } from './SessionPayment';
+import { organizerToDo } from '../../core/sessions/paymentStatus';
 import { PlayerRowSheet } from './PlayerRowSheet';
 import { AddParticipantSheet, type AddParticipantStep } from './AddParticipantSheet';
 import { MyParticipation } from './tabs/MyParticipation';
@@ -72,6 +74,7 @@ import type { MatchFormat, MatchMode, MatchState } from '../../sports/tennis/sco
 import { minParticipants } from '../../sports/tennis/rules';
 import type {
   ActivityDetail,
+  ClubBankAccount,
   ClubMember,
   ClubPreview,
   RecurringSchedule,
@@ -91,6 +94,8 @@ type Props = {
   onDiscarded: () => void;
   // The Community row on Details, for a member (DP-028).
   onOpenClub: (clubId: string) => void;
+  // Community settings, where its owner adds bank accounts (DP-012).
+  onOpenClubSettings: (clubId: string) => void;
   // Set when arriving from the Inbox tab (DP-013 Contact Organizer) — the
   // memberUserId of the specific thread to jump straight into.
   openContactWith?: string;
@@ -126,6 +131,7 @@ export function SessionDetailScreen({
   onEdit,
   onDiscarded,
   onOpenClub,
+  onOpenClubSettings,
   openContactWith,
   initialTab,
 }: Props) {
@@ -174,6 +180,9 @@ export function SessionDetailScreen({
   // (session.recurringScheduleId) — used for the Details tab's "Every
   // <weekday>" line.
   const [recurringSchedule, setRecurringSchedule] = useState<RecurringSchedule | null>(null);
+  // Where a priced Session's players send money (DP-012); null until
+  // loaded, so "no bank account" never flashes.
+  const [bankAccounts, setBankAccounts] = useState<ClubBankAccount[] | null>(null);
 
   // Tracks the match-generation-eligible pool (registered or checked_in —
   // matches can be planned before anyone's physically checked in, see
@@ -197,7 +206,7 @@ export function SessionDetailScreen({
       // routes, so no member list for them. The Community row on Details
       // uses its preview, which anyone may read (DP-017).
       const visitor = sess.viewerRole === 'visitor';
-      const [parts, members, acts, clubResult, schedule] = await Promise.all([
+      const [parts, members, acts, clubResult, schedule, accounts] = await Promise.all([
         listParticipants(sessionId),
         visitor ? Promise.resolve([] as ClubMember[]) : listMembers(sess.clubId),
         listActivities(sessionId),
@@ -208,6 +217,8 @@ export function SessionDetailScreen({
         sess.recurringScheduleId
           ? getRecurringSchedule(sess.clubId, sess.recurringScheduleId).catch(() => null)
           : Promise.resolve(null),
+        // Not fatal either: without them the payment area says so.
+        sess.priceModel === 'free' ? Promise.resolve([] as ClubBankAccount[]) : listSessionBankAccounts(sessionId).catch(() => null),
       ]);
       const myRole = sess.viewerRole ?? members.find((m) => m.userId === profile?.id)?.role;
       const amOwnerOrAdmin = myRole === 'owner' || myRole === 'admin';
@@ -252,6 +263,7 @@ export function SessionDetailScreen({
       setIsOwnerOrAdmin(amOwnerOrAdmin);
       setClub(clubResult);
       setRecurringSchedule(schedule);
+      setBankAccounts(accounts);
       if (sess.skillLevelMinId && sess.skillLevelMaxId) {
         const [levels, mine] = await Promise.all([listSkillLevels(sess.sport), listMySkillLevels()]);
         setSportLevels(levels);
@@ -273,6 +285,10 @@ export function SessionDetailScreen({
       load();
     }, [load])
   );
+
+  // The viewer's own payment receipt — the bottom action and the Players
+  // tab share it.
+  const receipt = useReceiptUpload(sessionId, load);
 
   const myParticipant = participants.find((p) => p.userId === profile?.id);
 
@@ -466,10 +482,16 @@ export function SessionDetailScreen({
 
   function handleCancelMyParticipation() {
     if (busy) return;
-    appAlert(t('sessionCancelMyParticipationConfirmTitle'), t('sessionCancelMyParticipationConfirmDesc'), [
-      { text: t('clubCancel'), style: 'cancel' },
-      { text: t('sessionCancelMyParticipation'), style: 'destructive', onPress: doCancelMyParticipation },
-    ]);
+    // A request not yet approved is cancelled as a request, not a spot.
+    const isRequest = myParticipant?.status === 'requested';
+    appAlert(
+      t(isRequest ? 'sessionCancelMyRequestConfirmTitle' : 'sessionCancelMyParticipationConfirmTitle'),
+      t('sessionCancelMyParticipationConfirmDesc'),
+      [
+        { text: t('clubCancel'), style: 'cancel' },
+        { text: t(isRequest ? 'sessionCancelMyRequest' : 'sessionCancelMyParticipation'), style: 'destructive', onPress: doCancelMyParticipation },
+      ]
+    );
   }
 
   // DP-002: self-service — "I'm leaving," the checked_in counterpart to
@@ -808,6 +830,8 @@ export function SessionDetailScreen({
       maxLevelName={maxLevel?.name}
       onCancelMyParticipation={handleCancelMyParticipation}
       onCheckOut={handleCheckOut}
+      // Players opens with the viewer's payment card, which says the same.
+      showPaymentNotice={activeTab !== 'players'}
     />
   );
 
@@ -819,12 +843,22 @@ export function SessionDetailScreen({
 
   // A free Session has nothing to pay or confirm (DP-002 v0.24.0).
   const isFree = session.priceModel === 'free';
+  // What waits on an organizer: requests for a spot and receipts to
+  // check. A callout on Details and Players opens the first one; the count
+  // rides on the Players tab.
+  const todo = isOwnerOrAdmin && isSessionActive && isPublished ? organizerToDo(participants, session) : null;
+  const hasToDo = Boolean(todo && todo.first);
+  // A priced Session whose Community has no bank account: players have
+  // nowhere to pay. Organizers are told on Details (Players says it in its
+  // payment area).
+  const noBankAccount = !isFree && isOwnerOrAdmin && isSessionActive && bankAccounts !== null && bankAccounts.length === 0;
+  const canAddBankAccount = club?.viewerRole === 'owner';
   // Four tabs that always fit on a phone (DP-024). While In Progress the
   // Session is about its matches, so they lead; after it, Matches reads
   // as Results.
   const tabOptions: Record<SessionTab, { value: SessionTab; label: string; count?: number }> = {
     details: { value: 'details', label: t('sessionTabDetails') },
-    players: { value: 'players', label: t('sessionTabParticipants') },
+    players: { value: 'players', label: t('sessionTabParticipants'), count: todo ? todo.requests + todo.receipts : undefined },
     matches: { value: 'matches', label: session.lifecycleStatus === 'completed' ? t('sessionTabResults') : t('sessionTabMatches') },
     chat: { value: 'chat', label: t('sessionTabChat'), count: chatUnread },
   };
@@ -850,10 +884,15 @@ export function SessionDetailScreen({
         onPress: handleRequestToJoin,
         fact: priceText ? { label: spotsLeft != null ? t('sessionSpotsLeft', spotsLeft) : '', value: priceText } : undefined,
       };
-    } else if (status === 'waitlist' && !isFree) {
-      // Pay = upload the receipt; the transfer details are at the top of
-      // Players.
-      bottomAction = { label: t('sessionPay'), onPress: () => setActiveTab('players') };
+    } else if (status === 'waitlist' && !isFree && !myParticipant?.hasReceipt) {
+      // Pay: the amount and where to send it are at the top of Players,
+      // so Pay goes there; once there, the same button uploads the
+      // receipt. With a receipt sent there is nothing left to do but wait
+      // for the organizer.
+      bottomAction =
+        activeTab === 'players'
+          ? { label: t('sessionPaymentUploadReceipt'), onPress: receipt.start }
+          : { label: t('sessionPay'), onPress: () => setActiveTab('players') };
     } else if (status === 'registered' && checkInWindowOpen) {
       bottomAction = { label: t('sessionCheckIn'), onPress: handleCheckIn };
     } else if (umpireNext && matchesOpen) {
@@ -1080,6 +1119,28 @@ export function SessionDetailScreen({
         contentContainerClassName="px-5 pt-6 pb-6 gap-5"
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
       >
+        {hasToDo && todo?.first && (activeTab === 'details' || activeTab === 'players') && (
+          <Alert
+            tone="heat"
+            icon={todo.requests > 0 ? 'person-add-outline' : 'receipt-outline'}
+            title={t('sessionOrganizerToDo', todo.requests, todo.receipts)}
+            titleSuffix={t('communityReview')}
+            onPress={() => setRowMenuParticipant(todo.first!)}
+          />
+        )}
+
+        {noBankAccount && activeTab === 'details' && (
+          <Alert
+            tone="heat"
+            icon="card-outline"
+            title={t('sessionPaymentNoBankAccountsOrganizer')}
+            actionLabel={canAddBankAccount ? t('clubBankAccountAdd') : undefined}
+            onAction={canAddBankAccount ? () => onOpenClubSettings(session.clubId) : undefined}
+          >
+            {canAddBankAccount ? undefined : t('sessionPaymentNoBankAccountsAdminHint')}
+          </Alert>
+        )}
+
         {activeTab === 'details' && (
           <DetailsTab
             session={session}
@@ -1111,7 +1172,15 @@ export function SessionDetailScreen({
             myParticipation={myParticipation}
             paymentSummary={
               isFree ? undefined : (
-                <PaymentSummary sessionId={sessionId} session={session} myParticipant={myParticipant} onParticipantsChanged={load} />
+                <PaymentSummary
+                  sessionId={sessionId}
+                  session={session}
+                  myParticipant={myParticipant}
+                  isOwnerOrAdmin={isOwnerOrAdmin}
+                  bankAccounts={bankAccounts ?? []}
+                  onAddBankAccount={canAddBankAccount ? () => onOpenClubSettings(session.clubId) : undefined}
+                  receipt={receipt}
+                />
               )
             }
             onOpenRowMenu={setRowMenuParticipant}

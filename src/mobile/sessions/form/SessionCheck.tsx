@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppBar } from '../../../design-system/layout/AppBar';
+import { Alert } from '../../../design-system/feedback/Alert';
 import { SummaryCard } from '../../../design-system/domain-ui/SummaryCard';
 import { Button, ButtonText } from '../../../design-system/ui/Button';
 import { FieldError } from '../../../design-system/ui/Field';
@@ -16,6 +17,8 @@ type Props = {
   levels: SkillLevel[];
   submitting: boolean;
   error: string | null;
+  /** Priced, and the Community has no bank account to pay into. */
+  noBankAccount?: boolean;
   onBack: () => void;
   onPublish: () => void;
   onSaveDraft: () => void;
@@ -26,7 +29,7 @@ type Props = {
 // read back as a DRAFT card, before anything is saved. Publish (primary),
 // Save as draft (secondary), then Discard as red text, last — it asks
 // first. Back returns to the form with everything kept.
-export function SessionCheck({ values: v, clubName, levels, submitting, error, onBack, onPublish, onSaveDraft, onDiscard }: Props) {
+export function SessionCheck({ values: v, clubName, levels, submitting, error, noBankAccount, onBack, onPublish, onSaveDraft, onDiscard }: Props) {
   const { t, lang } = useTranslation();
   const insets = useSafeAreaInsets();
   const notes = v.description.trim();
@@ -34,6 +37,11 @@ export function SessionCheck({ values: v, clubName, levels, submitting, error, o
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-ground dark:bg-ground-dark">
       <AppBar title={t('sessionCheckTitle')} context={clubName || undefined} onBack={onBack} />
       <ScrollView contentContainerClassName="p-4 gap-4">
+        {noBankAccount ? (
+          <Alert tone="heat" icon="card-outline" title={t('sessionPaymentNoBankAccountsOrganizer')}>
+            {t('sessionCheckNoBankAccountHint')}
+          </Alert>
+        ) : null}
         <SummaryCard
           tag={t('sessionStatusDraft').toUpperCase()}
           title={v.name.trim()}

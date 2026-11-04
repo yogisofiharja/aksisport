@@ -26,3 +26,21 @@ export function paymentStatus(
   if (hasPaid(p)) return 'paid';
   return undefined;
 }
+
+// A receipt waiting for an organizer: the player uploaded proof of payment
+// and nobody has confirmed it yet.
+export function receiptToCheck(p: SessionParticipant, session: Pick<Session, 'priceModel' | 'createdBy'>): boolean {
+  return paymentStatus(p, session) === 'awaiting' && p.hasReceipt;
+}
+
+// What waits on an organizer in a Session: members asking for a spot, and
+// receipts to check. `first` is who to open first — requests before
+// receipts, oldest first as listed.
+export function organizerToDo(
+  participants: SessionParticipant[],
+  session: Pick<Session, 'priceModel' | 'createdBy'>
+): { requests: number; receipts: number; first?: SessionParticipant } {
+  const requests = participants.filter((p) => p.status === 'requested' && p.userId);
+  const receipts = participants.filter((p) => receiptToCheck(p, session));
+  return { requests: requests.length, receipts: receipts.length, first: requests[0] ?? receipts[0] };
+}

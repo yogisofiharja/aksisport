@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, KeyboardAvoidingView, Platform, RefreshControl, ScrollView } from 'react-native';
 import { Image } from '../../platform/Image';
+import { ImageViewer } from '../../design-system/feedback/ImageViewer';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { Icon } from '../../design-system/ui/Icon';
 import { color } from '../../design-system/foundation/colors';
@@ -76,6 +77,8 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
   const [sending, setSending] = useState(false);
   const [imageHeaders, setImageHeaders] = useState<Record<string, string>>({});
+  // A photo opened at full size.
+  const [viewerUri, setViewerUri] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   // DP-021: live updates, read receipts and typing. The conversation is
@@ -331,7 +334,12 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
                     </Box>
                   </Pressable>
                 ) : (
-                  <Pressable onLongPress={() => handleMessageLongPress(m)} delayLongPress={400} style={{ maxWidth: '85%' }}>
+                  <Pressable
+                    onPress={m.hasImage ? () => setViewerUri(imageUrl(m.id)) : undefined}
+                    onLongPress={() => handleMessageLongPress(m)}
+                    delayLongPress={400}
+                    style={{ maxWidth: '85%' }}
+                  >
                     <Box
                       className={`rounded-2xl overflow-hidden ${isMine ? 'rounded-br-md' : 'rounded-bl-md'} ${
                         isMine ? 'bg-heat-tint dark:bg-heat-tint-dark' : 'bg-surface dark:bg-surface-dark border border-border dark:border-border-dark'
@@ -433,6 +441,7 @@ export function ConversationThread({ imageUrl, messages, loading, onRefresh, myU
         </Box>
       )}
       <ReportSheet target={reportTarget} onClose={() => setReportTarget(null)} />
+      <ImageViewer uri={viewerUri} headers={imageHeaders} onClose={() => setViewerUri(null)} />
     </KeyboardAvoidingView>
   );
 }

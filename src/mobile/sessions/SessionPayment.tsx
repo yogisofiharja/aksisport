@@ -1,26 +1,30 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Image } from '../../platform/Image';
 import { appAlert } from '../../design-system/feedback/appAlert';
+import { Alert } from '../../design-system/feedback/Alert';
+import { ImageViewer } from '../../design-system/feedback/ImageViewer';
+import { Icon } from '../../design-system/ui/Icon';
 import { Box, HStack, VStack } from '../../../components/ui/box';
 import { Text } from '../../../components/ui/text';
+import { Pressable } from '../../../components/ui/pressable';
 import { Button, ButtonText } from '../../../components/ui/button';
 import { useTranslation } from '../../i18n';
 import { authHeader } from '../../core/api/client';
-import { listSessionBankAccounts } from '../../core/sessions/api';
 import { participantReceiptUrl, uploadPaymentReceipt } from '../../core/sessions/api';
 import { formatIDR } from '../../core/currency';
 import { pickImageAsDataUrl, parseDataUrl } from '../../imagePicker';
 import type { ClubBankAccount, Session, SessionParticipant } from '../../core/api/types';
 
 // Payments (Milestone 5, DP-012) live in a Session's Players tab
-// (DP-024): PaymentSummary at the top of the tab (amount due, the
-// Community's bank accounts, the viewer's own payment and receipt), and
-// ParticipantPayment in a player's row sheet, where organizers look at the
-// receipt and confirm. Receipt visibility is unchanged: an image is only
-// ever fetched by its uploader or an owner/admin (the server checks too).
+// (DP-024): PaymentSummary at the top of the tab (the viewer's own
+// payment, what to pay and where), and ParticipantPayment in a player's
+// row sheet, where organizers look at the receipt and confirm. Receipt
+// visibility is unchanged: an image is only ever fetched by its uploader
+// or an owner/admin (the server checks too).
 
-export { hasPaid, isAwaitingPayment, paymentStatus } from '../../core/sessions/paymentStatus';
+export { hasPaid, isAwaitingPayment, paymentStatus, receiptToCheck } from '../../core/sessions/paymentStatus';
 import { hasPaid, isAwaitingPayment, paymentStatus } from '../../core/sessions/paymentStatus';
 
 // GET .../participants/:id/receipt is behind the same auth as every
@@ -34,47 +38,19 @@ function useImageHeaders() {
   return headers;
 }
 
-type SummaryProps = {
-  sessionId: string;
-  session: Session;
-  myParticipant?: SessionParticipant;
-  onParticipantsChanged: () => void;
+export type ReceiptUpload = {
+  uploading: boolean;
+  error: string | null;
+  /** Asks camera or gallery, then uploads the picture as the receipt. */
+  start: () => void;
 };
 
-// The top of Players on a priced Session.
-export function PaymentSummary({ sessionId, session, myParticipant, onParticipantsChanged }: SummaryProps) {
+// Uploading the viewer's own receipt. The Session screen owns it, so its
+// bottom action ("Upload receipt") and the Players tab share one upload.
+export function useReceiptUpload(sessionId: string, onUploaded: () => void): ReceiptUpload {
   const { t } = useTranslation();
-  const [bankAccounts, setBankAccounts] = useState<ClubBankAccount[]>([]);
-  const imageHeaders = useImageHeaders();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const loadBankAccounts = useCallback(async () => {
-    try {
-      setBankAccounts(await listSessionBankAccounts(session.id));
-    } catch {
-      // stays empty; not fatal, the rest of the tab still renders
-    }
-  }, [session.clubId]);
-
-  useEffect(() => {
-    loadBankAccounts();
-  }, [loadBankAccounts]);
-
-  const amountDue =
-    session.priceModel === 'per_person'
-      ? session.pricePerPerson
-      : session.priceModel === 'split_bill' && session.totalPrice != null && session.joinedCount > 0
-        ? Math.round(session.totalPrice / session.joinedCount)
-        : undefined;
-
-  async function handleUploadReceipt() {
-    appAlert(t('sessionChatAttachImageTitle'), undefined, [
-      { text: t('sessionChatAttachCamera'), onPress: () => pickAndUpload('camera') },
-      { text: t('sessionChatAttachGallery'), onPress: () => pickAndUpload('gallery') },
-      { text: t('clubCancel'), style: 'cancel' },
-    ]);
-  }
 
   async function pickAndUpload(source: 'camera' | 'gallery') {
     const dataUrl = await pickImageAsDataUrl(source);
@@ -85,7 +61,7 @@ export function PaymentSummary({ sessionId, session, myParticipant, onParticipan
     setError(null);
     try {
       await uploadPaymentReceipt(sessionId, parsed);
-      onParticipantsChanged();
+      onUploaded();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('authGenericError'));
     } finally {
@@ -93,57 +69,176 @@ export function PaymentSummary({ sessionId, session, myParticipant, onParticipan
     }
   }
 
+  return {
+    uploading,
+    error,
+    start: () =>
+      appAlert(t('sessionChatAttachImageTitle'), undefined, [
+        { text: t('sessionChatAttachCamera'), onPress: () => pickAndUpload('camera') },
+        { text: t('sessionChatAttachGallery'), onPress: () => pickAndUpload('gallery') },
+        { text: t('clubCancel'), style: 'cancel' },
+      ]),
+  };
+}
+
+// What one person pays: the per-person price, or the split bill divided
+// by who has joined.
+export function amountDue(session: Session): number | undefined {
+  if (session.priceModel === 'per_person') return session.pricePerPerson ?? undefined;
+  if (session.priceModel === 'split_bill' && session.totalPrice != null && session.joinedCount > 0) {
+    return Math.round(session.totalPrice / session.joinedCount);
+  }
+  return undefined;
+}
+
+// A receipt thumbnail that opens the whole picture — a transfer
+// screenshot is only readable at full size.
+function ReceiptThumbnail({ uri, headers, size }: { uri: string; headers: Record<string, string>; size: number }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Pressable onPress={() => setOpen(true)} className="self-start active:opacity-70" accessibilityRole="imagebutton" accessibilityLabel={t('sessionPaymentViewReceipt')}>
+        <Image source={{ uri, headers }} style={{ width: size, height: size, borderRadius: 12 }} resizeMode="cover" />
+        <HStack className="items-center gap-1 mt-1.5">
+          <Icon name="expand-outline" size="xs" color="muted" />
+          <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark">{t('sessionPaymentViewReceipt')}</Text>
+        </HStack>
+      </Pressable>
+      <ImageViewer uri={open ? uri : null} headers={headers} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+function BankAccountCard({ account }: { account: ClubBankAccount }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const id = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(id);
+  }, [copied]);
+  async function copy() {
+    try {
+      await Clipboard.setStringAsync(account.accountNumber.replace(/\s+/g, ''));
+      setCopied(true);
+    } catch {
+      // Copying isn't available; the number is still on screen.
+    }
+  }
+  return (
+    <HStack className="bg-surface dark:bg-surface-dark rounded-2xl p-4 items-center gap-3">
+      <VStack className="flex-1 gap-0.5">
+        <Text className="font-bold text-ink dark:text-ink-dark">{account.bankName}</Text>
+        <Text selectable className="text-ink dark:text-ink-dark tracking-wide">
+          {account.accountNumber}
+        </Text>
+        <Text className="text-ink-muted dark:text-ink-muted-dark text-sm">{account.accountName}</Text>
+      </VStack>
+      <Pressable
+        onPress={copy}
+        accessibilityRole="button"
+        accessibilityLabel={t('sessionPaymentCopyAccountNumber')}
+        className="flex-row items-center gap-1 px-3 py-2 rounded-full border border-border dark:border-border-dark active:opacity-60"
+      >
+        <Icon name={copied ? 'checkmark' : 'copy-outline'} size="xs" color={copied ? 'success' : 'default'} />
+        <Text className="text-sm font-bold text-ink dark:text-ink-dark">{copied ? t('commonCopied') : t('commonCopy')}</Text>
+      </Pressable>
+    </HStack>
+  );
+}
+
+type SummaryProps = {
+  sessionId: string;
+  session: Session;
+  myParticipant?: SessionParticipant;
+  isOwnerOrAdmin: boolean;
+  bankAccounts: ClubBankAccount[];
+  /** Set for the Community owner, who manages bank accounts. */
+  onAddBankAccount?: () => void;
+  receipt: ReceiptUpload;
+};
+
+// The top of Players on a priced Session. Each viewer sees what is theirs:
+// - a player who still has to pay: the amount, where to send it, and
+//   their receipt — the bottom action uploads it;
+// - a player who has paid: just that, with their receipt;
+// - organizers: no amount due, and a nudge when there is no account.
+// The bank accounts are shown to everyone, always (DP-012).
+export function PaymentSummary({ sessionId, session, myParticipant, isOwnerOrAdmin, bankAccounts, onAddBankAccount, receipt }: SummaryProps) {
+  const { t } = useTranslation();
+  const imageHeaders = useImageHeaders();
+  const myStatus = myParticipant ? paymentStatus(myParticipant, session) : undefined;
+  const due = amountDue(session);
+
   return (
     <VStack className="gap-5">
-      {amountDue != null && (
-        <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4">
-          <HStack className="justify-between">
-            <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionPaymentAmountDueLabel')}</Text>
-            <Text className="font-bold text-ink dark:text-ink-dark">{formatIDR(amountDue)}</Text>
-          </HStack>
-        </Box>
-      )}
-
-      <VStack className="gap-2">
-        <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('clubBankAccountsTitle')}</Text>
-        {bankAccounts.length === 0 ? (
-          <Text className="text-ink-muted dark:text-ink-muted-dark text-sm">{t('sessionPaymentNoBankAccounts')}</Text>
-        ) : (
-          bankAccounts.map((account) => (
-            <Box key={account.id} className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-0.5">
-              <Text className="font-bold text-ink dark:text-ink-dark">{account.bankName}</Text>
-              <Text className="text-ink-muted dark:text-ink-muted-dark">{account.accountNumber}</Text>
-              <Text className="text-ink-muted dark:text-ink-muted-dark text-sm">{account.accountName}</Text>
-            </Box>
-          ))
-        )}
-      </VStack>
-
-      {myParticipant && paymentStatus(myParticipant, session) && (
+      {myParticipant && myStatus && (
         <VStack className="gap-2">
           <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('sessionPaymentYourPaymentTitle')}</Text>
           <Box className="bg-surface dark:bg-surface-dark rounded-2xl p-4 gap-3">
-            <Text className={hasPaid(myParticipant) ? 'text-success dark:text-success-dark font-bold' : 'text-heat-strong dark:text-heat-strong-dark font-bold'}>
-              {hasPaid(myParticipant) ? t('sessionPaymentStatusPaid') : t('sessionPaymentStatusAwaiting')}
+            <HStack className="justify-between items-center">
+              <Text
+                className={
+                  myStatus === 'paid' ? 'text-success dark:text-success-dark font-bold' : 'text-heat-strong dark:text-heat-strong-dark font-bold'
+                }
+              >
+                {myStatus === 'paid'
+                  ? t('sessionPaymentStatusPaid')
+                  : myParticipant.hasReceipt
+                    ? t('sessionPaymentStatusReceiptSent')
+                    : t('sessionPaymentStatusAwaiting')}
+              </Text>
+              {myStatus === 'awaiting' && due != null && <Text className="font-bold text-ink dark:text-ink-dark">{formatIDR(due)}</Text>}
+            </HStack>
+            <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">
+              {myStatus === 'paid'
+                ? t('sessionPaymentPaidHint')
+                : myParticipant.hasReceipt
+                  ? t('sessionPaymentReceiptSentHint')
+                  : t('sessionPaymentNotPaidHint')}
             </Text>
             {myParticipant.hasReceipt && (
-              <Image
-                source={{ uri: participantReceiptUrl(sessionId, myParticipant.id, myParticipant.receiptVersion), headers: imageHeaders }}
-                style={{ width: 120, height: 120, borderRadius: 12 }}
-                resizeMode="cover"
+              <ReceiptThumbnail
+                uri={participantReceiptUrl(sessionId, myParticipant.id, myParticipant.receiptVersion)}
+                headers={imageHeaders}
+                size={120}
               />
             )}
-            <Button variant="outline" size="sm" className="self-start" isDisabled={uploading} onPress={handleUploadReceipt}>
-              {uploading ? (
-                <ActivityIndicator size="small" />
-              ) : (
-                <ButtonText variant="outline">{myParticipant.hasReceipt ? t('sessionPaymentReplaceReceipt') : t('sessionPaymentUploadReceipt')}</ButtonText>
-              )}
-            </Button>
-            {error && <Text className="text-sm text-red-500">{error}</Text>}
+            {/* Uploading the first receipt is the bottom action; here only
+                a receipt already sent can be replaced, until it's confirmed. */}
+            {isAwaitingPayment(myParticipant) && myParticipant.hasReceipt && (
+              <Button variant="outline" size="sm" className="self-start" isDisabled={receipt.uploading} onPress={receipt.start}>
+                {receipt.uploading ? <ActivityIndicator size="small" /> : <ButtonText variant="outline">{t('sessionPaymentReplaceReceipt')}</ButtonText>}
+              </Button>
+            )}
+            {receipt.uploading && !myParticipant.hasReceipt && <ActivityIndicator size="small" className="self-start" />}
+            {receipt.error && <Text className="text-sm text-red-500">{receipt.error}</Text>}
           </Box>
         </VStack>
       )}
+
+      {/* The bank accounts are always shown (DP-012). */}
+      <VStack className="gap-2">
+        <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('clubBankAccountsTitle')}</Text>
+        {bankAccounts.length === 0 ? (
+          isOwnerOrAdmin ? (
+            <Alert
+              tone="heat"
+              icon="card-outline"
+              title={t('sessionPaymentNoBankAccountsOrganizer')}
+              actionLabel={onAddBankAccount ? t('clubBankAccountAdd') : undefined}
+              onAction={onAddBankAccount}
+            >
+              {onAddBankAccount ? undefined : t('sessionPaymentNoBankAccountsAdminHint')}
+            </Alert>
+          ) : (
+            <Text className="text-ink-muted dark:text-ink-muted-dark text-sm">{t('sessionPaymentNoBankAccounts')}</Text>
+          )
+        ) : (
+          bankAccounts.map((account) => <BankAccountCard key={account.id} account={account} />)
+        )}
+      </VStack>
     </VStack>
   );
 }
@@ -158,26 +253,23 @@ type ParticipantPaymentProps = {
   onConfirmPayment: (userId: string) => void;
 };
 
-// One player's payment, in their row sheet on Players: Paid / Awaiting,
-// the receipt (organizers, or the player themselves), and Confirm payment
-// for organizers while it is awaited. Nothing for a player with no payment
-// status (see paymentStatus).
+// One player's payment, in their row sheet on Players: Paid / Receipt
+// sent / Not paid, the receipt (organizers, or the player themselves) at
+// full size on a tap, and Confirm payment for organizers while it is
+// awaited. Nothing for a player with no payment status (see paymentStatus).
 export function ParticipantPayment({ sessionId, session, participant: p, isOwnerOrAdmin, myUserId, busy, onConfirmPayment }: ParticipantPaymentProps) {
   const { t } = useTranslation();
   const imageHeaders = useImageHeaders();
   if (!paymentStatus(p, session)) return null;
   const canSeeReceipt = (isOwnerOrAdmin || (p.userId != null && p.userId === myUserId)) && p.hasReceipt;
   return (
-    <VStack className="gap-3">
+    <VStack className="gap-3 mb-4">
       <Text className={`font-bold ${hasPaid(p) ? 'text-success dark:text-success-dark' : 'text-heat-strong dark:text-heat-strong-dark'}`}>
-        {hasPaid(p) ? t('sessionPaymentStatusPaid') : t('sessionPaymentStatusAwaiting')}
+        {hasPaid(p) ? t('sessionPaymentStatusPaid') : p.hasReceipt ? t('sessionPaymentStatusReceiptSent') : t('sessionPaymentStatusAwaiting')}
       </Text>
-      {canSeeReceipt && (
-        <Image
-          source={{ uri: participantReceiptUrl(sessionId, p.id, p.receiptVersion), headers: imageHeaders }}
-          style={{ width: 220, height: 220, borderRadius: 12 }}
-          resizeMode="cover"
-        />
+      {canSeeReceipt && <ReceiptThumbnail uri={participantReceiptUrl(sessionId, p.id, p.receiptVersion)} headers={imageHeaders} size={220} />}
+      {isOwnerOrAdmin && isAwaitingPayment(p) && !p.hasReceipt && (
+        <Text className="text-sm text-ink-muted dark:text-ink-muted-dark">{t('sessionPaymentNoReceiptYet')}</Text>
       )}
       {isOwnerOrAdmin && isAwaitingPayment(p) && p.userId && (
         <Button size="lg" className="w-full" isDisabled={busy} onPress={() => onConfirmPayment(p.userId!)}>

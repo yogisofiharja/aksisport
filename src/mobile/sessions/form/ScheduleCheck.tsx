@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppBar } from '../../../design-system/layout/AppBar';
+import { Alert } from '../../../design-system/feedback/Alert';
 import { SummaryCard } from '../../../design-system/domain-ui/SummaryCard';
 import { Button, ButtonText } from '../../../design-system/ui/Button';
 import { FieldError } from '../../../design-system/ui/Field';
@@ -17,6 +18,8 @@ type Props = {
   levels: SkillLevel[];
   submitting: boolean;
   error: string | null;
+  /** Priced, and the Community has no bank account to pay into. */
+  noBankAccount?: boolean;
   onBack: () => void;
   onCreate: () => void;
   onDiscard: () => void;
@@ -31,7 +34,7 @@ function longWeekday(d: Date, lang: 'en' | 'id') {
 // the Schedule read back as a WEEKLY card before it is created. No draft —
 // its Sessions are published on their own — so the actions are Create
 // schedule and Discard (which asks first). Back keeps the form.
-export function ScheduleCheck({ values: v, clubName, levels, submitting, error, onBack, onCreate, onDiscard }: Props) {
+export function ScheduleCheck({ values: v, clubName, levels, submitting, error, noBankAccount, onBack, onCreate, onDiscard }: Props) {
   const { t, lang } = useTranslation();
   const insets = useSafeAreaInsets();
   const first = firstScheduledSession(v.weekday, v.time.getHours(), v.time.getMinutes(), v.leadDays);
@@ -39,6 +42,11 @@ export function ScheduleCheck({ values: v, clubName, levels, submitting, error, 
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-ground dark:bg-ground-dark">
       <AppBar title={t('scheduleCheckTitle')} context={clubName || undefined} onBack={onBack} />
       <ScrollView contentContainerClassName="p-4 gap-4">
+        {noBankAccount ? (
+          <Alert tone="heat" icon="card-outline" title={t('sessionPaymentNoBankAccountsOrganizer')}>
+            {t('sessionCheckNoBankAccountHint')}
+          </Alert>
+        ) : null}
         <SummaryCard
           tag={t('scheduleCheckTag')}
           title={v.name.trim()}
