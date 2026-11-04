@@ -10,7 +10,7 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
-var participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.checked_out_at, sp.joined_at, (sp.receipt_image_data IS NOT NULL), ` + imageVersionExpr("sp.receipt_uploaded_at") + `
+var participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.checked_out_at, sp.joined_at, (sp.receipt_image_data IS NOT NULL), ` + imageVersionExpr("sp.receipt_uploaded_at") + `, sp.late_cancel, sp.attendance_corrected_at IS NOT NULL
 	 FROM session_participants sp LEFT JOIN users u ON u.id = sp.user_id`
 
 func scanParticipant(row pgx.CollectableRow) (models.SessionParticipant, error) {
@@ -18,6 +18,7 @@ func scanParticipant(row pgx.CollectableRow) (models.SessionParticipant, error) 
 	err := row.(pgx.Rows).Scan(
 		&p.ID, &p.SessionID, &p.UserID, &p.GuestName, &p.Username, &p.DisplayName, &p.Status,
 		&p.CheckedInAt, &p.CheckedOutAt, &p.JoinedAt, &p.HasReceipt, &p.ReceiptVersion,
+		&p.LateCancel, &p.AttendanceCorrected,
 	)
 	return p, err
 }
@@ -277,11 +278,16 @@ func CheckOut(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string)
 // either the participant cancelling their own registration, or an
 // owner/admin cancelling on their behalf (see requireSelfOrOwnerAdmin in
 // the handler).
+//
+// DP-029: leaving a confirmed ('registered') spot within LateCancelWindow
+// of the start, or after it, is recorded as a late cancellation.
 func CancelParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
 	if _, err := pool.Exec(ctx,
-		`UPDATE session_participants SET status = 'cancelled'
-		 WHERE session_id = $1 AND user_id = $2`,
-		sessionID, userID,
+		`UPDATE session_participants sp SET status = 'cancelled', cancelled_at = now(),
+			late_cancel = (sp.status = 'registered' AND now() >= s.starts_at - make_interval(secs => $3))
+		 FROM sessions s
+		 WHERE s.id = sp.session_id AND sp.session_id = $1 AND sp.user_id = $2`,
+		sessionID, userID, LateCancelWindow.Seconds(),
 	); err != nil {
 		return models.SessionParticipant{}, err
 	}

@@ -16,6 +16,10 @@ const playerHistoryLimit = 50
 // sport's stored result names the player's team as winner, lost when it
 // names the other team; a draw (no winner) is neither. Only completed
 // matches count — never Unfinished or Not played ones.
+// noShowCond: a no-show the way DP-029 Attendance counts one — marked
+// no-show, or confirmed and never checked in by a completed Session's end.
+const noShowCond = `(sp.status = 'no_show' OR (sp.status = 'registered' AND s.status = 'completed'))`
+
 func GetPlayerSportActivity(ctx context.Context, pool *pgxpool.Pool, userID, sport string) (models.PlayerSportActivity, error) {
 	a := models.PlayerSportActivity{Sport: sport, Sessions: []models.PlayerSessionHistory{}, Matches: []models.PlayerMatchHistory{}}
 
@@ -24,7 +28,7 @@ func GetPlayerSportActivity(ctx context.Context, pool *pgxpool.Pool, userID, spo
 			(SELECT count(*) FROM session_participants sp JOIN sessions s ON s.id = sp.session_id
 			 WHERE sp.user_id = $1 AND s.sport = $2 AND sp.status IN ('checked_in', 'checked_out')),
 			(SELECT count(*) FROM session_participants sp JOIN sessions s ON s.id = sp.session_id
-			 WHERE sp.user_id = $1 AND s.sport = $2 AND sp.status = 'no_show'),
+			 WHERE sp.user_id = $1 AND s.sport = $2 AND `+noShowCond+`),
 			(SELECT count(*) FROM activity_participants ap JOIN activities ac ON ac.id = ap.activity_id
 			 WHERE ap.user_id = $1 AND ac.sport = $2 AND ac.status = 'completed'),
 			(SELECT count(*) FROM activity_participants ap JOIN activities ac ON ac.id = ap.activity_id
@@ -38,11 +42,11 @@ func GetPlayerSportActivity(ctx context.Context, pool *pgxpool.Pool, userID, spo
 	}
 
 	rows, err := pool.Query(ctx,
-		`SELECT s.id, s.name, c.name, s.starts_at, CASE WHEN sp.status = 'no_show' THEN 'no_show' ELSE 'attended' END
+		`SELECT s.id, s.name, c.name, s.starts_at, CASE WHEN `+noShowCond+` THEN 'no_show' ELSE 'attended' END
 		 FROM session_participants sp
 		 JOIN sessions s ON s.id = sp.session_id
 		 JOIN clubs c ON c.id = s.club_id
-		 WHERE sp.user_id = $1 AND s.sport = $2 AND sp.status IN ('checked_in', 'checked_out', 'no_show')
+		 WHERE sp.user_id = $1 AND s.sport = $2 AND (sp.status IN ('checked_in', 'checked_out') OR `+noShowCond+`)
 		 ORDER BY s.starts_at DESC NULLS LAST
 		 LIMIT $3`,
 		userID, sport, playerHistoryLimit,

@@ -28,6 +28,7 @@ import {
 } from '../../core/clubs/api';
 import { searchUsers, userAvatarUrl, authHeader } from '../../core/api/client';
 import { timeAgo } from '../../core/notifications/text';
+import { AttendanceSummary } from '../attendance/AttendanceSummary';
 import type { ClubJoinRequest, ClubMember, UserSummary } from '../../core/api/types';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { InviteSheet } from '../invites/InviteSheet';
@@ -382,6 +383,7 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
         title={actionRequest ? actionRequest.displayName || actionRequest.username : undefined}
         description={actionRequest ? t('membersAskedToJoin', timeAgo(actionRequest.createdAt, t, lang)) : undefined}
       >
+        {actionRequest && <AttendanceSummary clubId={clubId} userId={actionRequest.userId} />}
         {actionRequest && (
           <ListGroup>
             <ListRow

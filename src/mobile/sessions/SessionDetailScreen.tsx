@@ -44,6 +44,8 @@ import { SessionContactOrganizer } from './SessionContactOrganizer';
 import { PaymentSummary, useReceiptUpload } from './SessionPayment';
 import { organizerToDo } from '../../core/sessions/paymentStatus';
 import { PlayerRowSheet } from './PlayerRowSheet';
+import { correctAttendance } from '../../core/attendance/api';
+import { canCorrectAttendance } from '../../core/attendance/attendance';
 import { AddParticipantSheet, type AddParticipantStep } from './AddParticipantSheet';
 import { MyParticipation } from './tabs/MyParticipation';
 import { DetailsTab } from './tabs/DetailsTab';
@@ -577,6 +579,21 @@ export function SessionDetailScreen({
     setError(null);
     try {
       await checkInParticipantById(sessionId, participantId);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('authGenericError'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // DP-029: an organizer fixes attended / no-show after the Session.
+  async function handleCorrectAttendance(participantId: string, attended: boolean) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await correctAttendance(sessionId, participantId, attended);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('authGenericError'));
@@ -1329,6 +1346,8 @@ export function SessionDetailScreen({
         onViewProfile={setProfileParticipant}
         onCheckIn={handleCheckInParticipant}
         onApprove={handleApprove}
+        canCorrectAttendance={isOwnerOrAdmin && canCorrectAttendance(session)}
+        onCorrectAttendance={handleCorrectAttendance}
       />
 
       <NativeShareModal data={shareData} onClose={() => setShareData(null)} />

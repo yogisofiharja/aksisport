@@ -282,7 +282,27 @@ export type SessionParticipant = {
   // themselves or an owner/admin).
   hasReceipt: boolean;
   receiptVersion?: number;
+  // DP-029: left a confirmed spot within 3 hours of the start.
+  lateCancel?: boolean;
+  // An organizer corrected attended / no-show after the Session ended.
+  attendanceCorrected?: boolean;
 };
+
+// DP-029 Attendance, over completed Sessions.
+export type AttendanceCounts = { attended: number; noShows: number; lateCancels: number };
+export type AttendanceOutcome = 'attended' | 'no_show' | 'late_cancel';
+export type AttendanceEntry = {
+  sessionId: string;
+  sessionName?: string;
+  startsAt?: string;
+  clubId: string;
+  clubName: string;
+  outcome: AttendanceOutcome;
+  corrected: boolean;
+};
+// `all` covers every Community; `here` the one asked about (zeros for
+// your own record). `sessions` is newest first.
+export type Attendance = { all: AttendanceCounts; here: AttendanceCounts; sessions: AttendanceEntry[] };
 
 // 'unfinished': stopped before it was decided (DP-025 End match early,
 // DP-027) — its score so far, neither a win nor a loss.

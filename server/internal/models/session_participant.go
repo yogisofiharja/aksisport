@@ -23,6 +23,12 @@ type SessionParticipant struct {
 	// ReceiptVersion changes with every upload — clients add it to the
 	// receipt URL (?v=) so a replaced receipt never shows a cached copy.
 	ReceiptVersion *int64 `json:"receiptVersion,omitempty"`
+	// LateCancel (DP-029): left a confirmed spot within 3 hours of the
+	// start. Only meaningful while Status is 'cancelled'.
+	LateCancel bool `json:"lateCancel,omitempty"`
+	// AttendanceCorrected: an organizer changed attended / no-show after
+	// the Session ended.
+	AttendanceCorrected bool `json:"attendanceCorrected,omitempty"`
 }
 
 // ParticipantReceiptImage is the byte-serving shape for a payment

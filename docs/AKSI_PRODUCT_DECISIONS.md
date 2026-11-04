@@ -1984,6 +1984,40 @@ Applies to everyone, not only invited friends.
 
 ---
 
+## DP-029 — Attendance
+
+Status
+
+Approved (2026-11-04)
+
+### What counts
+
+Only **completed** Sessions count. A cancelled Session counts for nobody.
+
+- **Attended:** checked in (or checked in, then out).
+- **No-show:** confirmed for the spot (approved, and paid if priced) but **never checked in** by the time the Session ends, or marked no-show by an organizer.
+- **Late cancellation:** a confirmed player who **leaves within 3 hours of the start** (or after it). Leaving earlier counts for nothing.
+- Never counted: join requests, the waitlist (approved but unpaid), guests added by name, and Sessions still to come or in progress.
+
+### Who sees it
+
+- **Organizers** (owners and admins) see a player's attendance when they look at them in their own Community: in a Session's Players list and in a join request.
+- The counts cover **every Community** the player has played in (attended, no-shows, late cancellations). The list of Sessions behind them shows only **this Community's** Sessions; other Communities' Sessions stay private.
+- **Players** see their own attendance, every Community and every Session.
+- Other members don't see anyone's attendance.
+
+### Corrections
+
+- When an organizer forgot to check in someone who came, they can **mark them attended** on the completed Session, or mark an attended player as a no-show, for **7 days** after it ends.
+- Late cancellations can't be corrected.
+
+### Scope
+
+- New: attendance counts and history, late-cancellation tracking, the 7-day correction.
+- Not built: reliability scores, automatic consequences (blocking or deprioritising players), excusing a late cancellation. These stay in Planning.
+
+---
+
 # Planning
 
 ## Domain Evolution
@@ -2102,11 +2136,10 @@ approved, DP-002 and DP-012 stay as they are.
 
 ## Attendance
 
-Potential future capabilities:
+History and no-show tracking are approved as DP-029. Still future:
 
-- Attendance history
-- No-show tracking
 - Reliability scoring
+- Automatic consequences for repeated no-shows
 
 ---
 

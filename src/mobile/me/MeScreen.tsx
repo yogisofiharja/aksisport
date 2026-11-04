@@ -11,6 +11,7 @@ import { Icon } from '../../design-system/ui/Icon';
 import { Card } from '../../design-system/ui/Card';
 import { Chip } from '../../design-system/ui/Chip';
 import { ListGroup, ListRow } from '../../design-system/ui/List';
+import { MyAttendanceRow } from '../attendance/MyAttendance';
 import { Sheet } from '../../design-system/feedback/Sheet';
 import { SportCard } from '../../design-system/domain-ui/SportCard';
 import { getPlayerSportActivity } from '../../core/api/client';
@@ -269,6 +270,8 @@ export function MeScreen({ onOpenSettings, onOpenHistory, onOpenEmail, onOpenDis
       <ListGroup>
         {/* DP-009: the Player's own Session History, across all Clubs. */}
         <ListRow icon="time-outline" title={t('mySessionHistoryTitle')} chevron onPress={onOpenHistory} />
+        {/* DP-029: the player's own attendance. */}
+        <MyAttendanceRow />
         <ListRow icon="location-outline" title={t('meMyTowns')} subtitle={towns || t('meTownsNone')} chevron onPress={() => setShowTowns(true)} />
         <ListRow
           icon="mail-outline"

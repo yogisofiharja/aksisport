@@ -473,7 +473,14 @@ opt-out.
   `status='checked_out', checked_out_at=now()` — self-service, requires an
   existing row (does not upsert).
 - `CancelParticipant` (`POST /v1/sessions/:id/cancel`) sets
-  `status='cancelled'` — self-service.
+  `status='cancelled', cancelled_at=now()` — self-service. DP-029: leaving
+  a `registered` spot within 3 hours of the start (or after it) also sets
+  `late_cancel`.
+- `CorrectAttendance` (`POST .../participants/:participantId/attendance`,
+  DP-029) switches `registered`/`no_show` → `checked_in` or
+  `checked_in`/`checked_out` → `no_show` on a completed Session, for 7
+  days after it ends; owner/admin only. Once a Session is completed the
+  app shows a `registered` player as a no-show.
 - `MarkNoShow` (`POST /v1/sessions/:id/participants/:userId/no-show`) sets
   `status='no_show'` — owner/admin only, targets another participant.
 - **No Show still has no screen** — API only, added as Milestone A

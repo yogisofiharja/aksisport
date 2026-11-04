@@ -8,6 +8,7 @@ import { Pressable } from '../../../../components/ui/pressable';
 import { useTranslation } from '../../../i18n';
 import { paymentStatus } from '../SessionPayment';
 import { initialsFromName } from '../../../core/initials';
+import { shownStatus } from '../../../core/attendance/attendance';
 import type { ParticipantStatus, Session, SessionParticipant } from '../../../core/api/types';
 
 type Props = {
@@ -68,8 +69,8 @@ export function PlayersTab({
   const { t } = useTranslation();
 
   const playing = [
-    ...participants.filter((p) => p.status === 'checked_in'),
-    ...participants.filter((p) => p.status === 'registered'),
+    ...participants.filter((p) => shownStatus(p, session) === 'checked_in'),
+    ...participants.filter((p) => shownStatus(p, session) === 'registered'),
   ];
 
   // A player as a circle: the green check once they've checked in; under
@@ -78,6 +79,7 @@ export function PlayersTab({
   // who cancelled or didn't show is faded.
   function renderParticipantCircle(p: SessionParticipant) {
     const status = paymentStatus(p, session);
+    const shown = shownStatus(p, session);
     const isGuest = !p.userId;
     const isHost = Boolean(p.userId) && p.userId === session.createdBy;
     const caption =
@@ -85,7 +87,9 @@ export function PlayersTab({
         ? t('sessionPaymentStatusPaid')
         : status === 'awaiting'
           ? t(p.hasReceipt ? 'sessionPaymentStatusReceiptSent' : 'sessionPaymentStatusAwaiting')
-          : isHost
+          : isOwnerOrAdmin && p.status === 'cancelled' && p.lateCancel
+            ? t('attendanceLateCancel')
+            : isHost
             ? t('sessionHostLabel')
             : isGuest
               ? t('sessionAddParticipantGuestOption')
@@ -98,11 +102,11 @@ export function PlayersTab({
         initials={initialsFromName(name)}
         isGuest={isGuest}
         checkedIn={p.status === 'checked_in'}
-        faded={p.status === 'cancelled' || p.status === 'no_show'}
+        faded={shown === 'cancelled' || shown === 'no_show'}
         caption={caption}
         captionTone={status === 'paid' ? 'success' : status === 'awaiting' ? 'warning' : 'muted'}
         onPress={() => onOpenRowMenu(p)}
-        accessibilityLabel={[name, t(PARTICIPANT_STATUS_LABEL[p.status]), caption].filter(Boolean).join(', ')}
+        accessibilityLabel={[name, t(PARTICIPANT_STATUS_LABEL[shown]), caption].filter(Boolean).join(', ')}
       />
     );
   }
@@ -150,7 +154,9 @@ export function PlayersTab({
         )}
 
         {OTHER_SECTIONS.map(({ status, label }) => {
-          const list = participants.filter((p) => p.status === status);
+          // A confirmed player who never came shows as a no-show once
+          // the Session is completed (DP-029).
+          const list = participants.filter((p) => shownStatus(p, session) === status);
           if (list.length === 0) return null;
           return (
             <VStack key={status} className="gap-3">

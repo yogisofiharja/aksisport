@@ -6,6 +6,8 @@ import { useTranslation } from '../../i18n';
 import { ParticipantPayment } from './SessionPayment';
 import { PARTICIPANT_STATUS_LABEL } from './tabs/PlayersTab';
 import type { Session, SessionParticipant } from '../../core/api/types';
+import { AttendanceSummary } from '../attendance/AttendanceSummary';
+import { attendanceCorrection, shownStatus } from '../../core/attendance/attendance';
 
 type Props = {
   sessionId: string;
@@ -25,6 +27,9 @@ type Props = {
   onViewProfile: (p: SessionParticipant) => void;
   onCheckIn: (participantId: string) => void;
   onApprove: (userId: string) => void;
+  // DP-029: organizers fix attended / no-show on a completed Session.
+  canCorrectAttendance: boolean;
+  onCorrectAttendance: (participantId: string, attended: boolean) => void;
 };
 
 // A player opened from Players (DP-024) — by anyone, for any player,
@@ -48,21 +53,31 @@ export function PlayerRowSheet({
   onViewProfile,
   onCheckIn,
   onApprove,
+  canCorrectAttendance,
+  onCorrectAttendance,
 }: Props) {
   const { t, lang } = useTranslation();
   const p = participant;
+  const correction = p ? attendanceCorrection(p, session) : null;
   // "Checked in · host": what follows the status is lowercase.
   const description = p
     ? [
-        t(PARTICIPANT_STATUS_LABEL[p.status]),
-        ...[p.userId && p.userId === session.createdBy ? t('sessionHostLabel') : undefined, p.userId ? undefined : t('sessionAddParticipantGuestOption')]
+        t(PARTICIPANT_STATUS_LABEL[shownStatus(p, session)]),
+        ...[
+          p.userId && p.userId === session.createdBy ? t('sessionHostLabel') : undefined,
+          p.userId ? undefined : t('sessionAddParticipantGuestOption'),
+          // Only organizers see attendance details (DP-029).
+          isOwnerOrAdmin && p.status === 'cancelled' && p.lateCancel ? t('attendanceLateCancel') : undefined,
+          isOwnerOrAdmin && p.attendanceCorrected ? t('attendanceCorrectedNote') : undefined,
+        ]
           .filter(Boolean)
           .map((part) => part!.toLocaleLowerCase(lang)),
       ].join(' · ')
     : undefined;
   return (
     <Sheet visible={p !== null} onClose={onClose} title={p ? p.displayName || p.username || p.guestName : undefined} description={description}>
-      {p && (p.userId || (canCheckIn && p.status === 'registered')) ? (
+      {p && isOwnerOrAdmin && p.userId && p.userId !== myUserId ? <AttendanceSummary clubId={session.clubId} userId={p.userId} /> : null}
+      {p && (p.userId || (canCheckIn && p.status === 'registered') || (canCorrectAttendance && correction)) ? (
         <View className="mb-4">
           <ListGroup>
             {p.userId ? (
@@ -83,6 +98,16 @@ export function PlayerRowSheet({
                 onPress={() => {
                   onClose();
                   onCheckIn(p.id);
+                }}
+              />
+            ) : null}
+            {canCorrectAttendance && correction ? (
+              <ListRow
+                icon={correction === 'markAttended' ? 'checkmark-circle-outline' : 'close-circle-outline'}
+                title={t(correction === 'markAttended' ? 'attendanceMarkAttended' : 'attendanceMarkNoShow')}
+                onPress={() => {
+                  onClose();
+                  onCorrectAttendance(p.id, correction === 'markAttended');
                 }}
               />
             ) : null}

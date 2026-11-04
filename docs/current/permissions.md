@@ -123,6 +123,20 @@ with the two parties who need it (the payer, and whoever confirms
 payment). Everyone else still sees that participant's `status`
 (paid/awaiting) via the normal participant list — just never the image.
 
+## Attendance (DP-029)
+
+- A player reads their own attendance (`GET /v1/me/attendance`): every
+  Community, every Session.
+- An owner/admin reads the attendance of someone connected to their
+  Community (member, join request, or participant in one of its
+  Sessions). The counts cover every Community; the Session list only
+  theirs. Anyone else gets 404.
+- Plain members can't read anyone's attendance. A participant's
+  `lateCancel` flag is in the Session's participant list, but the app only
+  shows it to organizers.
+- Correcting attended / no-show is owner/admin only, completed Sessions,
+  7 days after the end.
+
 ## Activity-specific rules
 
 - **Start, complete, end early** (`POST /v1/activities/:id/start`,

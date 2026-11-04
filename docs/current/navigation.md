@@ -380,7 +380,12 @@ The app's Personal Context — always the post-auth entry point
   `openContactWith: memberUserId` set, which auto-opens
   `SessionContactOrganizer`'s modal straight into that thread instead of
   the session's own Details tab.
-- **Me** (`MeScreen`) — a root AppBar with only the settings gear
+- **Me** (`MeScreen`) — an "Attendance" row (DP-029) under Session history
+  shows the player's counts and opens a Sheet listing the Sessions behind
+  them. Organizers see a player's attendance in the Session's player sheet
+  and in a Community join request's sheet, and on a completed Session the
+  player sheet offers "Mark as attended" / "Mark as no-show" for 7 days.
+  A root AppBar with only the settings gear
   (pushes `Settings`). A profile header: the user's own picture (76px;
   tap to change — camera/gallery, self-service only, `POST
   /v1/me/avatar`), the name, "@username · active town", and "Edit

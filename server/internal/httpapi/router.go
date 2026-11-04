@@ -70,6 +70,7 @@ func NewRouter(d Deps) *gin.Engine {
 	RegisterRecurringScheduleRoutes(v1, pool, verifier)
 	RegisterSkillLevelRoutes(v1, pool, verifier)
 	RegisterClientErrorRoutes(v1, pool, verifier, d.ClientIP)
+	RegisterAttendanceRoutes(v1, pool, verifier)
 
 	return r
 }
