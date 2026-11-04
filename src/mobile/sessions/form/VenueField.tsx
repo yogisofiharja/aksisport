@@ -20,11 +20,11 @@ type Props = {
 
 const SEARCH_DELAY_MS = 300;
 
-// DP-031: where the Session is played. Typing suggests Aksi venues first;
-// when none fits, Google Maps (on its own when Aksi has nothing, one tap
-// otherwise). A Google pick asks the organizer to confirm the venue's
-// name, then it's an Aksi venue for everyone. A name typed and left as
-// is also works: the server keeps it as a venue.
+// DP-031: where the Session is played. Typing shows saved Aksi venues
+// at the top, labelled, and Google Maps results below them. A Google pick
+// asks the organizer to confirm the venue's name, then it's a saved venue
+// for everyone. A name typed and left as is also works: the server keeps
+// it as a venue.
 export function VenueField({ location, venueId, error, invalid, onChange }: Props) {
   const { t, lang } = useTranslation();
   // Suggestions show only while the organizer is typing, not for a
@@ -32,7 +32,6 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
   const [typing, setTyping] = useState(false);
   const [venues, setVenues] = useState<Venue[] | null>(null);
   const [places, setPlaces] = useState<PlaceSuggestion[] | null>(null);
-  const [wantGoogle, setWantGoogle] = useState(false);
   const [mapsOff, setMapsOff] = useState(false);
   const [loadingPlaces, setLoadingPlaces] = useState(false);
   const [confirming, setConfirming] = useState<PlaceSuggestion | null>(null);
@@ -63,8 +62,8 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
     };
   }, [active, query]);
 
-  // Google, when Aksi has nothing or the organizer asked for it.
-  const searchGoogle = active && !mapsOff && (wantGoogle || (venues !== null && venues.length === 0));
+  // Google Maps, below the saved venues.
+  const searchGoogle = active && !mapsOff;
   useEffect(() => {
     if (!searchGoogle) {
       setPlaces(null);
@@ -90,7 +89,6 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
 
   function pickVenue(v: Venue) {
     setTyping(false);
-    setWantGoogle(false);
     onChange({ location: v.name, venueId: v.id });
   }
 
@@ -110,6 +108,10 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
     }
   }
 
+  // A place already saved shows once, as the saved venue.
+  const savedPlaceIds = new Set((venues ?? []).map((v) => v.placeId).filter(Boolean));
+  const googleOnly = (places ?? []).filter((p) => !savedPlaceIds.has(p.placeId));
+
   return (
     <>
       <Field label={t('sessionLocationLabel')} error={error} hint={t('venueHint')}>
@@ -125,7 +127,7 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
         </Input>
       </Field>
 
-      {active && (venues?.length || places?.length || loadingPlaces) ? (
+      {active && (venues?.length || googleOnly.length || loadingPlaces) ? (
         <View className="mt-2">
           <ListGroup>
             {(venues ?? []).map((v) => (
@@ -133,11 +135,11 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
                 key={v.id}
                 icon={v.placeId ? 'location' : 'location-outline'}
                 title={v.name}
-                subtitle={v.uses > 0 ? t('venueUses', v.uses) : undefined}
+                subtitle={t('venueSaved')}
                 onPress={() => pickVenue(v)}
               />
             ))}
-            {(places ?? []).map((p) => (
+            {googleOnly.map((p) => (
               <ListRow
                 key={p.placeId}
                 icon="map-outline"
@@ -151,9 +153,6 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
               />
             ))}
             {loadingPlaces ? <ActivityIndicator className="py-3" /> : null}
-            {!mapsOff && !wantGoogle && venues && venues.length > 0 ? (
-              <ListRow icon="search-outline" title={t('venueSearchMore', query)} onPress={() => setWantGoogle(true)} />
-            ) : null}
           </ListGroup>
         </View>
       ) : null}

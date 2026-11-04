@@ -2051,8 +2051,9 @@ Approved (2026-11-04)
 
 ### Picking a venue
 
-- Creating or editing a Session or Schedule, the organizer types the venue. Aksi first suggests **venues already used on Aksi** (the organizer's town first, then the most used), from any Community.
-- If none fits, the organizer searches **Google Maps**: it opens on its own when Aksi has no match, and is one tap away otherwise.
+- Creating or editing a Session or Schedule, the organizer types the venue. **Venues already saved on Aksi** show at the top, labelled "Saved place" (the organizer's town first, then the most used), from any Community.
+- **Google Maps results** show below them in the same list. A Google place that is already saved shows once, as the saved place.
+- The UI doesn't name Google in the search; only the directions link does ("Open in Google Maps").
 - Picking a Google place asks the organizer to **confirm the venue's name** (prefilled, editable, e.g. "GBK Tennis, Court 3"). From then on everyone finds it in Aksi's own list.
 - A venue that isn't on Google can still be typed and used as is. It joins Aksi's list too.
 
