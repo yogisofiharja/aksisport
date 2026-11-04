@@ -112,7 +112,7 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
 
   return (
     <>
-      <Field label={t('sessionLocationLabel')} error={error}>
+      <Field label={t('sessionLocationLabel')} error={error} hint={t('venueHint')}>
         <Input isInvalid={invalid}>
           <InputField
             value={location}
@@ -152,7 +152,7 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
             ))}
             {loadingPlaces ? <ActivityIndicator className="py-3" /> : null}
             {!mapsOff && !wantGoogle && venues && venues.length > 0 ? (
-              <ListRow icon="search-outline" title={t('venueSearchGoogle', query)} onPress={() => setWantGoogle(true)} />
+              <ListRow icon="search-outline" title={t('venueSearchMore', query)} onPress={() => setWantGoogle(true)} />
             ) : null}
           </ListGroup>
         </View>
