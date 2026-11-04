@@ -35,7 +35,7 @@ export function MyAttendanceRow() {
         chevron
         onPress={() => setOpen(true)}
       />
-      <Sheet visible={open} onClose={() => setOpen(false)} title={t('attendanceTitle')} description={t('attendanceExplain')}>
+      <Sheet visible={open} onClose={() => setOpen(false)} title={t('attendanceTitle')}>
         {attendance && attendance.sessions.length > 0 ? (
           <ListGroup>
             {attendance.sessions.map((e) => (

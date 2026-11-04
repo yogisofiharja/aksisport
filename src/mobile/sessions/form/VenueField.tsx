@@ -112,7 +112,7 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
 
   return (
     <>
-      <Field label={t('sessionLocationLabel')} error={error} hint={venueId ? t('venuePicked') : t('venueHint')}>
+      <Field label={t('sessionLocationLabel')} error={error}>
         <Input isInvalid={invalid}>
           <InputField
             value={location}
@@ -164,9 +164,15 @@ export function VenueField({ location, venueId, error, invalid, onChange }: Prop
         title={t('venueConfirmTitle')}
         description={confirming ? confirming.address : undefined}
       >
-        <Field label={t('venueNameLabel')} hint={t('venueNameHint')} error={saveError}>
+        <Field label={t('venueNameLabel')} error={saveError}>
           <Input>
-            <InputField value={confirmName} onChangeText={setConfirmName} maxLength={120} autoFocus />
+            <InputField
+              value={confirmName}
+              onChangeText={setConfirmName}
+              placeholder={t('venueNamePlaceholder')}
+              maxLength={120}
+              autoFocus
+            />
           </Input>
         </Field>
         <Button size="lg" className="w-full mt-4" isDisabled={!confirmName.trim()} loading={saving} onPress={saveGooglePick}>
