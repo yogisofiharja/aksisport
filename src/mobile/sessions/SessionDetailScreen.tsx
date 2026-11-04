@@ -34,7 +34,7 @@ import { clubAvatarUrl, getClubPreview, joinClub, listMembers } from '../../core
 import { getRecurringSchedule } from '../../core/recurringSchedules/api';
 import { createActivity, deleteActivity, listActivities } from '../../core/activities/api';
 import { listMySkillLevels, listSkillLevels } from '../../core/skillLevels/api';
-import { availableToPlay, generateFairRound } from '../../core/sessions/matchGenerator';
+import { availableToPlay, generateFairRound, type GeneratedMatch } from '../../core/sessions/matchGenerator';
 import { buildGeneratedMatchPayload } from '../../core/activities/buildGeneratedMatchPayload';
 import { formatSessionWhen, isWithinCheckInWindow } from '../../core/sessions/sessionSchedule';
 import { offerPush } from '../../core/notifications/offerPush';
@@ -44,6 +44,7 @@ import { SessionContactOrganizer } from './SessionContactOrganizer';
 import { PaymentSummary, useReceiptUpload } from './SessionPayment';
 import { organizerToDo } from '../../core/sessions/paymentStatus';
 import { PlayerRowSheet } from './PlayerRowSheet';
+import { OrganizerNowPanel } from './OrganizerNowPanel';
 import { correctAttendance } from '../../core/attendance/api';
 import { canCorrectAttendance } from '../../core/attendance/attendance';
 import { AddParticipantSheet, type AddParticipantStep } from './AddParticipantSheet';
@@ -579,6 +580,25 @@ export function SessionDetailScreen({
     setError(null);
     try {
       await checkInParticipantById(sessionId, participantId);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('authGenericError'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // DP-030: the organizer adds the Now panel's suggested match to the
+  // queue. Starting it is the usual Matches flow.
+  async function handleAddSuggestedMatch(match: GeneratedMatch) {
+    if (busy || !session) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const sessionMode: MatchMode = session.activityType === 'double' ? 'double' : 'single';
+      const matchFormat: MatchFormat = (session.defaultMatchFormat as MatchFormat) ?? { type: 'open' };
+      const { config, participants: parts } = buildGeneratedMatchPayload(match, sessionMode, matchFormat, true, schedulableParticipants);
+      await createActivity(sessionId, config, parts);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('authGenericError'));
@@ -1205,6 +1225,20 @@ export function SessionDetailScreen({
             isOwnerOrAdmin={isOwnerOrAdmin}
             busy={busy}
             myParticipation={myParticipation}
+            organizerNow={
+              isOwnerOrAdmin && session.status === 'in_progress' ? (
+                <OrganizerNowPanel
+                  participants={participants}
+                  activities={activities}
+                  courtCount={session.courtCount}
+                  needed={minParticipants(session.activityType === 'double' ? 'double' : 'single')}
+                  busy={busy}
+                  onOpenPlayers={() => setActiveTab('players')}
+                  onOpenMatches={() => setActiveTab('matches')}
+                  onAddSuggested={handleAddSuggestedMatch}
+                />
+              ) : undefined
+            }
             onOpenPlayers={() => setActiveTab('players')}
             onPublish={handlePublish}
             onDiscard={handleDiscard}

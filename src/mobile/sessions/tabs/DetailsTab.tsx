@@ -28,6 +28,8 @@ type Props = {
   busy: boolean;
   /** The caller's own join / check-in area (MyParticipation). */
   myParticipation: ReactNode;
+  /** Organizers, while In Progress: the Now panel (DP-030). */
+  organizerNow?: ReactNode;
   onOpenPlayers: () => void;
   onPublish: () => void;
   onDiscard: () => void;
@@ -46,6 +48,7 @@ export function DetailsTab({
   isOwnerOrAdmin,
   busy,
   myParticipation,
+  organizerNow,
   onOpenPlayers,
   onPublish,
   onDiscard,
@@ -53,6 +56,7 @@ export function DetailsTab({
   const { t } = useTranslation();
   return (
     <VStack className="gap-5">
+      {organizerNow}
       {communityRow}
       <VStack className="gap-1">
         {recurringSchedule && (

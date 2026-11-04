@@ -13,7 +13,7 @@ export type GeneratedMatch = {
   participantIds: string[]; // SessionParticipant.id, team order (first half = A, rest = B)
 };
 
-function participantIn(participant: SessionParticipant, ap: { userId?: string; guestName?: string }): boolean {
+export function participantIn(participant: SessionParticipant, ap: { userId?: string; guestName?: string }): boolean {
   return (
     (participant.userId != null && ap.userId === participant.userId) ||
     (participant.guestName != null && ap.guestName === participant.guestName)

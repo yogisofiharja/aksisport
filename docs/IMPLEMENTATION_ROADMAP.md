@@ -87,6 +87,12 @@ Session as one cohesive organizer workflow.
   build was needed.
 - **Complete** — ✅ already existed (DP-009 auto-transition), nothing
   new required.
+- **Organizer Dashboard "Now" panel** (DP-030) — ✅ on the Details tab
+  while In Progress: who's here, courts with live scores, waiting times,
+  next or suggested match.
+- **Attendance** (DP-029) — ✅ attended / no-show / late-cancel record,
+  shown to organizers on player sheets and join requests, corrections for
+  7 days; the player's own on Me.
 - **Prepare** (a pre-session readiness checklist) — ⏳ **explicitly
   skipped**, not deferred by accident. It has zero definition anywhere
   in the Foundation Docs (`AKSI_UX_PRINCIPLES.md`,

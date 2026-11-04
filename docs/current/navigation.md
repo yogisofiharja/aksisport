@@ -380,6 +380,15 @@ The app's Personal Context — always the post-auth entry point
   `openContactWith: memberUserId` set, which auto-opens
   `SessionContactOrganizer`'s modal straight into that thread instead of
   the session's own Details tab.
+- **Now panel** (DP-030, `OrganizerNowPanel`, computed in
+  `src/core/sessions/organizerNow.ts`): owners/admins see it at the top of
+  a Session's Details tab while it is In Progress. Here / courts in use /
+  waiting counts; who hasn't arrived (opens Players); each live match
+  with its live score (opens Matches); waiting players, longest first,
+  with minutes since their last match ended or since check-in, 30+
+  minutes and "No match queued" flagged; then either the next queued
+  match (opens Matches) or, with a free court and an empty queue, the
+  fair scheduler's suggested match with "Add match", which queues it.
 - **Me** (`MeScreen`) — an "Attendance" row (DP-029) under Session history
   shows the player's counts and opens a Sheet listing the Sessions behind
   them. Organizers see a player's attendance in the Session's player sheet

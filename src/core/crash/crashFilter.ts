@@ -1,7 +1,7 @@
 // Pure helpers for crash reporting: no React Native imports, so they run
 // under vitest.
 
-export type CrashKind = "render" | "uncaught" | "unhandledRejection";
+export type CrashKind = 'render' | 'uncaught' | 'unhandledRejection';
 
 export type CrashDetails = { message: string; stack: string };
 
@@ -9,15 +9,15 @@ export type CrashDetails = { message: string; stack: string };
 export function describeError(error: unknown): CrashDetails {
   if (error instanceof Error) {
     return {
-      message: error.message || error.name || "Error",
-      stack: error.stack ?? "",
+      message: error.message || error.name || 'Error',
+      stack: error.stack ?? '',
     };
   }
-  if (typeof error === "string") return { message: error, stack: "" };
+  if (typeof error === 'string') return { message: error, stack: '' };
   try {
-    return { message: JSON.stringify(error) ?? String(error), stack: "" };
+    return { message: JSON.stringify(error) ?? String(error), stack: '' };
   } catch {
-    return { message: String(error), stack: "" };
+    return { message: String(error), stack: '' };
   }
 }
 
@@ -31,7 +31,7 @@ export function createCrashThrottle(maxPerRun = 20, repeatMs = 60_000) {
   let sent = 0;
   return (message: string, now: number): boolean => {
     if (sent >= maxPerRun) return false;
-    const key = message.split("\n")[0].slice(0, 200);
+    const key = message.split('\n')[0].slice(0, 200);
     const last = lastSent.get(key);
     if (last !== undefined && now - last < repeatMs) return false;
     lastSent.set(key, now);

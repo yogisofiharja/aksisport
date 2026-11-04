@@ -2018,6 +2018,31 @@ Only **completed** Sessions count. A cancelled Session counts for nobody.
 
 ---
 
+## DP-030 — Organizer Dashboard ("Now")
+
+Status
+
+Approved (2026-11-04)
+
+### Where
+
+- While a Session is **In Progress**, its organizers (owners and admins) see a **Now** panel at the top of the Details tab. Players don't see it. Nothing new to navigate to.
+
+### What it shows
+
+- **Who's here:** checked in out of confirmed, and who hasn't arrived yet.
+- **Courts:** how many are in use, with each live match and its live score; how many are free.
+- **Waiting:** checked-in players not on a court, longest wait first, with how long they've waited (since their last match ended, or since they checked in). Anyone waiting **over 30 minutes** is highlighted, and so is anyone with no match queued.
+- **Next:** the next queued match. When a court is free and nothing is queued, a **suggested match** from the fair scheduler (DP-005), with **Add match**. AI and the scheduler suggest; the organizer decides: nothing is added or started without a tap.
+
+### Scope
+
+- New: the Now panel.
+- Unchanged: how matches are created and started (Matches tab, DP-005, DP-022, DP-023). Courts still have no numbers.
+- Not built: court assignment, a separate full-screen dashboard. These stay in Planning.
+
+---
+
 # Planning
 
 ## Domain Evolution
@@ -2071,13 +2096,10 @@ Player Preferences are independent from Player Skill Level and should never be u
 
 ## Organizer Dashboard
 
-Potential future capabilities:
+The in-Session "Now" panel is approved as DP-030. Still future:
 
-- Live participant status
-- Court overview
-- Suggested next activity
-- Waiting queue
-- Session health
+- A full-screen dashboard for a tablet at the venue
+- Session health scoring
 
 ---
 

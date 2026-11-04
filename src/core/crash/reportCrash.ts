@@ -1,11 +1,7 @@
-import { Platform } from "react-native";
-import Constants from "expo-constants";
-import { apiUrl, authHeader } from "../api/client";
-import {
-  createCrashThrottle,
-  describeError,
-  type CrashKind,
-} from "./crashFilter";
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import { apiUrl, authHeader } from '../api/client';
+import { createCrashThrottle, describeError, type CrashKind } from './crashFilter';
 
 // Sends app crashes to POST /v1/client-errors, which forwards them to the
 // team's alert chat. Development builds don't send: the red error screen
@@ -29,8 +25,8 @@ export function reportCrash(kind: CrashKind, error: unknown): void {
     message,
     stack,
     platform: Platform.OS,
-    appVersion: Constants.expoConfig?.version ?? "",
-    screen: currentScreen ?? "",
+    appVersion: Constants.expoConfig?.version ?? '',
+    screen: currentScreen ?? '',
   });
 }
 
@@ -39,11 +35,11 @@ export function reportCrash(kind: CrashKind, error: unknown): void {
 async function send(report: Record<string, string>) {
   try {
     const headers = {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       ...(await authHeader().catch(() => ({}))),
     };
-    await fetch(apiUrl("/v1/client-errors"), {
-      method: "POST",
+    await fetch(apiUrl('/v1/client-errors'), {
+      method: 'POST',
       headers,
       body: JSON.stringify(report),
       // Lets the request finish if the page is being closed or reloaded.
