@@ -17,6 +17,7 @@ export type WaitingPlayer = {
 };
 
 export type OrganizerNow = {
+  // Checked in, or on court in a live match.
   checkedIn: number;
   // Confirmed players: checked in, plus confirmed and not here yet.
   expected: number;
@@ -53,9 +54,13 @@ export function organizerNow({
   const live = activities.filter((a) => a.status === 'live').sort(byCreated);
   const queued = activities.filter((a) => a.status === 'queued').sort(byCreated);
   const ended = activities.filter((a) => ENDED.includes(a.status));
-  const checkedIn = participants.filter((p) => p.status === 'checked_in');
-  const notHere = participants.filter((p) => p.status === 'registered');
   const inMatch = (p: SessionParticipant, list: ActivityDetail[]) => list.some((a) => a.participants.some((ap) => participantIn(p, ap)));
+  const checkedIn = participants.filter((p) => p.status === 'checked_in');
+  const confirmed = participants.filter((p) => p.status === 'registered');
+  // Someone on court is here, checked in or not (a match can start before
+  // anyone checks in).
+  const playingUnchecked = confirmed.filter((p) => inMatch(p, live));
+  const notHere = confirmed.filter((p) => !inMatch(p, live));
 
   const waiting = checkedIn
     .filter((p) => !inMatch(p, live))
@@ -83,8 +88,8 @@ export function organizerNow({
   }
 
   return {
-    checkedIn: checkedIn.length,
-    expected: checkedIn.length + notHere.length,
+    checkedIn: checkedIn.length + playingUnchecked.length,
+    expected: checkedIn.length + confirmed.length,
     notHere,
     live,
     courtsFree,

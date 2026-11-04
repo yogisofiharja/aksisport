@@ -84,6 +84,18 @@ describe('organizerNow', () => {
     expect(d).toMatchObject({ long: false, queued: false });
   });
 
+  it('counts a confirmed player on court as here', () => {
+    const now = organizerNow({
+      participants: [player('x', 'registered'), player('y', 'registered'), player('z', 'registered')],
+      activities: [match('m', 'live', ['x', 'y'], 5)],
+      courtCount: 1,
+      needed: 2,
+      now: NOW,
+    });
+    expect([now.checkedIn, now.expected]).toEqual([2, 3]);
+    expect(now.notHere.map((p) => p.userId)).toEqual(['z']);
+  });
+
   it('suggests nothing without a free court or enough players', () => {
     expect(
       organizerNow({
