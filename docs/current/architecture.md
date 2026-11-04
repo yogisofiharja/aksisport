@@ -68,6 +68,11 @@ architecture in `CLAUDE.md` — see `docs/engineering/` for that.
   (`src/sessionSync.ts`). Postgres is not written to per-point; a
   match's live score lives in RTDB while in progress and is persisted
   to Postgres once, on `POST /v1/activities/:id/complete`.
+  Readers: the match screen (spectators), and a Session's Matches tab,
+  whose live cards show games, points and the server
+  (`useLiveMatchStates` / `liveSideScores`, `core/activities/liveScore.ts`).
+  Each subscriber unsubscribes only its own listener, so both can watch
+  one match at once.
 
 ## Request flow (mobile, authenticated)
 

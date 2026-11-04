@@ -78,6 +78,11 @@ func corsMiddleware(allowedOrigins string) gin.HandlerFunc {
 		c.Header("Access-Control-Allow-Origin", allowedOrigins)
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		// Every authed request (images included) carries Authorization, so
+		// a browser on another origin asks first with a preflight. Let it
+		// reuse the answer: Chrome keeps it up to 2 hours, Firefox up to a
+		// day. Without this each repeat of a URL paid for a preflight.
+		c.Header("Access-Control-Max-Age", "86400")
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)
 			return

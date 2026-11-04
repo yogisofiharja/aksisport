@@ -1,4 +1,4 @@
-import { get, off, onValue, ref, remove, set } from 'firebase/database';
+import { get, onValue, ref, remove, set } from 'firebase/database';
 import { db } from './firebase';
 import { TeamASide } from './appTypes';
 import { MatchState } from './sports/tennis/scoringEngine';
@@ -71,8 +71,10 @@ export async function readLiveMatch(activityId: string): Promise<LiveMatchPayloa
 export function subscribeToLiveMatch(activityId: string, callback: (payload: LiveMatchPayload | null) => void): () => void {
   const r = liveRef(activityId);
   if (!r) return () => {};
-  onValue(r, (snapshot) => {
+  // The listener's own unsubscribe, not off(r): off would also drop every
+  // other listener on the match (the Matches tab's card and the match
+  // screen both watch it at once).
+  return onValue(r, (snapshot) => {
     callback((snapshot.val() as LiveMatchPayload | null) ?? null);
   });
-  return () => off(r);
 }

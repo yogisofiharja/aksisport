@@ -250,6 +250,9 @@ sudo chmod 640 /etc/aksi/*.env
 
 `ALLOWED_ORIGINS` is read verbatim into the `Access-Control-Allow-Origin` header (not a parsed
 list) — each environment gets exactly one origin value.
+Preflight answers carry `Access-Control-Max-Age: 86400` so the browser
+caches them (Chrome caps it at 2 hours) instead of preflighting every
+authed request; keep Caddy from setting its own CORS headers.
 
 ### 12. First build, by hand, in each checkout
 

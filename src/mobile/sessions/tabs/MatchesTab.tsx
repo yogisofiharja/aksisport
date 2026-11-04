@@ -8,6 +8,7 @@ import { Button, ButtonText } from '../../../../components/ui/button';
 import { Pressable } from '../../../../components/ui/pressable';
 import { useTranslation } from '../../../i18n';
 import { matchFormatSummary } from '../../../core/sessions/matchFormatSummary';
+import { liveSideScores, useLiveMatchStates } from '../../../core/activities/liveScore';
 import type { MatchConfig, MatchFormat, MatchState } from '../../../sports/tennis/scoringEngine';
 import type { ActivityDetail, SessionParticipant } from '../../../core/api/types';
 
@@ -71,6 +72,11 @@ export function MatchesTab({
   // DP-026: every match by default; "My matches only" narrows the list.
   // A filter for this visit only — not saved.
   const [mineOnly, setMineOnly] = useState(false);
+  // The live score of every match in play, streamed from the scorer
+  // (RTDB), so its card shows games, points and who serves.
+  const liveStates = useLiveMatchStates(
+    scoringOpen ? activities.filter((a) => a.status === 'live').map((a) => a.id) : []
+  );
   const isMineMatch = (a: ActivityDetail) => a.participants.some((p) => p.userId === myUserId);
   // Live matches, then the queue in order, then ended ones — finished or
   // Unfinished (DP-025) — newest on top. The same while the Session is
@@ -164,6 +170,15 @@ export function MatchesTab({
           const sideScore = (team: 'A' | 'B') =>
             result?.completedSets?.length ? result.completedSets.map((set) => set[team]).join(' ') : result?.games?.[team];
           const config = a.config as Partial<MatchConfig> | undefined;
+          const liveSides = (id: string, namesA: string, namesB: string) => {
+            const live = liveSideScores(liveStates[id]);
+            return live
+              ? [
+                  { names: namesA, games: live.A.games, points: live.A.points, serving: live.A.serving },
+                  { names: namesB, games: live.B.games, points: live.B.points, serving: live.B.serving },
+                ]
+              : [{ names: namesA }, { names: namesB }];
+          };
           return (
             <MatchCard
               key={a.id}
@@ -172,11 +187,11 @@ export function MatchesTab({
               queueNumber={a.status === 'queued' ? queuedActivities.indexOf(a) + 1 : undefined}
               isMine={isMine}
               emphasis={a.status === 'queued' && !isMine && !isCompleted ? myName : undefined}
-              // No live score is loaded here (it streams to the match screen
-              // only), so a live card shows the sides' names alone.
+              // A live card shows the streamed score; until the first point
+              // arrives, just the sides' names.
               sides={
                 a.status === 'live' && !liveClosed
-                  ? [{ names: teamNames('A') }, { names: teamNames('B') }]
+                  ? liveSides(a.id, teamNames('A'), teamNames('B'))
                   : [
                       { names: teamNames('A'), games: sideScore('A'), winner: isFinished && result?.winner === 'A' },
                       { names: teamNames('B'), games: sideScore('B'), winner: isFinished && result?.winner === 'B' },
