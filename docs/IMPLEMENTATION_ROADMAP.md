@@ -150,7 +150,8 @@ Real, live work that fell outside the six-milestone roadmap above:
   environments and databases.
 - **Error alerts** — 500s, panics and failed background jobs are pushed
   to a Telegram chat when `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` are set
-  (`server/internal/alert`). Client crash reports are not sent.
+  (`server/internal/alert`). App crashes (web and phone) are sent through
+  `POST /v1/client-errors` into the same chat (`src/core/crash`).
 - **"Join with Code" removed** — part of `7e5ddd3`. Deliberate removal
   (screen, routes, invite-code display/regenerate UI). The gap it left —
   no self-service way to join — is closed by DP-017 below.

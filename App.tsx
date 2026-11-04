@@ -8,6 +8,12 @@ import { LanguageProvider } from './src/i18n';
 import { AuthProvider } from './src/core/auth/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AppAlertHost } from './src/design-system/feedback/appAlert';
+import { CrashBoundary } from './src/core/crash/CrashBoundary';
+import { installCrashHandlers } from './src/core/crash/installCrashHandlers';
+
+// Crashes outside rendering (event handlers, timers, promises) are sent to
+// the team's alert chat; rendering crashes go through CrashBoundary below.
+installCrashHandlers();
 
 // One app on every platform: iOS, Android and web all render the same
 // navigator and screens. (The legacy no-login scorer that web used to
@@ -49,18 +55,20 @@ export default function App() {
     <SafeAreaProvider>
       <LanguageProvider>
         <ThemeProvider>
-          <AuthProvider>
-            {Platform.OS === 'web' ? (
-              <View className="flex-1 bg-surface-sunken dark:bg-black">
-                <View className="flex-1 w-full self-center" style={{ maxWidth: WEB_MAX_WIDTH }}>
-                  <RootNavigator />
+          <CrashBoundary>
+            <AuthProvider>
+              {Platform.OS === 'web' ? (
+                <View className="flex-1 bg-surface-sunken dark:bg-black">
+                  <View className="flex-1 w-full self-center" style={{ maxWidth: WEB_MAX_WIDTH }}>
+                    <RootNavigator />
+                  </View>
                 </View>
-              </View>
-            ) : (
-              <RootNavigator />
-            )}
-            <AppAlertHost />
-          </AuthProvider>
+              ) : (
+                <RootNavigator />
+              )}
+              <AppAlertHost />
+            </AuthProvider>
+          </CrashBoundary>
         </ThemeProvider>
       </LanguageProvider>
     </SafeAreaProvider>

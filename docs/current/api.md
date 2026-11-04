@@ -29,6 +29,18 @@ down, alerts are dropped and the drop is counted, never retried.
 Start-up posts one "API started" message, which shows the setup works.
 Unset, errors are only logged.
 
+App crash reports: `POST /v1/client-errors` (no sign-in needed, 10 a
+minute per address) takes `{kind, message, stack, platform, appVersion,
+screen}` and forwards it as an `APP CRASH` alert, naming the user when a
+valid token is sent. Fields are cut to size and flattened to one line
+where they are labels; the answer is always 204 (400 without a message),
+so the app never retries. The app sends from `src/core/crash`: a
+`CrashBoundary` around the app for rendering errors (it shows "Something
+went wrong" with Try again) and global handlers for uncaught errors and
+unhandled promise rejections. Each report names the current screen. The
+app sends the same message at most once a minute and 20 reports per run;
+development builds send nothing.
+
 ## Health
 
 | Method | Path | Auth | Notes |

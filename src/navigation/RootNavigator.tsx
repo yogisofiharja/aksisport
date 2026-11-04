@@ -1,13 +1,18 @@
 import { ActivityIndicator, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { setCurrentScreen } from '../core/crash/reportCrash';
 import { useAuth } from '../core/auth/AuthContext';
 import { AuthStack } from './AuthStack';
 import { MainStack } from './MainStack';
 import { CompleteProfileScreen } from '../mobile/auth/CompleteProfileScreen';
 import { VerifyEmailScreen } from '../mobile/auth/VerifyEmailScreen';
-import { linking, restoreIntendedUrl } from './linking';
+import { linking, restoreIntendedUrl, type LinkableParamList } from './linking';
 import { PushSync } from '../mobile/notifications/PushSync';
 import { LiveSync } from '../core/live/LiveSync';
+
+// Crash reports name the screen they came from.
+const navigationRef = createNavigationContainerRef<LinkableParamList>();
+const trackScreen = () => setCurrentScreen(navigationRef.getCurrentRoute()?.name);
 
 export function RootNavigator() {
   const { firebaseUser, initializing, needsProfile, needsEmail } = useAuth();
@@ -31,6 +36,9 @@ export function RootNavigator() {
   return (
     <NavigationContainer
       key={signedIn ? 'main' : 'auth'}
+      ref={navigationRef}
+      onReady={trackScreen}
+      onStateChange={trackScreen}
       linking={linking}
       documentTitle={{ formatter: () => 'Aksi' }}
     >

@@ -4,7 +4,7 @@ import type { AuthStackParamList } from './AuthStack';
 import type { MainStackParamList } from './MainStack';
 import type { PersonalTabParamList } from './PersonalTabs';
 
-type LinkableParamList = AuthStackParamList &
+export type LinkableParamList = AuthStackParamList &
   Omit<MainStackParamList, 'Personal'> & { Personal: NavigatorScreenParams<PersonalTabParamList> };
 
 // URL <-> screen mapping. Mostly for the browser, where it is what makes
