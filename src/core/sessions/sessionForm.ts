@@ -10,6 +10,9 @@ export type SessionFormValues = {
   activityType?: string;
   name: string;
   location: string;
+  // DP-031: the Aksi venue picked for `location`. Cleared when the
+  // organizer types a different name.
+  venueId?: string;
   description: string;
   maxParticipants: string;
   hostPlaying: boolean;
@@ -79,6 +82,7 @@ export function templatePayload(v: SessionFormValues) {
   return {
     name: v.name.trim(),
     location: v.location.trim(),
+    venueId: v.venueId,
     description: v.description.trim() || undefined,
     maxParticipants: positiveInt(v.maxParticipants),
     activityType: v.activityType,

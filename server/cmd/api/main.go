@@ -20,6 +20,7 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/live"
 	"github.com/yogisofiharja/aksi-server/internal/mail"
 	"github.com/yogisofiharja/aksi-server/internal/notify"
+	"github.com/yogisofiharja/aksi-server/internal/places"
 	"github.com/yogisofiharja/aksi-server/internal/scheduling"
 )
 
@@ -135,7 +136,17 @@ func main() {
 		hub.Publish(userIDs, live.Event{Type: "notification.created"})
 	}
 
+	// DP-031: Google Maps venue search. The interface is only assigned a
+	// real client, never a typed nil.
+	var placesSearch places.Searcher
+	if cfg.GoogleMapsServerKey == "" {
+		log.Print("venues: Google Maps search off (GOOGLE_MAPS_SERVER_KEY is not set)")
+	} else {
+		placesSearch = places.New(cfg.GoogleMapsServerKey)
+	}
+
 	router := httpapi.NewRouter(httpapi.Deps{
+		Places:         placesSearch,
 		Pool:           pool,
 		Verifier:       verifier,
 		AllowedOrigins: cfg.AllowedOrigins,

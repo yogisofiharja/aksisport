@@ -46,8 +46,10 @@ type RecurringSchedule struct {
 	// Price, same as Session's own field — copied onto each generated Session.
 	// Visibility: "public" (anyone signed in can see it) or "members"
 	// (the Community's members only).
-	Visibility     string `json:"visibility"`
-	PriceModel     string `json:"priceModel"`
-	PricePerPerson *int   `json:"pricePerPerson,omitempty"`
-	TotalPrice     *int   `json:"totalPrice,omitempty"`
+	Visibility     string  `json:"visibility"`
+	VenueID        *string `json:"venueId,omitempty"`
+	VenuePlaceID   *string `json:"venuePlaceId,omitempty"`
+	PriceModel     string  `json:"priceModel"`
+	PricePerPerson *int    `json:"pricePerPerson,omitempty"`
+	TotalPrice     *int    `json:"totalPrice,omitempty"`
 }

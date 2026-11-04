@@ -113,6 +113,7 @@ function templateValues(src: Session | RecurringSchedule): Partial<SessionFormVa
     activityType: src.activityType,
     name: src.name ?? '',
     location: src.location ?? '',
+    venueId: src.venueId,
     description: src.description ?? '',
     maxParticipants: src.maxParticipants != null ? String(src.maxParticipants) : '',
     hostPlaying: src.hostPlaying,

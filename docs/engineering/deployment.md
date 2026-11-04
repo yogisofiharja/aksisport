@@ -228,6 +228,9 @@ CLIENT_IP_HEADER=CF-Connecting-IP
 # TELEGRAM_BOT_TOKEN=<bot-token>
 # TELEGRAM_CHAT_ID=<chat-id>
 # ALERT_LABEL=production
+# Venue search on Google Maps (DP-031): server key, Places API (New) only,
+# restricted to this server's IP. Shared by staging and production.
+# GOOGLE_MAPS_SERVER_KEY=<server-key>
 EOF
 
 sudo tee /etc/aksi/production-web.env <<'EOF'
@@ -241,6 +244,9 @@ EXPO_PUBLIC_FIREBASE_APP_ID=
 EXPO_PUBLIC_API_BASE_URL=https://api.aksisport.com
 # Base of shareable links (Community invites); defaults to https://app.aksisport.com.
 EXPO_PUBLIC_APP_URL=https://app.aksisport.com
+# Venue map on a Session (DP-031): browser key, Maps Embed API only,
+# restricted to https://app.aksisport.com/* and https://app-dev.aksisport.com/*.
+# EXPO_PUBLIC_GOOGLE_MAPS_EMBED_KEY=<browser-key>
 EOF
 
 # repeat for staging: /etc/aksi/staging.env (PORT=8081, aksi_staging_user/aksi_staging,

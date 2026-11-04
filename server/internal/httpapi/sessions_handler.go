@@ -282,6 +282,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			Sport                 string          `json:"sport"`
 			Name                  *string         `json:"name"`
 			Location              *string         `json:"location"`
+			VenueID               *string         `json:"venueId"`
 			Description           *string         `json:"description"`
 			CourtCount            int             `json:"courtCount"`
 			MaxParticipants       *int            `json:"maxParticipants"`
@@ -351,8 +352,13 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusBadRequest, `visibility must be "public" or "members"`)
 			return
 		}
+		venueID, location, ok := resolveVenue(c, pool, clubID, body.VenueID, body.Location)
+		if !ok {
+			return
+		}
 		session, err := dbpkg.CreateSession(c.Request.Context(), pool, dbpkg.CreateSessionParams{
-			ClubID: clubID, Sport: body.Sport, Name: body.Name, Location: body.Location, Description: body.Description,
+			VenueID: venueID,
+			ClubID:  clubID, Sport: body.Sport, Name: body.Name, Location: location, Description: body.Description,
 			CourtCount: body.CourtCount, MaxParticipants: body.MaxParticipants,
 			DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
 			ActivityType: body.ActivityType, CreatedBy: user.ID, StartsAt: body.StartsAt,
@@ -454,6 +460,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		var body struct {
 			Name                  *string         `json:"name"`
 			Location              *string         `json:"location"`
+			VenueID               *string         `json:"venueId"`
 			Description           *string         `json:"description"`
 			Status                *string         `json:"status"`
 			MaxParticipants       *int            `json:"maxParticipants"`
@@ -519,8 +526,13 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusBadRequest, `visibility must be "public" or "members"`)
 			return
 		}
+		venueID, location, ok := resolveVenue(c, pool, sess.ClubID, body.VenueID, body.Location)
+		if !ok {
+			return
+		}
 		session, err := dbpkg.UpdateSession(c.Request.Context(), pool, sessionID, dbpkg.SessionUpdate{
-			Name: body.Name, Location: body.Location, Description: body.Description, Status: body.Status,
+			VenueID: venueID,
+			Name:    body.Name, Location: location, Description: body.Description, Status: body.Status,
 			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
 			ActivityType: body.ActivityType,
 			StartsAt:     body.StartsAt, DurationMinutes: body.DurationMinutes,

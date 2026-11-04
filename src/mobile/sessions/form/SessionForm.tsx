@@ -16,6 +16,7 @@ import type { MatchFormat } from '../../../sports/tennis/scoringEngine';
 import { weekdayLabel } from '../../recurringSchedules/weekday';
 import { activityTypeLabel, sportLabel } from '../sessionDisplay';
 import { DateTimeSheet, OptionSheet } from './PickerSheets';
+import { VenueField } from './VenueField';
 
 type Props = {
   values: SessionFormValues;
@@ -106,11 +107,13 @@ export function SessionForm({ values: v, update, errors, levels, editing, onFiel
       </View>
 
       <View onLayout={at('location')}>
-        <Field label={t('sessionLocationLabel')} error={err('location')}>
-          <Input isInvalid={Boolean(errors.location)}>
-            <InputField value={v.location} onChangeText={(location) => update({ location })} maxLength={120} />
-          </Input>
-        </Field>
+        <VenueField
+          location={v.location}
+          venueId={v.venueId}
+          error={err('location')}
+          invalid={Boolean(errors.location)}
+          onChange={(patch) => update(patch)}
+        />
       </View>
 
       {/* Before the fields it changes, so it never moves. */}

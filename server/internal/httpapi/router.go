@@ -10,6 +10,7 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/live"
 	"github.com/yogisofiharja/aksi-server/internal/mail"
 	"github.com/yogisofiharja/aksi-server/internal/notify"
+	"github.com/yogisofiharja/aksi-server/internal/places"
 )
 
 // Deps is everything the HTTP layer needs from the outside world.
@@ -31,6 +32,8 @@ type Deps struct {
 	Notifier *notify.Service
 	// Hub is the live connection (DP-021). Nil disables live events.
 	Hub *live.Hub
+	// Places is Google Maps venue search (DP-031). Nil without a key.
+	Places places.Searcher
 }
 
 func NewRouter(d Deps) *gin.Engine {
@@ -71,6 +74,7 @@ func NewRouter(d Deps) *gin.Engine {
 	RegisterSkillLevelRoutes(v1, pool, verifier)
 	RegisterClientErrorRoutes(v1, pool, verifier, d.ClientIP)
 	RegisterAttendanceRoutes(v1, pool, verifier)
+	RegisterVenueRoutes(v1, pool, verifier, d.Places, d.ClientIP)
 
 	return r
 }

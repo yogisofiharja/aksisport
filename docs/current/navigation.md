@@ -380,6 +380,13 @@ The app's Personal Context — always the post-auth entry point
   `openContactWith: memberUserId` set, which auto-opens
   `SessionContactOrganizer`'s modal straight into that thread instead of
   the session's own Details tab.
+- **Venue field** (DP-031, `VenueField` in the Session/Schedule form):
+  typing 2+ characters suggests Aksi venues; with none, Google Maps
+  suggestions load on their own, else a "Search Google Maps for …" row.
+  A Google pick opens "Name this venue" (prefilled, editable) → "Use this
+  venue". Typing a new name and leaving it also works. On the Session's
+  Details, a Google venue shows the Maps Embed map (web, `VenueMap.web.tsx`)
+  and "Open in Google Maps".
 - **Now panel** (DP-030, `OrganizerNowPanel`, computed in
   `src/core/sessions/organizerNow.ts`): owners/admins see it at the top of
   a Session's Details tab while it is In Progress. Here / courts in use /

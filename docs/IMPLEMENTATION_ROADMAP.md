@@ -244,7 +244,7 @@ first:
 - **Attendance**: attendance history, no-show tracking, reliability
   scoring.
 - **Court Management**: court assignment, booking, availability.
-- **Map-Based Venue Selection**: Venue is still free text; blocked on
-  provisioning a map provider API key.
+- **Venues near me, venue pages, merging venues** (DP-031 built venue
+  search, Google Maps picking, the map and directions).
 - **Prepare** (Milestone 4) — see above, explicitly skipped pending a
   clearer product need.

@@ -46,6 +46,9 @@ type Config struct {
 	// (local development): errors are only logged.
 	TelegramBotToken string
 	TelegramChatID   string
+	// GoogleMapsServerKey enables Google Maps venue search (DP-031). Unset,
+	// organizers pick from Aksi's own venues or type one.
+	GoogleMapsServerKey string
 	// AlertLabel names this server at the top of each alert ("staging",
 	// "production"), so environments sharing one chat can be told apart.
 	AlertLabel string
@@ -78,6 +81,7 @@ func Load() Config {
 		TelegramBotToken:                    os.Getenv("TELEGRAM_BOT_TOKEN"),
 		TelegramChatID:                      os.Getenv("TELEGRAM_CHAT_ID"),
 		AlertLabel:                          getEnv("ALERT_LABEL", "local"),
+		GoogleMapsServerKey:                 os.Getenv("GOOGLE_MAPS_SERVER_KEY"),
 		RecurringScheduleGenerationInterval: getEnvMinutes("RECURRING_SCHEDULE_GENERATION_INTERVAL_MINUTES", 15),
 		MatchEarlyStart:                     getEnvMinutes("MATCH_EARLY_START_MINUTES", 10),
 	}

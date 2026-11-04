@@ -83,10 +83,14 @@ type Session struct {
 	// stale the moment another participant joins or leaves).
 	// Visibility: "public" (anyone signed in can see it) or "members"
 	// (the Community's members only).
-	Visibility     string `json:"visibility"`
-	PriceModel     string `json:"priceModel"`
-	PricePerPerson *int   `json:"pricePerPerson,omitempty"`
-	TotalPrice     *int   `json:"totalPrice,omitempty"`
+	Visibility string `json:"visibility"`
+	// DP-031: the Aksi venue Location names, and its Google place ID when
+	// it was picked from Google Maps (for the map and directions).
+	VenueID        *string `json:"venueId,omitempty"`
+	VenuePlaceID   *string `json:"venuePlaceId,omitempty"`
+	PriceModel     string  `json:"priceModel"`
+	PricePerPerson *int    `json:"pricePerPerson,omitempty"`
+	TotalPrice     *int    `json:"totalPrice,omitempty"`
 	// JoinedCount is computed, not stored — participants counted per DP-002
 	// (registered/checked_in/checked_out; cancelled/no_show excluded). Set
 	// wherever a Session is returned to a caller (Create/Get/List/Update in

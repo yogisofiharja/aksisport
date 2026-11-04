@@ -1,4 +1,7 @@
 import type { ReactNode } from 'react';
+import { Linking } from 'react-native';
+import { googleMapsUrl } from '../../../core/venues/api';
+import { VenueMap } from '../VenueMap';
 import { Icon } from '../../../design-system/ui/Icon';
 import { Box, HStack, VStack } from '../../../../components/ui/box';
 import { Text } from '../../../../components/ui/text';
@@ -83,6 +86,20 @@ export function DetailsTab({
             <Text className="text-ink-muted dark:text-ink-muted-dark">{session.location}</Text>
           </HStack>
         )}
+        {/* DP-031: a venue picked from Google Maps gets a map (web) and
+            directions. */}
+        {session.location && session.venuePlaceId ? (
+          <>
+            <VenueMap placeId={session.venuePlaceId} name={session.location} />
+            <Pressable
+              onPress={() => Linking.openURL(googleMapsUrl(session.location!, session.venuePlaceId!))}
+              accessibilityRole="link"
+              className="self-start mt-1 active:opacity-60"
+            >
+              <Text className="text-sm font-bold text-heat-strong dark:text-heat-strong-dark">{t('venueOpenMaps')}</Text>
+            </Pressable>
+          </>
+        ) : null}
         {hasLevelRequirement && (
           <Text className="text-sm font-bold text-heat-strong dark:text-heat-strong-dark">
             {(minLevel?.name ?? '?') + '–' + (maxLevel?.name ?? '?')} ·{' '}

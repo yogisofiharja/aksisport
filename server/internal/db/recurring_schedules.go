@@ -11,7 +11,7 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
-const recurringScheduleColumns = "id, club_id, sport, name, location, court_count, max_participants, default_match_format, recurrence_rule, generation_lead_days, generation_time, status, end_date, created_by, created_at, updated_at, skill_level_min_id, skill_level_max_id, skill_level_enforcement, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, visibility"
+const recurringScheduleColumns = "id, club_id, sport, name, location, court_count, max_participants, default_match_format, recurrence_rule, generation_lead_days, generation_time, status, end_date, created_by, created_at, updated_at, skill_level_min_id, skill_level_max_id, skill_level_enforcement, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, visibility, venue_id, (SELECT v.google_place_id FROM venues v WHERE v.id = recurring_schedules.venue_id)"
 
 func scanRecurringSchedule(row pgx.CollectableRow) (models.RecurringSchedule, error) {
 	var s models.RecurringSchedule
@@ -19,7 +19,7 @@ func scanRecurringSchedule(row pgx.CollectableRow) (models.RecurringSchedule, er
 		&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.MaxParticipants, &s.DefaultMatchFormat,
 		&s.RecurrenceRule, &s.GenerationLeadDays, &s.GenerationTime, &s.Status, &s.EndDate, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt,
 		&s.SkillLevelMinID, &s.SkillLevelMaxID, &s.SkillLevelEnforcement, &s.ActivityType, &s.Description, &s.HostPlaying,
-		&s.PriceModel, &s.PricePerPerson, &s.TotalPrice, &s.DefaultSingleDeuce, &s.Visibility,
+		&s.PriceModel, &s.PricePerPerson, &s.TotalPrice, &s.DefaultSingleDeuce, &s.Visibility, &s.VenueID, &s.VenuePlaceID,
 	)
 	return s, err
 }
@@ -52,6 +52,8 @@ type CreateRecurringScheduleParams struct {
 	TotalPrice     *int
 	// Visibility, same convention as CreateSessionParams.
 	Visibility string
+	// VenueID (DP-031): the venue Location names.
+	VenueID *string
 }
 
 func CreateRecurringSchedule(ctx context.Context, pool *pgxpool.Pool, p CreateRecurringScheduleParams) (models.RecurringSchedule, error) {
@@ -61,12 +63,12 @@ func CreateRecurringSchedule(ctx context.Context, pool *pgxpool.Pool, p CreateRe
 	}
 	rows, err := pool.Query(ctx,
 		`INSERT INTO recurring_schedules
-			(club_id, sport, name, location, court_count, max_participants, default_match_format, recurrence_rule, generation_lead_days, generation_time, end_date, created_by, skill_level_min_id, skill_level_max_id, skill_level_enforcement, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, visibility)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, COALESCE(NULLIF($19, ''), 'free'), $20, $21, $22, COALESCE(NULLIF($23, ''), 'public')) RETURNING `+recurringScheduleColumns,
+			(club_id, sport, name, location, court_count, max_participants, default_match_format, recurrence_rule, generation_lead_days, generation_time, end_date, created_by, skill_level_min_id, skill_level_max_id, skill_level_enforcement, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, visibility, venue_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, COALESCE(NULLIF($19, ''), 'free'), $20, $21, $22, COALESCE(NULLIF($23, ''), 'public'), $24) RETURNING `+recurringScheduleColumns,
 		p.ClubID, p.Sport, p.Name, p.Location, courtCount, p.MaxParticipants, p.DefaultMatchFormat,
 		p.RecurrenceRule, p.GenerationLeadDays, p.GenerationTime, p.EndDate, p.CreatedBy,
 		p.SkillLevelMinID, p.SkillLevelMaxID, p.SkillLevelEnforcement, p.ActivityType, p.Description, p.HostPlaying,
-		p.PriceModel, p.PricePerPerson, p.TotalPrice, p.DefaultSingleDeuce, p.Visibility,
+		p.PriceModel, p.PricePerPerson, p.TotalPrice, p.DefaultSingleDeuce, p.Visibility, p.VenueID,
 	)
 	if err != nil {
 		return models.RecurringSchedule{}, err
@@ -155,6 +157,7 @@ type RecurringScheduleUpdate struct {
 	PricePerPerson *int
 	TotalPrice     *int
 	Visibility     *string
+	VenueID        *string
 }
 
 func UpdateRecurringSchedule(ctx context.Context, pool *pgxpool.Pool, id string, u RecurringScheduleUpdate) (models.RecurringSchedule, error) {
@@ -180,13 +183,14 @@ func UpdateRecurringSchedule(ctx context.Context, pool *pgxpool.Pool, id string,
 			total_price = COALESCE($19, total_price),
 			default_single_deuce = COALESCE($20, default_single_deuce),
 			visibility = COALESCE($21, visibility),
+			venue_id = COALESCE($22, venue_id),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+recurringScheduleColumns,
 		id, u.Name, u.Location, u.CourtCount, u.MaxParticipants, u.DefaultMatchFormat,
 		u.RecurrenceRule, u.GenerationLeadDays, u.GenerationTime, u.EndDate,
 		u.SkillLevelMinID, u.SkillLevelMaxID, u.SkillLevelEnforcement, u.ActivityType, u.Description, u.HostPlaying,
-		u.PriceModel, u.PricePerPerson, u.TotalPrice, u.DefaultSingleDeuce, u.Visibility,
+		u.PriceModel, u.PricePerPerson, u.TotalPrice, u.DefaultSingleDeuce, u.Visibility, u.VenueID,
 	)
 	if err != nil {
 		return models.RecurringSchedule{}, err
@@ -370,6 +374,7 @@ func SyncGeneratedSessions(ctx context.Context, pool *pgxpool.Pool, recurringSch
 			price_per_person = r.price_per_person,
 			total_price = r.total_price,
 			visibility = r.visibility,
+			venue_id = r.venue_id,
 			updated_at = now()
 		 FROM recurring_schedules r
 		 WHERE r.id = $1 AND s.recurring_schedule_id = $1 AND s.starts_at > now()

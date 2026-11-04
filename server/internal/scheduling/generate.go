@@ -114,6 +114,7 @@ func createGeneratedSession(ctx context.Context, pool *pgxpool.Pool, sched model
 		PricePerPerson: sched.PricePerPerson,
 		TotalPrice:     sched.TotalPrice,
 		Visibility:     sched.Visibility,
+		VenueID:        sched.VenueID,
 	})
 	if err != nil {
 		return models.Session{}, err

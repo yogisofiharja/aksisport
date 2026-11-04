@@ -51,6 +51,7 @@ type recurringScheduleBody struct {
 	Sport                 string          `json:"sport"`
 	Name                  *string         `json:"name"`
 	Location              *string         `json:"location"`
+	VenueID               *string         `json:"venueId"`
 	Description           *string         `json:"description"`
 	CourtCount            int             `json:"courtCount"`
 	MaxParticipants       *int            `json:"maxParticipants"`
@@ -135,8 +136,13 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			respondError(c, http.StatusBadRequest, `visibility must be "public" or "members"`)
 			return
 		}
+		venueID, location, ok := resolveVenue(c, pool, clubID, body.VenueID, body.Location)
+		if !ok {
+			return
+		}
 		sched, err := dbpkg.CreateRecurringSchedule(c.Request.Context(), pool, dbpkg.CreateRecurringScheduleParams{
-			ClubID: clubID, Sport: body.Sport, Name: body.Name, Location: body.Location, Description: body.Description,
+			VenueID: venueID,
+			ClubID:  clubID, Sport: body.Sport, Name: body.Name, Location: location, Description: body.Description,
 			CourtCount: body.CourtCount, MaxParticipants: body.MaxParticipants,
 			DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
 			ActivityType: body.ActivityType, RecurrenceRule: body.RecurrenceRule,
@@ -196,6 +202,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 		var body struct {
 			Name                  *string         `json:"name"`
 			Location              *string         `json:"location"`
+			VenueID               *string         `json:"venueId"`
 			Description           *string         `json:"description"`
 			CourtCount            *int            `json:"courtCount"`
 			MaxParticipants       *int            `json:"maxParticipants"`
@@ -246,18 +253,23 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			respondError(c, http.StatusBadRequest, `visibility must be "public" or "members"`)
 			return
 		}
+		venueID, location, ok := resolveVenue(c, pool, existing.ClubID, body.VenueID, body.Location)
+		if !ok {
+			return
+		}
 		sched, err := dbpkg.UpdateRecurringSchedule(c.Request.Context(), pool, c.Param("id"), dbpkg.RecurringScheduleUpdate{
-			Name: body.Name, Location: body.Location, Description: body.Description, CourtCount: body.CourtCount,
+			VenueID: venueID,
+			Name:    body.Name, Location: location, Description: body.Description, CourtCount: body.CourtCount,
 			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
-			ActivityType: body.ActivityType,
-			HostPlaying:  body.HostPlaying,
+			ActivityType:   body.ActivityType,
+			HostPlaying:    body.HostPlaying,
 			RecurrenceRule: body.RecurrenceRule, GenerationLeadDays: body.GenerationLeadDays,
 			GenerationTime: body.GenerationTime, EndDate: body.EndDate,
 			SkillLevelMinID: body.SkillLevelMinID, SkillLevelMaxID: body.SkillLevelMaxID, SkillLevelEnforcement: body.SkillLevelEnforcement,
-			PriceModel:      priceModel,
-			PricePerPerson:  pricePerPerson,
-			TotalPrice:      totalPrice,
-			Visibility:      body.Visibility,
+			PriceModel:     priceModel,
+			PricePerPerson: pricePerPerson,
+			TotalPrice:     totalPrice,
+			Visibility:     body.Visibility,
 		})
 		if err != nil {
 			respondInternal(c, err)

@@ -1435,8 +1435,8 @@ invitees — someone only viewing asks for a spot first.
   the app has no notifications yet. The requester sees the result the
   next time they open the Community.
 - A location is a city or regency, not an address or a point on a map
-  (see Planning, Map-Based Venue Selection). A Session's own venue is
-  still free text.
+  (see Planning, Map-Based Venue Selection). A Session's venue is an Aksi
+  venue (DP-031).
 - City and regency names drop their administrative prefix ("Kota
   Administrasi", "Kabupaten Administrasi", "Kota", "Kabupaten"): "Jakarta
   Selatan", "Bukittinggi", "Badung". Where a kota and a kabupaten in the
@@ -2043,6 +2043,35 @@ Approved (2026-11-04)
 
 ---
 
+## DP-031 — Venues
+
+Status
+
+Approved (2026-11-04)
+
+### Picking a venue
+
+- Creating or editing a Session or Schedule, the organizer types the venue. Aksi first suggests **venues already used on Aksi** (the organizer's town first, then the most used), from any Community.
+- If none fits, the organizer searches **Google Maps**: it opens on its own when Aksi has no match, and is one tap away otherwise.
+- Picking a Google place asks the organizer to **confirm the venue's name** (prefilled, editable, e.g. "GBK Tennis, Court 3"). From then on everyone finds it in Aksi's own list.
+- A venue that isn't on Google can still be typed and used as is. It joins Aksi's list too.
+
+### On the Session
+
+- The venue's name shows as before. A venue picked from Google also shows a **map** (web) and **Open in Google Maps** for directions.
+
+### Rules
+
+- Aksi keeps only Google's place ID and the name the organizer confirmed, never Google's address, coordinates or other details (Google Maps terms). The map and directions are drawn from the place ID.
+- Existing Sessions keep their venue text; each distinct venue becomes an Aksi venue without a map.
+
+### Scope
+
+- New: Aksi venues, Google Maps search, the map and directions.
+- Not built: venues near me (needs coordinates, which may only be kept 30 days), editing or merging venues, venue pages. These stay in Planning.
+
+---
+
 # Planning
 
 ## Domain Evolution
@@ -2187,12 +2216,8 @@ started, or something else).
 
 ## Map-Based Venue Selection
 
-Session Venue (DP-004) is currently free text. A future milestone should
-let organizers select a real place on a map (for example, via a map
-provider's place picker) instead of typing it, so Sessions carry a real
-location rather than a text label.
-
-Blocked on provisioning a map provider API key — not yet scheduled.
+Picking a venue from Google Maps is approved as DP-031. Still future:
+venues near me (distance), venue pages, merging duplicate venues.
 
 ---
 

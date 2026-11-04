@@ -232,6 +232,10 @@ export type Session = {
   pricePerPerson?: number;
   totalPrice?: number;
   visibility: SessionVisibility;
+  // DP-031: the Aksi venue `location` names, and its Google place ID when
+  // picked from Google Maps (for the map and directions).
+  venueId?: string;
+  venuePlaceId?: string;
   // Computed, not stored — DP-002 headcount (registered/checked_in/
   // checked_out; cancelled/no_show excluded). Populated by GET endpoints only.
   joinedCount: number;
@@ -446,6 +450,10 @@ export type RecurringSchedule = {
   pricePerPerson?: number;
   totalPrice?: number;
   visibility: SessionVisibility;
+  // DP-031: the Aksi venue `location` names, and its Google place ID when
+  // picked from Google Maps (for the map and directions).
+  venueId?: string;
+  venuePlaceId?: string;
 };
 
 // A Session in the Player's own cross-Club history (DP-009) — carries its
@@ -627,3 +635,9 @@ export type ClubChatState = {
   enabled: boolean;
   unreadCount: number;
 };
+
+// DP-031. An Aksi venue: the name an organizer typed or confirmed, and a
+// Google place ID when it was picked from Google Maps.
+export type Venue = { id: string; name: string; placeId?: string; uses: number };
+// A Google Maps suggestion, shown and never stored.
+export type PlaceSuggestion = { placeId: string; name: string; address: string };
