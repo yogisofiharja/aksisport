@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import { appAlert } from '../../design-system/feedback/appAlert';
 import { useFocusEffect } from '@react-navigation/native';
 import { Page } from '../../design-system/layout/Page';
@@ -7,9 +7,8 @@ import { ScrollPage } from '../../design-system/layout/ScrollPage';
 import { VStack } from '../../design-system/layout/VStack';
 import { HStack } from '../../design-system/layout/HStack';
 import { Typography } from '../../design-system/ui/Typography';
-import { Button, ButtonText } from '../../design-system/ui/Button';
+import { ListGroup, ListRow } from '../../design-system/ui/List';
 import { Badge } from '../../design-system/ui/Badge';
-import { Card } from '../../design-system/ui/Card';
 import { Loading } from '../../design-system/feedback/Loading';
 import { useTranslation } from '../../i18n';
 import {
@@ -22,7 +21,8 @@ import {
   skipOccurrence,
 } from '../../core/recurringSchedules/api';
 import type { OccurrencePreview, RecurringSchedule } from '../../core/api/types';
-import { weekdayLabel } from './weekday';
+import { weekdayLong } from './weekday';
+import { formatDateTime } from '../../core/sessions/sessionSchedule';
 import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
@@ -40,7 +40,7 @@ function occurrenceStatusLabel(status: OccurrencePreview['status'], t: (key: str
 }
 
 export function RecurringScheduleDetailScreen({ clubId, scheduleId, onBack, onEdit, onDeleted }: Props) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [schedule, setSchedule] = useState<RecurringSchedule | null>(null);
   const [occurrences, setOccurrences] = useState<OccurrencePreview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,75 +131,77 @@ export function RecurringScheduleDetailScreen({ clubId, scheduleId, onBack, onEd
   }
 
   return (
-    <ScrollPage appBar={<AppBar title={schedule.name || schedule.sport} onBack={onBack} />}>
-      <VStack space="xs">
-        <Typography variant="body" color="muted">
-          {weekdayLabel(schedule.recurrenceRule.weekday, t)} {schedule.recurrenceRule.time}
-          {schedule.location ? ` · ${schedule.location}` : ''}
-        </Typography>
+    <ScrollPage appBar={<AppBar title={schedule.name || schedule.sport} context={t('sessionRecurringEvery', weekdayLong(schedule.recurrenceRule.weekday, lang))} onBack={onBack} />}>
+      <HStack className="items-center flex-wrap" space="sm">
         <Badge
           action={schedule.status === 'paused' ? 'muted' : 'success'}
           text={schedule.status === 'paused' ? t('recurringScheduleStatusPaused') : t('recurringScheduleStatusActive')}
         />
-      </VStack>
+        <Typography variant="body" color="muted">
+          {[schedule.recurrenceRule.time, schedule.location].filter(Boolean).join(' · ')}
+        </Typography>
+      </HStack>
 
-      <Button variant="outline" size="xl" className="w-full" onPress={onEdit} isDisabled={busy}>
-        <ButtonText variant="outline">
-          {t('recurringScheduleEdit')}
-        </ButtonText>
-      </Button>
-
-      <Button variant="outline" size="xl" className="w-full" onPress={handleTogglePause} isDisabled={busy}>
-        <ButtonText variant="outline">
-          {schedule.status === 'paused' ? t('recurringScheduleResume') : t('recurringSchedulePause')}
-        </ButtonText>
-      </Button>
+      <ListGroup>
+        <ListRow icon="create-outline" title={t('recurringScheduleEdit')} chevron onPress={busy ? undefined : onEdit} />
+        <ListRow
+          icon={schedule.status === 'paused' ? 'play-outline' : 'pause-outline'}
+          title={schedule.status === 'paused' ? t('recurringScheduleResume') : t('recurringSchedulePause')}
+          subtitle={schedule.status === 'paused' ? undefined : t('recurringSchedulePauseHint')}
+          onPress={busy ? undefined : handleTogglePause}
+        />
+      </ListGroup>
 
       <VStack space="sm">
-        <Typography variant="title">{t('recurringScheduleUpcomingTitle')}</Typography>
+        <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">
+          {t('recurringScheduleUpcomingTitle')}
+        </Text>
         {occurrences.length === 0 ? (
           <Typography variant="body" color="muted">
             {t('recurringScheduleNoUpcoming')}
           </Typography>
         ) : (
-          <VStack space="sm">
+          <ListGroup>
             {occurrences.map((occurrence) => (
-              <Card key={occurrence.startsAt}>
-                <HStack className="justify-between items-center" space="md">
-                  <VStack space="xs" style={{ flex: 1 }}>
-                    <Typography variant="body" className="font-bold">
-                      {new Date(occurrence.startsAt).toLocaleString()}
-                    </Typography>
-                    <Badge action="muted" text={occurrenceStatusLabel(occurrence.status, t)} />
-                  </VStack>
-                  <HStack space="md">
+              <ListRow
+                key={occurrence.startsAt}
+                icon={occurrence.status === 'generated' ? 'checkmark-circle-outline' : occurrence.status === 'skipped' ? 'remove-circle-outline' : 'time-outline'}
+                iconTone={occurrence.status === 'generated' ? 'success' : 'neutral'}
+                title={formatDateTime(occurrence.startsAt, lang)}
+                subtitle={occurrenceStatusLabel(occurrence.status, t)}
+                trailing={
+                  <HStack space="xs">
                     {occurrence.status === 'pending' && (
-                      <Pressable disabled={busy} onPress={() => handleGenerate(occurrence.startsAt)}>
-                        <Typography variant="body" color="default" className="font-bold">
-                          {t('recurringScheduleGenerate')}
-                        </Typography>
-                      </Pressable>
+                      <RowAction label={t('recurringScheduleGenerate')} disabled={busy} onPress={() => handleGenerate(occurrence.startsAt)} />
                     )}
                     {occurrence.status !== 'skipped' && (
-                      <Pressable disabled={busy} onPress={() => handleSkip(occurrence.startsAt)}>
-                        <Typography variant="body" color="destructive" className="font-bold">
-                          {t('recurringScheduleSkip')}
-                        </Typography>
-                      </Pressable>
+                      <RowAction label={t('recurringScheduleSkip')} destructive disabled={busy} onPress={() => handleSkip(occurrence.startsAt)} />
                     )}
                   </HStack>
-                </HStack>
-              </Card>
+                }
+              />
             ))}
-          </VStack>
+          </ListGroup>
         )}
       </VStack>
 
-      <Pressable className="items-center py-3" onPress={handleDelete} disabled={busy}>
-        <Typography variant="body" color="destructive" className="font-bold">
-          {t('recurringScheduleDelete')}
-        </Typography>
+      <Pressable className="items-center py-3 active:opacity-60" onPress={handleDelete} disabled={busy}>
+        <Text className="text-[15px] font-sans-bold text-danger dark:text-danger-dark">{t('recurringScheduleDelete')}</Text>
       </Pressable>
     </ScrollPage>
+  );
+}
+
+// A small pill button at the end of an occurrence row.
+function RowAction({ label, destructive, disabled, onPress }: { label: string; destructive?: boolean; disabled?: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      className="px-3 py-1.5 rounded-full border border-border dark:border-border-dark active:opacity-60"
+    >
+      <Text className={`text-sm font-sans-bold ${destructive ? 'text-danger dark:text-danger-dark' : 'text-ink dark:text-ink-dark'}`}>{label}</Text>
+    </Pressable>
   );
 }

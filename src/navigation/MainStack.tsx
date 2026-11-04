@@ -372,7 +372,8 @@ export function MainStack() {
           <AddMatchScreen
             sessionId={route.params.sessionId}
             onBack={() => navigation.goBack()}
-            onCreated={() => navigation.goBack()}
+            // Back to the Session, on Matches, where the new matches are.
+            onCreated={() => navigation.popTo('SessionDetail', { sessionId: route.params.sessionId, tab: 'matches' })}
           />
         )}
       </Stack.Screen>

@@ -38,9 +38,9 @@ type ModalState = ClubBankAccount | 'new' | null;
 
 // Owner-only screen (gated at the entry point — ClubDetailScreen's gear
 // icon only shows for isOwner; the backend independently enforces owner-
-// only on every mutation here too). Holds every Club-level setting that
-// isn't just "edit name/description" — currently Bank Accounts (DP-012)
-// and the Danger Zone. Deleting a Community deliberately lives here, not
+// only on every mutation here too). Holds every Club-level setting: name
+// and description, discovery (DP-017), Bank Accounts (DP-012) and the
+// Danger Zone. Deleting a Community deliberately lives here, not
 // as an easy-to-tap link on ClubDetailScreen's own home page.
 export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
   const { t } = useTranslation();
@@ -62,12 +62,20 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
   const [isPrivate, setIsPrivate] = useState(false);
   const [savingDiscovery, setSavingDiscovery] = useState(false);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  // Name and description, saved when the field loses focus (if changed).
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [saved, setSaved] = useState({ name: '', description: '' });
+  const [aboutError, setAboutError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const [accountList, club] = await Promise.all([listClubBankAccounts(clubId), getClub(clubId)]);
       setCityCode(club.cityCode);
       setCityName(club.cityName);
+      setName(club.name);
+      setDescription(club.description ?? '');
+      setSaved({ name: club.name, description: club.description ?? '' });
       setIsPrivate(club.visibility === 'private');
       setAccounts(accountList);
     } catch {
@@ -96,6 +104,25 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
       setDiscoveryError(err instanceof Error ? err.message : t('authGenericError'));
     } finally {
       setSavingDiscovery(false);
+    }
+  }
+
+  // A Community always has a name: clearing it puts the saved one back.
+  async function saveAbout(field: 'name' | 'description') {
+    const value = (field === 'name' ? name : description).trim();
+    if (field === 'name' && !value) {
+      setName(saved.name);
+      return;
+    }
+    if (value === saved[field]) return;
+    setAboutError(null);
+    try {
+      const club = await updateClub(clubId, { [field]: value });
+      setSaved({ name: club.name, description: club.description ?? '' });
+      if (field === 'name') setName(club.name);
+      else setDescription(club.description ?? '');
+    } catch (err) {
+      setAboutError(err instanceof Error ? err.message : t('authGenericError'));
     }
   }
 
@@ -207,6 +234,26 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
         <Loading fullScreen />
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 12 }}>
+          <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('clubAboutTitle')}</Text>
+
+          <VStack className="gap-2">
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('clubNamePlaceholder')}</Text>
+            <Input>
+              <InputField value={name} onChangeText={setName} onBlur={() => saveAbout('name')} maxLength={80} />
+            </Input>
+          </VStack>
+
+          <VStack className="gap-2">
+            <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('clubDescriptionPlaceholder')}</Text>
+            <Input>
+              <InputField value={description} onChangeText={setDescription} onBlur={() => saveAbout('description')} maxLength={200} />
+            </Input>
+          </VStack>
+
+          {aboutError && <Text className="text-sm text-red-500">{aboutError}</Text>}
+
+          <Box className="h-px bg-surface-sunken dark:bg-surface-sunken-dark my-3" />
+
           <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('clubDiscoveryTitle')}</Text>
 
           <VStack className="gap-2">
@@ -283,7 +330,7 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
         <CloseOnBack onClose={closeModal} />
         <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={closeModal}>
-            <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
+            <Pressable className="w-full self-center bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" style={{ maxWidth: 640 }} onPress={() => {}}>
               <Box className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center mb-1" />
               <Text className="text-lg font-black text-ink dark:text-ink-dark text-center mb-1">
                 {modal === 'new' ? t('clubBankAccountAdd') : t('clubBankAccountEdit')}

@@ -115,7 +115,10 @@ screen and saves directly, then offers Session Synchronization.
 
 ## Editing and Session Synchronization
 
-`RecurringScheduleDetailScreen`'s "Edit Schedule" opens
+`RecurringScheduleDetailScreen` (title, "Every <weekday>"; Active/Paused,
+time · venue; Edit schedule and Pause/Resume rows; Upcoming
+occurrences as "Sat 14 Nov · 07:00" rows — Session created / Opens
+automatically / Skipped — with Create now and Skip) — its "Edit schedule" opens
 `CreateSessionScreen` in schedule-edit mode (`editingScheduleId`, route
 `EditRecurringSchedule`) — same form as creation, minus the sport picker
 and the recurring toggle, both fixed after creation. Saving calls

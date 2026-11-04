@@ -45,7 +45,7 @@ export function AddParticipantSheet({
       <CloseOnBack onClose={onClose} />
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable className="flex-1 justify-end bg-black/50 dark:bg-black/70" onPress={onClose}>
-          <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" onPress={() => {}}>
+          <Pressable className="w-full self-center bg-surface dark:bg-surface-dark rounded-t-3xl px-6 pt-6 pb-10 gap-4" style={{ maxWidth: 640 }} onPress={() => {}}>
             <Box className="w-10 h-1 rounded-full bg-border-strong dark:bg-border-strong-dark self-center mb-1" />
 
             {step === 'choose' && (

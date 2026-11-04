@@ -227,11 +227,22 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
               <Typography variant="overline" color="muted">
                 {t('homeMyCommunitiesTitle')}
               </Typography>
-              <Pressable onPress={onOpenExplore} hitSlop={8} accessibilityRole="link" className="active:opacity-60">
-                <Typography variant="label" color="brand" className="text-[13px]">
-                  {t('homeFindMore')}
-                </Typography>
-              </Pressable>
+              <HStack className="items-center" space="md">
+                {/* With three or more Communities the "New community" tile at
+                    the end of the row is off screen; this keeps it in reach. */}
+                {clubs.length >= 3 ? (
+                  <Pressable onPress={onCreateClub} hitSlop={8} accessibilityRole="button" className="active:opacity-60">
+                    <Typography variant="label" color="brand" className="text-[13px]">
+                      {t('homeNewShort')}
+                    </Typography>
+                  </Pressable>
+                ) : null}
+                <Pressable onPress={onOpenExplore} hitSlop={8} accessibilityRole="link" className="active:opacity-60">
+                  <Typography variant="label" color="brand" className="text-[13px]">
+                    {t('homeFindMore')}
+                  </Typography>
+                </Pressable>
+              </HStack>
             </HStack>
             {clubs.length === 0 ? (
               <Typography variant="body" color="muted">

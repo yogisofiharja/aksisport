@@ -64,10 +64,16 @@ const DEFAULT_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UT
 
 // The next whole hour from now (rolls into tomorrow late at night), so a
 // fresh form never starts in the past.
-function defaultStartsAt() {
-  const d = new Date();
+// The next full hour — unless that lands at night (22:00–05:59), where
+// nobody plays: then 07:00, the next morning if needed.
+function defaultStartsAt(now: Date = new Date()) {
+  const d = new Date(now);
   d.setMinutes(0, 0, 0);
   d.setHours(d.getHours() + 1);
+  if (d.getHours() >= 22 || d.getHours() < 6) {
+    if (d.getHours() >= 22) d.setDate(d.getDate() + 1);
+    d.setHours(7);
+  }
   return d;
 }
 
@@ -86,7 +92,8 @@ function initialValues(recurring: boolean): SessionFormValues {
     date: start,
     time: start,
     durationHours: 1,
-    weekday: 6, // Saturday
+    // The default date's weekday; turning recurring on follows the date.
+    weekday: start.getDay(),
     leadDays: 3,
     timezone: DEFAULT_TIMEZONE,
     requireSkillLevel: false,

@@ -324,6 +324,12 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			respondError(c, http.StatusBadRequest, "invalid body")
 			return
 		}
+		name, ok := clubNameUpdate(body.Name)
+		if !ok {
+			respondError(c, http.StatusBadRequest, "name is required")
+			return
+		}
+		body.Name = name
 		if body.CityCode != nil && !requireCity(c, pool, strings.TrimSpace(*body.CityCode)) {
 			return
 		}
@@ -635,6 +641,19 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 
 // displayNameOf is how a person is named to others: their display name,
 // or their username when they have none (DP-016).
+// clubNameUpdate trims a new Community name; ok is false when it is blank,
+// since a Community always has a name. nil (name not being changed) passes.
+func clubNameUpdate(name *string) (*string, bool) {
+	if name == nil {
+		return nil, true
+	}
+	trimmed := strings.TrimSpace(*name)
+	if trimmed == "" {
+		return nil, false
+	}
+	return &trimmed, true
+}
+
 func displayNameOf(displayName *string, username string) string {
 	if displayName != nil && strings.TrimSpace(*displayName) != "" {
 		return *displayName

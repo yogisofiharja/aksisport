@@ -246,8 +246,8 @@ type (Segmented), Session name, Location, the "Make this recurring" switch
 on one row (each opens a picker Sheet; the system dialog on Android),
 "I'll be playing too" with its hint,
 Number of players (optional), *How matches are played* (format
-Segmented: Free Play · Fixed · Race To · Regular, its stepper or sets,
-single deuce), *Who can join* (skill level switch, From/To pickers,
+Segmented: Free Play · Fixed · Race To · Regular, with a one-line hint
+on how the chosen one is won, its stepper or sets, single deuce), *Who can join* (skill level switch, From/To pickers,
 Enforcement Segmented with its hint), *Price* (Free · Per person · Split
 bill, then the amount with an `Rp` prefix) and *Notes*. Continue is
 pinned at the bottom. Validation (`core/sessions/sessionForm.ts`) puts
@@ -256,6 +256,11 @@ messages update as the organizer types. Leaving with anything changed —
 ✕, Android back or the browser's back (`usePreventRemove`) — asks first
 in a Dialog: "Discard this session?" (or "…schedule?", or "Discard your
 changes?" when editing), Keep editing / Discard.
+
+Defaults: the start is the next full hour, or 07:00 when that would land
+between 22:00 and 05:59 (the next morning after 22:00). Turning
+"Make this recurring" on repeats on the weekday of the date picked so far
+(a new schedule starts on the default date's weekday).
 
 **Ad-hoc creation goes through a check screen** (Milestone 2; Aksi
 redesign › Check your session, `sessions/form/SessionCheck.tsx`): Continue
@@ -702,7 +707,14 @@ which opens Community settings), and on the create form's check step.
   Upload receipt; once a receipt is sent there is no bottom action.
 - A player who has paid: Paid, "Payment confirmed" and the receipt —
   no amount, no Replace; the bank accounts stay below.
-- Organizers and anyone else: the bank accounts only (no amount due). The section header
+- Organizers and anyone else: the bank accounts only (no amount due).
+
+While the viewer waits on the organizer (a request, or a receipt sent
+and not yet confirmed) the screen reloads every 20s while it is in front
+and the browser tab is visible, so approval and confirmation show
+without reopening it. On Details, the Community row has a chevron for a
+member (no "Joined" badge, which read as joining the Session). After
+Approve in Add Match, the app returns to the Session on Matches. The section header
 shows `joinedCount`/`maxParticipants` next to the "Players" title.
 
 **Empty-slot placeholders** (Milestone 2, revised): once published *and*

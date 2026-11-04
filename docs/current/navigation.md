@@ -254,12 +254,12 @@ Personal (initial) — see PersonalTabs below
   └─→ ClubDetail { clubId, tab? }   (CommunityScreen: Home · Sessions · Chat · Members;
         │                            ClubMembers / ClubChat / SessionList render the same
         │                            screen on that tab)
-        ├─→ ClubSettings { clubId }       (owner-only; Bank Accounts + Danger Zone/Delete Community)
+        ├─→ ClubSettings { clubId }       (owner-only; About, Finding & joining, Bank Accounts, Delete Community)
         ├─→ ClubReports { clubId }        (owner/admin)
         ├─→ RecurringScheduleList { clubId }
         ├─→ CreateSession { clubId }      → replaces with SessionDetail on success
         └─→ SessionDetail { sessionId }   (from Home's Current Focus or the Sessions tab)
-                    ├─→ AddMatch { sessionId }        → goBack() on success
+                    ├─→ AddMatch { sessionId }        → popTo SessionDetail ?tab=matches on success
                     ├─→ ActivityMatch { activityId }  → Result saved (DP-025): "Back to session"
                     │                                   goBack()s to the Matches tab if that's where
                     │                                   it came from, else replaces with SessionDetail
@@ -309,8 +309,10 @@ delete the Community, in Settings).
 `ClubBankAccounts`-only pass once Delete Community moved here too):
 reached from the Home tab's ⋯ menu — shown only when the caller is the
 Club's owner (`isOwner`, not `isOwnerOrAdmin`; matches every other
-Club-level setting's permission). `ClubSettingsScreen.tsx` holds two
-sections: **Bank Accounts** (a plain list-plus-modal-form, mirrors
+Club-level setting's permission). `ClubSettingsScreen.tsx` holds
+**About** (name and description, each saved when the field loses focus;
+a blank name puts the saved one back, and the server refuses it too),
+**Finding & joining** (location, Private), **Bank Accounts** (a plain list-plus-modal-form, mirrors
 `ClubMembersScreen`'s Add Member modal shape — a Club can list more
 than one; every priced Session's Players tab reads this same list),
 and a **Danger Zone** at the bottom with Delete Community — kept off
@@ -340,7 +342,8 @@ The app's Personal Context — always the post-auth entry point
   communities" with "Find more" (→ Explore): a horizontal row of
   `ClubCard` tiles (club picture if set, else initials; name; the user's
   role · city) ending in a dashed "New community" tile that pushes
-  `CreateClub`; a tile pushes `ClubDetail`. Joining a Community is done
+  `CreateClub` (with three or more Communities that tile is off screen,
+  so a "+ New" link joins "Find more" in the header); a tile pushes `ClubDetail`. Joining a Community is done
   from Explore or a shared link (DP-017, see below), not from here.
   **First run**: with no Community yet (after a successful load), Home
   instead shows "Welcome to Aksi" as the date line, an illustrated "Find

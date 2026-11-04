@@ -6,7 +6,7 @@ import { ListRow } from '../../design-system/ui/List';
 import { weekdayLong } from '../recurringSchedules/weekday';
 import { PlayerProfileSheet } from '../profiles/PlayerProfileSheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { VStack } from '../../../components/ui/box';
 import { Text } from '../../../components/ui/text';
 import { Pressable } from '../../../components/ui/pressable';
@@ -163,6 +163,12 @@ export function SessionDetailScreen({
   // never loses which session you're looking at. Until someone picks a tab
   // (or a link names one), the tab follows the lifecycle.
   const [chosenTab, setActiveTab] = useState<SessionTab | null>(() => tabFromLink(initialTab));
+  // A link arriving while the screen is already open (back from adding a
+  // match, a notification) switches to its tab.
+  useEffect(() => {
+    const linked = tabFromLink(initialTab);
+    if (linked) setActiveTab(linked);
+  }, [initialTab]);
   const activeTab: SessionTab = chosenTab ?? (session ? defaultTabFor(session.lifecycleStatus) : 'details');
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -289,6 +295,22 @@ export function SessionDetailScreen({
   // The viewer's own payment receipt — the bottom action and the Players
   // tab share it.
   const receipt = useReceiptUpload(sessionId, load);
+
+  // While the viewer waits on the organizer — a request to approve, or a
+  // receipt to confirm — check back every 20s so the answer shows without
+  // reopening the page. Stops once there is nothing to wait for or another
+  // screen is on top, and skips ticks while the browser tab is hidden.
+  const me = participants.find((p) => p.userId === profile?.id);
+  const isFocused = useIsFocused();
+  const waitingOnOrganizer = isFocused && (me?.status === 'requested' || (me?.status === 'waitlist' && me.hasReceipt));
+  useEffect(() => {
+    if (!waitingOnOrganizer) return;
+    const id = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      load();
+    }, 20_000);
+    return () => clearInterval(id);
+  }, [waitingOnOrganizer, load]);
 
   const myParticipant = participants.find((p) => p.userId === profile?.id);
 
@@ -960,7 +982,8 @@ export function SessionDetailScreen({
       ]
         .filter(Boolean)
         .join(' · ')}
-      viewerRole={club.viewerRole}
+      // No "Joined" here — on a Session it reads as joining the Session.
+      // A member gets the chevron: the row opens the Community.
       viewerRequestPending={club.viewerRequestPending}
       onPress={club.viewerRole ? () => onOpenClub(club.id) : undefined}
       action={

@@ -28,6 +28,14 @@ type Props = {
   onFieldLayout: (field: SessionFormField, y: number) => void;
 };
 
+// One line under the format choice saying how a match is won.
+const FORMAT_HINT: Record<FormatType, string> = {
+  open: 'formatOpenDesc',
+  'fixed-games': 'formatFixedGamesDesc',
+  'race-to': 'formatRaceToDesc',
+  'best-of-sets': 'formatBestOfSetsDesc',
+};
+
 const DURATION_HOURS = Array.from({ length: 24 }, (_, i) => i + 1);
 // Monday first, as on the canvas; values are RecurrenceRule weekdays (0 = Sunday).
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
@@ -111,7 +119,8 @@ export function SessionForm({ values: v, update, errors, levels, editing, onFiel
           label={t('recurringToggleLabel')}
           hint={t(v.isRecurring ? 'recurringToggleHintOn' : 'recurringToggleHintOff')}
           value={v.isRecurring}
-          onValueChange={(isRecurring) => update({ isRecurring })}
+          // Turning it on repeats on the weekday of the date picked so far.
+          onValueChange={(isRecurring) => update(isRecurring ? { isRecurring, weekday: v.date.getDay() } : { isRecurring })}
         />
       )}
       {v.isRecurring ? (
@@ -200,7 +209,7 @@ export function SessionForm({ values: v, update, errors, levels, editing, onFiel
       </View>
 
       <FormSection title={t('sessionFormMatchesTitle')}>
-        <Field label={t('matchFormat')}>
+        <Field label={t('matchFormat')} hint={t(FORMAT_HINT[v.matchFormat.type])}>
           <Segmented<FormatType>
             options={[
               { value: 'open', label: t('formatOpen') },

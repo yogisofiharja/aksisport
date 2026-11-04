@@ -112,7 +112,8 @@ export function SessionContactOrganizer({ visible, onClose, sessionId, session, 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <CloseOnBack onClose={onClose} />
-      <VStack className="flex-1 bg-ground dark:bg-ground-dark">
+      {/* On a wide window it keeps the app's 640px column. */}
+      <VStack className="flex-1 w-full self-center bg-ground dark:bg-ground-dark" style={{ maxWidth: 640 }}>
         {/* A modal over the Session: ✕ closes it; inside one thread of the
             organizer's list, back returns to the list. */}
         <AppBar

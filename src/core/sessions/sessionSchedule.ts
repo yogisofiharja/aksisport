@@ -51,10 +51,16 @@ export function formatSessionWhen(
       session.durationMinutes != null ? new Date(start.getTime() + session.durationMinutes * 60 * 1000) : undefined;
     return `${todayLabel} · ${time(start)}${end ? `–${time(end)}` : ''}`;
   }
-  const date = start
+  return formatDateTime(start, lang);
+}
+
+// "Sat 7 Nov · 07:00" — how a date and time read everywhere in the app.
+export function formatDateTime(when: Date | string, lang: 'en' | 'id'): string {
+  const d = typeof when === 'string' ? new Date(when) : when;
+  const date = d
     .toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
     .replace(',', '');
-  return `${date} · ${time(start)}`;
+  return `${date} · ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
 }
 
 // Check-in (self, host-initiated, or adding a guest) is only allowed from
