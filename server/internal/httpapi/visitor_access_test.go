@@ -137,6 +137,11 @@ func TestSessionVisitorAccess(t *testing.T) {
 		if len(listed) != 1 || listed[0].ID != public.ID {
 			t.Errorf("listed %d sessions, want only the public one", len(listed))
 		}
+		// Derived like every other Session read, not left at zero values
+		// (an unlimited Session with nobody in it read as "full").
+		if len(listed) == 1 && (listed[0].LifecycleStatus == "" || listed[0].LifecycleStatus == "full") {
+			t.Errorf("lifecycleStatus = %q, want a derived, non-full status", listed[0].LifecycleStatus)
+		}
 	})
 
 	t.Run("the visitor can't do an organizer's job in the Session", func(t *testing.T) {

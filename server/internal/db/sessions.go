@@ -220,7 +220,24 @@ func ListUpcomingPublicSessions(ctx context.Context, pool *pgxpool.Pool, clubID 
 		}
 		result = append(result, s)
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// Same derived fields as every Session read: who has joined, and the
+	// lifecycle status built on it (Recruiting / Ready / Full ...).
+	ids := make([]string, len(result))
+	for i, s := range result {
+		ids[i] = s.ID
+	}
+	counts, err := CountJoinedParticipants(ctx, pool, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range result {
+		result[i].JoinedCount = counts[result[i].ID]
+		deriveSessionFields(&result[i])
+	}
+	return result, nil
 }
 
 func ListSessionsForClub(ctx context.Context, pool *pgxpool.Pool, clubID string, includeDrafts bool) ([]models.Session, error) {
