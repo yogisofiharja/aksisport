@@ -13,11 +13,13 @@ import { appAlert } from '../../design-system/feedback/appAlert';
 import { Alert } from '../../design-system/feedback/Alert';
 import { useTranslation } from '../../i18n';
 import { authHeader } from '../../core/api/client';
-import { cancelJoinRequest, clubAvatarUrl, joinClub } from '../../core/clubs/api';
+import { cancelJoinRequest, clubAvatarUrl, joinClub, listPublicSessions } from '../../core/clubs/api';
+import { SessionCard } from '../../design-system/domain-ui/SessionCard';
+import { sessionCardProps } from '../sessions/sessionDisplay';
 import { initialsFromName } from '../../core/initials';
 import { clubLink, shareLink } from '../../platform/shareLink';
 import { offerPush } from '../../core/notifications/offerPush';
-import type { ClubPreview } from '../../core/api/types';
+import type { ClubPreview, Session } from '../../core/api/types';
 import { AppBar } from '../../design-system/layout/AppBar';
 
 type Props = {
@@ -26,15 +28,17 @@ type Props = {
   // Called with the Community as it stands after joining, requesting, or
   // cancelling — the parent swaps to the member home once viewerRole is set.
   onChanged: (club: ClubPreview) => void;
+  onOpenSession: (sessionId: string) => void;
 };
 
 // What someone who is not a member sees of a Community (DP-017): enough
 // to recognise it and decide — name, picture, description, location, size,
 // public or private — and the one action that fits: join a public
 // Community, or ask to join a private one. Reached from Explore's results
-// and from a shared link. Sessions, members and chats are not here; they
-// are for members.
-export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
+// and from a shared link. Its upcoming public Sessions are listed too
+// (DP-017, 2026-11-04): anyone may open one and ask for a spot. Members
+// and chats are for members.
+export function ClubPreviewScreen({ club, onBack, onChanged, onOpenSession }: Props) {
   const { t, lang } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +47,13 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
   useEffect(() => {
     authHeader().then(setImageHeaders);
   }, []);
+
+  const [sessions, setSessions] = useState<Session[]>([]);
+  useEffect(() => {
+    listPublicSessions(club.id)
+      .then(setSessions)
+      .catch(() => {});
+  }, [club.id]);
 
   const isPrivate = club.visibility === 'private';
   // A private Community that this person's invite lets straight in.
@@ -125,6 +136,17 @@ export function ClubPreviewScreen({ club, onBack, onChanged }: Props) {
         <Typography variant="body" color="muted">
           {club.description}
         </Typography>
+      ) : null}
+
+      {sessions.length > 0 ? (
+        <VStack space="sm">
+          <Typography variant="overline" color="muted">
+            {t('clubPreviewUpcomingSessions')}
+          </Typography>
+          {sessions.map((session) => (
+            <SessionCard key={session.id} {...sessionCardProps(session, t, lang)} onPress={() => onOpenSession(session.id)} />
+          ))}
+        </VStack>
       ) : null}
 
       {/* DP-028: who invited them; an owner/admin's invite skips the

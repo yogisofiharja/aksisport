@@ -20,6 +20,7 @@ const base: SessionFormValues = {
   timezone: 'Asia/Jakarta',
   requireSkillLevel: false,
   priceModel: 'free',
+  visibility: 'public',
   pricePerPerson: '',
   totalPrice: '',
   matchFormat: { type: 'open' },

@@ -183,6 +183,17 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		c.JSON(http.StatusOK, preview)
 	})
 
+	// The Community's upcoming public Sessions, for its preview: anyone
+	// signed in may see them (DP-017, 2026-11-04), member or not.
+	authed.GET("/clubs/:clubId/public-sessions", func(c *gin.Context) {
+		sessions, err := dbpkg.ListUpcomingPublicSessions(c.Request.Context(), pool, c.Param("clubId"), 10)
+		if err != nil {
+			respondInternal(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, sessions)
+	})
+
 	// Public Club: the caller becomes a member. Private Club: a join
 	// request is recorded. Returns the preview either way, whose
 	// viewerRole / viewerRequestPending say which happened.

@@ -16,12 +16,14 @@ import (
 )
 
 // Club routes a non-member may use on purpose: the preview, joining (and
-// withdrawing their own request), and the picture.
+// withdrawing their own request), the picture, and its public Sessions.
 var openClubRoutes = map[string]bool{
 	"GET /v1/clubs/:clubId/preview":         true,
 	"POST /v1/clubs/:clubId/join":           true,
 	"DELETE /v1/clubs/:clubId/join-request": true,
 	"GET /v1/clubs/:clubId/avatar":          true,
+	// DP-017 (2026-11-04): public Sessions are for everyone.
+	"GET /v1/clubs/:clubId/public-sessions": true,
 }
 
 // DP-028: a Session-only participant sees that one Session and nothing of
@@ -48,11 +50,17 @@ func TestSessionVisitorAccess(t *testing.T) {
 		t.Fatal(err)
 	}
 	name, location := "Visitor test", "Court"
-	sess, err := dbpkg.CreateSession(ctx, pool, dbpkg.CreateSessionParams{ClubID: clubID, Sport: "tennis", Name: &name, Location: &location, CreatedBy: owner.id, HostPlaying: true})
+	// Members only: a stranger reaches it only by invitation or playing.
+	sess, err := dbpkg.CreateSession(ctx, pool, dbpkg.CreateSessionParams{ClubID: clubID, Sport: "tennis", Name: &name, Location: &location, CreatedBy: owner.id, HostPlaying: true, Visibility: "members"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, "UPDATE sessions SET status = 'open' WHERE id = $1", sess.ID); err != nil {
+	// Public (the default): anyone signed in sees it once published.
+	public, err := dbpkg.CreateSession(ctx, pool, dbpkg.CreateSessionParams{ClubID: clubID, Sport: "tennis", Name: &name, Location: &location, CreatedBy: owner.id, HostPlaying: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, "UPDATE sessions SET status = 'open' WHERE id = ANY($1)", []string{sess.ID, public.ID}); err != nil {
 		t.Fatal(err)
 	}
 	// A real schedule, so its routes get past "not found" to the
@@ -95,9 +103,39 @@ func TestSessionVisitorAccess(t *testing.T) {
 		}
 	})
 
-	t.Run("someone neither invited nor playing doesn't see it", func(t *testing.T) {
+	t.Run("someone neither invited nor playing doesn't see a members-only Session", func(t *testing.T) {
 		if got := call(stranger, http.MethodGet, "/v1/sessions/"+sess.ID); got != http.StatusForbidden {
 			t.Errorf("GET session = %d, want 403", got)
+		}
+	})
+
+	t.Run("anyone sees a public Session and can ask for a spot, but not read its chat first", func(t *testing.T) {
+		for _, path := range []string{"/v1/sessions/" + public.ID, "/v1/sessions/" + public.ID + "/participants", "/v1/sessions/" + public.ID + "/activities"} {
+			if got := call(stranger, http.MethodGet, path); got != http.StatusOK {
+				t.Errorf("GET %s = %d, want 200", path, got)
+			}
+		}
+		if got := call(stranger, http.MethodGet, "/v1/sessions/"+public.ID+"/messages"); got != http.StatusForbidden {
+			t.Errorf("chat before asking = %d, want 403", got)
+		}
+		if got := call(stranger, http.MethodPost, "/v1/sessions/"+public.ID+"/register"); got != http.StatusOK {
+			t.Errorf("register = %d, want 200", got)
+		}
+		if got := call(stranger, http.MethodGet, "/v1/sessions/"+public.ID+"/messages"); got != http.StatusOK {
+			t.Errorf("chat after asking = %d, want 200", got)
+		}
+	})
+
+	t.Run("the preview lists public Sessions only", func(t *testing.T) {
+		if got := call(stranger, http.MethodGet, "/v1/clubs/"+clubID+"/public-sessions"); got != http.StatusOK {
+			t.Errorf("public sessions = %d, want 200", got)
+		}
+		listed, err := dbpkg.ListUpcomingPublicSessions(ctx, pool, clubID, 10)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(listed) != 1 || listed[0].ID != public.ID {
+			t.Errorf("listed %d sessions, want only the public one", len(listed))
 		}
 	})
 

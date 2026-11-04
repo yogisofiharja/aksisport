@@ -52,7 +52,12 @@ and previewable like a public one — only joining is gated.
 **Session-only participants (DP-028)**: `requireSessionAccess` (and so
 `requireActivityAccess`) also lets in a non-member who has a participant
 row in that Session, or an invitation to it (in the app, or by opening its
-link). They get the role `visitor`: a plain player of that one Session
+link), and — for a published Session whose `visibility` is `public` (the
+default; DP-017, 2026-11-04) — anyone signed in. Session chat
+(`GET`/`POST /v1/sessions/:id/messages`, `requireSessionChatAccess`) is
+narrower: a visitor needs a participant row or an invitation, so someone
+only viewing a public Session asks for a spot before reading or posting.
+A `members` Session is reached by non-members only the first two ways. They get the role `visitor`: a plain player of that one Session
 (details, players, matches, session chat, payment, check-in, asking for a
 spot under the normal rules) and never an organizer. Every
 `/v1/clubs/:clubId/*` route still checks club membership and answers 403;

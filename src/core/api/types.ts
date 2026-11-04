@@ -231,6 +231,7 @@ export type Session = {
   priceModel: PriceModel;
   pricePerPerson?: number;
   totalPrice?: number;
+  visibility: SessionVisibility;
   // Computed, not stored — DP-002 headcount (registered/checked_in/
   // checked_out; cancelled/no_show excluded). Populated by GET endpoints only.
   joinedCount: number;
@@ -245,6 +246,8 @@ export type Session = {
 };
 
 export type PriceModel = 'free' | 'per_person' | 'split_bill';
+// Who can see a Session: anyone signed in, or the Community's members.
+export type SessionVisibility = 'public' | 'members';
 
 // DP-002: 'participated' removed — declared in the original schema but
 // never set by any code path; not part of the five-state model.
@@ -422,6 +425,7 @@ export type RecurringSchedule = {
   priceModel: PriceModel;
   pricePerPerson?: number;
   totalPrice?: number;
+  visibility: SessionVisibility;
 };
 
 // A Session in the Player's own cross-Club history (DP-009) — carries its

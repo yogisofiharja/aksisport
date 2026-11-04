@@ -44,13 +44,18 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 		role = m.Role
 	case errors.Is(err, dbpkg.ErrNotFound):
 		// DP-028: a non-member may still see this one Session — as its
-		// participant, or because they were invited to it. They act as a
+		// participant, because they were invited to it, or (DP-017,
+		// 2026-11-04) because it is public and published. They act as a
 		// plain player here ("visitor") and stay outside the Community:
 		// every /clubs/:clubId route still answers "not a member".
-		visitor, verr := dbpkg.HasSessionVisitorAccess(c.Request.Context(), pool, sess.ID, user.ID)
-		if verr != nil {
-			respondInternal(c, verr)
-			return dbSession{}, "", false
+		visitor := sess.Visibility == "public" && sess.Status != "draft"
+		if !visitor {
+			var verr error
+			visitor, verr = dbpkg.HasSessionVisitorAccess(c.Request.Context(), pool, sess.ID, user.ID)
+			if verr != nil {
+				respondInternal(c, verr)
+				return dbSession{}, "", false
+			}
 		}
 		if !visitor {
 			respondError(c, http.StatusForbidden, "not a member of this club")
@@ -70,6 +75,29 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 		SkillLevelMinID: sess.SkillLevelMinID, SkillLevelMaxID: sess.SkillLevelMaxID, SkillLevelEnforcement: sess.SkillLevelEnforcement,
 		StartsAt: sess.StartsAt, DurationMinutes: sess.DurationMinutes, UmpireUserID: sess.UmpireUserID,
 	}, role, true
+}
+
+// requireSessionChatAccess: the Session's group chat is for the people in
+// it — members, and a visitor only as a participant or an invitee. Seeing
+// a public Session doesn't let a stranger read or post in its chat.
+func requireSessionChatAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) (dbSession, bool) {
+	sess, role, ok := requireSessionAccess(c, pool, sessionID)
+	if !ok {
+		return dbSession{}, false
+	}
+	if role != dbpkg.SessionVisitorRole {
+		return sess, true
+	}
+	in, err := dbpkg.HasSessionVisitorAccess(c.Request.Context(), pool, sessionID, authjwt.CurrentUser(c).ID)
+	if err != nil {
+		respondInternal(c, err)
+		return dbSession{}, false
+	}
+	if !in {
+		respondError(c, http.StatusForbidden, "ask for a spot to join the chat")
+		return dbSession{}, false
+	}
+	return sess, true
 }
 
 // dbSession is a tiny local alias to avoid importing models directly here
@@ -123,6 +151,20 @@ func isOwnerOrAdmin(role string) bool {
 // no tournament-length Sessions yet, so 24 hours is the ceiling for now.
 func isValidDurationMinutes(minutes int) bool {
 	return minutes >= 60 && minutes <= 1440 && minutes%60 == 0
+}
+
+// validSessionVisibility: who can see a Session — "public" (anyone signed
+// in) or "members" (the Community's members). Omitted is fine: create
+// defaults to public, update leaves it unchanged.
+func validSessionVisibility(v *string) bool {
+	return v == nil || *v == "public" || *v == "members"
+}
+
+func derefOr(s *string, fallback string) string {
+	if s == nil {
+		return fallback
+	}
+	return *s
 }
 
 // validatePriceModel normalizes and validates a Session/Recurring Schedule
@@ -253,6 +295,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
 			HostPlaying           *bool           `json:"hostPlaying"`
 			PriceModel            *string         `json:"priceModel"`
+			Visibility            *string         `json:"visibility"`
 			PricePerPerson        *int            `json:"pricePerPerson"`
 			TotalPrice            *int            `json:"totalPrice"`
 		}
@@ -304,6 +347,10 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusBadRequest, errMsg)
 			return
 		}
+		if !validSessionVisibility(body.Visibility) {
+			respondError(c, http.StatusBadRequest, `visibility must be "public" or "members"`)
+			return
+		}
 		session, err := dbpkg.CreateSession(c.Request.Context(), pool, dbpkg.CreateSessionParams{
 			ClubID: clubID, Sport: body.Sport, Name: body.Name, Location: body.Location, Description: body.Description,
 			CourtCount: body.CourtCount, MaxParticipants: body.MaxParticipants,
@@ -315,6 +362,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			PriceModel:     priceModel,
 			PricePerPerson: pricePerPerson,
 			TotalPrice:     totalPrice,
+			Visibility:     derefOr(body.Visibility, ""),
 		})
 		if err != nil {
 			respondInternal(c, err)
@@ -419,6 +467,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
 			HostPlaying           *bool           `json:"hostPlaying"`
 			PriceModel            *string         `json:"priceModel"`
+			Visibility            *string         `json:"visibility"`
 			PricePerPerson        *int            `json:"pricePerPerson"`
 			TotalPrice            *int            `json:"totalPrice"`
 		}
@@ -466,6 +515,10 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusBadRequest, errMsg)
 			return
 		}
+		if !validSessionVisibility(body.Visibility) {
+			respondError(c, http.StatusBadRequest, `visibility must be "public" or "members"`)
+			return
+		}
 		session, err := dbpkg.UpdateSession(c.Request.Context(), pool, sessionID, dbpkg.SessionUpdate{
 			Name: body.Name, Location: body.Location, Description: body.Description, Status: body.Status,
 			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
@@ -476,6 +529,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			PriceModel:     priceModel,
 			PricePerPerson: pricePerPerson,
 			TotalPrice:     totalPrice,
+			Visibility:     body.Visibility,
 		})
 		if err != nil {
 			respondInternal(c, err)
@@ -954,7 +1008,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 	// Contact Organizer never does).
 	authed.GET("/sessions/:id/messages", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+		if _, ok := requireSessionChatAccess(c, pool, sessionID); !ok {
 			return
 		}
 		messages, err := listConversation(c, pool, models.ConversationKindSessionChat, sessionID, nil)
@@ -967,7 +1021,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 
 	authed.POST("/sessions/:id/messages", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		sess, _, ok := requireSessionAccess(c, pool, sessionID)
+		sess, ok := requireSessionChatAccess(c, pool, sessionID)
 		if !ok {
 			return
 		}

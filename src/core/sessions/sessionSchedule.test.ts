@@ -15,6 +15,7 @@ function session(overrides: Partial<Session>): Session {
     updatedAt: '2026-01-01T00:00:00Z',
     hostPlaying: true,
     priceModel: 'free',
+    visibility: 'public',
     joinedCount: 0,
     lifecycleStatus: 'recruiting',
     ...overrides,

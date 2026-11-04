@@ -65,5 +65,5 @@ export function ClubEntryScreen(props: Props) {
 
   if (preview.viewerRole) return <CommunityScreen {...props} />;
 
-  return <ClubPreviewScreen club={preview} onBack={props.onBack} onChanged={setPreview} />;
+  return <ClubPreviewScreen club={preview} onBack={props.onBack} onChanged={setPreview} onOpenSession={props.onOpenSession} />;
 }

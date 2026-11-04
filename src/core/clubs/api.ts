@@ -8,6 +8,7 @@ import type {
   ClubRole,
   ClubVisibility,
   ClubWithRole,
+  Session,
 } from '../api/types';
 
 export function createClub(
@@ -120,6 +121,12 @@ export function removeMember(clubId: string, userId: string): Promise<void> {
 // Milestone 5 (Session Finance) — a Club can list more than one bank
 // account. Listed by any member; managed (create/update/delete) by the
 // owner only, same permission level as every other Club-level setting.
+// A Community's upcoming public Sessions — anyone signed in may read them,
+// member or not (DP-017, 2026-11-04); its preview lists them.
+export function listPublicSessions(clubId: string): Promise<Session[]> {
+  return apiFetch(`/v1/clubs/${clubId}/public-sessions`);
+}
+
 export function listClubBankAccounts(clubId: string): Promise<ClubBankAccount[]> {
   return apiFetch(`/v1/clubs/${clubId}/bank-accounts`);
 }

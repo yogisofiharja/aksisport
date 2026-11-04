@@ -9,7 +9,7 @@ import { Typography } from '../../../design-system/ui/Typography';
 import { useTranslation } from '../../../i18n';
 import { shortDate, timeRange, type SessionFormValues } from '../../../core/sessions/sessionForm';
 import type { SkillLevel } from '../../../core/api/types';
-import { activityValue, matchFormatValue, playersValue, priceValue, skillValue } from './summaryRows';
+import { activityValue, matchFormatValue, playersValue, priceValue, skillValue, visibilityValue } from './summaryRows';
 
 type Props = {
   values: SessionFormValues;
@@ -52,6 +52,7 @@ export function SessionCheck({ values: v, clubName, levels, submitting, error, n
             { label: t('checkPlayers'), value: playersValue(v, t) },
             { label: t('checkMatchFormat'), value: matchFormatValue(v, t) },
             { label: t('checkSkillLevel'), value: skillValue(v, levels, t) },
+            { label: t('checkVisibility'), value: visibilityValue(v, t) },
             { label: t('checkPrice'), value: priceValue(v, t) },
             ...(notes ? [{ label: t('checkNotes'), value: notes }] : []),
           ]}

@@ -113,6 +113,12 @@ export function DetailsTab({
               <Text className="font-bold text-ink dark:text-ink-dark">{t('sessionDurationHours', Math.round(session.durationMinutes / 60))}</Text>
             </HStack>
           )}
+          <HStack className="justify-between">
+            <Text className="text-ink-muted dark:text-ink-muted-dark">{t('checkVisibility')}</Text>
+            <Text className="font-bold text-ink dark:text-ink-dark">
+              {t(session.visibility === 'members' ? 'sessionVisibilityMembers' : 'sessionVisibilityPublic')}
+            </Text>
+          </HStack>
           {session.priceModel === 'free' ? (
             <HStack className="justify-between">
               <Text className="text-ink-muted dark:text-ink-muted-dark">{t('sessionPriceLabel')}</Text>

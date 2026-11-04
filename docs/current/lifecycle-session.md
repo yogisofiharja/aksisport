@@ -247,7 +247,7 @@ on one row (each opens a picker Sheet; the system dialog on Android),
 "I'll be playing too" with its hint,
 Number of players (optional), *How matches are played* (format
 Segmented: Free Play · Fixed · Race To · Regular, with a one-line hint
-on how the chosen one is won, its stepper or sets, single deuce), *Who can join* (skill level switch, From/To pickers,
+on how the chosen one is won, its stepper or sets, single deuce), *Who can join* ("Who can see this session": Anyone · Members only, DP-017; skill level switch, From/To pickers,
 Enforcement Segmented with its hint), *Price* (Free · Per person · Split
 bill, then the amount with an `Rp` prefix) and *Notes*. Continue is
 pinned at the bottom. Validation (`core/sessions/sessionForm.ts`) puts

@@ -44,6 +44,9 @@ type RecurringSchedule struct {
 	// Session, and used to auto-check-in the host on each generated Session.
 	HostPlaying bool `json:"hostPlaying"`
 	// Price, same as Session's own field — copied onto each generated Session.
+	// Visibility: "public" (anyone signed in can see it) or "members"
+	// (the Community's members only).
+	Visibility     string `json:"visibility"`
 	PriceModel     string `json:"priceModel"`
 	PricePerPerson *int   `json:"pricePerPerson,omitempty"`
 	TotalPrice     *int   `json:"totalPrice,omitempty"`

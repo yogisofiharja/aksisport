@@ -11,7 +11,7 @@ import { digitsOnly, formatThousands } from '../../../core/currency';
 import { listSportIds, getSportModule } from '../../../sports/registry';
 import { firstScheduledSession } from '../../../core/recurringSchedules/firstSession';
 import { hhmm, shortDate, type SessionFormErrors, type SessionFormField, type SessionFormValues } from '../../../core/sessions/sessionForm';
-import type { PriceModel, SkillLevel, SkillLevelEnforcement } from '../../../core/api/types';
+import type { PriceModel, SessionVisibility, SkillLevel, SkillLevelEnforcement } from '../../../core/api/types';
 import type { MatchFormat } from '../../../sports/tennis/scoringEngine';
 import { weekdayLabel } from '../../recurringSchedules/weekday';
 import { activityTypeLabel, sportLabel } from '../sessionDisplay';
@@ -283,6 +283,16 @@ export function SessionForm({ values: v, update, errors, levels, editing, onFiel
       </FormSection>
 
       <FormSection title={t('sessionFormWhoTitle')}>
+        <Field label={t('sessionVisibilityLabel')} hint={t(v.visibility === 'members' ? 'sessionVisibilityMembersHint' : 'sessionVisibilityPublicHint')}>
+          <Segmented<SessionVisibility>
+            options={[
+              { value: 'public', label: t('sessionVisibilityPublic') },
+              { value: 'members', label: t('sessionVisibilityMembers') },
+            ]}
+            value={v.visibility}
+            onChange={(visibility) => update({ visibility })}
+          />
+        </Field>
         <SwitchField
           label={t('skillLevelRequireToggleLabel')}
           value={v.requireSkillLevel}

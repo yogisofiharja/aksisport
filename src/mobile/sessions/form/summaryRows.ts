@@ -44,6 +44,10 @@ export function skillValue(v: SessionFormValues, levels: SkillLevel[], t: T): st
   return `${name(v.skillLevelMinId)}–${name(v.skillLevelMaxId)} · ${mode}`;
 }
 
+export function visibilityValue(v: SessionFormValues, t: T): string {
+  return t(v.visibility === 'members' ? 'sessionVisibilityMembers' : 'sessionVisibilityPublic');
+}
+
 export function priceValue(v: SessionFormValues, t: T): string {
   if (v.priceModel === 'per_person') return t('sessionPricePerPersonDisplay', formatIDR(Number(v.pricePerPerson)));
   if (v.priceModel === 'split_bill') return t('checkPriceSplit', formatIDR(Number(v.totalPrice)));

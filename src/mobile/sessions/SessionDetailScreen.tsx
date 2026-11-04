@@ -865,6 +865,10 @@ export function SessionDetailScreen({
 
   // A free Session has nothing to pay or confirm (DP-002 v0.24.0).
   const isFree = session.priceModel === 'free';
+  // The group chat is for the people in the Session: members, and a
+  // visitor once they've asked for a spot or were invited (the server
+  // checks the same).
+  const canChat = session.viewerRole !== 'visitor' || Boolean(myParticipant) || Boolean(session.invitedBy);
   // What waits on an organizer: requests for a spot and receipts to
   // check. A callout on Details and Players opens the first one; the count
   // rides on the Players tab.
@@ -1135,7 +1139,13 @@ export function SessionDetailScreen({
         <Segmented options={tabOrder.map((key) => tabOptions[key])} value={activeTab} onChange={setActiveTab} />
       </VStack>
 
-      {activeTab === 'chat' ? (
+      {activeTab === 'chat' && !canChat ? (
+        // Someone only viewing a public Session (DP-017): the chat is for
+        // the people in it, so asking for a spot comes first.
+        <VStack className="px-5 pt-6">
+          <Alert tone="info" icon="chatbubbles-outline" title={t('sessionChatAskFirst')} />
+        </VStack>
+      ) : activeTab === 'chat' ? (
         <ChatTab sessionId={sessionId} session={session} onOpenContact={() => setContactVisible(true)} />
       ) : (
       <ScrollView

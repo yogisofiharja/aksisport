@@ -1,4 +1,4 @@
-import type { PriceModel, SkillLevelEnforcement } from '../api/types';
+import type { PriceModel, SessionVisibility, SkillLevelEnforcement } from '../api/types';
 import type { MatchFormat } from '../../sports/tennis/scoringEngine';
 
 // The create / edit Session form's values, shared by the form, the two
@@ -27,6 +27,7 @@ export type SessionFormValues = {
   skillLevelMaxId?: string;
   skillLevelEnforcement?: SkillLevelEnforcement;
   priceModel: PriceModel;
+  visibility: SessionVisibility;
   pricePerPerson: string;
   totalPrice: string;
   matchFormat: MatchFormat;
@@ -83,6 +84,7 @@ export function templatePayload(v: SessionFormValues) {
     activityType: v.activityType,
     hostPlaying: v.hostPlaying,
     priceModel: v.priceModel,
+    visibility: v.visibility,
     pricePerPerson: v.priceModel === 'per_person' ? positiveInt(v.pricePerPerson) : undefined,
     totalPrice: v.priceModel === 'split_bill' ? positiveInt(v.totalPrice) : undefined,
     defaultMatchFormat: v.matchFormat,

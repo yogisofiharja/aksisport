@@ -81,13 +81,13 @@ func resolveLifecycleStatus(s models.Session) string {
 	return "recruiting"
 }
 
-const sessionColumns = "id, club_id, sport, name, location, court_count, status, max_participants, default_match_format, created_by, created_at, updated_at, starts_at, recurring_schedule_id, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, umpire_user_id, (SELECT COALESCE(NULLIF(u.display_name, ''), u.username) FROM users u WHERE u.id = sessions.umpire_user_id)"
+const sessionColumns = "id, club_id, sport, name, location, court_count, status, max_participants, default_match_format, created_by, created_at, updated_at, starts_at, recurring_schedule_id, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, umpire_user_id, (SELECT COALESCE(NULLIF(u.display_name, ''), u.username) FROM users u WHERE u.id = sessions.umpire_user_id), visibility"
 
 // sessionScanTargets lists Scan destinations in sessionColumns' order —
 // shared so a query selecting sessionColumns plus extra columns can append
 // its own targets instead of repeating this list.
 func sessionScanTargets(s *models.Session) []any {
-	return []any{&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.MaxParticipants, &s.DefaultMatchFormat, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt, &s.StartsAt, &s.RecurringScheduleID, &s.SkillLevelMinID, &s.SkillLevelMaxID, &s.SkillLevelEnforcement, &s.DurationMinutes, &s.ActivityType, &s.Description, &s.HostPlaying, &s.PriceModel, &s.PricePerPerson, &s.TotalPrice, &s.DefaultSingleDeuce, &s.UmpireUserID, &s.UmpireName}
+	return []any{&s.ID, &s.ClubID, &s.Sport, &s.Name, &s.Location, &s.CourtCount, &s.Status, &s.MaxParticipants, &s.DefaultMatchFormat, &s.CreatedBy, &s.CreatedAt, &s.UpdatedAt, &s.StartsAt, &s.RecurringScheduleID, &s.SkillLevelMinID, &s.SkillLevelMaxID, &s.SkillLevelEnforcement, &s.DurationMinutes, &s.ActivityType, &s.Description, &s.HostPlaying, &s.PriceModel, &s.PricePerPerson, &s.TotalPrice, &s.DefaultSingleDeuce, &s.UmpireUserID, &s.UmpireName, &s.Visibility}
 }
 
 func scanSession(row pgx.CollectableRow) (models.Session, error) {
@@ -138,6 +138,9 @@ type CreateSessionParams struct {
 	PriceModel     string
 	PricePerPerson *int
 	TotalPrice     *int
+	// Visibility: "public" (the column default when "") or "members".
+	// Validated by the caller.
+	Visibility string
 }
 
 func CreateSession(ctx context.Context, pool *pgxpool.Pool, p CreateSessionParams) (models.Session, error) {
@@ -149,11 +152,11 @@ func CreateSession(ctx context.Context, pool *pgxpool.Pool, p CreateSessionParam
 		courtCount = 1
 	}
 	rows, err := pool.Query(ctx,
-		`INSERT INTO sessions (club_id, sport, name, location, court_count, max_participants, default_match_format, created_by, starts_at, recurring_schedule_id, status, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, umpire_user_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'draft'), $12, $13, $14, $15, $16, $17, $18, COALESCE(NULLIF($19, ''), 'free'), $20, $21, $22, $8) RETURNING `+sessionColumns,
+		`INSERT INTO sessions (club_id, sport, name, location, court_count, max_participants, default_match_format, created_by, starts_at, recurring_schedule_id, status, skill_level_min_id, skill_level_max_id, skill_level_enforcement, duration_minutes, activity_type, description, host_playing, price_model, price_per_person, total_price, default_single_deuce, umpire_user_id, visibility)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'draft'), $12, $13, $14, $15, $16, $17, $18, COALESCE(NULLIF($19, ''), 'free'), $20, $21, $22, $8, COALESCE(NULLIF($23, ''), 'public')) RETURNING `+sessionColumns,
 		p.ClubID, p.Sport, p.Name, p.Location, courtCount, p.MaxParticipants, p.DefaultMatchFormat, p.CreatedBy, p.StartsAt, p.RecurringScheduleID, p.Status,
 		p.SkillLevelMinID, p.SkillLevelMaxID, p.SkillLevelEnforcement, p.DurationMinutes, p.ActivityType, p.Description, p.HostPlaying,
-		p.PriceModel, p.PricePerPerson, p.TotalPrice, p.DefaultSingleDeuce,
+		p.PriceModel, p.PricePerPerson, p.TotalPrice, p.DefaultSingleDeuce, p.Visibility,
 	)
 	if err != nil {
 		return models.Session{}, err
@@ -194,6 +197,32 @@ func GetSession(ctx context.Context, pool *pgxpool.Pool, sessionID string) (mode
 // ListSessionsForClub excludes 'draft' sessions unless includeDrafts is
 // true — DP-001: a draft session "should not be visible or joinable by
 // club members," only its owner/admin creators.
+// ListUpcomingPublicSessions: a Community's public Sessions that haven't
+// ended — what anyone, member or not, sees on its preview (DP-017,
+// 2026-11-04). Soonest first; at most `limit`.
+func ListUpcomingPublicSessions(ctx context.Context, pool *pgxpool.Pool, clubID string, limit int) ([]models.Session, error) {
+	rows, err := pool.Query(ctx,
+		"SELECT "+sessionColumns+` FROM sessions
+		 WHERE club_id = $1 AND visibility = 'public' AND status IN ('open', 'in_progress')
+		 ORDER BY starts_at NULLS LAST, created_at
+		 LIMIT $2`,
+		clubID, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := []models.Session{}
+	for rows.Next() {
+		s, err := scanSession(rows)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, s)
+	}
+	return result, rows.Err()
+}
+
 func ListSessionsForClub(ctx context.Context, pool *pgxpool.Pool, clubID string, includeDrafts bool) ([]models.Session, error) {
 	query := "SELECT " + sessionColumns + " FROM sessions WHERE club_id = $1"
 	if !includeDrafts {
@@ -310,6 +339,8 @@ type SessionUpdate struct {
 	// DefaultSingleDeuce, same COALESCE-partial-update convention as the
 	// rest of this struct.
 	DefaultSingleDeuce *bool
+	// Visibility: "public" or "members". Part of the Template.
+	Visibility *string
 }
 
 // TouchesTemplate reports whether this update changes any field a
@@ -324,7 +355,8 @@ func (u SessionUpdate) TouchesTemplate() bool {
 		u.ActivityType != nil ||
 		u.SkillLevelMinID != nil || u.SkillLevelMaxID != nil || u.SkillLevelEnforcement != nil ||
 		u.HostPlaying != nil ||
-		u.PriceModel != nil || u.PricePerPerson != nil || u.TotalPrice != nil
+		u.PriceModel != nil || u.PricePerPerson != nil || u.TotalPrice != nil ||
+		u.Visibility != nil
 }
 
 func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u SessionUpdate) (models.Session, error) {
@@ -347,13 +379,14 @@ func UpdateSession(ctx context.Context, pool *pgxpool.Pool, sessionID string, u 
 			price_per_person = COALESCE($16, price_per_person),
 			total_price = COALESCE($17, total_price),
 			default_single_deuce = COALESCE($18, default_single_deuce),
+			visibility = COALESCE($20, visibility),
 			edited_after_generation = edited_after_generation OR ($19 AND recurring_schedule_id IS NOT NULL),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+sessionColumns,
 		sessionID, u.Name, u.Location, u.Status, u.MaxParticipants, u.DefaultMatchFormat, u.StartsAt,
 		u.SkillLevelMinID, u.SkillLevelMaxID, u.SkillLevelEnforcement, u.DurationMinutes, u.ActivityType, u.Description, u.HostPlaying,
-		u.PriceModel, u.PricePerPerson, u.TotalPrice, u.DefaultSingleDeuce, u.TouchesTemplate(),
+		u.PriceModel, u.PricePerPerson, u.TotalPrice, u.DefaultSingleDeuce, u.TouchesTemplate(), u.Visibility,
 	)
 	if err != nil {
 		return models.Session{}, err

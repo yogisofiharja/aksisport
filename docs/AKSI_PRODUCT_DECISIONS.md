@@ -1389,8 +1389,23 @@ there are no spellings to disagree.
 
 **What a non-member sees.** The Community's name, picture, description,
 location, member count, and whether it is Public or Private — plus the
-action to join or request. Sessions, members, and chats stay visible to
-members only.
+action to join or request — and its upcoming **public Sessions**.
+Members and chats stay visible to members only.
+
+**Session visibility** (2026-11-04). Every Session has a visibility, set
+on the Session form ("Who can see this session"):
+- **Anyone** (the default): anyone signed in can open it, from the
+  Community's page or a link, member or not, in a public or a private
+  Community, and ask for a spot directly, without joining the Community.
+  They take part as a Session-only participant (DP-028): the Session's
+  normal rules apply (approval, payment, skill level, capacity).
+- **Members only**: only the Community's members see it, plus anyone
+  invited to it or already taking part.
+
+A Recurring Schedule's Template carries the visibility to the Sessions it
+generates (and Session Synchronization updates it). Seeing a Session
+doesn't open its group chat: that is for members, participants and
+invitees — someone only viewing asks for a spot first.
 
 **Join requests.**
 

@@ -66,6 +66,7 @@ type recurringScheduleBody struct {
 	SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
 	HostPlaying           *bool           `json:"hostPlaying"`
 	PriceModel            *string         `json:"priceModel"`
+	Visibility            *string         `json:"visibility"`
 	PricePerPerson        *int            `json:"pricePerPerson"`
 	TotalPrice            *int            `json:"totalPrice"`
 }
@@ -130,6 +131,10 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			respondError(c, http.StatusBadRequest, errMsg)
 			return
 		}
+		if !validSessionVisibility(body.Visibility) {
+			respondError(c, http.StatusBadRequest, `visibility must be "public" or "members"`)
+			return
+		}
 		sched, err := dbpkg.CreateRecurringSchedule(c.Request.Context(), pool, dbpkg.CreateRecurringScheduleParams{
 			ClubID: clubID, Sport: body.Sport, Name: body.Name, Location: body.Location, Description: body.Description,
 			CourtCount: body.CourtCount, MaxParticipants: body.MaxParticipants,
@@ -142,6 +147,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			PriceModel:     priceModel,
 			PricePerPerson: pricePerPerson,
 			TotalPrice:     totalPrice,
+			Visibility:     derefOr(body.Visibility, ""),
 		})
 		if err != nil {
 			respondInternal(c, err)
@@ -205,6 +211,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			SkillLevelEnforcement *string         `json:"skillLevelEnforcement"`
 			HostPlaying           *bool           `json:"hostPlaying"`
 			PriceModel            *string         `json:"priceModel"`
+			Visibility            *string         `json:"visibility"`
 			PricePerPerson        *int            `json:"pricePerPerson"`
 			TotalPrice            *int            `json:"totalPrice"`
 		}
@@ -235,6 +242,10 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			respondError(c, http.StatusBadRequest, priceErrMsg)
 			return
 		}
+		if !validSessionVisibility(body.Visibility) {
+			respondError(c, http.StatusBadRequest, `visibility must be "public" or "members"`)
+			return
+		}
 		sched, err := dbpkg.UpdateRecurringSchedule(c.Request.Context(), pool, c.Param("id"), dbpkg.RecurringScheduleUpdate{
 			Name: body.Name, Location: body.Location, Description: body.Description, CourtCount: body.CourtCount,
 			MaxParticipants: body.MaxParticipants, DefaultMatchFormat: body.DefaultMatchFormat, DefaultSingleDeuce: body.DefaultSingleDeuce,
@@ -246,6 +257,7 @@ func RegisterRecurringScheduleRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, ve
 			PriceModel:      priceModel,
 			PricePerPerson:  pricePerPerson,
 			TotalPrice:      totalPrice,
+			Visibility:      body.Visibility,
 		})
 		if err != nil {
 			respondInternal(c, err)
