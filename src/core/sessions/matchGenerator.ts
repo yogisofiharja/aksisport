@@ -145,3 +145,15 @@ export function suggestedMatchCount(durationMinutes: number | undefined): number
   if (!durationMinutes) return 4;
   return Math.max(1, Math.round((durationMinutes / 60) * 3.5));
 }
+
+// Who matches are planned from (DP-005, 2026-11-05): before the Session
+// starts, everyone with a spot (registered or checked in); once it has
+// started, only the players who are here (checked in). The server uses
+// the same rule when it rebuilds the queue on a check-in or check-out.
+export function planningPool(
+  participants: SessionParticipant[],
+  session: { lifecycleStatus?: string } | null | undefined
+): SessionParticipant[] {
+  const started = session?.lifecycleStatus === 'in_progress' || session?.lifecycleStatus === 'completed';
+  return participants.filter((p) => p.status === 'checked_in' || (!started && p.status === 'registered'));
+}

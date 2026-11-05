@@ -503,11 +503,9 @@ organizer's Remove action:
   `null` once `checked_in` (the status was already visible on the
   caller's own avatar in the Participants grid, so a banner would have
   been redundant) with a small "Check Out" link — "I'm leaving." Also
-  confirmed. `load()` afterward picks up the checked-in pool shrinking
-  and auto-regenerates any still-queued match the caller was part of,
-  same as an organizer-initiated removal (see "Automatic regeneration on
-  checked-in pool change" above) — no separate wiring needed for that,
-  it's the same mechanism.
+  confirmed. Once the Session has started, the server rebuilds the queue
+  if the caller was still in a queued match (see "Automatic regeneration
+  on schedulable pool change").
 
 **Check-In Window** (v0.9.0, DP-002; scope revised Milestone 2):
 `checkInWindowOpen` in `sessions_handler.go` gates `/checkin` (self) and
@@ -901,8 +899,24 @@ Regenerate runs. No separate "suggest next match" trigger or
 auto-navigation was added for `AddMatchScreen` — opening the Add Match
 screen is still the trigger there, always recomputing from current data.
 
+**After the start: on the server** (DP-005, 2026-11-05). Once a Session
+has started (`in_progress`, or `open` past `startsAt`), the planning pool
+is checked-in players only (`planningPool` in
+`core/sessions/matchGenerator.ts`, used by Regenerate and Generate
+Matches too). The server rebuilds the queue itself
+(`db.RegenerateQueue`, fair rules ported to `internal/matchgen`): after
+`/checkin`, `/checkin/:participantId`, a `/register` that checks an
+organizer in, and — only when the player was in a queued match
+(`db.InQueuedMatch`) — `/checkout` and removing a participant. It
+deletes every queued match and creates the same number from the
+checked-in players not in a live match (fewest played, then longest
+wait, ties random), under a per-Session advisory lock. Then it announces
+`session.matches.updated {sessionId}`; an open `SessionDetailScreen`
+reloads. A failure is logged and never fails the check-in. The client's
+own pool-change regeneration below runs only before the start.
+
 **Automatic regeneration on schedulable pool change** (Milestone 2,
-revised; broadened in DP-005): once matches have been generated, the
+revised; broadened in DP-005; before the start only): once matches have been generated, the
 schedulable pool they were generated from can change for any reason — a
 new registration, a late check-in, a schedulable player cancelling/being
 removed, a no-show, a checkout — and any still-`queued` (unplayed) match

@@ -674,6 +674,18 @@ remember to tap Regenerate. (Revised — this previously required an
 explicit tap every time, with no silent/automatic path, and only
 tracked the checked-in pool rather than the wider eligible one.)
 
+**Once the Session has started** (2026-11-05):
+- Matches are planned only from players who are **checked in** — someone
+  registered who hasn't arrived is left out until they check in.
+- The **server** regenerates the queue itself, whatever device the
+  change came from: when anyone **checks in**, and when someone **checks
+  out early or is removed while still in a queued match** (leaving with
+  no match left changes nothing). Same as Regenerate: every queued match
+  is replaced by the same number, fairly; live and finished matches are
+  untouched. Everyone's Session screen updates.
+- Before the start, planning still uses everyone registered or checked
+  in, as above.
+
 ---
 
 ## DP-006 — Check-in Driven Workflow

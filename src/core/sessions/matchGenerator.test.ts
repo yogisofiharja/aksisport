@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateFairRound } from './matchGenerator';
+import { generateFairRound, planningPool } from './matchGenerator';
 import type { ActivityDetail, SessionParticipant } from '../api/types';
 
 function participant(id: string): SessionParticipant {
@@ -75,5 +75,19 @@ describe('generateFairRound', () => {
   it('still returns nothing when there are fewer eligible players than a match needs', () => {
     const players = ['a'].map(participant);
     expect(generateFairRound(players, [], [], 2, 3)).toEqual([]);
+  });
+});
+
+describe('planningPool', () => {
+  const here = participant('here');
+  const coming = { ...participant('coming'), status: 'registered' as const };
+  const asked = { ...participant('asked'), status: 'requested' as const };
+
+  it('plans from everyone with a spot before the start', () => {
+    expect(planningPool([here, coming, asked], { lifecycleStatus: 'ready' }).map((p) => p.id)).toEqual(['here', 'coming']);
+  });
+
+  it('plans only from the checked-in once it has started (DP-005)', () => {
+    expect(planningPool([here, coming, asked], { lifecycleStatus: 'in_progress' }).map((p) => p.id)).toEqual(['here']);
   });
 });

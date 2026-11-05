@@ -15,6 +15,7 @@ import (
 
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	dbpkg "github.com/yogisofiharja/aksi-server/internal/db"
+	"github.com/yogisofiharja/aksi-server/internal/live"
 	"github.com/yogisofiharja/aksi-server/internal/models"
 	"github.com/yogisofiharja/aksi-server/internal/notify"
 )
@@ -701,6 +702,11 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondInternal(c, err)
 			return
 		}
+		// An organizer who joins inside the Check-In Window is checked in
+		// at once (DP-032), which counts as a check-in for DP-005.
+		if p.Status == "checked_in" && before != "checked_in" {
+			regenerateQueue(ctx, pool, msgs, sessionID, sess.ClubID)
+		}
 		// DP-028: asking for a spot answers an invitation to the Session.
 		_ = dbpkg.RespondToInvitation(ctx, pool, user.ID, dbpkg.InviteTargetSession, sessionID, "joined")
 		// DP-018 #3: a new request (or one made again after cancelling)
@@ -879,7 +885,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 	authed.DELETE("/sessions/:id/participants/:userId", func(c *gin.Context) {
 		sessionID := c.Param("id")
 		targetID := c.Param("userId")
-		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		sess, role, ok := requireSessionAccess(c, pool, sessionID)
 		if !ok {
 			return
 		}
@@ -887,13 +893,22 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondError(c, http.StatusForbidden, "only owner/admin can remove a participant")
 			return
 		}
-		if err := dbpkg.DeleteParticipant(c.Request.Context(), pool, sessionID, targetID); err != nil {
+		ctx := c.Request.Context()
+		hadMatch, err := dbpkg.InQueuedMatch(ctx, pool, sessionID, targetID)
+		if err != nil {
+			respondInternal(c, err)
+			return
+		}
+		if err := dbpkg.DeleteParticipant(ctx, pool, sessionID, targetID); err != nil {
 			if errors.Is(err, dbpkg.ErrNotFound) {
 				respondError(c, http.StatusNotFound, "participant not found")
 				return
 			}
 			respondInternal(c, err)
 			return
+		}
+		if hadMatch {
+			regenerateQueue(ctx, pool, msgs, sessionID, sess.ClubID)
 		}
 		c.Status(http.StatusNoContent)
 	})
@@ -927,6 +942,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondInternal(c, err)
 			return
 		}
+		regenerateQueue(c.Request.Context(), pool, msgs, sessionID, sess.ClubID)
 		c.JSON(http.StatusOK, p)
 	})
 
@@ -995,6 +1011,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 			respondInternal(c, err)
 			return
 		}
+		regenerateQueue(c.Request.Context(), pool, msgs, sessionID, sess.ClubID)
 		c.JSON(http.StatusOK, p)
 	})
 
@@ -1004,14 +1021,26 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 	// — deferred until a screen actually needs it (DP-006).
 	authed.POST("/sessions/:id/checkout", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+		sess, _, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
 			return
 		}
 		user := authjwt.CurrentUser(c)
-		p, err := dbpkg.CheckOut(c.Request.Context(), pool, sessionID, user.ID)
+		ctx := c.Request.Context()
+		// DP-005: leaving early rebuilds the queue only when they still
+		// had a match to play.
+		hadMatch, err := dbpkg.InQueuedMatch(ctx, pool, sessionID, user.ID)
 		if err != nil {
 			respondInternal(c, err)
 			return
+		}
+		p, err := dbpkg.CheckOut(ctx, pool, sessionID, user.ID)
+		if err != nil {
+			respondInternal(c, err)
+			return
+		}
+		if hadMatch {
+			regenerateQueue(ctx, pool, msgs, sessionID, sess.ClubID)
 		}
 		c.JSON(http.StatusOK, p)
 	})
@@ -1308,4 +1337,38 @@ func parseConversationMessageBody(c *gin.Context) (body string, imageData []byte
 		return "", nil, nil, false
 	}
 	return trimmed, imageData, imageContentType, true
+}
+
+// regenerateQueue is DP-005's automatic regeneration on the server
+// (2026-11-05): after someone checks in, or leaves while still in a
+// queued match, a started Session's queue is rebuilt from who's checked
+// in. A failure is logged, never fails the check-in itself. Everyone in
+// the Session and its organizers are told, so open screens reload.
+func regenerateQueue(ctx context.Context, pool *pgxpool.Pool, msgs *messenger, sessionID, clubID string) {
+	done, err := dbpkg.RegenerateQueue(ctx, pool, sessionID)
+	if err != nil {
+		log.Printf("session %s: regenerating matches: %v", sessionID, err)
+		return
+	}
+	if !done || msgs == nil || msgs.hub == nil {
+		return
+	}
+	ids := map[string]bool{}
+	if organizers, err := dbpkg.ListClubOrganizerIDs(ctx, pool, clubID); err == nil {
+		for _, id := range organizers {
+			ids[id] = true
+		}
+	}
+	if parts, err := dbpkg.ListParticipants(ctx, pool, sessionID); err == nil {
+		for _, p := range parts {
+			if p.UserID != nil {
+				ids[*p.UserID] = true
+			}
+		}
+	}
+	userIDs := make([]string, 0, len(ids))
+	for id := range ids {
+		userIDs = append(userIDs, id)
+	}
+	msgs.hub.Publish(userIDs, live.Event{Type: "session.matches.updated", Data: gin.H{"sessionId": sessionID}})
 }

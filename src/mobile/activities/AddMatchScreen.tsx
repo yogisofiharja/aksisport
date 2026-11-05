@@ -18,7 +18,7 @@ import type { ActivityDetail, Session, SessionParticipant } from '../../core/api
 import type { MatchConfig, MatchFormat, MatchMode, Player, Team } from '../../sports/tennis/scoringEngine';
 import { minParticipants } from '../../sports/tennis/rules';
 import { firstCheckedInPolicy } from '../../core/sessions/scheduler';
-import { availableToPlay, generateFairRound, suggestedMatchCount, type GeneratedMatch } from '../../core/sessions/matchGenerator';
+import { availableToPlay, generateFairRound, suggestedMatchCount, type GeneratedMatch, planningPool } from '../../core/sessions/matchGenerator';
 import { buildGeneratedMatchPayload, participantLabel } from '../../core/activities/buildGeneratedMatchPayload';
 import { webSelectStyle } from '../../platform/webSelectStyle';
 import { Switch } from '../../design-system/ui/Switch';
@@ -127,15 +127,9 @@ export function AddMatchScreen({ sessionId, onBack, onCreated }: Props) {
   const queuedActivities = useMemo(() => activities.filter((a) => a.status === 'queued'), [activities]);
   const hasQueuedMatches = queuedActivities.length > 0;
 
-  // Eligible for planning: a claimed spot (registered or checked_in), not
-  // checked_in alone — matches can be planned before anyone's physically
-  // checked in (core/sessions/matchGenerator.ts's module comment).
-  // Actually starting a match still requires its own players be checked
-  // in (SessionDetailScreen's canStart), unaffected by this.
-  const schedulable = useMemo(
-    () => participants.filter((p) => p.status === 'registered' || p.status === 'checked_in'),
-    [participants]
-  );
+  // Eligible for planning: everyone with a spot before the start, only
+  // the checked-in once it has started (planningPool, DP-005).
+  const schedulable = useMemo(() => planningPool(participants, session), [participants, session]);
   // When "remove existing matches" is on, the preview (and the eventual
   // submit) treats already-queued matches as if they're already gone —
   // their players become available again, and those matches no longer

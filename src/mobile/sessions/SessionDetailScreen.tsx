@@ -34,7 +34,8 @@ import { clubAvatarUrl, getClubPreview, joinClub, listMembers } from '../../core
 import { getRecurringSchedule } from '../../core/recurringSchedules/api';
 import { createActivity, deleteActivity, listActivities } from '../../core/activities/api';
 import { listMySkillLevels, listSkillLevels } from '../../core/skillLevels/api';
-import { availableToPlay, generateFairRound, type GeneratedMatch } from '../../core/sessions/matchGenerator';
+import { availableToPlay, generateFairRound, planningPool, type GeneratedMatch } from '../../core/sessions/matchGenerator';
+import { useLiveEvents } from '../../core/live/live';
 import { buildGeneratedMatchPayload } from '../../core/activities/buildGeneratedMatchPayload';
 import { formatSessionWhen, isWithinCheckInWindow } from '../../core/sessions/sessionSchedule';
 import { offerPush } from '../../core/notifications/offerPush';
@@ -243,8 +244,12 @@ export function SessionDetailScreen({
       // out, a different one in) still triggers this. Owner/admin only —
       // matches Regenerate's own permission requirement, and avoids every
       // viewer's device racing to regenerate the same queue.
+      // Once the Session has started the server does this itself on every
+      // check-in and early check-out (DP-005, 2026-11-05), so only before
+      // the start.
       let finalActs = acts;
-      const freshSchedulable = parts.filter((p) => p.status === 'registered' || p.status === 'checked_in');
+      const freshSchedulable = planningPool(parts, sess);
+      const startedNow = sess.lifecycleStatus === 'in_progress' || sess.lifecycleStatus === 'completed';
       const schedulableKey = freshSchedulable
         .map((p) => p.userId ?? p.id)
         .sort()
@@ -254,7 +259,8 @@ export function SessionDetailScreen({
         lastSchedulableKeyRef.current !== null &&
         lastSchedulableKeyRef.current !== schedulableKey &&
         amOwnerOrAdmin &&
-        generationEligibleNow
+        generationEligibleNow &&
+        !startedNow
       ) {
         const freshQueued = acts.filter((a) => a.status === 'queued');
         if (freshQueued.length > 0) {
@@ -314,6 +320,11 @@ export function SessionDetailScreen({
     }, 20_000);
     return () => clearInterval(id);
   }, [waitingOnOrganizer, load]);
+
+  // DP-005: the server rebuilt the queue after a check-in or check-out.
+  useLiveEvents((e) => {
+    if (e.type === 'session.matches.updated' && e.data?.sessionId === sessionId) load();
+  });
 
   const myParticipant = participants.find((p) => p.userId === profile?.id);
 
@@ -380,7 +391,7 @@ export function SessionDetailScreen({
   // to a 'class' Session), only once there's something queued to replace,
   // and only when at least one eligible player isn't covered by any
   // currently queued match — otherwise there's nothing to fix.
-  const schedulableParticipants = participants.filter((p) => p.status === 'registered' || p.status === 'checked_in');
+  const schedulableParticipants = planningPool(participants, session);
   const queuedActivities = activities.filter((a) => a.status === 'queued');
   const liveActivities = activities.filter((a) => a.status === 'live');
   const generationEligible = session?.activityType === 'single' || session?.activityType === 'double';
