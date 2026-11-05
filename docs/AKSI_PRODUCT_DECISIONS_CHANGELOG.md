@@ -6,6 +6,23 @@ history — never a place to look for what's true right now.
 
 ---
 
+## v0.32.0
+
+Approved by Yogi, 2026-11-05.
+
+- DP-024: only the Session's creator gets the organizer bottom bar;
+  another owner/admin who isn't playing sees Request to join.
+- DP-028: an invite link opened signed out shows the Session's details
+  first; Join asks for an account.
+- New DP-032: payment is tracked apart from the spot. Owners/admins who
+  join go straight in and pay later. A built-in Reguler tag lets a
+  member join without approval and, with the Community's setting on,
+  pay after playing. Every player pays on a priced Session, the host
+  included (replaces DP-012 v0.29.0's host exemption). Unpaid players
+  are listed for organizers and reminded on Home.
+
+---
+
 ## v0.31.0
 
 Approved by Yogi, 2026-10-27.

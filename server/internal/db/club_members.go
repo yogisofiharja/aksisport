@@ -10,17 +10,17 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
-const membershipColumns = "club_id, user_id, role, joined_at"
+const membershipColumns = "club_id, user_id, role, joined_at, reguler"
 
 func scanMembership(row pgx.CollectableRow) (models.ClubMember, error) {
 	var m models.ClubMember
-	err := row.(pgx.Rows).Scan(&m.ClubID, &m.UserID, &m.Role, &m.JoinedAt)
+	err := row.(pgx.Rows).Scan(&m.ClubID, &m.UserID, &m.Role, &m.JoinedAt, &m.Reguler)
 	return m, err
 }
 
 func scanMembershipWithUser(row pgx.CollectableRow) (models.ClubMember, error) {
 	var m models.ClubMember
-	err := row.(pgx.Rows).Scan(&m.ClubID, &m.UserID, &m.Role, &m.JoinedAt, &m.Username, &m.DisplayName, &m.AvatarURL, &m.HasAvatar, &m.AvatarVersion, &m.IsOnline)
+	err := row.(pgx.Rows).Scan(&m.ClubID, &m.UserID, &m.Role, &m.JoinedAt, &m.Reguler, &m.Username, &m.DisplayName, &m.AvatarURL, &m.HasAvatar, &m.AvatarVersion, &m.IsOnline)
 	return m, err
 }
 
@@ -43,7 +43,7 @@ func GetMembership(ctx context.Context, pool *pgxpool.Pool, clubID, userID strin
 func ListMembers(ctx context.Context, pool *pgxpool.Pool, clubID string) ([]models.ClubMember, error) {
 	rows, err := pool.Query(ctx,
 		`SELECT cm.club_id, cm.user_id, u.username, u.display_name, u.avatar_url,
-		        (u.avatar_image_data IS NOT NULL) AS has_avatar, `+imageVersionExpr("u.avatar_updated_at")+`, `+isOnlineExpr+` AS is_online, cm.role, cm.joined_at
+		        (u.avatar_image_data IS NOT NULL) AS has_avatar, `+imageVersionExpr("u.avatar_updated_at")+`, `+isOnlineExpr+` AS is_online, cm.role, cm.joined_at, cm.reguler
 		 FROM club_members cm
 		 JOIN users u ON u.id = cm.user_id
 		 WHERE cm.club_id = $1
@@ -58,7 +58,7 @@ func ListMembers(ctx context.Context, pool *pgxpool.Pool, clubID string) ([]mode
 	result := []models.ClubMember{}
 	for rows.Next() {
 		var m models.ClubMember
-		if err := rows.Scan(&m.ClubID, &m.UserID, &m.Username, &m.DisplayName, &m.AvatarURL, &m.HasAvatar, &m.AvatarVersion, &m.IsOnline, &m.Role, &m.JoinedAt); err != nil {
+		if err := rows.Scan(&m.ClubID, &m.UserID, &m.Username, &m.DisplayName, &m.AvatarURL, &m.HasAvatar, &m.AvatarVersion, &m.IsOnline, &m.Role, &m.JoinedAt, &m.Reguler); err != nil {
 			return nil, err
 		}
 		result = append(result, m)
@@ -108,9 +108,9 @@ func ChangeMemberRole(ctx context.Context, pool *pgxpool.Pool, clubID, userID, r
 		`WITH updated AS (
 			UPDATE club_members SET role = $3
 			WHERE club_id = $1 AND user_id = $2 AND role != 'owner'
-			RETURNING club_id, user_id, role, joined_at
+			RETURNING club_id, user_id, role, joined_at, reguler
 		 )
-		 SELECT updated.club_id, updated.user_id, updated.role, updated.joined_at, u.username, u.display_name, u.avatar_url,
+		 SELECT updated.club_id, updated.user_id, updated.role, updated.joined_at, updated.reguler, u.username, u.display_name, u.avatar_url,
 		        (u.avatar_image_data IS NOT NULL) AS has_avatar, `+imageVersionExpr("u.avatar_updated_at")+`, `+isOnlineExpr+` AS is_online
 		 FROM updated JOIN users u ON u.id = updated.user_id`,
 		clubID, userID, role,
@@ -134,6 +134,19 @@ func CountOwners(ctx context.Context, pool *pgxpool.Pool, clubID string) (int, e
 
 func RemoveMember(ctx context.Context, pool *pgxpool.Pool, clubID, userID string) error {
 	tag, err := pool.Exec(ctx, "DELETE FROM club_members WHERE club_id = $1 AND user_id = $2", clubID, userID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// SetMemberReguler puts the built-in Reguler tag on a member or takes it
+// off (DP-032). ErrNotFound if they aren't a member.
+func SetMemberReguler(ctx context.Context, pool *pgxpool.Pool, clubID, userID string, reguler bool) error {
+	tag, err := pool.Exec(ctx, "UPDATE club_members SET reguler = $3 WHERE club_id = $1 AND user_id = $2", clubID, userID, reguler)
 	if err != nil {
 		return err
 	}

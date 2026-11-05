@@ -1,46 +1,54 @@
 import type { Session, SessionParticipant } from '../api/types';
 
-// Milestone 5 — waitlist (approved, payment not yet confirmed) reads as
-// "awaiting"; registered/checked_in/checked_out all mean the slot is
-// claimed, i.e. "paid" in this domain's terms. 'requested' participants
-// haven't been approved yet at all, so they have no payment status —
-// excluded entirely, not shown as either.
+// DP-032: paying is kept apart from the place. `paid` is set once an
+// organizer confirms payment. Most players pay first (Waitlist →
+// Registered); organizers and Reguler members may get their place first
+// and pay after.
+
+// Statuses that hold, or are about to hold, a place — and so owe the price.
+const OWES = new Set<SessionParticipant['status']>(['waitlist', 'registered', 'checked_in', 'checked_out']);
+
+// Owes and hasn't paid yet: the waitlist, or someone playing who pays
+// after.
 export function isAwaitingPayment(p: SessionParticipant) {
-  return p.status === 'waitlist';
+  return OWES.has(p.status) && !p.paid;
 }
 export function hasPaid(p: SessionParticipant) {
-  return p.status === 'registered' || p.status === 'checked_in' || p.status === 'checked_out';
+  return Boolean(p.paid);
 }
 
 // A player's payment status on the Session, or undefined when they have
-// none: a free Session; the host and guests, who never go through the
-// payment step (DP-012 v0.29.0 — organizer-initiated places skip approval
-// and payment); and 'requested', not approved yet. Any paid count leaves
-// them out too.
-export function paymentStatus(
-  p: SessionParticipant,
-  session: Pick<Session, 'priceModel' | 'createdBy'>
-): 'paid' | 'awaiting' | undefined {
-  if (session.priceModel === 'free' || !p.userId || p.userId === session.createdBy) return undefined;
-  if (isAwaitingPayment(p)) return 'awaiting';
+// none: a free Session; a guest, added by name with no account to pay
+// from; and a request not approved yet (or a cancelled one).
+export function paymentStatus(p: SessionParticipant, session: Pick<Session, 'priceModel'>): 'paid' | 'awaiting' | undefined {
+  if (session.priceModel === 'free' || !p.userId) return undefined;
   if (hasPaid(p)) return 'paid';
+  if (isAwaitingPayment(p)) return 'awaiting';
   return undefined;
 }
 
 // A receipt waiting for an organizer: the player uploaded proof of payment
 // and nobody has confirmed it yet.
-export function receiptToCheck(p: SessionParticipant, session: Pick<Session, 'priceModel' | 'createdBy'>): boolean {
+export function receiptToCheck(p: SessionParticipant, session: Pick<Session, 'priceModel'>): boolean {
   return paymentStatus(p, session) === 'awaiting' && p.hasReceipt;
 }
 
-// What waits on an organizer in a Session: members asking for a spot, and
-// receipts to check. `first` is who to open first — requests before
-// receipts, oldest first as listed.
+// Played (or is playing) and hasn't paid or sent a receipt — counted once
+// the Session has started (DP-032).
+export function unpaidAfterStart(p: SessionParticipant, session: Pick<Session, 'priceModel' | 'lifecycleStatus'>): boolean {
+  const started = session.lifecycleStatus === 'in_progress' || session.lifecycleStatus === 'completed';
+  return started && p.status !== 'waitlist' && paymentStatus(p, session) === 'awaiting' && !p.hasReceipt;
+}
+
+// What waits on an organizer in a Session: members asking for a spot,
+// receipts to check, and — once it has started — players who haven't
+// paid. `first` is who to open first, in that order, oldest first.
 export function organizerToDo(
   participants: SessionParticipant[],
-  session: Pick<Session, 'priceModel' | 'createdBy'>
-): { requests: number; receipts: number; first?: SessionParticipant } {
+  session: Pick<Session, 'priceModel' | 'lifecycleStatus'>
+): { requests: number; receipts: number; unpaid: number; first?: SessionParticipant } {
   const requests = participants.filter((p) => p.status === 'requested' && p.userId);
   const receipts = participants.filter((p) => receiptToCheck(p, session));
-  return { requests: requests.length, receipts: receipts.length, first: requests[0] ?? receipts[0] };
+  const unpaid = participants.filter((p) => unpaidAfterStart(p, session));
+  return { requests: requests.length, receipts: receipts.length, unpaid: unpaid.length, first: requests[0] ?? receipts[0] ?? unpaid[0] };
 }

@@ -50,9 +50,9 @@ func Render(locale string, n Notification) (title, body string) {
 		return "Payment receipt", p("name") + " uploaded a payment receipt for " + p("session") + "."
 	case TypePaymentConfirmed:
 		if id {
-			return "Pembayaran dikonfirmasi", "Tempatmu di " + p("session") + " sudah aman."
+			return "Pembayaran dikonfirmasi", "Pembayaranmu untuk " + p("session") + " sudah dikonfirmasi."
 		}
-		return "Payment confirmed", "Your spot in " + p("session") + " is claimed."
+		return "Payment confirmed", "Your payment for " + p("session") + " is confirmed."
 	case TypeSessionReminder:
 		if id {
 			return p("session"), "Dimulai " + startsInText(true, p("minutes")) + "."

@@ -24,6 +24,9 @@ type Club struct {
 	CreatedBy     string    `json:"createdBy"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
+	// RegulerPayLater (DP-032): the Reguler tag's one setting — Reguler
+	// members get their place first and pay after playing.
+	RegulerPayLater bool `json:"regulerPayLater"`
 }
 
 // ClubBankAccount (Milestone 5, Session Finance) — a Club can list more

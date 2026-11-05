@@ -74,8 +74,8 @@ export function PlayersTab({
   ];
 
   // A player as a circle: the green check once they've checked in; under
-  // the name, their payment on a priced Session (Paid / Awaiting — never
-  // the host or a guest, DP-012 v0.29.0), else "Host" or "Guest". Someone
+  // the name, their payment on a priced Session (Paid / Not paid — anyone
+  // with an account, the host too, DP-032), else "Host" or "Guest". Someone
   // who cancelled or didn't show is faded.
   function renderParticipantCircle(p: SessionParticipant) {
     const status = paymentStatus(p, session);

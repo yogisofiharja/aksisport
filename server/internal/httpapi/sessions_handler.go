@@ -19,6 +19,43 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/notify"
 )
 
+// straightInStatus is DP-032: where a join that needs no approval lands,
+// or "" for a normal request. Owners/admins and Reguler members skip
+// approval while there's a free spot (on a Full Session they ask like
+// anyone). An organizer is checked in at once inside the Check-In
+// Window and pays later. A Reguler member pays later when the Community
+// allows it, else first (waitlist). A free Session has nothing to pay.
+func straightInStatus(c *gin.Context, pool *pgxpool.Pool, sess dbSession, role, userID string) (string, error) {
+	if sess.MaxParticipants != nil && sess.JoinedCount >= *sess.MaxParticipants {
+		return "", nil
+	}
+	if isOwnerOrAdmin(role) {
+		if checkInWindowOpen(sess.StartsAt, sess.DurationMinutes, time.Now()) {
+			return "checked_in", nil
+		}
+		return "registered", nil
+	}
+	if role != "member" {
+		return "", nil
+	}
+	ctx := c.Request.Context()
+	m, err := dbpkg.GetMembership(ctx, pool, sess.ClubID, userID)
+	if err != nil || !m.Reguler {
+		return "", err
+	}
+	if sess.PriceModel == "free" {
+		return "registered", nil
+	}
+	club, err := dbpkg.GetClub(ctx, pool, sess.ClubID)
+	if err != nil {
+		return "", err
+	}
+	if club.RegulerPayLater {
+		return "registered", nil
+	}
+	return "waitlist", nil
+}
+
 // requireSessionAccess loads the session and the caller's role in its
 // parent club — or "visitor" for a Session-only participant (DP-028).
 // ok=false means a response has already been sent.
@@ -74,6 +111,7 @@ func requireSessionAccess(c *gin.Context, pool *pgxpool.Pool, sessionID string) 
 		ID: sess.ID, ClubID: sess.ClubID, Sport: sess.Sport, Status: sess.Status,
 		SkillLevelMinID: sess.SkillLevelMinID, SkillLevelMaxID: sess.SkillLevelMaxID, SkillLevelEnforcement: sess.SkillLevelEnforcement,
 		StartsAt: sess.StartsAt, DurationMinutes: sess.DurationMinutes, UmpireUserID: sess.UmpireUserID,
+		PriceModel: sess.PriceModel, MaxParticipants: sess.MaxParticipants, JoinedCount: sess.JoinedCount,
 	}, role, true
 }
 
@@ -113,6 +151,9 @@ type dbSession struct {
 	StartsAt              *time.Time
 	DurationMinutes       *int
 	UmpireUserID          string
+	PriceModel            string
+	MaxParticipants       *int
+	JoinedCount           int
 }
 
 // checkInWindowOpen: check-in (self, host-initiated, or adding a guest) is
@@ -417,6 +458,16 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 
 	// DP-009 Session History, the Player's own view: every Session the
 	// caller has joined, across all their Clubs.
+	// DP-032: Home's "You haven't paid" reminders.
+	authed.GET("/me/unpaid", func(c *gin.Context) {
+		list, err := dbpkg.ListUnpaid(c.Request.Context(), pool, authjwt.CurrentUser(c).ID)
+		if err != nil {
+			respondInternal(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, list)
+	})
+
 	authed.GET("/me/sessions", func(c *gin.Context) {
 		user := authjwt.CurrentUser(c)
 		sessions, err := dbpkg.ListJoinedSessionsForUser(c.Request.Context(), pool, user.ID)
@@ -614,7 +665,7 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 	// not at check-in — so an ineligible player can't even ask.
 	authed.POST("/sessions/:id/register", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		sess, _, ok := requireSessionAccess(c, pool, sessionID)
+		sess, role, ok := requireSessionAccess(c, pool, sessionID)
 		if !ok {
 			return
 		}
@@ -624,7 +675,17 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 		}
 		ctx := c.Request.Context()
 		before, beforeErr := dbpkg.GetParticipantStatus(ctx, pool, sessionID, user.ID)
-		p, err := dbpkg.RegisterParticipant(ctx, pool, sessionID, user.ID)
+		straightIn, err := straightInStatus(c, pool, sess, role, user.ID)
+		if err != nil {
+			respondInternal(c, err)
+			return
+		}
+		var p models.SessionParticipant
+		if straightIn != "" {
+			p, err = dbpkg.JoinStraightIn(ctx, pool, sessionID, user.ID, straightIn)
+		} else {
+			p, err = dbpkg.RegisterParticipant(ctx, pool, sessionID, user.ID)
+		}
 		if err != nil {
 			respondInternal(c, err)
 			return

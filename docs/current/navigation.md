@@ -116,7 +116,9 @@ View profile, Approve and Decline, and the profile (`PlayerProfileSheet`,
 DP-019: picture, name, username, online, joined date, skill level per
 sport) also has Approve/Decline. Then "Admins" (the owner among them, no caption under the
 circles) and "Members · N"; your own circle says "You". Tapping a member
-opens their sheet ("@username · Admin", the owner too): View profile, and what the
+opens their sheet ("@username · Admin · Reguler", the owner too): View profile,
+**Mark as Reguler** / **Remove Reguler** on a member for owners/admins
+(DP-032; a Reguler circle is captioned "Reguler"), and what the
 viewer can do to them — the owner makes someone admin or a regular
 member, or removes them; anyone but the owner leaves from their own.
 Remove from community and Leave community sit last, in their own group,
@@ -312,7 +314,8 @@ Club's owner (`isOwner`, not `isOwnerOrAdmin`; matches every other
 Club-level setting's permission). `ClubSettingsScreen.tsx` holds
 **About** (name and description, each saved when the field loses focus;
 a blank name puts the saved one back, and the server refuses it too),
-**Finding & joining** (location, Private), **Bank Accounts** (a plain list-plus-modal-form, mirrors
+**Finding & joining** (location, Private), **Reguler** ("Reguler members
+pay after playing", a switch saved on toggle, off by default, DP-032), **Bank Accounts** (a plain list-plus-modal-form, mirrors
 `ClubMembersScreen`'s Add Member modal shape — a Club can list more
 than one; every priced Session's Players tab reads this same list),
 and a **Danger Zone** at the bottom with Delete Community — kept off
@@ -470,13 +473,23 @@ Invited, or "already in" / "already playing". For a Session, the note
 and admins get **Reset link** last, in its own group, behind a Dialog
 ("Reset the invite link?", Reset / Keep link).
 
-**The friend's side.** `/i/:token` is the `Invite` route
-(`InviteLandingScreen`). Signed out, the auth screens come first and
-`restoreIntendedUrl` brings them back to it; signed in, it opens the link
+**The friend's side.** `/i/:token` is the `Invite` route in both stacks.
+Signed out it is `InvitePreviewScreen` (AuthStack): "<Name> invited you"
+and the Session's Details tab (or, for a Community link, its card and
+description) from `GET /v1/invites/:token/preview` — no players, matches
+or chat. The bottom bar is Request to join (price and spots left), or
+Join community for a Community link or an ended Session, and opens Sign
+up; "Already have an account? Log in" sits above it. After signing in,
+`restoreIntendedUrl` brings them back to the link. Signed in it is
+`InviteLandingScreen` (MainStack): it opens the link
 (`GET /v1/invites/:token`, which records the invitation) and replaces
 itself with the Session or the Community. A reset link shows "This invite
 link no longer works. Ask for a new one." with Go to Home.
 
+- **Home** (DP-032): above everything, one callout per priced Session the
+  viewer played and hasn't paid for (`GET /v1/me/unpaid`) — "You haven't
+  paid for <Session> · Rp 50.000", or "Receipt sent for <Session>" while
+  waiting on an organizer; it opens the Session on Players.
 - **Home**: an **Invited** section on top, one `InviteCard` per pending
   in-app invitation — "<Name> invited you", the target, for a Session
   "when · place" and "<Community> · price", Not now (dismisses) and Join

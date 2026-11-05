@@ -22,12 +22,12 @@ func generateInviteCode() string {
 	return string(b)
 }
 
-var clubColumns = "id, name, description, city_code, " + cityNameExpr("clubs") + " AS city_name, visibility, invite_code, (avatar_image_data IS NOT NULL) AS has_avatar, " + imageVersionExpr("avatar_updated_at") + ", created_by, created_at, updated_at"
+var clubColumns = "id, name, description, city_code, " + cityNameExpr("clubs") + " AS city_name, visibility, invite_code, (avatar_image_data IS NOT NULL) AS has_avatar, " + imageVersionExpr("avatar_updated_at") + ", created_by, created_at, updated_at, reguler_pay_later"
 
 // clubScanTargets lists Scan destinations in clubColumns' order — shared
 // so a query selecting clubColumns plus extra columns appends its own.
 func clubScanTargets(c *models.Club) []any {
-	return []any{&c.ID, &c.Name, &c.Description, &c.CityCode, &c.CityName, &c.Visibility, &c.InviteCode, &c.HasAvatar, &c.AvatarVersion, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt}
+	return []any{&c.ID, &c.Name, &c.Description, &c.CityCode, &c.CityName, &c.Visibility, &c.InviteCode, &c.HasAvatar, &c.AvatarVersion, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt, &c.RegulerPayLater}
 }
 
 func scanClub(row pgx.CollectableRow) (models.Club, error) {
@@ -128,6 +128,8 @@ type ClubUpdate struct {
 	Description *string
 	CityCode    *string
 	Visibility  *string
+	// RegulerPayLater (DP-032): Reguler members pay after playing.
+	RegulerPayLater *bool
 }
 
 func UpdateClub(ctx context.Context, pool *pgxpool.Pool, clubID string, u ClubUpdate) (models.Club, error) {
@@ -137,10 +139,11 @@ func UpdateClub(ctx context.Context, pool *pgxpool.Pool, clubID string, u ClubUp
 			description = COALESCE($3, description),
 			city_code = COALESCE($4, city_code),
 			visibility = COALESCE($5, visibility),
+			reguler_pay_later = COALESCE($6, reguler_pay_later),
 			updated_at = now()
 		WHERE id = $1
 		RETURNING `+clubColumns,
-		clubID, u.Name, u.Description, u.CityCode, u.Visibility,
+		clubID, u.Name, u.Description, u.CityCode, u.Visibility, u.RegulerPayLater,
 	)
 	if err != nil {
 		return models.Club{}, err

@@ -20,6 +20,7 @@ import { useAuth } from '../../core/auth/AuthContext';
 import {
   addMemberByUsername,
   changeMemberRole,
+  setMemberReguler,
   decideJoinRequest,
   getClub,
   listJoinRequests,
@@ -138,6 +139,21 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
     }
   }
 
+  // DP-032: owners/admins tag a member Reguler (joins without approval;
+  // may pay after playing).
+  async function handleToggleReguler(member: ClubMember) {
+    setActionMember(null);
+    setBusy(true);
+    try {
+      await setMemberReguler(clubId, member.userId, !member.reguler);
+      await refreshAfterChange();
+    } catch (err) {
+      appAlert(err instanceof Error ? err.message : t('authGenericError'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function handleRemove(member: ClubMember) {
     setActionMember(null);
     const isSelf = member.userId === profile?.id;
@@ -234,8 +250,9 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
         initials={initialsFromName(name)}
         avatarSource={m.hasAvatar ? { uri: userAvatarUrl(m.userId, m.avatarVersion), headers: imageHeaders } : undefined}
         isOnline={m.isOnline}
+        caption={m.reguler ? t('membersReguler') : undefined}
         onPress={() => setActionMember(m)}
-        accessibilityLabel={[name, role].filter(Boolean).join(', ')}
+        accessibilityLabel={[name, role, m.reguler ? t('membersReguler') : undefined].filter(Boolean).join(', ')}
       />
     );
   }
@@ -326,7 +343,13 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
         visible={actionMember !== null}
         onClose={() => setActionMember(null)}
         title={actionMember ? actionMember.displayName || actionMember.username : undefined}
-        description={actionMember ? [`@${actionMember.username}`, actionMember.role !== 'member' ? t('clubRoleAdmin') : undefined].filter(Boolean).join(' · ') : undefined}
+        description={
+          actionMember
+            ? [`@${actionMember.username}`, actionMember.role !== 'member' ? t('clubRoleAdmin') : undefined, actionMember.reguler ? t('membersReguler') : undefined]
+                .filter(Boolean)
+                .join(' · ')
+            : undefined
+        }
       >
         {actionMember && (
           <VStack space="md">
@@ -341,6 +364,16 @@ export function CommunityMembersTab({ clubId, edges, onBack, onChanged }: Props)
                   setProfileUserId(id);
                 }}
               />
+              {/* DP-032: admins already join without approval, so the tag
+                  is for members. */}
+              {isOrganizer && actionMember.role === 'member' ? (
+                <ListRow
+                  icon={actionMember.reguler ? 'pricetag' : 'pricetag-outline'}
+                  title={actionMember.reguler ? t('membersRemoveReguler') : t('membersMakeReguler')}
+                  subtitle={actionMember.reguler ? undefined : t('membersRegulerHint')}
+                  onPress={() => handleToggleReguler(actionMember)}
+                />
+              ) : null}
               {canManage(actionMember) ? (
                 <ListRow
                   icon={actionMember.role === 'admin' ? 'person-remove-outline' : 'shield-checkmark-outline'}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/yogisofiharja/aksi-server/internal/authjwt"
 	dbpkg "github.com/yogisofiharja/aksi-server/internal/db"
+	"github.com/yogisofiharja/aksi-server/internal/models"
 	"github.com/yogisofiharja/aksi-server/internal/notify"
 )
 
@@ -34,9 +35,75 @@ type inviteResolution struct {
 	StraightIn bool `json:"straightIn"`
 }
 
+// invitePreview is what a signed-out visitor sees of an invite link
+// (DP-028, 2026-11-05): the Session's details or the Community's card,
+// so they can decide to join before making an account.
+type invitePreview struct {
+	inviteResolution
+	Club          models.ClubPreview `json:"club"`
+	Session       *models.Session    `json:"session,omitempty"`
+	OrganizerName string             `json:"organizerName,omitempty"`
+	SkillLevelMin *models.SkillLevel `json:"skillLevelMin,omitempty"`
+	SkillLevelMax *models.SkillLevel `json:"skillLevelMax,omitempty"`
+}
+
+// resolveInvite looks up a link and what it points at. It answers the
+// request itself (410 reset, 404 unknown / draft) when ok is false. sess
+// is set for a Session link.
+func resolveInvite(c *gin.Context, pool *pgxpool.Pool, token string) (models.InviteLink, inviteResolution, *models.Session, bool) {
+	ctx := c.Request.Context()
+	var res inviteResolution
+	link, err := dbpkg.GetInviteLink(ctx, pool, token)
+	if errors.Is(err, dbpkg.ErrInviteRevoked) {
+		c.JSON(http.StatusGone, gin.H{"error": inviteRevokedMessage, "code": "INVITE_REVOKED"})
+		return link, res, nil, false
+	}
+	if errors.Is(err, dbpkg.ErrNotFound) {
+		respondError(c, http.StatusNotFound, "invite not found")
+		return link, res, nil, false
+	}
+	if err != nil {
+		respondInternal(c, err)
+		return link, res, nil, false
+	}
+
+	club, err := dbpkg.GetClub(ctx, pool, link.ClubID)
+	if err != nil {
+		respondError(c, http.StatusNotFound, "invite not found")
+		return link, res, nil, false
+	}
+	res = inviteResolution{TargetType: link.TargetType, TargetID: link.TargetID, ClubID: link.ClubID, ClubName: club.Name, InviterID: link.CreatedBy}
+	var sess *models.Session
+	if link.TargetType == dbpkg.InviteTargetSession {
+		s, err := dbpkg.GetSession(ctx, pool, link.TargetID)
+		if errors.Is(err, dbpkg.ErrNotFound) || (err == nil && s.Status == "draft") {
+			respondError(c, http.StatusNotFound, "invite not found")
+			return link, res, nil, false
+		}
+		if err != nil {
+			respondInternal(c, err)
+			return link, res, nil, false
+		}
+		sess = &s
+		res.SessionName, res.StartsAt = s.Name, s.StartsAt
+	}
+	inviter, err := dbpkg.GetUserByID(ctx, pool, link.CreatedBy)
+	if err != nil {
+		respondInternal(c, err)
+		return link, res, nil, false
+	}
+	res.InviterName = displayNameOf(inviter.DisplayName, inviter.Username)
+	if res.StraightIn, err = dbpkg.InviterIsOrganizer(ctx, pool, link.ClubID, link.CreatedBy); err != nil {
+		respondInternal(c, err)
+		return link, res, nil, false
+	}
+	return link, res, sess, true
+}
+
 // RegisterInviteRoutes is DP-028: invite links (one per inviter per
-// target, never expiring, reset by owners/admins) and opening one.
-func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, notifier *notify.Service) {
+// target, never expiring, reset by owners/admins) and opening one —
+// signed in, or as a signed-out preview.
+func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authjwt.Verifier, notifier *notify.Service, ips ClientIPResolver) {
 	authed := rg.Group("")
 	authed.Use(authjwt.RequireAuth(verifier))
 	authed.Use(authjwt.RequireProfile(pool))
@@ -102,49 +169,10 @@ func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 	authed.GET("/invites/:token", func(c *gin.Context) {
 		ctx := c.Request.Context()
 		user := authjwt.CurrentUser(c)
-		link, err := dbpkg.GetInviteLink(ctx, pool, c.Param("token"))
-		if errors.Is(err, dbpkg.ErrInviteRevoked) {
-			c.JSON(http.StatusGone, gin.H{"error": inviteRevokedMessage, "code": "INVITE_REVOKED"})
+		link, res, _, ok := resolveInvite(c, pool, c.Param("token"))
+		if !ok {
 			return
 		}
-		if errors.Is(err, dbpkg.ErrNotFound) {
-			respondError(c, http.StatusNotFound, "invite not found")
-			return
-		}
-		if err != nil {
-			respondInternal(c, err)
-			return
-		}
-
-		club, err := dbpkg.GetClub(ctx, pool, link.ClubID)
-		if err != nil {
-			respondError(c, http.StatusNotFound, "invite not found")
-			return
-		}
-		res := inviteResolution{TargetType: link.TargetType, TargetID: link.TargetID, ClubID: link.ClubID, ClubName: club.Name, InviterID: link.CreatedBy}
-		if link.TargetType == dbpkg.InviteTargetSession {
-			sess, err := dbpkg.GetSession(ctx, pool, link.TargetID)
-			if errors.Is(err, dbpkg.ErrNotFound) || (err == nil && sess.Status == "draft") {
-				respondError(c, http.StatusNotFound, "invite not found")
-				return
-			}
-			if err != nil {
-				respondInternal(c, err)
-				return
-			}
-			res.SessionName, res.StartsAt = sess.Name, sess.StartsAt
-		}
-		inviter, err := dbpkg.GetUserByID(ctx, pool, link.CreatedBy)
-		if err != nil {
-			respondInternal(c, err)
-			return
-		}
-		res.InviterName = displayNameOf(inviter.DisplayName, inviter.Username)
-		if res.StraightIn, err = dbpkg.InviterIsOrganizer(ctx, pool, link.ClubID, link.CreatedBy); err != nil {
-			respondInternal(c, err)
-			return
-		}
-
 		if link.CreatedBy != user.ID {
 			token := link.Token
 			if _, err := dbpkg.RecordInvitation(ctx, pool, link.CreatedBy, user.ID, link.TargetType, link.TargetID, link.ClubID, "link", &token); err != nil {
@@ -155,9 +183,46 @@ func RegisterInviteRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *aut
 		c.JSON(http.StatusOK, res)
 	})
 
+	// Opening a link signed out: enough to decide whether to join before
+	// making an account. No player names, nothing member-only, and it
+	// records nothing — the invitation is recorded once they sign in and
+	// open the link again.
+	rg.GET("/invites/:token/preview", rateLimited(ips, 60, time.Minute), func(c *gin.Context) {
+		ctx := c.Request.Context()
+		link, res, sess, ok := resolveInvite(c, pool, c.Param("token"))
+		if !ok {
+			return
+		}
+		// No viewer: the zero UUID is nobody's id.
+		club, err := dbpkg.GetClubPreview(ctx, pool, "00000000-0000-0000-0000-000000000000", link.ClubID)
+		if err != nil {
+			respondInternal(c, err)
+			return
+		}
+		club.ViewerRole, club.ViewerRequestPending, club.HasAvatar, club.AvatarVersion = nil, false, false, nil
+		preview := invitePreview{inviteResolution: res, Club: club}
+		if sess != nil {
+			sess.UmpireUserID, sess.UmpireName, sess.MatchesOpenAt, sess.ScoringClosesAt = "", nil, nil, nil
+			preview.Session = sess
+			if organizer, err := dbpkg.GetUserByID(ctx, pool, sess.CreatedBy); err == nil {
+				preview.OrganizerName = displayNameOf(organizer.DisplayName, organizer.Username)
+			}
+			if sess.SkillLevelMinID != nil {
+				if l, err := dbpkg.GetSkillLevelByID(ctx, pool, *sess.SkillLevelMinID); err == nil {
+					preview.SkillLevelMin = &l
+				}
+			}
+			if sess.SkillLevelMaxID != nil {
+				if l, err := dbpkg.GetSkillLevelByID(ctx, pool, *sess.SkillLevelMaxID); err == nil {
+					preview.SkillLevelMax = &l
+				}
+			}
+		}
+		c.JSON(http.StatusOK, preview)
+	})
+
 	registerInvitationRoutes(authed, pool, notifier)
 }
-
 
 // registerInvitationRoutes is DP-028's in-app invites: search Aksi users,
 // invite one (a notification and a card on their Home), answer it.

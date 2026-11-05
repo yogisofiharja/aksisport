@@ -29,6 +29,11 @@ type SessionParticipant struct {
 	// AttendanceCorrected: an organizer changed attended / no-show after
 	// the Session ended.
 	AttendanceCorrected bool `json:"attendanceCorrected,omitempty"`
+	// Paid (DP-032): an organizer confirmed this player's payment. Kept
+	// apart from Status, since some players get their place first and pay
+	// after. Only meaningful on a priced Session, for a player with an
+	// account.
+	Paid bool `json:"paid"`
 }
 
 // ParticipantReceiptImage is the byte-serving shape for a payment
@@ -36,4 +41,16 @@ type SessionParticipant struct {
 type ParticipantReceiptImage struct {
 	Data        []byte
 	ContentType string
+}
+
+// UnpaidSession is one of Home's "You haven't paid" reminders (DP-032).
+// HasReceipt: they sent a receipt and are waiting for an organizer.
+type UnpaidSession struct {
+	SessionID   string    `json:"sessionId"`
+	ClubID      string    `json:"clubId"`
+	ClubName    string    `json:"clubName"`
+	SessionName *string   `json:"sessionName,omitempty"`
+	StartsAt    time.Time `json:"startsAt"`
+	HasReceipt  bool      `json:"hasReceipt"`
+	Amount      *int      `json:"amount,omitempty"`
 }

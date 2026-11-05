@@ -42,7 +42,7 @@ import { useSessionChatUnread } from '../../core/messages/useSessionChatUnread';
 import { Segmented } from '../../design-system/ui/Segmented';
 import { SessionContactOrganizer } from './SessionContactOrganizer';
 import { PaymentSummary, useReceiptUpload } from './SessionPayment';
-import { organizerToDo } from '../../core/sessions/paymentStatus';
+import { organizerToDo, unpaidAfterStart } from '../../core/sessions/paymentStatus';
 import { PlayerRowSheet } from './PlayerRowSheet';
 import { OrganizerNowPanel } from './OrganizerNowPanel';
 import { correctAttendance } from '../../core/attendance/api';
@@ -909,7 +909,8 @@ export function SessionDetailScreen({
   // What waits on an organizer: requests for a spot and receipts to
   // check. A callout on Details and Players opens the first one; the count
   // rides on the Players tab.
-  const todo = isOwnerOrAdmin && isSessionActive && isPublished ? organizerToDo(participants, session) : null;
+  // DP-032: it stays after the Session ends, for players who haven't paid.
+  const todo = isOwnerOrAdmin && isPublished && session.status !== 'cancelled' ? organizerToDo(participants, session) : null;
   const hasToDo = Boolean(todo && todo.first);
   // A priced Session whose Community has no bank account: players have
   // nowhere to pay. Organizers are told on Details (Players says it in its
@@ -921,7 +922,7 @@ export function SessionDetailScreen({
   // as Results.
   const tabOptions: Record<SessionTab, { value: SessionTab; label: string; count?: number }> = {
     details: { value: 'details', label: t('sessionTabDetails') },
-    players: { value: 'players', label: t('sessionTabParticipants'), count: todo ? todo.requests + todo.receipts : undefined },
+    players: { value: 'players', label: t('sessionTabParticipants'), count: todo ? todo.requests + todo.receipts + todo.unpaid : undefined },
     matches: { value: 'matches', label: session.lifecycleStatus === 'completed' ? t('sessionTabResults') : t('sessionTabMatches') },
     chat: { value: 'chat', label: t('sessionTabChat'), count: chatUnread },
   };
@@ -938,24 +939,33 @@ export function SessionDetailScreen({
   // "Free" / "Split bill".
   const priceText =
     session.priceModel === 'per_person' && session.pricePerPerson != null ? formatIDR(session.pricePerPerson) : priceLabel(session, t);
+  // DP-024 (2026-11-05): the bottom bar treats only the Session's creator
+  // as its organizer. Another owner/admin who isn't playing gets Request
+  // to join like any player; their organizer tools stay in ⋯.
+  const isCreator = session.createdBy === profile?.id;
+  // DP-032: owners/admins and Reguler members join without approval
+  // while there's a spot, so their button says Join.
+  const joinsStraightIn =
+    (isOwnerOrAdmin || Boolean(members.find((m) => m.userId === profile?.id)?.reguler)) && session.lifecycleStatus !== 'full';
+  // Pay: the amount and where to send it are at the top of Players, so
+  // Pay goes there; once there, the same button uploads the receipt.
+  const payAction = activeTab === 'players' ? { label: t('sessionPaymentUploadReceipt'), onPress: receipt.start } : { label: t('sessionPay'), onPress: () => setActiveTab('players') };
+  // DP-032: played (or playing) and hasn't paid or sent a receipt.
+  const owesAfterPlaying = Boolean(myParticipant && unpaidAfterStart(myParticipant, session));
   let bottomAction: { label: string; onPress: () => void; fact?: { label: string; value: string } } | undefined;
+  let bottomIsGenerate = false;
   if (isSessionActive && isPublished) {
     const status = myParticipant?.status;
-    if ((!myParticipant || status === 'cancelled') && !strictLevelBlocked && !isOwnerOrAdmin) {
+    if ((!myParticipant || status === 'cancelled') && !strictLevelBlocked && !isCreator) {
       bottomAction = {
-        label: t('sessionRequestToJoin'),
+        label: joinsStraightIn ? t('sessionJoinNow') : t('sessionRequestToJoin'),
         onPress: handleRequestToJoin,
         fact: priceText ? { label: spotsLeft != null ? t('sessionSpotsLeft', spotsLeft) : '', value: priceText } : undefined,
       };
     } else if (status === 'waitlist' && !isFree && !myParticipant?.hasReceipt) {
-      // Pay: the amount and where to send it are at the top of Players,
-      // so Pay goes there; once there, the same button uploads the
-      // receipt. With a receipt sent there is nothing left to do but wait
-      // for the organizer.
-      bottomAction =
-        activeTab === 'players'
-          ? { label: t('sessionPaymentUploadReceipt'), onPress: receipt.start }
-          : { label: t('sessionPay'), onPress: () => setActiveTab('players') };
+      // Paying first. With a receipt sent there is nothing left to do but
+      // wait for the organizer.
+      bottomAction = payAction;
     } else if (status === 'registered' && checkInWindowOpen) {
       bottomAction = { label: t('sessionCheckIn'), onPress: handleCheckIn };
     } else if (umpireNext && matchesOpen) {
@@ -964,9 +974,15 @@ export function SessionDetailScreen({
         label: umpireNext.kind === 'mine' ? t('sessionStartMyMatch') : t('sessionStartNextMatch'),
         onPress: () => onOpenMatch(activityId),
       };
+    } else if (owesAfterPlaying && !(isOwnerOrAdmin && generationEligible)) {
+      bottomAction = payAction;
     } else if (isOwnerOrAdmin && generationEligible) {
       bottomAction = { label: t('sessionGenerateMatches'), onPress: () => onAddMatch(sessionId) };
+      bottomIsGenerate = true;
     }
+  } else if (owesAfterPlaying) {
+    // DP-032: after the Session, paying is all that's left.
+    bottomAction = payAction;
   }
 
   // DP-024 (v0.29.0): an organizer who isn't a player joins from the ⋯
@@ -976,6 +992,7 @@ export function SessionDetailScreen({
   // Level rules them out, where Request to join can't succeed either).
   const canJoinAsPlayer =
     isOwnerOrAdmin &&
+    isCreator &&
     isPublished &&
     (!myParticipant || myParticipant.status === 'cancelled') &&
     !strictLevelBlocked &&
@@ -1045,6 +1062,11 @@ export function SessionDetailScreen({
   const organizerMenuItems: SessionMenuItem[] = [
     ...(canJoinAsPlayer
       ? [{ key: 'join', icon: 'person-add-outline' as const, label: t('sessionJoinAsPlayer'), onPress: handleRequestToJoin }]
+      : []),
+    // An admin whose bottom bar is Request to join (or Pay, Check in)
+    // still generates matches from here.
+    ...(isOwnerOrAdmin && generationEligible && isSessionActive && isPublished && !bottomIsGenerate
+      ? [{ key: 'generate', icon: 'shuffle-outline' as const, label: t('sessionGenerateMatches'), onPress: () => onAddMatch(sessionId) }]
       : []),
     ...(canEditConfiguration
       ? [{ key: 'edit', icon: 'create-outline' as const, label: t('sessionEdit'), opensMore: true, onPress: () => onEdit(sessionId) }]
@@ -1192,8 +1214,8 @@ export function SessionDetailScreen({
         {hasToDo && todo?.first && (activeTab === 'details' || activeTab === 'players') && (
           <Alert
             tone="heat"
-            icon={todo.requests > 0 ? 'person-add-outline' : 'receipt-outline'}
-            title={t('sessionOrganizerToDo', todo.requests, todo.receipts)}
+            icon={todo.requests > 0 ? 'person-add-outline' : todo.receipts > 0 ? 'receipt-outline' : 'card-outline'}
+            title={t('sessionOrganizerToDo', todo.requests, todo.receipts, todo.unpaid)}
             titleSuffix={t('communityReview')}
             onPress={() => setRowMenuParticipant(todo.first!)}
           />

@@ -60,6 +60,9 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
   const [cityName, setCityName] = useState<string | undefined>(undefined);
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  // DP-032: the Reguler tag's setting.
+  const [regulerPayLater, setRegulerPayLater] = useState(false);
+  const [regulerError, setRegulerError] = useState<string | null>(null);
   const [savingDiscovery, setSavingDiscovery] = useState(false);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   // Name and description, saved when the field loses focus (if changed).
@@ -77,6 +80,7 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
       setDescription(club.description ?? '');
       setSaved({ name: club.name, description: club.description ?? '' });
       setIsPrivate(club.visibility === 'private');
+      setRegulerPayLater(club.regulerPayLater === true);
       setAccounts(accountList);
     } catch {
       // keep stale list; user can back out and retry
@@ -140,6 +144,17 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
       setDiscoveryError(err instanceof Error ? err.message : t('authGenericError'));
     } finally {
       setSavingDiscovery(false);
+    }
+  }
+
+  async function handleToggleRegulerPayLater(next: boolean) {
+    setRegulerPayLater(next);
+    setRegulerError(null);
+    try {
+      await updateClub(clubId, { regulerPayLater: next });
+    } catch (err) {
+      setRegulerPayLater(!next);
+      setRegulerError(err instanceof Error ? err.message : t('authGenericError'));
     }
   }
 
@@ -280,6 +295,20 @@ export function ClubSettingsScreen({ clubId, onBack, onDeleted }: Props) {
           </VStack>
 
           {discoveryError && <Text className="text-sm text-red-500">{discoveryError}</Text>}
+
+          <Box className="h-px bg-surface-sunken dark:bg-surface-sunken-dark my-3" />
+
+          <Text className="text-xs font-bold text-ink-muted dark:text-ink-muted-dark uppercase tracking-widest">{t('membersReguler')}</Text>
+          <VStack className="gap-1">
+            <HStack className="justify-between items-center">
+              <Text className="text-sm font-bold text-ink-muted dark:text-ink-muted-dark">{t('clubRegulerPayLaterLabel')}</Text>
+              <Switch value={regulerPayLater} onValueChange={handleToggleRegulerPayLater} />
+            </HStack>
+            <Text className="text-xs text-ink-muted dark:text-ink-muted-dark">
+              {regulerPayLater ? t('clubRegulerPayLaterOnHint') : t('clubRegulerPayLaterOffHint')}
+            </Text>
+          </VStack>
+          {regulerError && <Text className="text-sm text-red-500">{regulerError}</Text>}
 
           <Box className="h-px bg-surface-sunken dark:bg-surface-sunken-dark my-3" />
 

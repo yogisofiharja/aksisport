@@ -8,6 +8,7 @@ import type {
   SessionParticipant,
   SessionStatus,
   SkillLevelEnforcement,
+  UnpaidSession,
 } from '../api/types';
 
 export function createSession(
@@ -119,6 +120,11 @@ export function approveParticipant(sessionId: string, userId: string): Promise<S
 
 // Owner/admin confirms payment was received (outside the app — no
 // payment gateway), moving a 'waitlist' participant to 'registered'.
+// DP-032: Home's "You haven't paid" reminders.
+export function listMyUnpaid(): Promise<UnpaidSession[]> {
+  return apiFetch('/v1/me/unpaid');
+}
+
 export function confirmParticipantPayment(sessionId: string, userId: string): Promise<SessionParticipant> {
   return apiFetch(`/v1/sessions/${sessionId}/participants/${userId}/confirm-payment`, { method: 'POST' });
 }

@@ -1,4 +1,4 @@
-import type { PriceModel } from '../api/types';
+import type { ClubPreview, PriceModel, Session, SkillLevel } from '../api/types';
 
 export type InviteLink = {
   token: string;
@@ -51,4 +51,14 @@ export type InvitationCard = {
   priceModel?: PriceModel;
   pricePerPerson?: number;
   totalPrice?: number;
+};
+
+// What a signed-out visitor sees of an invite link: enough to decide to
+// join before making an account. `session` for a Session link.
+export type InvitePreview = InviteResolution & {
+  club: ClubPreview;
+  session?: Session;
+  organizerName?: string;
+  skillLevelMin?: SkillLevel;
+  skillLevelMax?: SkillLevel;
 };

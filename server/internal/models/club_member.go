@@ -12,5 +12,8 @@ type ClubMember struct {
 	AvatarVersion *int64    `json:"avatarVersion,omitempty"`
 	IsOnline      bool      `json:"isOnline"`
 	Role          string    `json:"role"`
+	// Reguler (DP-032): the built-in tag — joins Sessions without
+	// approval, and pays after playing when the Community allows it.
+	Reguler bool `json:"reguler"`
 	JoinedAt      time.Time `json:"joinedAt"`
 }

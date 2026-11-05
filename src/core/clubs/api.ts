@@ -69,7 +69,7 @@ export function getClub(clubId: string): Promise<Club> {
 
 export function updateClub(
   clubId: string,
-  updates: { name?: string; description?: string; cityCode?: string; visibility?: ClubVisibility }
+  updates: { name?: string; description?: string; cityCode?: string; visibility?: ClubVisibility; regulerPayLater?: boolean }
 ): Promise<Club> {
   return apiFetch(`/v1/clubs/${clubId}`, {
     method: 'PATCH',
@@ -105,6 +105,12 @@ export function addMemberByUsername(clubId: string, username: string): Promise<C
     method: 'POST',
     body: JSON.stringify({ username }),
   });
+}
+
+// DP-032: owners/admins put the built-in Reguler tag on a member, or take
+// it off.
+export function setMemberReguler(clubId: string, userId: string, reguler: boolean): Promise<void> {
+  return apiFetch(`/v1/clubs/${clubId}/members/${userId}/reguler`, { method: 'PUT', body: JSON.stringify({ reguler }) });
 }
 
 export function changeMemberRole(clubId: string, userId: string, role: Exclude<ClubRole, 'owner'>): Promise<ClubMember> {

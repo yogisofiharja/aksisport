@@ -15,7 +15,10 @@ import { useTranslation } from '../../i18n';
 import { useAuth } from '../../core/auth/AuthContext';
 import { authHeader } from '../../core/api/client';
 import { listClubs, clubAvatarUrl } from '../../core/clubs/api';
-import { listMyJoinedSessions, listSessions } from '../../core/sessions/api';
+import { listMyJoinedSessions, listMyUnpaid, listSessions } from '../../core/sessions/api';
+import { Alert } from '../../design-system/feedback/Alert';
+import { formatIDR } from '../../core/currency';
+import { formatDateTime } from '../../core/sessions/sessionSchedule';
 import { sessionDateBucket } from '../../core/sessions/sessionSchedule';
 import { dismissInvitation, listMyInvitations } from '../../core/invites/api';
 import type { InvitationCard } from '../../core/invites/types';
@@ -25,7 +28,7 @@ import { currentFocusBuckets } from '../../core/sessions/currentFocus';
 import { sessionHeroProps, sessionRowProps } from '../sessions/sessionDisplay';
 import { shortCityName } from '../../core/locations/cityName';
 import { homeDateLine, firstName } from './homeDisplay';
-import type { ClubWithRole, Session } from '../../core/api/types';
+import type { ClubWithRole, Session, UnpaidSession } from '../../core/api/types';
 import { FirstRunHome } from './FirstRunHome';
 
 function roleLabel(role: ClubWithRole['role'], t: (key: string) => string) {
@@ -39,6 +42,8 @@ type Props = {
   onOpenClub: (clubId: string) => void;
   onCreateClub: () => void;
   onOpenSession: (sessionId: string) => void;
+  // DP-032: a "You haven't paid" reminder opens the Session's payment.
+  onOpenPayment: (sessionId: string) => void;
   onOpenExplore: () => void;
   onOpenInvite: (invite: InvitationCard) => void;
 };
@@ -101,7 +106,7 @@ async function loadAttention(clubs: ClubWithRole[]): Promise<{ live: AttentionIt
   return { live, rest: [...today, ...next, ...drafts] };
 }
 
-export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onCreateClub, onOpenExplore, onOpenInvite }: Props) {
+export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onOpenPayment, onCreateClub, onOpenExplore, onOpenInvite }: Props) {
   const { t, lang } = useTranslation();
   const { profile } = useAuth();
   const bell = useNotificationBell(onOpenNotifications);
@@ -109,6 +114,7 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
   const [live, setLive] = useState<AttentionItem[]>([]);
   const [rest, setRest] = useState<AttentionItem[]>([]);
   const [invites, setInvites] = useState<InvitationCard[]>([]);
+  const [unpaid, setUnpaid] = useState<UnpaidSession[]>([]);
   const [loading, setLoading] = useState(true);
   // Only a successful load can say "no communities": a failed one keeps
   // whatever was there and never shows the first-run page by mistake.
@@ -124,9 +130,14 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
 
   const load = useCallback(async () => {
     try {
-      const [result, pending] = await Promise.all([listClubs(), listMyInvitations().catch(() => [] as InvitationCard[])]);
+      const [result, pending, owed] = await Promise.all([
+        listClubs(),
+        listMyInvitations().catch(() => [] as InvitationCard[]),
+        listMyUnpaid().catch(() => [] as UnpaidSession[]),
+      ]);
       setClubs(result);
       setInvites(pending);
+      setUnpaid(owed);
       const attention = await loadAttention(result);
       setLive(attention.live);
       setRest(attention.rest);
@@ -146,7 +157,7 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
 
   // First run (Aksi redesign › First run): no Community yet — and nothing
   // else to show (an invitation, a Session played outside a Community).
-  const firstRun = loaded && clubs.length === 0 && invites.length === 0 && live.length + rest.length === 0;
+  const firstRun = loaded && clubs.length === 0 && invites.length === 0 && unpaid.length === 0 && live.length + rest.length === 0;
   const [invitedBefore, invitedAfter] = t('inviteInvitedYou', '\u0000').split('\u0000');
 
   async function handleNotNow(invite: InvitationCard) {
@@ -174,6 +185,21 @@ export function HomeScreen({ onOpenNotifications, onOpenClub, onOpenSession, onC
         <FirstRunHome onOpenExplore={onOpenExplore} onCreateClub={onCreateClub} />
       ) : (
         <>
+          {/* DP-032: Sessions played and not paid for, until an organizer
+              confirms. With a receipt sent it only says so. */}
+          {unpaid.map((u) => (
+            <Alert
+              key={u.sessionId}
+              tone={u.hasReceipt ? 'info' : 'heat'}
+              icon={u.hasReceipt ? 'receipt-outline' : 'card-outline'}
+              title={t(u.hasReceipt ? 'homeUnpaidReceiptSent' : 'homeUnpaid', u.sessionName || u.clubName)}
+              titleSuffix={u.amount != null && !u.hasReceipt ? formatIDR(u.amount) : undefined}
+              onPress={() => onOpenPayment(u.sessionId)}
+            >
+              {[formatDateTime(u.startsAt, lang), u.clubName].join(' · ')}
+            </Alert>
+          ))}
+
           {/* DP-028: in-app invitations on top, one card each. */}
           {invites.length > 0 && (
             <VStack space="md">

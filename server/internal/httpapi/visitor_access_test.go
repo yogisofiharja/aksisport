@@ -144,6 +144,42 @@ func TestSessionVisitorAccess(t *testing.T) {
 		}
 	})
 
+	t.Run("a signed-out visitor previews a Session link without its players", func(t *testing.T) {
+		link, err := dbpkg.GetOrCreateInviteLink(ctx, pool, dbpkg.InviteTargetSession, sess.ID, clubID, owner.id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req := httptest.NewRequest(http.MethodGet, "/v1/invites/"+link.Token+"/preview", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("preview = %d, want 200: %s", w.Code, w.Body.String())
+		}
+		body := w.Body.String()
+		for _, want := range []string{`"session":`, `"club":`, `"straightIn":true`, `"location":"Court"`} {
+			if !strings.Contains(body, want) {
+				t.Errorf("preview lacks %s: %s", want, body)
+			}
+		}
+		if strings.Contains(body, "participants") {
+			t.Errorf("preview lists players: %s", body)
+		}
+		// It records nothing: the invitation needs someone signed in.
+		var n int
+		if err := pool.QueryRow(ctx, "SELECT count(*) FROM invitations WHERE link_token = $1", link.Token).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n != 0 {
+			t.Errorf("preview recorded %d invitations, want 0", n)
+		}
+
+		w = httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/v1/invites/nope/preview", nil))
+		if w.Code != http.StatusNotFound {
+			t.Errorf("unknown token = %d, want 404", w.Code)
+		}
+	})
+
 	t.Run("the visitor can't do an organizer's job in the Session", func(t *testing.T) {
 		if got := call(visitor, http.MethodPost, "/v1/sessions/"+sess.ID+"/invite-link/reset"); got != http.StatusForbidden {
 			t.Errorf("reset = %d, want 403", got)

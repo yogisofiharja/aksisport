@@ -330,6 +330,8 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			Description *string `json:"description"`
 			CityCode    *string `json:"cityCode"`
 			Visibility  *string `json:"visibility"`
+			// DP-032: Reguler members pay after playing.
+			RegulerPayLater *bool `json:"regulerPayLater"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			respondError(c, http.StatusBadRequest, "invalid body")
@@ -350,6 +352,7 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 		}
 		club, err := dbpkg.UpdateClub(c.Request.Context(), pool, clubID, dbpkg.ClubUpdate{
 			Name: body.Name, Description: body.Description, CityCode: body.CityCode, Visibility: body.Visibility,
+			RegulerPayLater: body.RegulerPayLater,
 		})
 		if err != nil {
 			respondInternal(c, err)
@@ -510,6 +513,32 @@ func RegisterClubRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *authj
 			return
 		}
 		c.JSON(http.StatusOK, member)
+	})
+
+	// DP-032: an owner or admin puts the built-in Reguler tag on a member
+	// or takes it off.
+	authed.PUT("/clubs/:clubId/members/:userId/reguler", func(c *gin.Context) {
+		clubID := c.Param("clubId")
+		if !requireOwnerOrAdmin(c, pool, clubID) {
+			return
+		}
+		var body struct {
+			Reguler *bool `json:"reguler"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil || body.Reguler == nil {
+			respondError(c, http.StatusBadRequest, "reguler must be true or false")
+			return
+		}
+		err := dbpkg.SetMemberReguler(c.Request.Context(), pool, clubID, c.Param("userId"), *body.Reguler)
+		if errors.Is(err, dbpkg.ErrNotFound) {
+			respondError(c, http.StatusNotFound, "membership not found")
+			return
+		}
+		if err != nil {
+			respondInternal(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
 	})
 
 	authed.DELETE("/clubs/:clubId/members/:userId", func(c *gin.Context) {

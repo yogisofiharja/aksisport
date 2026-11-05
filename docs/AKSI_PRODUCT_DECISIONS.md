@@ -1,6 +1,6 @@
 # AKSI Product Decisions
 
-Version: 0.31.0
+Version: 0.32.0
 
 Status: Living Document
 
@@ -408,8 +408,9 @@ Strict transition validation will be introduced in a future milestone.
 
 ### Join Approval
 
-Joining a Session always requires organizer approval — no exception, and
-no per-Session opt-out. The self-service flow is:
+Joining a Session requires organizer approval, with no per-Session
+opt-out — except owners/admins and Reguler members, who go straight in
+while there's a spot (DP-032). The self-service flow is:
 
 ```
 Requested --organizer approves--> Waitlist --organizer confirms
@@ -1125,10 +1126,10 @@ A Free Session shows no payment status, bank accounts or receipts
 away (DP-002), so there is no payment to confirm. Paid Sessions show
 them in Players, with "Confirm" on each row.
 
-**The host and guests have no payment status** (v0.29.0): their places
-are organizer-initiated and skip approval and payment (DP-002), so their
-rows show no Paid / Awaiting, and any count of who has paid leaves them
-out. Only members who go through the payment step have one.
+**Guests have no payment status**: they are added by name, have no
+account and can't pay themselves. **Every other player pays** on a priced
+Session — the host and other owners/admins included (DP-032, replacing
+v0.29.0's host exemption).
 
 **Payment step clarity** (2026-11-04, from an end-to-end walkthrough):
 - Status reads **Not paid → Receipt sent → Paid**; the Waitlist section
@@ -1814,6 +1815,11 @@ The Session screen adapts to where the Session is in its lifecycle
   through the same join flow as Request to join. It is hidden once they
   are a player, and when the Session is Full, Completed or Cancelled.
   Their bottom action stays Generate matches.
+- **Only the Session's creator is its organizer in the bottom bar**
+  (2026-11-05). Another owner/admin who isn't playing gets **Request to
+  join** like any player, then Pay / Check in as usual. Generate matches
+  is in their ⋯ menu while the bottom bar shows something else; all other
+  organizer tools stay as they are.
 
 ### Scope
 
@@ -1950,7 +1956,7 @@ Each works for a **Community** and for a **Session**. "Invite friends" sits in t
 
 ### What the friend goes through
 
-- Opening the link or QR: not logged in → **create an account (or log in) first** → then land on the Community or Session page with **Join**.
+- Opening the link or QR **not logged in** shows the Session's details (or the Community's card) **without signing up** (2026-11-05): who invited them, when, where, price, skill level, spots, organizer. Not the players, matches or chat. Tapping **Join** (Request to join) asks them to **create an account (or log in)**, then brings them back to the Session or Community page with **Join**.
 - Already logged in → straight to that page.
 - A Session opened from an invite is the **same Session screen** everyone sees (DP-024), with one line above the tabs: "<Name> invited you to join session".
 
@@ -2070,6 +2076,64 @@ Approved (2026-11-04)
 
 - New: Aksi venues, Google Maps search, the map and directions.
 - Not built: venues near me (needs coordinates, which may only be kept 30 days), editing or merging venues, venue pages. These stay in Planning.
+
+---
+
+## DP-032 — Organizers Join, Reguler Members, Pay After Playing
+
+Status
+
+Approved (2026-11-05)
+
+### Paid is separate from the spot
+
+A player's place in a Session and whether they have paid are two
+different things. Paying first (Waitlist → Registered, DP-002) stays the
+normal path, but some players get their place first and pay later. On a
+priced Session every player with an account shows **Paid** or **Not
+paid**; an organizer's Confirm payment marks them Paid. Guests have no
+payment status.
+
+### Organizers join straight in
+
+An owner or admin who joins a Session — from the bottom bar, or ⋯ Join
+as player for the Session's creator — skips approval: they are
+Registered at once (Checked In if the Check-In Window is open). On a
+priced Session they pay later, uploading their own receipt like anyone.
+The Host Playing host also pays.
+
+### Reguler
+
+- **Reguler** is one built-in tag a Community's owner or admin puts on
+  a member, from the Members tab. It shows on the member's row.
+- A Reguler member **joins without approval**: Join puts them straight
+  in.
+- The Community has one setting on the tag, **Reguler members can pay
+  after playing** (owner, in Community settings; off until the Community
+  turns it on). On: a
+  Reguler member is Registered at once and pays later. Off: they skip
+  approval but still pay first (straight to Awaiting payment).
+
+### Capacity and skill level still apply
+
+Straight in only while there's a free spot; on a Full Session the join
+becomes a normal request for the organizer to decide. Strict Skill
+Level (DP-008) still rules a player out.
+
+### Not paid after playing
+
+- **Organizers** see who hasn't paid in the Session's Players tab, and
+  the Session's organizer callout counts them once the Session has
+  started.
+- **The player** gets a reminder on Home — "You haven't paid for
+  <Session>", with the amount — from the Session's start until an
+  organizer confirms payment. They can upload a receipt any time,
+  including after the Session ends.
+
+### Scope
+
+- No automatic charge, no blocking a later join for an unpaid Session.
+- Existing paid places stay Paid.
 
 ---
 

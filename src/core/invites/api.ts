@@ -1,5 +1,5 @@
 import { apiFetch } from '../api/client';
-import type { InvitationCard, InviteCandidate, InviteLink, InviteResolution } from './types';
+import type { InvitationCard, InviteCandidate, InviteLink, InvitePreview, InviteResolution } from './types';
 
 // DP-028: inviting friends to a Community or a Session.
 
@@ -32,6 +32,12 @@ export function inviteUser(target: InviteTarget, userId: string): Promise<void> 
 // INVITE_REVOKED once the link was reset.
 export function openInvite(token: string): Promise<InviteResolution> {
   return apiFetch(`/v1/invites/${encodeURIComponent(token)}`);
+}
+
+// Opening /i/:token signed out: the Session or Community, nothing
+// recorded. Same errors as openInvite.
+export function previewInvite(token: string): Promise<InvitePreview> {
+  return apiFetch(`/v1/invites/${encodeURIComponent(token)}/preview`);
 }
 
 // Home's "Invited" cards: unanswered in-app invitations.

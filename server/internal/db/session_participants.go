@@ -10,7 +10,7 @@ import (
 	"github.com/yogisofiharja/aksi-server/internal/models"
 )
 
-var participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.checked_out_at, sp.joined_at, (sp.receipt_image_data IS NOT NULL), ` + imageVersionExpr("sp.receipt_uploaded_at") + `, sp.late_cancel, sp.attendance_corrected_at IS NOT NULL
+var participantSelect = `SELECT sp.id, sp.session_id, sp.user_id, sp.guest_name, u.username, u.display_name, sp.status, sp.checked_in_at, sp.checked_out_at, sp.joined_at, (sp.receipt_image_data IS NOT NULL), ` + imageVersionExpr("sp.receipt_uploaded_at") + `, sp.late_cancel, sp.attendance_corrected_at IS NOT NULL, sp.paid_at IS NOT NULL
 	 FROM session_participants sp LEFT JOIN users u ON u.id = sp.user_id`
 
 func scanParticipant(row pgx.CollectableRow) (models.SessionParticipant, error) {
@@ -18,7 +18,7 @@ func scanParticipant(row pgx.CollectableRow) (models.SessionParticipant, error) 
 	err := row.(pgx.Rows).Scan(
 		&p.ID, &p.SessionID, &p.UserID, &p.GuestName, &p.Username, &p.DisplayName, &p.Status,
 		&p.CheckedInAt, &p.CheckedOutAt, &p.JoinedAt, &p.HasReceipt, &p.ReceiptVersion,
-		&p.LateCancel, &p.AttendanceCorrected,
+		&p.LateCancel, &p.AttendanceCorrected, &p.Paid,
 	)
 	return p, err
 }
@@ -96,19 +96,33 @@ func getParticipantByUser(ctx context.Context, pool *pgxpool.Pool, sessionID, us
 // the earlier attempt). Any other existing row — already requested,
 // approved, registered, checked in, or marked no-show — is left alone.
 func RegisterParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
+	return joinSession(ctx, pool, sessionID, userID, "requested")
+}
+
+// JoinStraightIn is DP-032's join without approval — an owner/admin, or
+// a Reguler member — landing at status: 'registered' (pay later, or a
+// free Session), 'waitlist' (Reguler who still pays first) or
+// 'checked_in' (an organizer inside the Check-In Window). Same
+// idempotency as RegisterParticipant.
+func JoinStraightIn(ctx context.Context, pool *pgxpool.Pool, sessionID, userID, status string) (models.SessionParticipant, error) {
+	return joinSession(ctx, pool, sessionID, userID, status)
+}
+
+func joinSession(ctx context.Context, pool *pgxpool.Pool, sessionID, userID, status string) (models.SessionParticipant, error) {
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO session_participants (session_id, user_id, status)
-		 VALUES ($1, $2, 'requested')
+		`INSERT INTO session_participants (session_id, user_id, status, checked_in_at)
+		 VALUES ($1, $2, $3, CASE WHEN $3 = 'checked_in' THEN now() END)
 		 ON CONFLICT (session_id, user_id) WHERE user_id IS NOT NULL DO UPDATE SET
-			status = 'requested',
+			status = EXCLUDED.status,
 			joined_at = now(),
-			checked_in_at = NULL,
+			checked_in_at = EXCLUDED.checked_in_at,
 			checked_out_at = NULL,
+			paid_at = NULL,
 			receipt_image_data = NULL,
 			receipt_image_content_type = NULL,
 			receipt_uploaded_at = NULL
 		 WHERE session_participants.status = 'cancelled'`,
-		sessionID, userID,
+		sessionID, userID, status,
 	); err != nil {
 		return models.SessionParticipant{}, err
 	}
@@ -142,16 +156,20 @@ func ApproveParticipant(ctx context.Context, pool *pgxpool.Pool, sessionID, user
 	return getParticipantByUser(ctx, pool, sessionID, userID)
 }
 
-// ConfirmPayment moves a 'waitlist' participant to 'registered' — owner/
-// admin only, the only path from waitlist to registered. There is no
-// payment gateway: this simply records that the organizer received
-// payment outside the app (cash, transfer, etc.) and the slot is now
-// claimed. Returns ErrConflict if the row isn't currently 'waitlist',
-// ErrNotFound if there's no row at all.
+// ConfirmPayment records that an organizer received the player's
+// payment (outside the app — no gateway). DP-032: payment is kept apart
+// from the place, so it applies to anyone with a place who hasn't paid:
+// a 'waitlist' player (paying first) also gets their place, moving to
+// 'registered'; someone already playing who pays after just becomes
+// paid. Returns ErrConflict when there's nothing to confirm (already
+// paid, still a request, cancelled, no-show), ErrNotFound if there's no
+// row at all.
 func ConfirmPayment(ctx context.Context, pool *pgxpool.Pool, sessionID, userID string) (models.SessionParticipant, error) {
 	tag, err := pool.Exec(ctx,
-		`UPDATE session_participants SET status = 'registered'
-		 WHERE session_id = $1 AND user_id = $2 AND status = 'waitlist'`,
+		`UPDATE session_participants
+		 SET paid_at = now(), status = CASE WHEN status = 'waitlist' THEN 'registered' ELSE status END
+		 WHERE session_id = $1 AND user_id = $2 AND paid_at IS NULL
+		   AND status IN ('waitlist', 'registered', 'checked_in', 'checked_out')`,
 		sessionID, userID,
 	)
 	if err != nil {
@@ -410,4 +428,42 @@ func GetParticipantStatus(ctx context.Context, pool *pgxpool.Pool, sessionID, us
 		return "", ErrNotFound
 	}
 	return status, err
+}
+
+// ListUnpaid is DP-032's reminder: the priced Sessions a player has a
+// place in, that have started, and whose payment no organizer has
+// confirmed yet — most recent first. Amount is what they owe: the price
+// per person, or a split bill's share among the players with a place.
+func ListUnpaid(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.UnpaidSession, error) {
+	rows, err := pool.Query(ctx,
+		`SELECT s.id, s.club_id, c.name, s.name, s.starts_at, sp.receipt_image_data IS NOT NULL,
+			CASE s.price_model
+				WHEN 'per_person' THEN s.price_per_person
+				WHEN 'split_bill' THEN round(s.total_price::numeric / NULLIF((
+					SELECT count(*) FROM session_participants o
+					WHERE o.session_id = s.id AND o.status IN ('registered', 'checked_in', 'checked_out')), 0))::int
+			END
+		 FROM session_participants sp
+		 JOIN sessions s ON s.id = sp.session_id
+		 JOIN clubs c ON c.id = s.club_id
+		 WHERE sp.user_id = $1 AND sp.paid_at IS NULL
+		   AND sp.status IN ('registered', 'checked_in', 'checked_out')
+		   AND s.price_model <> 'free' AND s.status NOT IN ('draft', 'cancelled')
+		   AND s.starts_at <= now()
+		 ORDER BY s.starts_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := []models.UnpaidSession{}
+	for rows.Next() {
+		var u models.UnpaidSession
+		if err := rows.Scan(&u.SessionID, &u.ClubID, &u.ClubName, &u.SessionName, &u.StartsAt, &u.HasReceipt, &u.Amount); err != nil {
+			return nil, err
+		}
+		result = append(result, u)
+	}
+	return result, rows.Err()
 }

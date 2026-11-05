@@ -16,8 +16,9 @@ type Props = {
   onHome: () => void;
 };
 
-// /i/:token (DP-028). Signed out, the auth screens come first and bring
-// the person back here afterwards (restoreIntendedUrl). Signed in, it
+// /i/:token signed in (DP-028). Signed out, InvitePreviewScreen shows the
+// target first and sign-up brings the person back here afterwards
+// (restoreIntendedUrl). Here it
 // opens the link — which records the invitation, so a non-member can see
 // the Session — and goes straight on to the Session or Community.
 export function InviteLandingScreen({ token, onResolved, onHome }: Props) {

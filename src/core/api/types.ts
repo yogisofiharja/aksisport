@@ -76,6 +76,8 @@ export type Club = {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  // DP-032: Reguler members pay after playing.
+  regulerPayLater?: boolean;
 };
 
 // What anyone signed in may see of a Community they are not necessarily
@@ -140,6 +142,8 @@ export type ClubMember = {
   avatarVersion?: number;
   isOnline: boolean;
   role: ClubRole;
+  // DP-032: the built-in Reguler tag — joins without approval.
+  reguler?: boolean;
   joinedAt: string;
 };
 
@@ -290,6 +294,9 @@ export type SessionParticipant = {
   lateCancel?: boolean;
   // An organizer corrected attended / no-show after the Session ended.
   attendanceCorrected?: boolean;
+  // DP-032: an organizer confirmed this player's payment. Kept apart
+  // from status: some players get their place first and pay after.
+  paid?: boolean;
 };
 
 // DP-029 Attendance, over completed Sessions.
@@ -641,3 +648,16 @@ export type ClubChatState = {
 export type Venue = { id: string; name: string; placeId?: string; uses: number };
 // A Google Maps suggestion, shown and never stored.
 export type PlaceSuggestion = { placeId: string; name: string; address: string };
+
+// One of Home's "You haven't paid" reminders (DP-032): a priced Session
+// the player has played (or is playing) without a confirmed payment.
+export type UnpaidSession = {
+  sessionId: string;
+  clubId: string;
+  clubName: string;
+  sessionName?: string;
+  startsAt: string;
+  // They sent a receipt and wait for an organizer.
+  hasReceipt: boolean;
+  amount?: number;
+};

@@ -556,17 +556,23 @@ Players, `matches` opens Matches.
   minus live matches). Matches carry no court number, so courts are
   counted, never named.
 - **One bottom action** (`ActionBar`, not on Chat, which has its own
-  compose bar): Request to join (not yet a player and not ruled out by a
-  Strict Skill Level; shows the price and spots left) → Pay (waitlisted
+  compose bar): Request to join — **Join** for an owner/admin or a
+Reguler member while the Session isn't Full, since they go straight in
+(DP-032) — (not yet a player, not ruled out by a
+  Strict Skill Level, and not the Session's creator — another owner/admin
+  gets it too; shows the price and spots left) → Pay (waitlisted
   on a priced Session; opens Players) → Check in (registered, inside the
   Check-In Window) → Start my match (checked in, matches open, a queued
   match of theirs and none live). An owner/admin with no step of their
   own gets Generate matches (opens AddMatch on its Generate tab). Nothing
   shows when no action applies.
-- **⋯ menu** (owner/admin, `SessionMenuSheet.tsx`): Join as player (an
-  organizer with no place in the Session — the same flow as Request to
+- **⋯ menu** (owner/admin, `SessionMenuSheet.tsx`): Join as player (the
+  Session's creator with no place in it — the same flow as Request to
   join; hidden once they play, while Draft, when a Strict Skill Level
-  rules them out, and when Full, Completed or Cancelled), Edit session (the
+  rules them out, and when Full, Completed or Cancelled), Generate
+  matches (singles/doubles, active and published, when the bottom bar
+  isn't already Generate matches — e.g. an admin who isn't the creator),
+  Edit session (the
   editable window: draft, or published and not started), Match setup (a
   Sheet with the read-only Match Setup summary and Edit — see "Match
   Setup" below), Share session link (`sessionLink()`), and Cancel session
@@ -680,11 +686,10 @@ its own labelled grid ("Requested · 2"), only when it has someone in it:
 **Cancelled**; no-show and cancelled players are drawn faded. A circle
 shows initials (no `avatarUrl` on `SessionParticipant` yet; a guest's is
 dashed), the name ("You" for the viewer) and one line: Paid / Receipt
-sent / Not paid on a paid Session for a member who went through the payment step
-(`paymentStatus`, `core/sessions/paymentStatus.ts`), else "Host" or
-"Guest". The host and guests never have a payment line, since
-organizer-initiated places skip approval and payment (DP-012 v0.29.0),
-and the viewer's own "Your payment" card follows the same rule. (A free
+sent / Not paid on a paid Session for every player with an account,
+the host included (`paymentStatus`, `core/sessions/paymentStatus.ts`,
+from the participant's `paid` flag, DP-032), else "Host" or "Guest".
+Guests never have a payment line. (A free
 Session never has Waitlist players or payment lines: approval registers
 the member directly, v0.24.0.)
 
@@ -693,13 +698,16 @@ the status (with host or guest), **View profile** (DP-019) and the
 payment status. Owner/admin, while the Session is active, also get
 **Approve** and **Decline** on a request, **Check in** on a confirmed
 player (inside the Check-In Window), the receipt and **Confirm payment**
-while awaited (`ParticipantPayment`), and **Remove**. A receipt
+while unpaid — on the waitlist or already playing, also after the
+Session ends (`ParticipantPayment`), and **Remove**. A receipt
 opens at full size on a tap (`design-system/feedback/ImageViewer`; chat
 photos open the same way).
 
-**Organizer to-do** (owner/admin, published and active): a heat callout
-on Details and Players — "1 request to join · 2 receipts to check ·
-Review" — opens the first one's sheet (requests first); the same count
+**Organizer to-do** (owner/admin, published and not cancelled): a heat
+callout on Details and Players — "1 request to join · 2 receipts to
+check · 3 not paid · Review" — opens the first one's sheet (requests,
+then receipts, then unpaid). "Not paid" counts players with a place who
+sent nothing, once the Session has started (`unpaidAfterStart`); the same count
 rides on the Players tab (`organizerToDo`,
 `core/sessions/paymentStatus.ts`). A priced Session whose Community has
 no bank account shows organizers "No bank account yet, so players can't
@@ -711,7 +719,10 @@ which opens Community settings), and on the create form's check step.
   amount and what to do, or Receipt sent with the receipt and Replace
   receipt — then the bank accounts, each with a Copy button for the
   number. Their bottom action is Pay (to Players), which on Players reads
-  Upload receipt; once a receipt is sent there is no bottom action.
+  Upload receipt; once a receipt is sent there is no bottom action. A
+  player who got their place first (DP-032) sees Pay once the Session
+  has started, after their other steps, and as the only action once it
+  has ended.
 - A player who has paid: Paid, "Payment confirmed" and the receipt —
   no amount, no Replace; the bank accounts stay below.
 - Organizers and anyone else: the bank accounts only (no amount due).
