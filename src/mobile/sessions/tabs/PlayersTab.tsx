@@ -75,10 +75,12 @@ export function PlayersTab({
 
   // A player as a circle: the green check once they've checked in; under
   // the name, their payment on a priced Session (Paid / Not paid — anyone
-  // with an account, the host too, DP-032), else "Host" or "Guest". Someone
+  // with an account, the host too; shown to organizers, and to the player
+  // for their own, DP-032), else "Host" or "Guest". Someone
   // who cancelled or didn't show is faded.
   function renderParticipantCircle(p: SessionParticipant) {
-    const status = paymentStatus(p, session);
+    // DP-032: organizers see everyone's payment; a player only their own.
+    const status = isOwnerOrAdmin || (p.userId != null && p.userId === myUserId) ? paymentStatus(p, session) : undefined;
     const shown = shownStatus(p, session);
     const isGuest = !p.userId;
     const isHost = Boolean(p.userId) && p.userId === session.createdBy;

@@ -687,15 +687,16 @@ its own labelled grid ("Requested · 2"), only when it has someone in it:
 shows initials (no `avatarUrl` on `SessionParticipant` yet; a guest's is
 dashed), the name ("You" for the viewer) and one line: Paid / Receipt
 sent / Not paid on a paid Session for every player with an account,
-the host included (`paymentStatus`, `core/sessions/paymentStatus.ts`,
+the host included — shown to owners/admins for everyone, and to a player
+only on their own circle (`paymentStatus`, `core/sessions/paymentStatus.ts`,
 from the participant's `paid` flag, DP-032), else "Host" or "Guest".
 Guests never have a payment line. (A free
 Session never has Waitlist players or payment lines: approval registers
 the member directly, v0.24.0.)
 
 Tapping any circle — the host's too — opens `PlayerRowSheet` for anyone:
-the status (with host or guest), **View profile** (DP-019) and the
-payment status. Owner/admin, while the Session is active, also get
+the status (with host or guest), **View profile** (DP-019) and — for
+owners/admins, or on your own sheet — the payment status. Owner/admin, while the Session is active, also get
 **Approve** and **Decline** on a request, **Check in** on a confirmed
 player (inside the Check-In Window), the receipt and **Confirm payment**
 while unpaid — on the waitlist or already playing, also after the

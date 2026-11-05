@@ -1111,12 +1111,10 @@ on top of what DP-002/DP-010 already defined:
   path. Re-uploading replaces the previous receipt; no history is
   kept.
 
-**Visibility, explicitly**: every participant can see everyone else's
-paid/awaiting status (the existing `registered`/`waitlist` distinction,
-just framed plainly as "Paid"/"Awaiting" on each player's row) — but a receipt
-**image** is visible only to the uploading participant themselves and
-the Club's owner/admin. No other participant can ever view someone
-else's receipt, even though they can see that person's payment status.
+**Visibility, explicitly** (revised 2026-11-05, DP-032): a player's
+payment status (Paid / Receipt sent / Not paid) and receipt are visible
+only to that player and the Club's owner/admin. Other players see no one
+else's payment.
 This is enforced server-side (the receipt-serving endpoint checks
 identity, not just "can view this Session"), not just hidden in the
 UI.
@@ -2119,6 +2117,12 @@ The Host Playing host also pays.
 Straight in only while there's a free spot; on a Full Session the join
 becomes a normal request for the organizer to decide. Strict Skill
 Level (DP-008) still rules a player out.
+
+### Who sees payment
+
+Only the player themselves and the Community's owners/admins see a
+player's payment status. Other players never see whether someone has
+paid.
 
 ### Not paid after playing
 

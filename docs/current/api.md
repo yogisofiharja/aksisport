@@ -471,7 +471,7 @@ Attendance (DP-029, `server/internal/db/attendance.go`): only completed Sessions
 
 `session_participants.status` now also accepts `checked_out`/`cancelled`/`no_show` alongside the original `registered`/`checked_in`, plus `requested`/`waitlist` (v0.10.0, DP-002 Join Approval) — see `lifecycle-session.md`. `participated` was dropped (never set by any code path).
 
-Every participant read also includes `paid` (DP-032, `paid_at IS NOT NULL`: an organizer confirmed payment — kept apart from `status`, since some players get their place first and pay after; migration `0048` marked every existing place on a priced Session paid). Every participant read (list and single) now also includes `hasReceipt` (Milestone 5, DP-012) — a bool computed from `receipt_image_data IS NOT NULL`, never the image bytes themselves. See the receipt endpoints above for how the bytes are actually fetched, and their narrower access rule.
+Every participant read also includes `paid` (DP-032, `paid_at IS NOT NULL`; `GET .../participants` blanks `paid`, `hasReceipt` and `receiptVersion` on everyone but the caller unless they are an owner/admin: an organizer confirmed payment — kept apart from `status`, since some players get their place first and pay after; migration `0048` marked every existing place on a priced Session paid). Every participant read (list and single) now also includes `hasReceipt` (Milestone 5, DP-012) — a bool computed from `receipt_image_data IS NOT NULL`, never the image bytes themselves. See the receipt endpoints above for how the bytes are actually fetched, and their narrower access rule.
 
 ### Conversations — Session Chat (DP-011) & Contact Organizer (DP-013)
 

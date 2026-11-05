@@ -647,13 +647,24 @@ func RegisterSessionRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, verifier *au
 
 	authed.GET("/sessions/:id/participants", func(c *gin.Context) {
 		sessionID := c.Param("id")
-		if _, _, ok := requireSessionAccess(c, pool, sessionID); !ok {
+		_, role, ok := requireSessionAccess(c, pool, sessionID)
+		if !ok {
 			return
 		}
 		participants, err := dbpkg.ListParticipants(c.Request.Context(), pool, sessionID)
 		if err != nil {
 			respondInternal(c, err)
 			return
+		}
+		// DP-032 (2026-11-05): payment is between a player and the
+		// organizers. Anyone else gets no one's but their own.
+		if !isOwnerOrAdmin(role) {
+			me := authjwt.CurrentUser(c).ID
+			for i := range participants {
+				if participants[i].UserID == nil || *participants[i].UserID != me {
+					participants[i].Paid, participants[i].HasReceipt, participants[i].ReceiptVersion = false, false, nil
+				}
+			}
 		}
 		c.JSON(http.StatusOK, participants)
 	})

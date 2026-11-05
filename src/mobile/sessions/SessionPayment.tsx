@@ -260,8 +260,10 @@ type ParticipantPaymentProps = {
 export function ParticipantPayment({ sessionId, session, participant: p, isOwnerOrAdmin, myUserId, busy, onConfirmPayment }: ParticipantPaymentProps) {
   const { t } = useTranslation();
   const imageHeaders = useImageHeaders();
-  if (!paymentStatus(p, session)) return null;
-  const canSeeReceipt = (isOwnerOrAdmin || (p.userId != null && p.userId === myUserId)) && p.hasReceipt;
+  // DP-032: a player's payment is theirs and the organizers' to see.
+  const isMe = p.userId != null && p.userId === myUserId;
+  if (!paymentStatus(p, session) || (!isOwnerOrAdmin && !isMe)) return null;
+  const canSeeReceipt = p.hasReceipt;
   return (
     <VStack className="gap-3 mb-4">
       <Text className={`font-bold ${hasPaid(p) ? 'text-success dark:text-success-dark' : 'text-heat-strong dark:text-heat-strong-dark'}`}>

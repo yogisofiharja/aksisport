@@ -152,6 +152,33 @@ func TestJoinStraightInAndPayLater(t *testing.T) {
 		}
 	})
 
+	t.Run("only organizers see someone else's payment", func(t *testing.T) {
+		paidOf := func(u apiUser) bool {
+			t.Helper()
+			var list []models.SessionParticipant
+			w := call(u, http.MethodGet, "/v1/sessions/"+sessionID+"/participants", "")
+			if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil {
+				t.Fatal(err)
+			}
+			for _, p := range list {
+				if p.UserID != nil && *p.UserID == reguler.id {
+					return p.Paid
+				}
+			}
+			t.Fatalf("reguler not listed: %s", w.Body.String())
+			return false
+		}
+		if !paidOf(owner) {
+			t.Error("the owner doesn't see the Reguler's payment")
+		}
+		if !paidOf(reguler) {
+			t.Error("the Reguler doesn't see their own payment")
+		}
+		if paidOf(plain) {
+			t.Error("another member sees the Reguler's payment")
+		}
+	})
+
 	t.Run("the unpaid list waits for the start", func(t *testing.T) {
 		var list []models.UnpaidSession
 		w := call(admin, http.MethodGet, "/v1/me/unpaid", "")
