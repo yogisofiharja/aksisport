@@ -32,7 +32,7 @@ export function AuthHero({ title, subtitle, logoLabel = 'Aksi' }: AuthHeroProps)
           <Circle cx={330} cy={62} r={16} fill={color.ball.light} />
         </Svg>
       </View>
-      <Image source={LOGO} accessibilityLabel={logoLabel} style={{ width: 56, height: 67, marginBottom: 18 }} resizeMode="contain" />
+      <Image source={LOGO} accessibilityLabel={logoLabel} style={{ width: 72, height: 72, marginBottom: 14 }} resizeMode="contain" />
       <Text accessibilityRole="header" className="text-4xl leading-10 font-display-hero text-on-asphalt">
         {title}
       </Text>

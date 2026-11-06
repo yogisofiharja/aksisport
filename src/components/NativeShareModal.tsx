@@ -29,7 +29,8 @@ import { Asset } from 'expo-asset';
 // design system's Logos (heat is allowed on asphalt and photos), trimmed:
 // 303×359.
 const LOGO = require('../../assets/brand/aksi-lockup-heat.png');
-const LOGO_RATIO = 303 / 359;
+// Width over height of the lockup file (760×760, with a little padding).
+const LOGO_RATIO = 1;
 
 export type NativeShareData = {
   matchup: string;

@@ -51,3 +51,6 @@ server/bin/
 # Firebase service account keys — admin access to the project, never commit
 *firebase-adminsdk*.json
 firebase-admin*.json
+
+# The web page template (favicons, manifest). Some global gitignores drop index.html.
+!public/index.html

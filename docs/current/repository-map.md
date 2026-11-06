@@ -12,6 +12,10 @@ artifacts and dependency directories (`node_modules/`, `ios/`,
 │                              docs/archive/ below for everything that used to live here.
 ├── README.md                Setup only
 │
+├── public/                  Copied to the web build's root: index.html (the page
+│                              template, with favicon/manifest links), favicons,
+│                              site.webmanifest, sw.js (push), sounds/
+│
 ├── docs/
 │   ├── product/               Target product docs (vision, domain, roadmap, terminology,
 │   │                           milestone-1) — navigation/principles/context/interaction
